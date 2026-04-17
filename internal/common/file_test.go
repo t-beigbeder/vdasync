@@ -12,7 +12,6 @@ func TestFileFunctions(t *testing.T) {
 		err error
 		bs  []byte
 	)
-	t.TempDir()
 	ft := path.Join(t.TempDir(), "TestFileFunctions.dat")
 	require.False(t, FileExists(ft))
 	require.Nil(t, WriteFile(ft, []byte(t.Name())))
@@ -22,7 +21,7 @@ func TestFileFunctions(t *testing.T) {
 	bs, err = LoadFile(ft)
 	require.Nil(t, err)
 	require.Equal(t, []byte(t.Name()), bs)
-	var bs2 = [MaxLoadFileSize+1]byte{}
+	var bs2 = [MaxLoadFileSize + 1]byte{}
 	bs = bs2[:]
 	require.Nil(t, WriteFile(ft, bs))
 	sz, err = FileSize(ft)
