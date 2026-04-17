@@ -47,7 +47,8 @@ func main() {
 			return nil, fmt.Errorf("password rejected for %q", c.User())
 		},
 		PublicKeyCallback: func(conn ssh.ConnMetadata, key ssh.PublicKey) (*ssh.Permissions, error) {
-			return nil, fmt.Errorf("key %v, not yet implemented", key)
+			// return nil, fmt.Errorf("key %v, not yet implemented", key)
+			return nil, nil
 		},
 	}
 
