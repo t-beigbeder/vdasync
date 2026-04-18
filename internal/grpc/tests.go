@@ -27,8 +27,7 @@ func (s *opeServer) Shutdown(context.Context, *opegrpc.Value) (*opegrpc.Bool, er
 }
 
 func RunGrpcTestServer() (int, context.CancelFunc, error) {
-	ctx, cCancel := context.WithCancel(context.Background())
-	_ = ctx // FIXME
+	_, cCancel := context.WithCancel(context.Background())
 	var (
 		err  error
 		port int
@@ -43,8 +42,12 @@ func RunGrpcTestServer() (int, context.CancelFunc, error) {
 		return port, cCancel, err
 	}
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", testHost, port))
-	_ = lis // FIXME
 	grpcServer := grpc.NewServer(opts...)
 	opegrpc.RegisterOpeServer(grpcServer, &opeServer{})
-	return port, cCancel, nil
+	go grpcServer.Serve(lis)
+	cancel := func() {
+		cCancel()
+		grpcServer.GracefulStop()
+	}
+	return port, cancel, nil
 }
