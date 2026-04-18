@@ -2,6 +2,32 @@
 
 Versatile data access and synchronization tool
 
+## Design
+
+Dssa: data storage system abstraction
+
+- local files
+- grpc server to local files or any plugin
+- plugin through grpc
+  - s3
+  - sftp client
+
+API, cli-tool, both through configuration file for enhanced operability and better security
+
+API
+
+- list
+- get
+- put
+- delete
+- stat, setStat
+
+### First steps
+
+- List impl. local, grpc server and plugin (last just for POC)
+- full local and grpc server implementation
+- s3 client could be useful to speed up startup and make storage cost lower
+
 ## Dev
 
 ### Go
@@ -15,6 +41,14 @@ Versatile data access and synchronization tool
 [run/debug](https://github.com/golang/vscode-go/wiki/debugging#launchjson-attributes)
 
     go install -v github.com/go-delve/delve/cmd/dlv@latest
+
+### Protobuf
+
+https://protobuf.dev/installation/
+
+    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+    go get google.golang.org/grpc
 
 ### TODO
 

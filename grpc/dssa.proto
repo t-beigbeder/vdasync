@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package dssa;
+
+option go_package = "./dssagrpc";
+
+service DataStorageSystem {
+    rpc List(Path) returns (DataEntries) {}
+}
+
+message Path {
+    string path = 1;
+}
+
+message DataEntries {
+    repeated DataEntry entries = 1;
+}
+
+message DataEntry {
+    string name = 1;
+    bool is_dir = 2;
+}
