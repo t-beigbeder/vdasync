@@ -54,4 +54,5 @@ https://protobuf.dev/installation/
 
 ### TODO
 
-SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
+- SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
+- yaml https://go.dev/play/p/SPwo265oeO2
