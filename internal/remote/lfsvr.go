@@ -20,7 +20,7 @@ func (s *localFilesServer) List(ctx context.Context, p *dssagrpc.Path) (*dssagrp
 		return nil, err
 	}
 	var dtes dssagrpc.DataEntries
-	for _, de := range	des {
+	for _, de := range des {
 		dtes.Entries = append(dtes.Entries, &dssagrpc.DataEntry{Name: de.Name(), IsDir: de.IsDir()})
 	}
 	return &dtes, nil

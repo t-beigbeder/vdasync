@@ -26,8 +26,11 @@ func (s *opeServer) Shutdown(ctx context.Context, v *opegrpc.Value) (*opegrpc.Bo
 	if err != nil {
 		return nil, err
 	}
-	go func ()  {
+	go func() {
 		time.Sleep(du)
+		if s.grpcServer == nil {
+			return
+		}
 		s.grpcServer.Stop()
 	}()
 	return &opegrpc.Bool{Value: true}, nil
