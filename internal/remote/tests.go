@@ -54,51 +54,38 @@ func RunGrpcTestServer() (int, context.CancelFunc, error) {
 	return doRunGrpcTestServer(0)
 }
 
-func checkServerReadiness(port int) (
-	opeCli opegrpc.OpeClient, dsCli dssagrpc.DataStorageSystemClient, err error,
+func checkLocalServerReadiness(port int) (
+	cli OpeDssaClient, err error,
 ) {
-	var opts []grpc.DialOption
-	opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", testHost, port), opts...)
-	if err != nil {
-		return
-	}
-	opeCli = opegrpc.NewOpeClient(conn)
-	_, err = opeCli.Ready(context.Background(), &opegrpc.Empty{})
-	if err != nil {
-		conn.Close()
-		return
-	}
-	dsCli = dssagrpc.NewDataStorageSystemClient(conn)
-	return
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	return checkServerReadiness(fmt.Sprintf("%s:%d", testHost, port), opts...)
 }
 
 func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration) (
-	opegrpc.OpeClient, dssagrpc.DataStorageSystemClient, context.CancelFunc, error,
+	OpeDssaClient, context.CancelFunc, error,
 ) {
 	var (
-		opeCli opegrpc.OpeClient
-		dsCli  dssagrpc.DataStorageSystemClient
 		cancel context.CancelFunc
 		err    error
+		cli    OpeDssaClient
 	)
 	port, cancel, err := doRunGrpcTestServer(serverTToListen)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("doGrpcGetTestClient: doRunGrpcTestServer failed %v", err)
+		return nil, nil, fmt.Errorf("doGrpcGetTestClient: doRunGrpcTestServer failed %v", err)
 	}
 	for count := 0; count < retryCount; count++ {
-		opeCli, dsCli, err = checkServerReadiness(port)
+		cli, err = checkLocalServerReadiness(port)
 		if err == nil {
 			break
 		}
 		time.Sleep(time.Duration(retryDelay))
 		retryDelay *= 2
 	}
-	return opeCli, dsCli, cancel, nil
+	return cli, cancel, nil
 }
 
 func GrpcGetTestClient() (
-	opegrpc.OpeClient, dssagrpc.DataStorageSystemClient, context.CancelFunc, error,
+	OpeDssaClient, context.CancelFunc, error,
 ) {
 	return doGrpcGetTestClient(0, 3, 20*time.Millisecond)
 }

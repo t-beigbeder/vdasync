@@ -1,9 +1,13 @@
 package remote
 
 import (
+	"context"
+	"fmt"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
 	"google.golang.org/grpc"
+	"net"
 )
 
 type OpeDssaClient interface {
@@ -11,13 +15,67 @@ type OpeDssaClient interface {
 	dssagrpc.DataStorageSystemClient
 }
 
-func NewOpeDssaClient(target string, opts ...grpc.DialOption) (OpeDssaClient, error) {
+type opeDssaClient struct {
+	opegrpc.OpeClient
+	dssagrpc.DataStorageSystemClient
+}
+
+func NewOpeDssaClient(target string, opts ...grpc.DialOption) (OpeDssaClient, *grpc.ClientConn, error) {
 	conn, err := grpc.NewClient(target, opts...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	oc := opegrpc.NewOpeClient(conn)
 	dc := dssagrpc.NewDataStorageSystemClient(conn)
-	_, _ = oc, dc
-	return nil, err // FIXME
+	return opeDssaClient{OpeClient: oc, DataStorageSystemClient: dc}, conn, nil
+}
+
+func checkServerReadiness(target string, opts ...grpc.DialOption) (
+	cli OpeDssaClient, err error,
+) {
+	cli, conn, err := NewOpeDssaClient(target, opts...)
+	_, err = cli.Ready(context.Background(), &opegrpc.Empty{})
+	if err != nil {
+		conn.Close()
+		return
+	}
+	return
+}
+
+func RunOpeDssaServer(
+	ctx context.Context,
+	host string,
+	port int,
+	opts []grpc.ServerOption,
+	srvBuilder func(*grpc.Server) dssagrpc.DataStorageSystemServer,
+) (
+	int, context.CancelFunc, error,
+) {
+	_, cCancel := context.WithCancel(context.Background())
+	var (
+		err error
+	)
+	defer func() {
+		if err != nil {
+			cCancel()
+		}
+	}()
+	if port == 0 {
+		if port, err = common.GetFreePort(); err != nil {
+			return port, cCancel, err
+		}
+	}
+	grpcServer := grpc.NewServer(opts...)
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
+	if err != nil {
+		return port, cCancel, err
+	}
+	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
+	dssagrpc.RegisterDataStorageSystemServer(grpcServer, srvBuilder(grpcServer))
+	go grpcServer.Serve(lis)
+	cancel := func() {
+		cCancel()
+		grpcServer.Stop()
+	}
+	return port, cancel, nil
 }
