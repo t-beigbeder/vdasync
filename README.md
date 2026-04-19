@@ -4,7 +4,7 @@ Versatile data access and synchronization tool
 
 ## Design
 
-Dssa: data storage system abstraction
+### Dssa: data storage system abstraction
 
 - local files
 - grpc server to local files or any plugin
@@ -22,20 +22,22 @@ API
 - delete
 - stat, setStat
 
+### Fast synchronization with parallelism
+
+Dssa walk requests pushed on worker queue
+
 ### First steps
 
 - List impl. local, grpc server and plugin (last just for POC)
 - full local and grpc server implementation
-- s3 client could be useful to speed up startup and make storage cost lower
 
 ## Dev
 
 ### Go
 
-    go mod init otvl_dtacsy
-    go get github.com/pkg/sftp
+    go clean -modcache
 
-### code-server
+### code-server golang extension
 
 [go extension](https://github.com/golang/vscode-go/wiki/)
 [run/debug](https://github.com/golang/vscode-go/wiki/debugging#launchjson-attributes)
@@ -52,4 +54,4 @@ https://protobuf.dev/installation/
 
 ### TODO
 
-Check authorized keys, see https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
+SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig

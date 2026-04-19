@@ -39,8 +39,8 @@ func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, erro
 		if lErr != nil {
 			return
 		}
-		opegrpc.RegisterOpeServer(grpcServer, &opeServer{})
-		dssagrpc.RegisterDataStorageSystemServer(grpcServer, &localFilesServer{})
+		opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
+		dssagrpc.RegisterDataStorageSystemServer(grpcServer, &localFilesServer{grpcServer: grpcServer})
 		grpcServer.Serve(lis)
 	}()
 	cancel := func() {

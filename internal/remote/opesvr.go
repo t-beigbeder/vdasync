@@ -35,3 +35,7 @@ func (s *opeServer) Shutdown(ctx context.Context, v *opegrpc.Value) (*opegrpc.Bo
 	}()
 	return &opegrpc.Bool{Value: true}, nil
 }
+
+func NewOpeServer(grpcServer *grpc.Server) opegrpc.OpeServer {
+	return &opeServer{grpcServer: grpcServer}
+}

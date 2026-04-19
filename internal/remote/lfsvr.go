@@ -25,3 +25,7 @@ func (s *localFilesServer) List(ctx context.Context, p *dssagrpc.Path) (*dssagrp
 	}
 	return &dtes, nil
 }
+
+func NewLocalFilesServer(grpcServer *grpc.Server) dssagrpc.DataStorageSystemServer {
+	return &localFilesServer{grpcServer: grpcServer}
+}
