@@ -8,16 +8,24 @@ vPATH := $(shell echo ${PATH})
 
 .PHONY: test
 test:	## go test the application
-	go test ./...
+	go test -v ./...
 
 .PHONY: test-again
 test-again:	export QSTF_TEST_FULL = 1
 test-again:	## go test the application again
-	go test -count=1 ./...
+	go test -v -count=1 ./...
 
-.PHONY: build
-build:	## go build all
-	go build ./...
+.PHONY: build-test
+build-test:	## go build test cmd
+	go build -o bin/test cmd/test/main.go
+
+.PHONY: run-test
+run-test:	## go build and run test cmd
+run-test: build-test
+	bin/test
+
+build: ## go build all
+build: build-test
 
 .PHONY: format
 format:	## format go code
