@@ -56,3 +56,5 @@ https://protobuf.dev/installation/
 
 - SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
 - yaml https://go.dev/play/p/SPwo265oeO2
+- logging
+- plugin launch and stop

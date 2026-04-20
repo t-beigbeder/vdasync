@@ -6,12 +6,15 @@ import (
 	"testing"
 )
 
+type TestYamlFuncsEmbeddedStruct struct {
+	D string `yaml`
+}
 type TestYamlFuncsStruct struct {
-	A int      `yaml:"A"`
-	B string   `yaml:"B"`
-	C struct { // FIXME
-		D string `yaml:"D"`
-	}
+	A int      `yaml`
+	B string   `yaml`
+	C struct {
+		D string `yaml`
+	} `yaml`
 }
 
 func TestYamlFuncs(t *testing.T) {
@@ -21,5 +24,8 @@ func TestYamlFuncs(t *testing.T) {
 	require.Nil(t, err)
 	var ty2 TestYamlFuncsStruct
 	err = YamlLoad("../../testdata/internal/common/test.yaml", &ty2)
+	require.Nil(t, err)
+	ty3 := make(map[string]interface{})
+	err = YamlLoad("../../testdata/internal/common/test.yaml", &ty3)
 	require.Nil(t, err)
 }

@@ -1,4 +1,4 @@
-A: 42
-B: "contenu de b"
-D:
-    D: "contenu de d"
+a: 42
+b: "contenu de B"
+c:
+  d: "contenu de D"
