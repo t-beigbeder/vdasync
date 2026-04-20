@@ -22,7 +22,7 @@ build-test:	## go build test cmd
 .PHONY: run-test
 run-test:	## go build and run test cmd
 run-test: build-test
-	bin/test
+	bin/test -is-fatal
 
 build: ## go build all
 build: build-test
