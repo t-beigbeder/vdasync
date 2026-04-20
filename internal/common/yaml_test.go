@@ -10,8 +10,8 @@ type TestYamlFuncsEmbeddedStruct struct {
 	D string `yaml`
 }
 type TestYamlFuncsStruct struct {
-	A int      `yaml`
-	B string   `yaml`
+	A int    `yaml`
+	B string `yaml`
 	C struct {
 		D string `yaml`
 	} `yaml`
