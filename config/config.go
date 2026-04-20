@@ -8,23 +8,23 @@ import (
 )
 
 type PluginType struct {
-	Name           string `yaml`
-	Type           string `yaml`
-	ExecutablePath string `yaml:"executablePath"` // defaults to current executable
-	Port           int    `yaml`
+	Name           string   `yaml`
+	Type           string   `yaml`
+	ExecutablePath string   `yaml:"executablePath"` // defaults to current executable
+	AddArgs        []string `yaml:"addArgs"`
+	Port           int      `yaml`
 }
 
 type CliConfig struct {
-	Version   string       `yaml`
-	Plugins   []PluginType `yaml`
-	DummyTest string       `yaml:"dummyTest"`
+	Version   string        `yaml`
+	Plugins   []*PluginType `yaml`
+	DummyTest string        `yaml:"dummyTest"`
 }
 
 const DefaultCliYamlConfig string = `
 version: "0.1"
 plugins:
 dummyTest: nothing
-
 `
 
 const CliYamlConfigSample string = `
@@ -32,7 +32,8 @@ plugins:
 - name: localFilesSample
   type: localFiles
   port: 10314
-
+  addArgs:
+  - "-is-plugin"
 `
 
 func configurePlugins(config *CliConfig) error {

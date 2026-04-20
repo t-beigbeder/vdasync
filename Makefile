@@ -18,11 +18,13 @@ test-again:	## go test the application again
 .PHONY: build-test
 build-test:	## go build test cmd
 	go build -o bin/test cmd/test/main.go
+	go build -o bin/testgrpc cmd/testgrpc/main.go
 
 .PHONY: run-test
 run-test:	## go build and run test cmd
 run-test: build-test
-	bin/test -is-fatal
+	@echo skip bin/test -is-fatal
+	bin/testgrpc
 
 build: ## go build all
 build: build-test

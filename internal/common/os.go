@@ -2,12 +2,12 @@ package common
 
 import (
 	"fmt"
-	"os"
 	"log/slog"
+	"os"
 )
 
 func Fatal(log *slog.Logger, err error) {
-		log.Error("error", "details", err)
-		fmt.Fprintf(os.Stderr, "error %s", err)
-		os.Exit(-1)
+	log.Error("fatal error", "details", err)
+	fmt.Fprintf(os.Stderr, "fatal error %s\n", err)
+	os.Exit(-1)
 }

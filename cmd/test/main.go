@@ -23,8 +23,9 @@ func main() {
 		common.Fatal(log, err)
 	}
 	if !isChild {
-		log.Info("main", "details", fmt.Sprintf("the executable is %s", exe))
-		common.GetLogger().Info("main", "details", "let's run a sub-process")
+		log = log.With("app", "main")
+		log.Info("started", "details", fmt.Sprintf("the executable is %s", exe))
+		log.Info("just to say", "details", "let's run a sub-process")
 		var cmd *exec.Cmd
 		if isFatal {
 			cmd = exec.Command(exe, "-is-child", "-is-fatal")
@@ -39,12 +40,13 @@ func main() {
 		}
 		err = cmd.Wait()
 		if err != nil {
-			common.Fatal(log, err)
+			common.Fatal(log, fmt.Errorf("child wait error %s", err))
 		}
 	} else {
-		log.Info("child", "details", "here is the child")
+		log = log.With("app", "child")
+		log.Info("started", "details", "here is the child")
 		if isFatal {
-			common.Fatal(log, fmt.Errorf("failed"))
+			common.Fatal(log, fmt.Errorf("child failing on demand"))
 		}
 	}
 }
