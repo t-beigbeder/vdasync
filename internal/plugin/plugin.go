@@ -11,9 +11,9 @@ import (
 
 type RunningPlugin struct {
 	plugin *config.PluginType
-	port int
-	cmd *exec.Cmd
-	err error
+	port   int
+	cmd    *exec.Cmd
+	err    error
 }
 
 func RunConfFile(confPath string) ([]*RunningPlugin, error) {
