@@ -28,14 +28,12 @@ plugins:
   addArgs:
   - "-is-plugin"
 `
-	cmds, errs := RunConfData(path.Join(t.TempDir(), "testgrpc.yml"), setExecutable(conf))
-	if len(errs) > 0 {
-		t.Error(errs)
-	}
-	require.Zero(t, len(errs))
-	require.Equal(t, 1, len(cmds))
-	errs = WaitFor(cmds)
-	require.Zero(t, len(errs))
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginOk.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	WaitFor(rps)
+	require.Zero(t, len(Errors(rps)))
 }
 
 func TestRunPluginsOk(t *testing.T) {
@@ -52,58 +50,55 @@ plugins:
   addArgs:
   - "-is-plugin"
 `
-	cmds, errs := RunConfData(path.Join(t.TempDir(), "testgrpc.yml"), setExecutable(conf))
-	if len(errs) > 0 {
-		t.Error(errs)
-	}
-	require.Zero(t, len(errs))
-	require.Equal(t, 2, len(cmds))
-	errs = WaitFor(cmds)
-	require.Zero(t, len(errs))
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOk.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 2, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	WaitFor(rps)
+	require.Zero(t, len(Errors(rps)))
 }
 
 func TestRunPluginsOneMisConf(t *testing.T) {
 	const conf string = `
 plugins:
-- name: localFilesSample1
+- name: localFilesSample1b
   type: localFiles
   executablePath: ${exe}
   addArgs:
   - "-is-plugin"
-- name: localFilesSample2
+- name: localFilesSample2b
   type: localFiles
   executablePath: ${exe}doesnotexist
   addArgs:
   - "-is-plugin"
 `
-	cmds, errs := RunConfData(path.Join(t.TempDir(), "testgrpc.yml"), setExecutable(conf))
-	require.Equal(t, 1, len(errs))
-	require.Equal(t, 1, len(cmds))
-	errs = WaitFor(cmds)
-	require.Zero(t, len(errs))
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOneMisConf.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 2, len(rps))
+	require.Equal(t, 1, len(Errors(rps)))
+	WaitFor(rps)
+	require.Equal(t, 1, len(Errors(rps)))
 }
 
 func TestRunPluginsOneFail(t *testing.T) {
 	const conf string = `
 plugins:
-- name: localFilesSample1
+- name: localFilesSample1c
   type: localFiles
   executablePath: ${exe}
   addArgs:
   - "-is-plugin"
-- name: localFilesSample2
+- name: localFilesSample2c
   type: localFiles
   executablePath: ${exe}
   addArgs:
   - "-is-plugin"
   - "-is-fatal"
 `
-	cmds, errs := RunConfData(path.Join(t.TempDir(), "testgrpc.yml"), setExecutable(conf))
-	if len(errs) > 0 {
-		t.Error(errs)
-	}
-	require.Zero(t, len(errs))
-	require.Equal(t, 2, len(cmds))
-	errs = WaitFor(cmds)
-	require.Equal(t, 1, len(errs))
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOneFail.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 2, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	WaitFor(rps)
+	require.Equal(t, 1, len(Errors(rps)))
 }

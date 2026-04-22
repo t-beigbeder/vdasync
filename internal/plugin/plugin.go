@@ -9,24 +9,32 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
-func RunConfFile(confPath string) ([]*exec.Cmd, []error) {
+type RunningPlugin struct {
+	plugin *config.PluginType
+	port int
+	cmd *exec.Cmd
+	err error
+}
+
+func RunConfFile(confPath string) ([]*RunningPlugin, error) {
 	config, err := config.Load(confPath)
 	if err != nil {
-		return nil, []error{err}
+		return nil, err
 	}
-	cmds := []*exec.Cmd{}
-	errs := []error{}
+	rps := []*RunningPlugin{}
 	for _, plugin := range config.Plugins {
-		port := plugin.Port
-		if port == 0 {
-			port, err = common.GetFreePort()
+		crp := RunningPlugin{plugin: plugin, port: plugin.Port}
+		if crp.port == 0 {
+			port, err := common.GetFreePort()
 			if err != nil {
-				errs = append(errs, fmt.Errorf("GetFreePort for %s error %s", plugin.Name, err))
+				crp.err = fmt.Errorf("GetFreePort for %s error %s", plugin.Name, err)
+				rps = append(rps, &crp)
 				continue
 			}
+			crp.port = port
 		}
 		args := []string{
-			"-port", fmt.Sprint(port),
+			"-port", fmt.Sprint(crp.port),
 			"-name", plugin.Name,
 			"-type", plugin.Type,
 		}
@@ -37,30 +45,40 @@ func RunConfFile(confPath string) ([]*exec.Cmd, []error) {
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
 		err = cmd.Start()
+		crp.cmd = cmd
 		if err != nil {
-			errs = append(errs, fmt.Errorf("child %s start error %s", cmd, err))
-			continue
+			crp.err = fmt.Errorf("child %s start error %s", cmd, err)
 		}
-		cmds = append(cmds, cmd)
+		rps = append(rps, &crp)
 	}
-	return cmds, errs
+	return rps, nil
 }
 
-func RunConfData(tempFilePath string, conf string) ([]*exec.Cmd, []error) {
+func Errors(rps []*RunningPlugin) []error {
+	errs := []error{}
+	for _, rp := range rps {
+		if rp.err != nil {
+			errs = append(errs, rp.err)
+		}
+	}
+	return errs
+}
+
+func RunConfData(tempFilePath string, conf string) ([]*RunningPlugin, error) {
 	if err := common.WriteFile(tempFilePath, []byte(conf)); err != nil {
-		return nil, []error{err}
+		return nil, err
 	}
 	return RunConfFile(tempFilePath)
 }
 
-func WaitFor(cmds []*exec.Cmd) []error {
-	errs := []error{}
-	for _, cmd := range cmds {
-		err := cmd.Wait()
-		if err != nil {
-			errs = append(errs, fmt.Errorf("child %s wait error %s", cmd, err))
+func WaitFor(rps []*RunningPlugin) {
+	for _, rp := range rps {
+		if rp.cmd == nil || rp.err != nil {
 			continue
 		}
+		err := rp.cmd.Wait()
+		if err != nil {
+			rp.err = fmt.Errorf("child %s wait error %s", rp.cmd, err)
+		}
 	}
-	return errs
 }
