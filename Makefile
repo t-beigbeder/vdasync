@@ -17,15 +17,12 @@ test-again:	## go test the application again
 
 .PHONY: build-test
 build-test:	## go build test cmd
-	go build -o bin/test cmd/test/main.go
-	go build -o bin/testroot cmd/testroot/main.go
-	go build -o bin/testplugin cmd/testplugin/main.go
+	go build -o bin/testmain cmd/testmain/main.go
 
 .PHONY: run-test
 run-test:	## go build and run test cmd
 run-test: build-test
-	@echo skip bin/test -is-fatal
-	bin/testroot -is-fatal
+	bin/testmain -is-root
 
 build: ## go build all
 build: build-test

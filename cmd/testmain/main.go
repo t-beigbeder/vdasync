@@ -15,21 +15,23 @@ plugins:
 - name: localFilesSample
   type: localFiles
   port: 10314
-  executablePath: /home/dv-user/locgit/otvl_dtacsy/bin/testgrpc2
+  # executablePath: /home/dv-user/locgit/otvl_dtacsy/bin/test
   addArgs:
   - "-is-plugin"
-  - "-is-fatal"
-  - "-is-syntax-error"
 - name: noTypeErrorSample
+  addArgs:
+  - "-is-plugin"
 `
 
 func main() {
 	var (
+		isRoot    bool
 		isPlugin    bool
 		isFatal     bool
 		port        int
 		name, type_ string
 	)
+	flag.BoolVar(&isRoot, "is-root", false, "")
 	flag.BoolVar(&isPlugin, "is-plugin", false, "")
 	flag.BoolVar(&isFatal, "is-fatal", false, "")
 	flag.IntVar(&port, "port", 0, "grpc server port (plugin only)")
@@ -38,7 +40,7 @@ func main() {
 	flag.Parse()
 	log := common.GetLogger()
 
-	if !isPlugin {
+	if isRoot {
 		log = log.With("app", "main")
 		tf := path.Join(os.TempDir(), "testgrpc.yml")
 		err := common.WriteFile(tf, []byte(CliYamlConfigTest))
@@ -54,7 +56,7 @@ func main() {
 		if len(errs) > 0 {
 			common.Fatal(log, fmt.Errorf("some child(ren) error(s) %s", errs))
 		}
-	} else {
+	} else if isPlugin {
 		log = log.With("app", "child")
 		log.Info("started", "args", fmt.Sprint(os.Args))
 		if type_ == "" {
@@ -63,5 +65,7 @@ func main() {
 		if isFatal {
 			common.Fatal(log, fmt.Errorf("child failing on demand"))
 		}
+	} else {
+		common.Fatal(log, fmt.Errorf("neither root or plugin"))
 	}
 }
