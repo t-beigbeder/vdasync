@@ -25,7 +25,7 @@ plugins:
 
 func main() {
 	var (
-		isRoot    bool
+		isRoot      bool
 		isPlugin    bool
 		isFatal     bool
 		port        int
@@ -47,11 +47,11 @@ func main() {
 		if err != nil {
 			common.Fatal(log, err)
 		}
-		cmds, errs := plugin.RunPlugins(tf)
+		cmds, errs := plugin.RunConfFile(tf)
 		if len(cmds) == 0 && len(errs) > 0 {
 			common.Fatal(log, fmt.Errorf("RunPlugins failed %s", errs))
 		}
-		werrs := plugin.WaitForPlugins(cmds)
+		werrs := plugin.WaitFor(cmds)
 		errs = append(errs, werrs...)
 		if len(errs) > 0 {
 			common.Fatal(log, fmt.Errorf("some child(ren) error(s) %s", errs))

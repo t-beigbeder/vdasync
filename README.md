@@ -59,6 +59,5 @@ https://protobuf.dev/installation/
 ### TODO
 
 - SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
-- yaml https://go.dev/play/p/SPwo265oeO2
-- logging
-- plugin launch and stop
+- internal/remote/lfsvr.go local refactoring to generalized Dssa implem
+(so accessible in remote) would be to consider

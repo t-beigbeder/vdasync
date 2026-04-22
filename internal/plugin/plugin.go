@@ -9,7 +9,7 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
-func RunPlugins(confPath string) ([]*exec.Cmd, []error) {
+func RunConfFile(confPath string) ([]*exec.Cmd, []error) {
 	config, err := config.Load(confPath)
 	if err != nil {
 		return nil, []error{err}
@@ -46,7 +46,14 @@ func RunPlugins(confPath string) ([]*exec.Cmd, []error) {
 	return cmds, errs
 }
 
-func WaitForPlugins(cmds []*exec.Cmd) []error {
+func RunConfData(tempFilePath string, conf string) ([]*exec.Cmd, []error) {
+	if err := common.WriteFile(tempFilePath, []byte(conf)); err != nil {
+		return nil, []error{err}
+	}
+	return RunConfFile(tempFilePath)
+}
+
+func WaitFor(cmds []*exec.Cmd) []error {
 	errs := []error{}
 	for _, cmd := range cmds {
 		err := cmd.Wait()
