@@ -58,7 +58,7 @@ func checkLocalServerReadiness(port int) (
 	cli OpeDssaClient, err error,
 ) {
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	return checkServerReadiness(fmt.Sprintf("%s:%d", testHost, port), opts...)
+	return CheckServerReadiness(fmt.Sprintf("%s:%d", testHost, port), opts...)
 }
 
 func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration) (

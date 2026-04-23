@@ -16,15 +16,21 @@ type PluginType struct {
 }
 
 type CliConfig struct {
-	Version   string        `yaml`
-	Plugins   []*PluginType `yaml`
-	DummyTest string        `yaml:"dummyTest"`
+	Version                    string        `yaml`
+	Plugins                    []*PluginType `yaml`
+	PluginReadyRetries         int           `yaml:"pluginReadyRetries"`
+	PluginReadyTimeout         string        `yaml:"pluginReadyTimeout"`
+	PluginAddress              string        `yaml:"pluginAddress"`
+	PluginTransportCredentials string        `yaml:"pluginTransportCredentials"`
 }
 
 const DefaultCliYamlConfig string = `
 version: "0.1"
 plugins:
-dummyTest: nothing
+pluginReadyRetries: 3
+pluginReadyTimeout: "20ms"
+pluginAddress: "localhost"
+pluginTransportCredentials: "insecure"
 `
 
 const CliYamlConfigSample string = `

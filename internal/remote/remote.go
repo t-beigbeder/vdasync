@@ -3,11 +3,12 @@ package remote
 import (
 	"context"
 	"fmt"
+	"net"
+
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
 	"google.golang.org/grpc"
-	"net"
 )
 
 type OpeDssaClient interface {
@@ -30,16 +31,19 @@ func NewOpeDssaClient(target string, opts ...grpc.DialOption) (OpeDssaClient, *g
 	return opeDssaClient{OpeClient: oc, DataStorageSystemClient: dc}, conn, nil
 }
 
-func checkServerReadiness(target string, opts ...grpc.DialOption) (
-	cli OpeDssaClient, err error,
+func CheckServerReadiness(target string, opts ...grpc.DialOption) (
+	OpeDssaClient, error,
 ) {
 	cli, conn, err := NewOpeDssaClient(target, opts...)
+	if err != nil {
+		return nil, err
+	}
 	_, err = cli.Ready(context.Background(), &opegrpc.Empty{})
 	if err != nil {
 		conn.Close()
-		return
+		return nil, err
 	}
-	return
+	return cli, err
 }
 
 func RunOpeDssaServer(
