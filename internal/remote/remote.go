@@ -52,6 +52,7 @@ func RunOpeDssaServer(
 	port int,
 	opts []grpc.ServerOption,
 	srvBuilder func(*grpc.Server) dssagrpc.DataStorageSystemServer,
+	shutdownCb func(),
 ) (
 	int, context.CancelFunc, error,
 ) {
@@ -74,7 +75,7 @@ func RunOpeDssaServer(
 	if err != nil {
 		return port, cCancel, err
 	}
-	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
+	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb})
 	dssagrpc.RegisterDataStorageSystemServer(grpcServer, srvBuilder(grpcServer))
 	go grpcServer.Serve(lis)
 	cancel := func() {

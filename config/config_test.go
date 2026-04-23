@@ -8,6 +8,15 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
+const CliYamlConfigSample string = `
+plugins:
+- name: localFilesSample
+  type: localFiles
+  port: 10314
+  addArgs:
+  - "-is-plugin"
+`
+
 func TestLoadConfig(t *testing.T) {
 	td := t.TempDir()
 	tf := filepath.Join(td, "TestLoadConfig.yml")

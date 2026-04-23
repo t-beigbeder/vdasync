@@ -17,7 +17,7 @@ func TestRunOpeDssaServer(t *testing.T) {
 	td := t.TempDir()
 	t.Chdir(td)
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
-	port, cFunc, err := RunOpeDssaServer(context.Background(), testHost, 0, nil, NewLocalFilesServer)
+	port, cFunc, err := RunOpeDssaServer(context.Background(), testHost, 0, nil, NewLocalFilesServer, nil)
 	require.Nil(t, err)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	cli, conn, err := NewOpeDssaClient(fmt.Sprintf("%s:%d", testHost, port), opts...)

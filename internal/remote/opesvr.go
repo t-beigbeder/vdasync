@@ -11,6 +11,7 @@ import (
 type opeServer struct {
 	opegrpc.UnimplementedOpeServer
 	grpcServer *grpc.Server
+	shutdownCb func()
 }
 
 func (s *opeServer) Ready(context.Context, *opegrpc.Empty) (*opegrpc.Bool, error) {
@@ -32,10 +33,13 @@ func (s *opeServer) Shutdown(ctx context.Context, v *opegrpc.Value) (*opegrpc.Bo
 			return
 		}
 		s.grpcServer.Stop()
+		if s.shutdownCb != nil {
+			s.shutdownCb()
+		}
 	}()
 	return &opegrpc.Bool{Value: true}, nil
 }
 
-func NewOpeServer(grpcServer *grpc.Server) opegrpc.OpeServer {
-	return &opeServer{grpcServer: grpcServer}
+func NewOpeServer(grpcServer *grpc.Server, shutdownCb func()) opegrpc.OpeServer {
+	return &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb}
 }

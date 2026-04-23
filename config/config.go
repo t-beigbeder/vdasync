@@ -33,15 +33,6 @@ pluginAddress: "localhost"
 pluginTransportCredentials: "insecure"
 `
 
-const CliYamlConfigSample string = `
-plugins:
-- name: localFilesSample
-  type: localFiles
-  port: 10314
-  addArgs:
-  - "-is-plugin"
-`
-
 func configurePlugins(config *CliConfig) error {
 	exe, err := os.Executable()
 	if err != nil {

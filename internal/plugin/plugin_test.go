@@ -32,6 +32,8 @@ plugins:
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))
+	Shutdown(rps)
+	require.Zero(t, len(Errors(rps)))
 	WaitFor(rps)
 	require.Zero(t, len(Errors(rps)))
 }
@@ -53,6 +55,8 @@ plugins:
 	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOk.yml"), setExecutable(conf))
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	Shutdown(rps)
 	require.Zero(t, len(Errors(rps)))
 	WaitFor(rps)
 	require.Zero(t, len(Errors(rps)))
@@ -76,6 +80,8 @@ plugins:
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
+	Shutdown(rps)
+	require.Equal(t, 1, len(Errors(rps)))
 	WaitFor(rps)
 	require.Equal(t, 1, len(Errors(rps)))
 }
@@ -98,7 +104,9 @@ plugins:
 	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOneFail.yml"), setExecutable(conf))
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
-	require.Zero(t, len(Errors(rps)))
+	require.Equal(t, 1, len(Errors(rps)))
+	Shutdown(rps)
+	require.Equal(t, 1, len(Errors(rps)))
 	WaitFor(rps)
 	require.Equal(t, 1, len(Errors(rps)))
 }

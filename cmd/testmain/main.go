@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/plugin"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
 )
 
 const CliYamlConfigTest string = `
@@ -54,9 +56,13 @@ func main() {
 		if len(plugin.Errors(rps)) != 0 {
 			log.Warn("RunConfFile raised some errors", "errors", plugin.Errors(rps))
 		}
+		plugin.Shutdown(rps)
+		if len(plugin.Errors(rps)) != 0 {
+			log.Warn("RunConfFile and/or Shutdown raised some errors", "errors", plugin.Errors(rps))
+		}
 		plugin.WaitFor(rps)
 		if len(plugin.Errors(rps)) != 0 {
-			log.Warn("RunConfFile and/or WaitFor raised some errors", "errors", plugin.Errors(rps))
+			log.Warn("RunConfFile/Shutdown and/or WaitFor raised some errors", "errors", plugin.Errors(rps))
 		}
 	} else if isPlugin {
 		log = log.With("app", "child")
@@ -67,7 +73,18 @@ func main() {
 		if isFatal {
 			common.Fatal(log, fmt.Errorf("child failing on demand"))
 		}
+		done := make(chan bool)
+		cb := func() {
+			log.Debug("shutdownCb called, closing done")
+			close(done)
+		}
+		_, _, err := remote.RunOpeDssaServer(context.Background(), "localhost", port, nil, remote.NewLocalFilesServer, cb)
+		<-done
+		if err != nil {
+			common.Fatal(log, fmt.Errorf("RunOpeDssaServer failed %s", err))
+		}
 	} else {
 		common.Fatal(log, fmt.Errorf("neither root or plugin"))
 	}
+	log.Info("stopped")
 }

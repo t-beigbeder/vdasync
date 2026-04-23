@@ -1,6 +1,7 @@
 package plugin
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -9,6 +10,7 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/config"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
+	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -49,6 +51,10 @@ func checkReadiness(rp *RunningPlugin) {
 		time.Sleep(time.Duration(retryDelay))
 		retryDelay *= 2
 	}
+}
+
+func shutdown(rp *RunningPlugin) {
+	_, rp.err = rp.client.Shutdown(context.Background(), &opegrpc.Value{Value: "100ms"})
 }
 
 func waitFor(rp *RunningPlugin) {
@@ -111,6 +117,10 @@ func RunConfData(tempFilePath string, conf string) ([]*RunningPlugin, error) {
 		return nil, err
 	}
 	return RunConfFile(tempFilePath)
+}
+
+func Shutdown(rps []*RunningPlugin) {
+	applyIfOK(rps, shutdown)
 }
 
 func WaitFor(rps []*RunningPlugin) {
