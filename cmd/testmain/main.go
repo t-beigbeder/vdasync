@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/plugin"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
@@ -55,6 +56,23 @@ func main() {
 		}
 		if len(plugin.Errors(rps)) != 0 {
 			log.Warn("RunConfFile raised some errors", "errors", plugin.Errors(rps))
+		}
+		var rp *plugin.RunningPlugin
+		for _, rpc := range rps {
+			if rpc.Err == nil {
+				rp = rpc
+				break
+			}
+		}
+		if rp != nil {
+			des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: "."})
+			if err == nil {
+				for _, en := range des.Entries {
+					log.Debug("List result", "plugin", rp.Plugin.Name, "entry", en.Name)
+				}
+			} else {
+				log.Warn("List error", "plugin", rp.Plugin.Name, "error", err)
+			}
 		}
 		plugin.Shutdown(rps)
 		if len(plugin.Errors(rps)) != 0 {

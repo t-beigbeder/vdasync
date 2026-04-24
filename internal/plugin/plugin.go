@@ -17,11 +17,11 @@ import (
 
 type RunningPlugin struct {
 	config *config.CliConfig
-	plugin *config.PluginType
+	Plugin *config.PluginType
 	port   int
 	cmd    *exec.Cmd
-	client remote.OpeDssaClient
-	err    error
+	Client remote.OpeDssaClient
+	Err    error
 }
 
 func checkReadiness(rp *RunningPlugin) {
@@ -30,7 +30,7 @@ func checkReadiness(rp *RunningPlugin) {
 	}
 	retryDelay, err := time.ParseDuration(rp.config.PluginReadyTimeout)
 	if err != nil {
-		rp.err = fmt.Errorf("ParseDuration failed with error %s", err)
+		rp.Err = fmt.Errorf("ParseDuration failed with error %s", err)
 		return
 	}
 	opts := []grpc.DialOption{}
@@ -38,14 +38,14 @@ func checkReadiness(rp *RunningPlugin) {
 	case "insecure":
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	default:
-		rp.err = fmt.Errorf("incorrect PluginTransportCredentials: %s", rp.config.PluginTransportCredentials)
+		rp.Err = fmt.Errorf("incorrect PluginTransportCredentials: %s", rp.config.PluginTransportCredentials)
 		return
 	}
 	for count := 0; count < rp.config.PluginReadyRetries; count++ {
 		cli, err := remote.CheckServerReadiness(fmt.Sprintf("%s:%d", rp.config.PluginAddress, rp.port), opts...)
-		rp.err = err
+		rp.Err = err
 		if err == nil {
-			rp.client = cli
+			rp.Client = cli
 			break
 		}
 		time.Sleep(time.Duration(retryDelay))
@@ -54,19 +54,19 @@ func checkReadiness(rp *RunningPlugin) {
 }
 
 func shutdown(rp *RunningPlugin) {
-	_, rp.err = rp.client.Shutdown(context.Background(), &opegrpc.Value{Value: "100ms"})
+	_, rp.Err = rp.Client.Shutdown(context.Background(), &opegrpc.Value{Value: "100ms"})
 }
 
 func waitFor(rp *RunningPlugin) {
 	err := rp.cmd.Wait()
 	if err != nil {
-		rp.err = fmt.Errorf("child %s wait error %s", rp.cmd, err)
+		rp.Err = fmt.Errorf("child %s wait error %s", rp.cmd, err)
 	}
 }
 
 func applyIfOK(rps []*RunningPlugin, run func(*RunningPlugin)) {
 	for _, rp := range rps {
-		if rp.cmd == nil || rp.err != nil {
+		if rp.cmd == nil || rp.Err != nil {
 			continue
 		}
 		run(rp)
@@ -80,11 +80,11 @@ func RunConfFile(confPath string) ([]*RunningPlugin, error) {
 	}
 	rps := []*RunningPlugin{}
 	for _, plugin := range config.Plugins {
-		crp := RunningPlugin{config: config, plugin: plugin, port: plugin.Port}
+		crp := RunningPlugin{config: config, Plugin: plugin, port: plugin.Port}
 		if crp.port == 0 {
 			port, err := common.GetFreePort()
 			if err != nil {
-				crp.err = fmt.Errorf("GetFreePort for %s error %s", plugin.Name, err)
+				crp.Err = fmt.Errorf("GetFreePort for %s error %s", plugin.Name, err)
 				rps = append(rps, &crp)
 				continue
 			}
@@ -104,7 +104,7 @@ func RunConfFile(confPath string) ([]*RunningPlugin, error) {
 		err = cmd.Start()
 		crp.cmd = cmd
 		if err != nil {
-			crp.err = fmt.Errorf("child %s start error %s", cmd, err)
+			crp.Err = fmt.Errorf("child %s start error %s", cmd, err)
 		}
 		rps = append(rps, &crp)
 	}
@@ -130,8 +130,8 @@ func WaitFor(rps []*RunningPlugin) {
 func Errors(rps []*RunningPlugin) []error {
 	errs := []error{}
 	for _, rp := range rps {
-		if rp.err != nil {
-			errs = append(errs, rp.err)
+		if rp.Err != nil {
+			errs = append(errs, rp.Err)
 		}
 	}
 	return errs

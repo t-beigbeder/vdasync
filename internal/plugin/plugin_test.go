@@ -1,12 +1,14 @@
 package plugin
 
 import (
+	"context"
 	"path"
 	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 )
 
 func testDir() string {
@@ -109,4 +111,27 @@ plugins:
 	require.Equal(t, 1, len(Errors(rps)))
 	WaitFor(rps)
 	require.Equal(t, 1, len(Errors(rps)))
+}
+
+func TestRunPluginAndCallList(t *testing.T) {
+	const conf string = `
+plugins:
+- name: localFilesSample
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+`
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginOk.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	rp := rps[0]
+	des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: "."})
+	require.Nil(t, err)
+	require.GreaterOrEqual(t, len(des.Entries), 1)
+	Shutdown(rps)
+	require.Zero(t, len(Errors(rps)))
+	WaitFor(rps)
+	require.Zero(t, len(Errors(rps)))
 }

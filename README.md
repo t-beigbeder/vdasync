@@ -61,3 +61,7 @@ https://protobuf.dev/installation/
 - SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
 - internal/remote/lfsvr.go local refactoring to generalized Dssa implem
 (so accessible in remote) would be to consider
+- secure plugin connection with
+  - https://go.dev/src/crypto/tls/generate_cert.go
+  - https://github.com/denji/golang-tls
+  
