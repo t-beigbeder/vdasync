@@ -64,4 +64,5 @@ https://protobuf.dev/installation/
 - secure plugin connection with
   - https://go.dev/src/crypto/tls/generate_cert.go
   - https://github.com/denji/golang-tls
-  
+- defer shutdown server and wait plugin
+- ctrl/c signal for server

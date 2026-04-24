@@ -1,0 +1,27 @@
+package dssa
+
+type Path []string
+
+type Rights struct {
+	Read    bool
+	Write   bool
+	Execute bool
+}
+
+type DataEntry struct {
+	IsDir         bool
+	Name          string
+	Size          int64
+	Mtime         int64
+	User          int
+	UserRights    Rights
+	Group         int
+	GroupRights   Rights
+	OtherRights   Rights
+	IsSymLink     bool
+	SymLinkTarget string
+}
+
+type Dssa interface {
+	List(Path) ([]*DataEntry, error)
+}
