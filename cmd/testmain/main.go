@@ -9,6 +9,7 @@ import (
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/plugin"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
 )
@@ -65,7 +66,7 @@ func main() {
 			}
 		}
 		if rp != nil {
-			des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: "."})
+			des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
 			if err == nil {
 				for _, en := range des.Entries {
 					log.Debug("List result", "plugin", rp.Plugin.Name, "entry", en.Name)
@@ -96,7 +97,7 @@ func main() {
 			log.Debug("shutdownCb called, closing done")
 			close(done)
 		}
-		_, _, err := remote.RunOpeDssaServer(context.Background(), "localhost", port, nil, remote.NewLocalFilesServer, cb)
+		_, _, err := remote.RunOpeDssaServer(context.Background(), "localhost", port, nil, localfiles.MakeLocalFilesDssa(), cb)
 		<-done
 		if err != nil {
 			common.Fatal(log, fmt.Errorf("RunOpeDssaServer failed %s", err))

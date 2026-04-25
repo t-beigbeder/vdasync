@@ -62,7 +62,9 @@ https://protobuf.dev/installation/
 - internal/remote/lfsvr.go local refactoring to generalized Dssa implem
 (so accessible in remote) would be to consider
 - secure plugin connection with
+  - https://github.com/filosottile/mkcert
   - https://go.dev/src/crypto/tls/generate_cert.go
-  - https://github.com/denji/golang-tls
+  - https://github.com/grpc/grpc-go/tree/master/examples/features/encryption
 - defer shutdown server and wait plugin
 - ctrl/c signal for server
+- mTLS: test with simple auto-generated certs (without CA)

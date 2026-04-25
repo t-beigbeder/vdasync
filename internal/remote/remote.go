@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
@@ -51,7 +52,7 @@ func RunOpeDssaServer(
 	host string,
 	port int,
 	opts []grpc.ServerOption,
-	srvBuilder func(*grpc.Server) dssagrpc.DataStorageSystemServer,
+	dssa_ dssa.Dssa,
 	shutdownCb func(),
 ) (
 	int, context.CancelFunc, error,
@@ -76,7 +77,10 @@ func RunOpeDssaServer(
 		return port, cCancel, err
 	}
 	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb})
-	dssagrpc.RegisterDataStorageSystemServer(grpcServer, srvBuilder(grpcServer))
+	dssagrpc.RegisterDataStorageSystemServer(
+		grpcServer,
+		&dssaImpl{grpcServer:grpcServer, dssa_: dssa_},
+	)
 	go grpcServer.Serve(lis)
 	cancel := func() {
 		cCancel()

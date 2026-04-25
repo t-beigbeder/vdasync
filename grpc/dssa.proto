@@ -9,7 +9,7 @@ service DataStorageSystem {
 }
 
 message Path {
-    string path = 1;
+    repeated string path = 1;
 }
 
 message DataEntries {

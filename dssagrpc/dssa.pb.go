@@ -23,7 +23,7 @@ const (
 
 type Path struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+	Path          []string               `protobuf:"bytes,1,rep,name=path,proto3" json:"path,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -58,11 +58,11 @@ func (*Path) Descriptor() ([]byte, []int) {
 	return file_grpc_dssa_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Path) GetPath() string {
+func (x *Path) GetPath() []string {
 	if x != nil {
 		return x.Path
 	}
-	return ""
+	return nil
 }
 
 type DataEntries struct {
@@ -167,7 +167,7 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\n" +
 	"\x0fgrpc/dssa.proto\x12\x04dssa\"\x1a\n" +
 	"\x04Path\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\"8\n" +
+	"\x04path\x18\x01 \x03(\tR\x04path\"8\n" +
 	"\vDataEntries\x12)\n" +
 	"\aentries\x18\x01 \x03(\v2\x0f.dssa.DataEntryR\aentries\"6\n" +
 	"\tDataEntry\x12\x12\n" +
