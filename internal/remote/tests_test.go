@@ -29,7 +29,7 @@ func TestGrpcGetTestClientBase(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "0.1", rv.Value)
 
-	rl, err := cli.List(context.Background(), &dssagrpc.Path{Path: "."})
+	rl, err := cli.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rl.Entries))
 	require.False(t, rl.Entries[0].IsDir)
@@ -66,7 +66,7 @@ func TestGrpcGetTestClientWaitSlowStart(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "0.1", rv.Value)
 
-	rl, err := cli.List(context.Background(), &dssagrpc.Path{Path: "."})
+	rl, err := cli.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rl.Entries))
 	require.False(t, rl.Entries[0].IsDir)

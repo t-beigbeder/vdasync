@@ -8,6 +8,7 @@ import (
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -40,7 +41,10 @@ func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, erro
 			return
 		}
 		opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
-		dssagrpc.RegisterDataStorageSystemServer(grpcServer, &localFilesServer{grpcServer: grpcServer})
+		dssagrpc.RegisterDataStorageSystemServer(
+			grpcServer,
+			&dssaImpl{grpcServer: grpcServer, dssa_: localfiles.MakeLocalFilesDssa()},
+		)
 		grpcServer.Serve(lis)
 	}()
 	cancel := func() {

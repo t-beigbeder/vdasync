@@ -11,7 +11,7 @@ import (
 type dssaImpl struct {
 	dssagrpc.UnimplementedDataStorageSystemServer
 	grpcServer *grpc.Server
-	dssa_ dssa.Dssa
+	dssa_      dssa.Dssa
 }
 
 // List implements [dssagrpc.DataStorageSystemServer].
@@ -21,10 +21,10 @@ func (s *dssaImpl) List(ctx context.Context, dpath *dssagrpc.Path) (*dssagrpc.Da
 		return nil, err
 	}
 	gdtes := dssagrpc.DataEntries{}
-	for _, ddte := range(ddtes) {
+	for _, ddte := range ddtes {
 		gdtes.Entries = append(gdtes.Entries, &dssagrpc.DataEntry{
 			IsDir: ddte.IsDir,
-			Name: ddte.Name,
+			Name:  ddte.Name,
 		})
 	}
 	return &gdtes, nil

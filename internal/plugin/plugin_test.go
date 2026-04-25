@@ -127,7 +127,7 @@ plugins:
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))
 	rp := rps[0]
-	des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: "."})
+	des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
 	require.Nil(t, err)
 	require.GreaterOrEqual(t, len(des.Entries), 1)
 	Shutdown(rps)

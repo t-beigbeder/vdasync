@@ -79,7 +79,7 @@ func RunOpeDssaServer(
 	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb})
 	dssagrpc.RegisterDataStorageSystemServer(
 		grpcServer,
-		&dssaImpl{grpcServer:grpcServer, dssa_: dssa_},
+		&dssaImpl{grpcServer: grpcServer, dssa_: dssa_},
 	)
 	go grpcServer.Serve(lis)
 	cancel := func() {
