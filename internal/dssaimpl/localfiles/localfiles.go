@@ -1,9 +1,11 @@
 package localfiles
 
 import (
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"fmt"
 	"os"
 	"path"
+
+	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 )
 
 type localFiles struct {
@@ -17,9 +19,21 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 	}
 	dtes := []*dssa.DataEntry{}
 	for _, de := range des {
+		fi, err := os.Stat(de.Name())
+		if err != nil {
+			return nil, fmt.Errorf("List: Stat(%s) error: %s", de.Name(), err)
+		}
 		dte := &dssa.DataEntry{
-			IsDir: de.IsDir(),
-			Name:  de.Name(),
+			IsDir:       de.IsDir(),
+			Name:        de.Name(),
+			Size:        fi.Size(),
+			Mtime:       fi.ModTime().Unix(),
+			User:        -1,            // FIXME
+			UserRights:  dssa.Rights{}, // FIXME
+			Group:       -1,
+			GroupRights: dssa.Rights{},
+			OtherRights: dssa.Rights{},
+			IsSymLink:   false,
 		}
 		dtes = append(dtes, dte)
 	}
