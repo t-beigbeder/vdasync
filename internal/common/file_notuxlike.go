@@ -3,10 +3,10 @@
 package common
 
 import (
+	"fmt"
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"os"
 	"runtime"
-	"fmt"
 )
 
 func GetAccessRights(fi os.FileInfo) ([2]int, [3]dssa.Rights) {
