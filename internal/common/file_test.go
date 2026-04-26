@@ -1,9 +1,11 @@
 package common
 
 import (
-	"github.com/stretchr/testify/require"
 	"path"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 )
 
 func TestFileFunctions(t *testing.T) {
@@ -29,4 +31,19 @@ func TestFileFunctions(t *testing.T) {
 	require.Equal(t, MaxLoadFileSize+1, int(sz))
 	bs, err = LoadFile(ft)
 	require.NotNil(t, err)
+}
+
+func TestAccessRights(t *testing.T) {
+	ft := path.Join(t.TempDir(), "TestAccessRights.dat")
+	require.Nil(t, WriteFile(ft, []byte(t.Name())))
+	fi, ugIds, ugoRights, err := GetFileStat(ft)
+	require.Nil(t, err)
+	require.Equal(t, len(t.Name()), int(fi.Size()))
+	ugoRights[1] = dssa.Rights{Read: true}
+	ugoRights[2] = dssa.Rights{}
+	err = SetAccessRights(ft, ugIds, ugoRights)
+	require.Nil(t, err)
+	fi, ugIds, ugoRights, err = GetFileStat(ft)
+	require.Nil(t, err)
+	require.False(t, ugoRights[1].Write)
 }

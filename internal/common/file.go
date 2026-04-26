@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+
+	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 )
 
 func FileExists(path string) bool {
@@ -48,4 +50,13 @@ func LoadFile(path string) ([]byte, error) {
 	}
 	defer file.Close()
 	return io.ReadAll(file)
+}
+
+func GetFileStat(path string) (os.FileInfo, [2]int, [3]dssa.Rights, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, [2]int{}, [3]dssa.Rights{}, err
+	}
+	ugIds, ugoRights := GetAccessRights(fi)
+	return fi, ugIds, ugoRights, nil
 }
