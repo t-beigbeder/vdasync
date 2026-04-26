@@ -17,6 +17,21 @@ message DataEntries {
 }
 
 message DataEntry {
-    string name = 1;
-    bool is_dir = 2;
+    bool is_dir = 1;
+    string name = 2;
+    int64 size = 3;
+    int64 mtime = 4;
+    int32 user = 5;
+    Rights user_rights = 6;
+    int32 group = 7;
+    Rights group_rights = 8;
+    bool is_sym_link = 9;
+    string sym_link_target = 10;
+    string error = 11;
+}
+
+message Rights {
+    bool read = 1;
+    bool write = 2;
+    bool execute = 3;
 }

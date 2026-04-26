@@ -20,6 +20,7 @@ type DataEntry struct {
 	OtherRights   Rights
 	IsSymLink     bool
 	SymLinkTarget string
+	Error         error
 }
 
 type Dssa interface {
