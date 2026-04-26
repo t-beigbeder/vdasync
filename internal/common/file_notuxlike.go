@@ -40,3 +40,7 @@ func SetAccessRights(path string, ugIds [2]int, ugoRights [3]dssa.Rights) error 
 	}
 	return nil
 }
+
+func Lutimes(path string, mtime int64) error {
+	return nil
+}

@@ -4,9 +4,12 @@ package common
 
 import (
 	"fmt"
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"os"
 	"syscall"
+	"time"
+
+	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"golang.org/x/sys/unix"
 )
 
 func GetAccessRights(fi os.FileInfo) ([2]int, [3]dssa.Rights) {
@@ -64,4 +67,8 @@ func SetAccessRights(path string, ugIds [2]int, ugoRights [3]dssa.Rights) error 
 		}
 	}
 	return nil
+}
+
+func Lutimes(path string, mtime int64) error {
+	return unix.Lutimes(path, []unix.Timeval{unix.NsecToTimeval(time.Now().UnixNano()), unix.NsecToTimeval(mtime * 1e9)})
 }

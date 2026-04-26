@@ -60,8 +60,9 @@ https://protobuf.dev/installation/
 
 - SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
 - parse FIXMEs
-- local files unix rights, symlinks
-- Dssa entry members
+- local files symlinks
+- grpc ope version
+- Dssa entry members (???)
 - secure plugin connection with
   - https://github.com/filosottile/mkcert
   - https://go.dev/src/crypto/tls/generate_cert.go

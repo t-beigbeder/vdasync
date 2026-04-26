@@ -11,9 +11,17 @@ import (
 type localFiles struct {
 }
 
+func osPath(path_ dssa.Path) string {
+	lp := path_
+	if lp[0] == "" {
+		lp[0] = "/"
+	}
+	return path.Join(path_...)
+}
+
 // List implements [dssa.Dssa].
 func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
-	des, err := os.ReadDir(path.Join(path_...))
+	des, err := os.ReadDir(osPath(path_))
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +39,7 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 
 // Stat implements [dssa.Dssa].
 func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
-	fi, err := os.Stat(path.Join(path_...))
+	fi, err := os.Stat(osPath(path_))
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +59,17 @@ func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 }
 
 // SetStat implements [dssa.Dssa].
-func (d *localFiles) SetStat(*dssa.DataEntry) error {
-	panic("unimplemented")
+func (d *localFiles) SetStat(de *dssa.DataEntry) error {
+	path_ := path.Join(osPath(de.Path))
+	if err := common.SetAccessRights(
+		path_, [2]int{de.User, de.Group},
+		[3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}); err != nil {
+		return err
+	}
+	if err := common.Lutimes(path_, de.Mtime); err != nil {
+		return err
+	}
+	return nil
 }
 
 func MakeLocalFilesDssa() dssa.Dssa {
