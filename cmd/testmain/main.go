@@ -69,7 +69,7 @@ func main() {
 			des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
 			if err == nil {
 				for _, en := range des.Entries {
-					log.Debug("List result", "plugin", rp.Plugin.Name, "entry", en.Name)
+					log.Debug("List result", "plugin", rp.Plugin.Name, "entry", en.Path)
 				}
 			} else {
 				log.Warn("List error", "plugin", rp.Plugin.Name, "error", err)

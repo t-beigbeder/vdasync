@@ -18,7 +18,7 @@ func TestIt(t *testing.T) {
 	}
 	go func() {
 		pq <- &process_entry{
-			de:   &dssa.DataEntry{Name: "root", IsDir: true},
+			de:   &dssa.DataEntry{Path: []string{"root"}, IsDir: true},
 			done: done,
 		}
 	}()
@@ -30,7 +30,7 @@ LOOP:
 			log.Info("main processing, rootIsDone")
 			break LOOP
 		case pe := <-pq:
-			log.Info("main processing, pulling", "name", pe.de.Name)
+			log.Info("main processing, pulling", "name", pe.de.Path[0])
 			go process_dnde(log, gen, pq, pe)
 		}
 	}

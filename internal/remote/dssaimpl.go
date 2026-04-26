@@ -24,7 +24,7 @@ func (s *dssaImpl) List(ctx context.Context, dpath *dssagrpc.Path) (*dssagrpc.Da
 	for _, ddte := range ddtes {
 		gdtes.Entries = append(gdtes.Entries, &dssagrpc.DataEntry{
 			IsDir: ddte.IsDir,
-			Name:  ddte.Name,
+			Path:  &dssagrpc.Path{Path: ddte.Path},
 		})
 	}
 	return &gdtes, nil

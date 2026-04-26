@@ -23,7 +23,7 @@ func process_dnde(log *slog.Logger, gen chan *dssa.DataEntry, pq chan *process_e
 }
 
 func process_dde(log *slog.Logger, gen chan *dssa.DataEntry, pq chan *process_entry, pe *process_entry) {
-	log.Info("process_dde starting", "name", pe.de.Name)
+	log.Info("process_dde starting", "name", pe.de.Path[0])
 	time.Sleep(40 * time.Millisecond)
 	ddes, nddes := split_dnd_from(list(gen))
 	var wg sync.WaitGroup
@@ -32,7 +32,7 @@ func process_dde(log *slog.Logger, gen chan *dssa.DataEntry, pq chan *process_en
 	for _, dde := range ddes {
 		go func() {
 			ddone := func() {
-				log.Debug("ddone", "ndde", dde.Name)
+				log.Debug("ddone", "ndde", dde.Path[0])
 				wg.Done()
 			}
 			pq <- &process_entry{de: dde, done: ddone}
@@ -44,7 +44,7 @@ func process_dde(log *slog.Logger, gen chan *dssa.DataEntry, pq chan *process_en
 	for _, ndde := range nddes {
 		go func() {
 			nddone := func() {
-				log.Debug("nddone", "ndde", ndde.Name)
+				log.Debug("nddone", "ndde", ndde.Path[0])
 				wg.Done()
 			}
 			pq <- &process_entry{de: ndde, done: nddone}
@@ -52,15 +52,15 @@ func process_dde(log *slog.Logger, gen chan *dssa.DataEntry, pq chan *process_en
 	}
 	wg.Wait()
 
-	log.Info("GREP process_dde done", "name", pe.de.Name)
+	log.Info("GREP process_dde done", "name", pe.de.Path[0])
 	time.Sleep(20 * time.Millisecond)
 	pe.done()
 
 }
 
 func process_nde(log *slog.Logger, pe *process_entry) {
-	log.Info("process_nde starting", "name", pe.de.Name)
+	log.Info("process_nde starting", "name", pe.de.Path[0])
 	time.Sleep(60 * time.Millisecond)
-	log.Info("GREP process_nde done", "name", pe.de.Name)
+	log.Info("GREP process_nde done", "name", pe.de.Path[0])
 	pe.done()
 }

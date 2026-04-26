@@ -18,7 +18,7 @@ message DataEntries {
 
 message DataEntry {
     bool is_dir = 1;
-    string name = 2;
+    Path path = 2;
     int64 size = 3;
     int64 mtime = 4;
     int32 user = 5;

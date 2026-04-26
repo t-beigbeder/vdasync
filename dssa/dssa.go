@@ -10,7 +10,7 @@ type Rights struct {
 
 type DataEntry struct {
 	IsDir         bool
-	Name          string
+	Path          []string
 	Size          int64
 	Mtime         int64
 	User          int

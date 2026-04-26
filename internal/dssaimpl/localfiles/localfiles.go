@@ -19,13 +19,14 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 	}
 	dtes := []*dssa.DataEntry{}
 	for _, de := range des {
-		fi, err := os.Stat(de.Name())
+		cPath := append(path_, de.Name())
+		fi, err := os.Stat(path.Join(cPath...))
 		var dte *dssa.DataEntry
 		if err == nil {
 			ugIds, ugoRights := common.GetAccessRights(fi)
 			dte = &dssa.DataEntry{
 				IsDir:       de.IsDir(),
-				Name:        de.Name(),
+				Path:        cPath,
 				Size:        fi.Size(),
 				Mtime:       fi.ModTime().Unix(),
 				User:        ugIds[0],
@@ -38,7 +39,7 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 		} else {
 			dte = &dssa.DataEntry{
 				IsDir: de.IsDir(),
-				Name:  de.Name(),
+				Path:  cPath,
 				Error: err,
 			}
 		}
