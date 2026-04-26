@@ -15,5 +15,6 @@ func TestIt(t *testing.T) {
 	done := func() {
 		log.Debug("test is done")
 	}
+	
 	process_dir(log, gen, processing_list, done, &dssa.DataEntry{Name: "root", IsDir: true})
 }

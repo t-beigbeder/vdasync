@@ -12,7 +12,7 @@ func data_entry_generator(max int) chan *dssa.DataEntry {
 	go func() {
 		for count := 0; count < max; count++ {
 			generator <- &dssa.DataEntry{
-				IsDir: count%2 == 1,
+				IsDir: count%3 == 1,
 				Name:  fmt.Sprintf("de%03d", count),
 			}
 		}

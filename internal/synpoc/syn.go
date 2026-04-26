@@ -3,6 +3,7 @@ package synpoc
 import (
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 )
@@ -12,13 +13,29 @@ func process_dir(
 	gen chan *dssa.DataEntry,
 	processing_list chan *dssa.DataEntry,
 	done func(),
-	de *dssa.DataEntry) {
+	cde *dssa.DataEntry) {
 
-	defer done()
-	ddes := list(gen)
-	wg := sync.WaitGroup
+	log.Info("process_dir", "name", cde.Name)
+	processing_list <- true
+	defer func() {
+		defer done()
+		<-processing_list
+	}()
 
-	for _, dde := range ddes {
-		continue
-	}
+	ddes, nddes := split_dnd_from(list(gen))
+
+	go func() {
+		var wg sync.WaitGroup
+		wg.Add(len(ddes))
+		wg.Wait()
+		go func() {
+			for _, dde := range ddes {
+				continue
+			}
+		}()
+
+	}()
+
+	time.Sleep(10 * time.Millisecond)
+
 }
