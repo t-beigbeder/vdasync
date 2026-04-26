@@ -19,3 +19,7 @@ func GetAccessRights(fi os.FileInfo) ([2]int, [3]dssa.Rights) {
 	}
 	return ugIds, ugoRights
 }
+
+func SetAccessRights() {
+	
+}

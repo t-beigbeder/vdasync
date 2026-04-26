@@ -25,4 +25,6 @@ type DataEntry struct {
 
 type Dssa interface {
 	List(Path) ([]*DataEntry, error)
+	Stat(Path) (*DataEntry, error)
+	SetStat(*DataEntry) error
 }
