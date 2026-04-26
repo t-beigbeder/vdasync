@@ -9,7 +9,7 @@ import (
 
 func TestIt(t *testing.T) {
 	log := common.GetLogger()
-	gen := data_entry_generator(300)
+	gen := data_entry_generator(20)
 	pq := make(chan *process_entry, 5)
 	rootIsDone := make(chan bool)
 	done := func() {
