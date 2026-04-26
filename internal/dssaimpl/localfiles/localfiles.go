@@ -1,11 +1,11 @@
 package localfiles
 
 import (
-	"fmt"
 	"os"
 	"path"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
 type localFiles struct {
@@ -20,20 +20,27 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 	dtes := []*dssa.DataEntry{}
 	for _, de := range des {
 		fi, err := os.Stat(de.Name())
-		if err != nil {
-			return nil, fmt.Errorf("List: Stat(%s) error: %s", de.Name(), err)
-		}
-		dte := &dssa.DataEntry{
-			IsDir:       de.IsDir(),
-			Name:        de.Name(),
-			Size:        fi.Size(),
-			Mtime:       fi.ModTime().Unix(),
-			User:        -1,            // FIXME
-			UserRights:  dssa.Rights{}, // FIXME
-			Group:       -1,
-			GroupRights: dssa.Rights{},
-			OtherRights: dssa.Rights{},
-			IsSymLink:   false,
+		var dte *dssa.DataEntry
+		if err == nil {
+			ugIds, ugoRights := common.GetAccessRights(fi)
+			dte = &dssa.DataEntry{
+				IsDir:       de.IsDir(),
+				Name:        de.Name(),
+				Size:        fi.Size(),
+				Mtime:       fi.ModTime().Unix(),
+				User:        ugIds[0],
+				UserRights:  ugoRights[0],
+				Group:       ugIds[1],
+				GroupRights: ugoRights[1],
+				OtherRights: ugoRights[2],
+				IsSymLink:   false,
+			}
+		} else {
+			dte = &dssa.DataEntry{
+				IsDir: de.IsDir(),
+				Name:  de.Name(),
+				Error: err,
+			}
 		}
 		dtes = append(dtes, dte)
 	}
