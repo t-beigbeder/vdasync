@@ -1,7 +1,6 @@
 package synpoc
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
@@ -10,11 +9,30 @@ import (
 
 func TestIt(t *testing.T) {
 	log := common.GetLogger()
-	gen := data_entry_generator(100)
-	processing_list := make(chan *dssa.DataEntry, 7)
+	gen := data_entry_generator(300)
+	pq := make(chan *process_entry, 5)
+	rootIsDone := make(chan bool)
 	done := func() {
 		log.Debug("test is done")
+		rootIsDone <- true
 	}
-	
-	process_dir(log, gen, processing_list, done, &dssa.DataEntry{Name: "root", IsDir: true})
+	go func() {
+		pq <- &process_entry{
+			de:   &dssa.DataEntry{Name: "root", IsDir: true},
+			done: done,
+		}
+	}()
+	log.Info("TestIt start")
+LOOP:
+	for {
+		select {
+		case <-rootIsDone:
+			log.Info("main processing, rootIsDone")
+			break LOOP
+		case pe := <-pq:
+			log.Info("main processing, pulling", "name", pe.de.Name)
+			go process_dnde(log, gen, pq, pe)
+		}
+	}
+	log.Info("TestIt stop")
 }

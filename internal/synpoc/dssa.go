@@ -18,7 +18,7 @@ func list(generator chan *dssa.DataEntry) []*dssa.DataEntry {
 func split_dnd_from(des []*dssa.DataEntry) ([]*dssa.DataEntry, []*dssa.DataEntry) {
 	ddes := []*dssa.DataEntry{}
 	nddes := []*dssa.DataEntry{}
-	for _, dde := range ddes {
+	for _, dde := range des {
 		if dde.IsDir {
 			ddes = append(ddes, dde)
 		} else {

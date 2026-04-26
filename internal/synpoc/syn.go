@@ -8,34 +8,59 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 )
 
-func process_dir(
-	log *slog.Logger,
-	gen chan *dssa.DataEntry,
-	processing_list chan *dssa.DataEntry,
-	done func(),
-	cde *dssa.DataEntry) {
+type process_entry struct {
+	de   *dssa.DataEntry
+	done func()
+}
 
-	log.Info("process_dir", "name", cde.Name)
-	processing_list <- true
-	defer func() {
-		defer done()
-		<-processing_list
-	}()
+func process_dnde(log *slog.Logger, gen chan *dssa.DataEntry, pq chan *process_entry, pe *process_entry) {
+	isDir := pe.de.IsDir
+	if isDir {
+		process_dde(log, gen, pq, pe)
+	} else {
+		process_nde(log, pe)
+	}
+}
 
+func process_dde(log *slog.Logger, gen chan *dssa.DataEntry, pq chan *process_entry, pe *process_entry) {
+	log.Info("process_dde starting", "name", pe.de.Name)
+	time.Sleep(40 * time.Millisecond)
 	ddes, nddes := split_dnd_from(list(gen))
-
-	go func() {
-		var wg sync.WaitGroup
-		wg.Add(len(ddes))
-		wg.Wait()
+	var wg sync.WaitGroup
+	// processing all subdirs in //
+	wg.Add(len(ddes))
+	for _, dde := range ddes {
 		go func() {
-			for _, dde := range ddes {
-				continue
+			ddone := func() {
+				log.Debug("ddone", "ndde", dde.Name)
+				wg.Done()
 			}
+			pq <- &process_entry{de: dde, done: ddone}
 		}()
+	}
+	wg.Wait()
+	// processing all files in //
+	wg.Add(len(nddes))
+	for _, ndde := range nddes {
+		go func() {
+			nddone := func() {
+				log.Debug("nddone", "ndde", ndde.Name)
+				wg.Done()
+			}
+			pq <- &process_entry{de: ndde, done: nddone}
+		}()
+	}
+	wg.Wait()
 
-	}()
+	log.Info("GREP process_dde done", "name", pe.de.Name)
+	time.Sleep(20 * time.Millisecond)
+	pe.done()
 
-	time.Sleep(10 * time.Millisecond)
+}
 
+func process_nde(log *slog.Logger, pe *process_entry) {
+	log.Info("process_nde starting", "name", pe.de.Name)
+	time.Sleep(60 * time.Millisecond)
+	log.Info("GREP process_nde done", "name", pe.de.Name)
+	pe.done()
 }
