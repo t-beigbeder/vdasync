@@ -1,6 +1,7 @@
 package localfiles
 
 import (
+	"os"
 	"path"
 	"strings"
 	"testing"
@@ -28,4 +29,10 @@ func TestFileFunctions(t *testing.T) {
 	de3, err := lfd.Stat(strings.Split(ft, "/"))
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime, de3.Mtime)
+	lt := path.Join(t.TempDir(), "TestFileFunctions.symlink")
+	err = os.Symlink(ft, lt)
+	require.Nil(t, err)
+	ltde, err := lfd.Stat(strings.Split(lt, "/"))
+	require.Nil(t, err)
+	require.True(t, ltde.IsSymLink)
 }
