@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"os"
 	"path"
 	"testing"
 
@@ -37,4 +38,12 @@ func TestFileFunctions(t *testing.T) {
 	require.Nil(t, err)
 	ddte3 := gdte2ddte(gdte3)
 	require.Equal(t, ddte.Mtime, ddte3.Mtime)
+	lt := path.Join(t.TempDir(), "TestFileFunctions.symlink")
+	err = os.Symlink(ft, lt) // grpc server runs locally
+	require.Nil(t, err)
+	gldte, err := cli.Stat(ctx, os2gp(lt))
+	require.Nil(t, err)
+	dldte := gdte2ddte(gldte)
+	require.True(t, dldte.IsSymLink)
+	require.Equal(t, ft, dldte.SymLinkTarget)
 }

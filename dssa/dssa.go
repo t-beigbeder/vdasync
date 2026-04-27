@@ -1,5 +1,7 @@
 package dssa
 
+import "io"
+
 type Path []string
 
 type Rights struct {
@@ -27,4 +29,6 @@ type Dssa interface {
 	List(Path) ([]*DataEntry, error)
 	Stat(Path) (*DataEntry, error)
 	SetStat(*DataEntry) error
+	GetReadCloser(Path) (io.ReadCloser, error)
+	GetWriteCloser(Path) (io.WriteCloser, error)
 }

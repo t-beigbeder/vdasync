@@ -22,6 +22,8 @@ const (
 	DataStorageSystem_List_FullMethodName    = "/dssa.DataStorageSystem/List"
 	DataStorageSystem_Stat_FullMethodName    = "/dssa.DataStorageSystem/Stat"
 	DataStorageSystem_SetStat_FullMethodName = "/dssa.DataStorageSystem/SetStat"
+	DataStorageSystem_Put_FullMethodName     = "/dssa.DataStorageSystem/Put"
+	DataStorageSystem_Get_FullMethodName     = "/dssa.DataStorageSystem/Get"
 )
 
 // DataStorageSystemClient is the client API for DataStorageSystem service.
@@ -31,6 +33,8 @@ type DataStorageSystemClient interface {
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
 	SetStat(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
+	Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error)
+	Get(ctx context.Context, in *Path, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PulledBlock], error)
 }
 
 type dataStorageSystemClient struct {
@@ -71,6 +75,38 @@ func (c *dataStorageSystemClient) SetStat(ctx context.Context, in *DataEntry, op
 	return out, nil
 }
 
+func (c *dataStorageSystemClient) Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DataStorageSystem_ServiceDesc.Streams[0], DataStorageSystem_Put_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[PushedBlock, Length]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DataStorageSystem_PutClient = grpc.ClientStreamingClient[PushedBlock, Length]
+
+func (c *dataStorageSystemClient) Get(ctx context.Context, in *Path, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PulledBlock], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &DataStorageSystem_ServiceDesc.Streams[1], DataStorageSystem_Get_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[Path, PulledBlock]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DataStorageSystem_GetClient = grpc.ServerStreamingClient[PulledBlock]
+
 // DataStorageSystemServer is the server API for DataStorageSystem service.
 // All implementations must embed UnimplementedDataStorageSystemServer
 // for forward compatibility.
@@ -78,6 +114,8 @@ type DataStorageSystemServer interface {
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
 	SetStat(context.Context, *DataEntry) (*Empty, error)
+	Put(grpc.ClientStreamingServer[PushedBlock, Length]) error
+	Get(*Path, grpc.ServerStreamingServer[PulledBlock]) error
 	mustEmbedUnimplementedDataStorageSystemServer()
 }
 
@@ -96,6 +134,12 @@ func (UnimplementedDataStorageSystemServer) Stat(context.Context, *Path) (*DataE
 }
 func (UnimplementedDataStorageSystemServer) SetStat(context.Context, *DataEntry) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetStat not implemented")
+}
+func (UnimplementedDataStorageSystemServer) Put(grpc.ClientStreamingServer[PushedBlock, Length]) error {
+	return status.Error(codes.Unimplemented, "method Put not implemented")
+}
+func (UnimplementedDataStorageSystemServer) Get(*Path, grpc.ServerStreamingServer[PulledBlock]) error {
+	return status.Error(codes.Unimplemented, "method Get not implemented")
 }
 func (UnimplementedDataStorageSystemServer) mustEmbedUnimplementedDataStorageSystemServer() {}
 func (UnimplementedDataStorageSystemServer) testEmbeddedByValue()                           {}
@@ -172,6 +216,24 @@ func _DataStorageSystem_SetStat_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataStorageSystem_Put_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(DataStorageSystemServer).Put(&grpc.GenericServerStream[PushedBlock, Length]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DataStorageSystem_PutServer = grpc.ClientStreamingServer[PushedBlock, Length]
+
+func _DataStorageSystem_Get_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Path)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DataStorageSystemServer).Get(m, &grpc.GenericServerStream[Path, PulledBlock]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type DataStorageSystem_GetServer = grpc.ServerStreamingServer[PulledBlock]
+
 // DataStorageSystem_ServiceDesc is the grpc.ServiceDesc for DataStorageSystem service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -192,6 +254,17 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _DataStorageSystem_SetStat_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Put",
+			Handler:       _DataStorageSystem_Put_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "Get",
+			Handler:       _DataStorageSystem_Get_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "grpc/dssa.proto",
 }

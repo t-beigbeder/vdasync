@@ -1,6 +1,8 @@
 package localfiles
 
 import (
+	"io"
+	"io/fs"
 	"os"
 	"path"
 
@@ -39,22 +41,31 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 
 // Stat implements [dssa.Dssa].
 func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
-	fi, err := os.Stat(osPath(path_))
+	fi, err := os.Lstat(osPath(path_))
+	isSymlink := fi.Mode().Type()&fs.ModeSymlink != 0
+	var linkTarget string
+	if isSymlink {
+		linkTarget, err = os.Readlink(osPath(path_))
+		if err != nil {
+			return nil, err
+		}
+	}
 	if err != nil {
 		return nil, err
 	}
 	ugIds, ugoRights := common.GetAccessRights(fi)
 	return &dssa.DataEntry{
-		IsDir:       fi.IsDir(),
-		Path:        path_,
-		Size:        fi.Size(),
-		Mtime:       fi.ModTime().Unix(),
-		User:        ugIds[0],
-		UserRights:  ugoRights[0],
-		Group:       ugIds[1],
-		GroupRights: ugoRights[1],
-		OtherRights: ugoRights[2],
-		IsSymLink:   false,
+		IsDir:         fi.IsDir(),
+		Path:          path_,
+		Size:          fi.Size(),
+		Mtime:         fi.ModTime().Unix(),
+		User:          ugIds[0],
+		UserRights:    ugoRights[0],
+		Group:         ugIds[1],
+		GroupRights:   ugoRights[1],
+		OtherRights:   ugoRights[2],
+		IsSymLink:     isSymlink,
+		SymLinkTarget: linkTarget,
 	}, nil
 }
 
@@ -70,6 +81,16 @@ func (d *localFiles) SetStat(de *dssa.DataEntry) error {
 		return err
 	}
 	return nil
+}
+
+// GetReader implements [dssa.Dssa].
+func (d *localFiles) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
+	return os.Open(osPath(path_))
+}
+
+// GetWriter implements [dssa.Dssa].
+func (d *localFiles) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
+	return os.Create(osPath(path_))
 }
 
 func MakeLocalFilesDssa() dssa.Dssa {

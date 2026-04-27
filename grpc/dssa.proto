@@ -8,6 +8,8 @@ service DataStorageSystem {
     rpc List(Path) returns (DataEntries) {}
     rpc Stat(Path) returns (DataEntry) {}
     rpc SetStat(DataEntry) returns (Empty) {}
+    rpc Put(stream PushedBlock) returns (Length) {}
+    rpc Get(Path) returns (stream PulledBlock) {}
 }
 
 message Path {
@@ -37,6 +39,19 @@ message Rights {
     bool read = 1;
     bool write = 2;
     bool execute = 3;
+}
+
+message PushedBlock {
+    Path path = 1;
+    bytes Data = 2;
+}
+
+message PulledBlock {
+    bytes Data = 1;
+}
+
+message Length {
+    int64 length = 1;
 }
 
 message Empty {

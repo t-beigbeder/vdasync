@@ -1,6 +1,7 @@
 package localfiles
 
 import (
+	"io"
 	"os"
 	"path"
 	"strings"
@@ -29,10 +30,23 @@ func TestFileFunctions(t *testing.T) {
 	de3, err := lfd.Stat(strings.Split(ft, "/"))
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime, de3.Mtime)
+
 	lt := path.Join(t.TempDir(), "TestFileFunctions.symlink")
 	err = os.Symlink(ft, lt)
 	require.Nil(t, err)
 	ltde, err := lfd.Stat(strings.Split(lt, "/"))
 	require.Nil(t, err)
 	require.True(t, ltde.IsSymLink)
+	require.Equal(t, ft, ltde.SymLinkTarget)
+
+	tt := path.Join(t.TempDir(), "TestFileFunctionsCopied.dat")
+	rc, err := lfd.GetReadCloser(strings.Split(lt, "/"))
+	require.Nil(t, err)
+	defer rc.Close()
+	wc, err := lfd.GetWriteCloser(strings.Split(tt, "/"))
+	require.Nil(t, err)
+	defer wc.Close()
+	lw, err := io.Copy(wc, rc)
+	require.Nil(t, err)
+	require.Equal(t, de.Size, lw)
 }
