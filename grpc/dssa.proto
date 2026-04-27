@@ -6,6 +6,8 @@ option go_package = "./dssagrpc";
 
 service DataStorageSystem {
     rpc List(Path) returns (DataEntries) {}
+    rpc Stat(Path) returns (DataEntry) {}
+    rpc SetStat(DataEntry) returns (Empty) {}
 }
 
 message Path {
@@ -25,13 +27,17 @@ message DataEntry {
     Rights user_rights = 6;
     int32 group = 7;
     Rights group_rights = 8;
-    bool is_sym_link = 9;
-    string sym_link_target = 10;
-    string error = 11;
+    Rights other_rights = 9;
+    bool is_sym_link = 10;
+    string sym_link_target = 11;
+    string error = 12;
 }
 
 message Rights {
     bool read = 1;
     bool write = 2;
     bool execute = 3;
+}
+
+message Empty {
 }

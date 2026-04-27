@@ -119,9 +119,10 @@ type DataEntry struct {
 	UserRights    *Rights                `protobuf:"bytes,6,opt,name=user_rights,json=userRights,proto3" json:"user_rights,omitempty"`
 	Group         int32                  `protobuf:"varint,7,opt,name=group,proto3" json:"group,omitempty"`
 	GroupRights   *Rights                `protobuf:"bytes,8,opt,name=group_rights,json=groupRights,proto3" json:"group_rights,omitempty"`
-	IsSymLink     bool                   `protobuf:"varint,9,opt,name=is_sym_link,json=isSymLink,proto3" json:"is_sym_link,omitempty"`
-	SymLinkTarget string                 `protobuf:"bytes,10,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
-	Error         string                 `protobuf:"bytes,11,opt,name=error,proto3" json:"error,omitempty"`
+	OtherRights   *Rights                `protobuf:"bytes,9,opt,name=other_rights,json=otherRights,proto3" json:"other_rights,omitempty"`
+	IsSymLink     bool                   `protobuf:"varint,10,opt,name=is_sym_link,json=isSymLink,proto3" json:"is_sym_link,omitempty"`
+	SymLinkTarget string                 `protobuf:"bytes,11,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
+	Error         string                 `protobuf:"bytes,12,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -212,6 +213,13 @@ func (x *DataEntry) GetGroupRights() *Rights {
 	return nil
 }
 
+func (x *DataEntry) GetOtherRights() *Rights {
+	if x != nil {
+		return x.OtherRights
+	}
+	return nil
+}
+
 func (x *DataEntry) GetIsSymLink() bool {
 	if x != nil {
 		return x.IsSymLink
@@ -293,6 +301,42 @@ func (x *Rights) GetExecute() bool {
 	return false
 }
 
+type Empty struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Empty) Reset() {
+	*x = Empty{}
+	mi := &file_grpc_dssa_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Empty) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Empty) ProtoMessage() {}
+
+func (x *Empty) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_dssa_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Empty.ProtoReflect.Descriptor instead.
+func (*Empty) Descriptor() ([]byte, []int) {
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{4}
+}
+
 var File_grpc_dssa_proto protoreflect.FileDescriptor
 
 const file_grpc_dssa_proto_rawDesc = "" +
@@ -301,7 +345,7 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x04Path\x12\x12\n" +
 	"\x04path\x18\x01 \x03(\tR\x04path\"8\n" +
 	"\vDataEntries\x12)\n" +
-	"\aentries\x18\x01 \x03(\v2\x0f.dssa.DataEntryR\aentries\"\xd4\x02\n" +
+	"\aentries\x18\x01 \x03(\v2\x0f.dssa.DataEntryR\aentries\"\x85\x03\n" +
 	"\tDataEntry\x12\x15\n" +
 	"\x06is_dir\x18\x01 \x01(\bR\x05isDir\x12\x1e\n" +
 	"\x04path\x18\x02 \x01(\v2\n" +
@@ -312,18 +356,23 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\vuser_rights\x18\x06 \x01(\v2\f.dssa.RightsR\n" +
 	"userRights\x12\x14\n" +
 	"\x05group\x18\a \x01(\x05R\x05group\x12/\n" +
-	"\fgroup_rights\x18\b \x01(\v2\f.dssa.RightsR\vgroupRights\x12\x1e\n" +
-	"\vis_sym_link\x18\t \x01(\bR\tisSymLink\x12&\n" +
-	"\x0fsym_link_target\x18\n" +
-	" \x01(\tR\rsymLinkTarget\x12\x14\n" +
-	"\x05error\x18\v \x01(\tR\x05error\"L\n" +
+	"\fgroup_rights\x18\b \x01(\v2\f.dssa.RightsR\vgroupRights\x12/\n" +
+	"\fother_rights\x18\t \x01(\v2\f.dssa.RightsR\votherRights\x12\x1e\n" +
+	"\vis_sym_link\x18\n" +
+	" \x01(\bR\tisSymLink\x12&\n" +
+	"\x0fsym_link_target\x18\v \x01(\tR\rsymLinkTarget\x12\x14\n" +
+	"\x05error\x18\f \x01(\tR\x05error\"L\n" +
 	"\x06Rights\x12\x12\n" +
 	"\x04read\x18\x01 \x01(\bR\x04read\x12\x14\n" +
 	"\x05write\x18\x02 \x01(\bR\x05write\x12\x18\n" +
-	"\aexecute\x18\x03 \x01(\bR\aexecute2<\n" +
+	"\aexecute\x18\x03 \x01(\bR\aexecute\"\a\n" +
+	"\x05Empty2\x8e\x01\n" +
 	"\x11DataStorageSystem\x12'\n" +
 	"\x04List\x12\n" +
-	".dssa.Path\x1a\x11.dssa.DataEntries\"\x00B\fZ\n" +
+	".dssa.Path\x1a\x11.dssa.DataEntries\"\x00\x12%\n" +
+	"\x04Stat\x12\n" +
+	".dssa.Path\x1a\x0f.dssa.DataEntry\"\x00\x12)\n" +
+	"\aSetStat\x12\x0f.dssa.DataEntry\x1a\v.dssa.Empty\"\x00B\fZ\n" +
 	"./dssagrpcb\x06proto3"
 
 var (
@@ -338,25 +387,31 @@ func file_grpc_dssa_proto_rawDescGZIP() []byte {
 	return file_grpc_dssa_proto_rawDescData
 }
 
-var file_grpc_dssa_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_grpc_dssa_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_grpc_dssa_proto_goTypes = []any{
 	(*Path)(nil),        // 0: dssa.Path
 	(*DataEntries)(nil), // 1: dssa.DataEntries
 	(*DataEntry)(nil),   // 2: dssa.DataEntry
 	(*Rights)(nil),      // 3: dssa.Rights
+	(*Empty)(nil),       // 4: dssa.Empty
 }
 var file_grpc_dssa_proto_depIdxs = []int32{
 	2, // 0: dssa.DataEntries.entries:type_name -> dssa.DataEntry
 	0, // 1: dssa.DataEntry.path:type_name -> dssa.Path
 	3, // 2: dssa.DataEntry.user_rights:type_name -> dssa.Rights
 	3, // 3: dssa.DataEntry.group_rights:type_name -> dssa.Rights
-	0, // 4: dssa.DataStorageSystem.List:input_type -> dssa.Path
-	1, // 5: dssa.DataStorageSystem.List:output_type -> dssa.DataEntries
-	5, // [5:6] is the sub-list for method output_type
-	4, // [4:5] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	3, // 4: dssa.DataEntry.other_rights:type_name -> dssa.Rights
+	0, // 5: dssa.DataStorageSystem.List:input_type -> dssa.Path
+	0, // 6: dssa.DataStorageSystem.Stat:input_type -> dssa.Path
+	2, // 7: dssa.DataStorageSystem.SetStat:input_type -> dssa.DataEntry
+	1, // 8: dssa.DataStorageSystem.List:output_type -> dssa.DataEntries
+	2, // 9: dssa.DataStorageSystem.Stat:output_type -> dssa.DataEntry
+	4, // 10: dssa.DataStorageSystem.SetStat:output_type -> dssa.Empty
+	8, // [8:11] is the sub-list for method output_type
+	5, // [5:8] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_grpc_dssa_proto_init() }
@@ -370,7 +425,7 @@ func file_grpc_dssa_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_dssa_proto_rawDesc), len(file_grpc_dssa_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

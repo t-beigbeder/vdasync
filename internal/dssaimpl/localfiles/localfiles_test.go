@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
@@ -19,4 +20,12 @@ func TestFileFunctions(t *testing.T) {
 	de2, err := lfd.Stat(strings.Split(ft, "/"))
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime-600, de2.Mtime)
+	de2.Mtime = de.Mtime
+	de2.GroupRights = dssa.Rights{}
+	de2.OtherRights = dssa.Rights{}
+	err = lfd.SetStat(de2)
+	require.Nil(t, err)
+	de3, err := lfd.Stat(strings.Split(ft, "/"))
+	require.Nil(t, err)
+	require.Equal(t, de.Mtime, de3.Mtime)
 }

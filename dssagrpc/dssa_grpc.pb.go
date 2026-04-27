@@ -19,7 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DataStorageSystem_List_FullMethodName = "/dssa.DataStorageSystem/List"
+	DataStorageSystem_List_FullMethodName    = "/dssa.DataStorageSystem/List"
+	DataStorageSystem_Stat_FullMethodName    = "/dssa.DataStorageSystem/Stat"
+	DataStorageSystem_SetStat_FullMethodName = "/dssa.DataStorageSystem/SetStat"
 )
 
 // DataStorageSystemClient is the client API for DataStorageSystem service.
@@ -27,6 +29,8 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataStorageSystemClient interface {
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
+	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
+	SetStat(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type dataStorageSystemClient struct {
@@ -47,11 +51,33 @@ func (c *dataStorageSystemClient) List(ctx context.Context, in *Path, opts ...gr
 	return out, nil
 }
 
+func (c *dataStorageSystemClient) Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DataEntry)
+	err := c.cc.Invoke(ctx, DataStorageSystem_Stat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataStorageSystemClient) SetStat(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, DataStorageSystem_SetStat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DataStorageSystemServer is the server API for DataStorageSystem service.
 // All implementations must embed UnimplementedDataStorageSystemServer
 // for forward compatibility.
 type DataStorageSystemServer interface {
 	List(context.Context, *Path) (*DataEntries, error)
+	Stat(context.Context, *Path) (*DataEntry, error)
+	SetStat(context.Context, *DataEntry) (*Empty, error)
 	mustEmbedUnimplementedDataStorageSystemServer()
 }
 
@@ -64,6 +90,12 @@ type UnimplementedDataStorageSystemServer struct{}
 
 func (UnimplementedDataStorageSystemServer) List(context.Context, *Path) (*DataEntries, error) {
 	return nil, status.Error(codes.Unimplemented, "method List not implemented")
+}
+func (UnimplementedDataStorageSystemServer) Stat(context.Context, *Path) (*DataEntry, error) {
+	return nil, status.Error(codes.Unimplemented, "method Stat not implemented")
+}
+func (UnimplementedDataStorageSystemServer) SetStat(context.Context, *DataEntry) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetStat not implemented")
 }
 func (UnimplementedDataStorageSystemServer) mustEmbedUnimplementedDataStorageSystemServer() {}
 func (UnimplementedDataStorageSystemServer) testEmbeddedByValue()                           {}
@@ -104,6 +136,42 @@ func _DataStorageSystem_List_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _DataStorageSystem_Stat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Path)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).Stat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_Stat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).Stat(ctx, req.(*Path))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataStorageSystem_SetStat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataEntry)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).SetStat(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_SetStat_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).SetStat(ctx, req.(*DataEntry))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DataStorageSystem_ServiceDesc is the grpc.ServiceDesc for DataStorageSystem service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +182,14 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "List",
 			Handler:    _DataStorageSystem_List_Handler,
+		},
+		{
+			MethodName: "Stat",
+			Handler:    _DataStorageSystem_Stat_Handler,
+		},
+		{
+			MethodName: "SetStat",
+			Handler:    _DataStorageSystem_SetStat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
