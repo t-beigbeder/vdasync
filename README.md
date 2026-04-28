@@ -60,7 +60,7 @@ https://protobuf.dev/installation/
 
 - SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
 - parse FIXMEs
-- local files symlinks
+- dssa/grpc List operation with only Size/Time options if more efficient
 - grpc ope version
 - Dssa entry members (???)
 - secure plugin connection with

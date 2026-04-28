@@ -1,6 +1,7 @@
 package localfiles
 
 import (
+	"crypto/rand"
 	"io"
 	"os"
 	"path"
@@ -13,7 +14,8 @@ import (
 )
 
 func TestFileFunctions(t *testing.T) {
-	ft := path.Join(t.TempDir(), "TestFileFunctions.dat")
+	td1 := t.TempDir()
+	ft := path.Join(td1, "TestFileFunctions.dat")
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
 	lfd := MakeLocalFilesDssa()
 	de, err := lfd.Stat(strings.Split(ft, "/"))
@@ -39,8 +41,17 @@ func TestFileFunctions(t *testing.T) {
 	require.True(t, ltde.IsSymLink)
 	require.Equal(t, ft, ltde.SymLinkTarget)
 
+	ldt := path.Join(t.TempDir(), "TestFileFunctions.lnsd")
+	err = os.Symlink(td1, ldt)
+	require.Nil(t, err)
+	ldtde, err := lfd.Stat(strings.Split(ldt, "/"))
+	require.Nil(t, err)
+	require.True(t, ldtde.IsSymLink)
+	require.False(t, ldtde.IsDir)
+	require.Equal(t, td1, ldtde.SymLinkTarget)
+
 	tt := path.Join(t.TempDir(), "TestFileFunctionsCopied.dat")
-	rc, err := lfd.GetReadCloser(strings.Split(lt, "/"))
+	rc, err := lfd.GetReadCloser(strings.Split(ft, "/"))
 	require.Nil(t, err)
 	defer rc.Close()
 	wc, err := lfd.GetWriteCloser(strings.Split(tt, "/"))
@@ -49,4 +60,48 @@ func TestFileFunctions(t *testing.T) {
 	lw, err := io.Copy(wc, rc)
 	require.Nil(t, err)
 	require.Equal(t, de.Size, lw)
+}
+
+func TestFileGetPut(t *testing.T) {
+	ft := path.Join(t.TempDir(), "TestFileGetPut.dat")
+	buf := make([]byte, 32*1024)
+	fd, err := os.Create(ft)
+	require.Nil(t, err)
+	defer fd.Close()
+	for i := 0; i < 1024; i++ {
+		nr, err := rand.Read(buf)
+		require.Nil(t, err)
+		nw, err := fd.Write(buf)
+		require.Nil(t, err)
+		require.Equal(t, nr, nw)
+	}
+	fd.Close()
+
+	lfd := MakeLocalFilesDssa()
+	de, err := lfd.Stat(strings.Split(ft, "/"))
+	require.Nil(t, err)
+	require.Equal(t, 32*1024*1024, int(de.Size))
+
+	tt := path.Join(t.TempDir(), "TestFileGetPutCopied.dat")
+	rc, err := lfd.GetReadCloser(strings.Split(ft, "/"))
+	require.Nil(t, err)
+	defer rc.Close()
+	wc, err := lfd.GetWriteCloser(strings.Split(tt, "/"))
+	require.Nil(t, err)
+	defer wc.Close()
+	written := 0
+	buf = make([]byte, 31999)
+	for {
+		nr, err := rc.Read(buf)
+		if err != nil {
+			break
+		}
+		nw, err := wc.Write(buf[0:nr])
+		if err != nil {
+			break
+		}
+		written += nw
+	}
+	require.Nil(t, err)
+	require.Equal(t, de.Size, int64(written))
 }
