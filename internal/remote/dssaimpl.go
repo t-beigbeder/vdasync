@@ -42,3 +42,17 @@ func (s *dssaImpl) SetStat(ctx context.Context, gdte *dssagrpc.DataEntry) (*dssa
 	}
 	return &dssagrpc.Empty{}, nil
 }
+
+func (s *dssaImpl) Put(grpc.ClientStreamingServer[dssagrpc.PushedBlock, dssagrpc.Length]) error {
+	panic("")
+	// client-side streaming
+	// gets a writer to Dssa
+	// while recv-ing on the stream, write to Dssa
+}
+
+func (s *dssaImpl) Get(*dssagrpc.Path, grpc.ServerStreamingServer[dssagrpc.PulledBlock]) error {
+	panic("")
+	// server side streaming
+	// get a reader from Dssa
+	// while read-ing on the Dssa, send to the stream
+}
