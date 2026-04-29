@@ -2,6 +2,9 @@ package grpcclient
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"os"
 	"path"
 	"testing"
 
@@ -38,5 +41,44 @@ func TestFunctions(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime, de3.Mtime)
 
-	// FIXME: continue
+	lt := path.Join(t.TempDir(), "TestFileFunctions.symlink")
+	err = os.Symlink(ft, lt) // grpc server runs locally
+	require.Nil(t, err)
+	lde, err := dgc.Stat(common.OsPath2DssPath(lt))
+	require.Nil(t, err)
+	require.True(t, lde.IsSymLink)
+	require.Equal(t, ft, lde.SymLinkTarget)
+}
+
+func TestWriter(t *testing.T) {
+	tds := t.TempDir()
+	tdt := t.TempDir()
+	cli, cFunc, err := remote.GrpcGetTestClient()
+	require.Nil(t, err)
+	defer cFunc()
+	dgc := MakeGrpcClient(context.Background(), cli)
+	for ix, size := range []int64{1023, 32*1024 - 1, 32*1024*1024 - 1, 32 * 1024 * 1024} {
+		fn := fmt.Sprintf("TestWriter%d.dat", ix)
+		fts := path.Join(tds, fn)
+		ftd := path.Join(tdt, fn)
+
+		err := common.MakeTestFile(fts, int(size))
+		require.Nil(t, err)
+		rdr, err := os.Open(fts)
+		require.Nil(t, err)
+		defer rdr.Close()
+
+		wc, err := dgc.GetWriteCloser(common.OsPath2DssPath(ftd))
+		require.Nil(t, err)
+		defer wc.Close()
+
+		lw, err := io.Copy(wc, rdr)
+		require.Equal(t, size, lw)
+		rdr.Close()
+		wc.Close()
+
+		fi, err := os.Stat(ftd)
+		require.Nil(t, err)
+		require.Equal(t, size, fi.Size())
+	}
 }

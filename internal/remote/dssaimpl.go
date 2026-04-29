@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"io"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
@@ -43,11 +44,40 @@ func (s *dssaImpl) SetStat(ctx context.Context, gdte *dssagrpc.DataEntry) (*dssa
 	return &dssagrpc.Empty{}, nil
 }
 
-func (s *dssaImpl) Put(grpc.ClientStreamingServer[dssagrpc.PushedBlock, dssagrpc.Length]) error {
-	panic("")
+func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, dssagrpc.Length]) error {
 	// client-side streaming
 	// gets a writer to Dssa
 	// while recv-ing on the stream, write to Dssa
+	var (
+		gpb     *dssagrpc.PushedBlock
+		wc      io.WriteCloser
+		written int64
+		cw      int
+		err     error
+	)
+	for {
+		if gpb, err = stream.Recv(); err == io.EOF {
+			if wc != nil {
+				if err = wc.Close(); err != nil {
+					return err
+				}
+			}
+			return stream.SendAndClose(&dssagrpc.Length{Length: written})
+		}
+		if err != nil {
+			return err
+		}
+		if wc == nil {
+			if wc, err = s.dssa_.GetWriteCloser(gpb.Path.Path); err != nil {
+				return err
+			}
+			defer wc.Close()
+		}
+		if cw, err = wc.Write(gpb.Data); err != nil {
+			return err
+		}
+		written += int64(cw)
+	}
 }
 
 func (s *dssaImpl) Get(*dssagrpc.Path, grpc.ServerStreamingServer[dssagrpc.PulledBlock]) error {

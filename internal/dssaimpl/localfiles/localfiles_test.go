@@ -1,7 +1,6 @@
 package localfiles
 
 import (
-	"crypto/rand"
 	"io"
 	"os"
 	"path"
@@ -64,18 +63,8 @@ func TestFileFunctions(t *testing.T) {
 
 func TestFileGetPut(t *testing.T) {
 	ft := path.Join(t.TempDir(), "TestFileGetPut.dat")
-	buf := make([]byte, 32*1024)
-	fd, err := os.Create(ft)
+	err := common.MakeTestFile(ft, 32*1024*1024)
 	require.Nil(t, err)
-	defer fd.Close()
-	for i := 0; i < 1024; i++ {
-		nr, err := rand.Read(buf)
-		require.Nil(t, err)
-		nw, err := fd.Write(buf)
-		require.Nil(t, err)
-		require.Equal(t, nr, nw)
-	}
-	fd.Close()
 
 	lfd := MakeLocalFilesDssa()
 	de, err := lfd.Stat(strings.Split(ft, "/"))
@@ -90,7 +79,7 @@ func TestFileGetPut(t *testing.T) {
 	require.Nil(t, err)
 	defer wc.Close()
 	written := 0
-	buf = make([]byte, 31999)
+	buf := make([]byte, 31999)
 	for {
 		nr, err := rc.Read(buf)
 		if err != nil {

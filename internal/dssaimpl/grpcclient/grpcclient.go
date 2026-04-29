@@ -15,8 +15,8 @@ type grpcClient struct {
 }
 
 // List implements [dssa.Dssa].
-func (d *grpcClient) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
-	gds, err := d.client.List(d.ctx, common.DssPath2GrpcPath(path_))
+func (gc *grpcClient) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
+	gds, err := gc.client.List(gc.ctx, common.DssPath2GrpcPath(path_))
 	if err != nil {
 		return nil, err
 	}
@@ -28,8 +28,8 @@ func (d *grpcClient) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 }
 
 // Stat implements [dssa.Dssa].
-func (d *grpcClient) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
-	gd, err := d.client.Stat(d.ctx, common.DssPath2GrpcPath(path_))
+func (gc *grpcClient) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
+	gd, err := gc.client.Stat(gc.ctx, common.DssPath2GrpcPath(path_))
 	if err != nil {
 		return nil, err
 	}
@@ -37,13 +37,13 @@ func (d *grpcClient) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 }
 
 // SetStat implements [dssa.Dssa].
-func (d *grpcClient) SetStat(de *dssa.DataEntry) error {
-	_, err := d.client.SetStat(d.ctx, common.DssDte2GrpcDte(de))
+func (gc *grpcClient) SetStat(de *dssa.DataEntry) error {
+	_, err := gc.client.SetStat(gc.ctx, common.DssDte2GrpcDte(de))
 	return err
 }
 
 // GetReader implements [dssa.Dssa].
-func (d *grpcClient) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
+func (gc *grpcClient) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
 	panic("")
 	// returns a reader that implements client receiving server streaming
 	// each reader read() provides available buffered data with
@@ -51,10 +51,8 @@ func (d *grpcClient) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
 }
 
 // GetWriter implements [dssa.Dssa].
-func (d *grpcClient) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
-	panic("")
-	// returns a writer that implements client streaming
-	// each writer write() translates to a grpc call to send() after initial put()
+func (gc *grpcClient) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
+	return &grpcWriter{path_: path_, gc: gc}, nil
 }
 
 func MakeGrpcClient(ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
