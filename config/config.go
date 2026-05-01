@@ -16,13 +16,26 @@ type PluginType struct {
 	ToBeTested     string   `yaml:"toBeTested"`
 }
 
+type DataStoreType struct {
+	Name           string `yaml`
+	Type           string `yaml`
+	PluginName     string `yaml:"pluginName"`
+	Host           string `yaml`
+	Port           int    `yaml`
+	Tls            bool   `yaml`
+	CaCertPath     string `yaml:"caCertPath"`
+	ClientCertPath string `yaml:"clientCertPath"`
+	ClientKeyPath  string `yaml:"clientKeyPath"`
+}
+
 type CliConfig struct {
-	Version                    string        `yaml`
-	Plugins                    []*PluginType `yaml`
-	PluginReadyRetries         int           `yaml:"pluginReadyRetries"`
-	PluginReadyTimeout         string        `yaml:"pluginReadyTimeout"`
-	PluginAddress              string        `yaml:"pluginAddress"`
-	PluginTransportCredentials string        `yaml:"pluginTransportCredentials"`
+	Version                    string           `yaml`
+	Plugins                    []*PluginType    `yaml`
+	PluginReadyRetries         int              `yaml:"pluginReadyRetries"`
+	PluginReadyTimeout         string           `yaml:"pluginReadyTimeout"`
+	PluginAddress              string           `yaml:"pluginAddress"`
+	PluginTransportCredentials string           `yaml:"pluginTransportCredentials"`
+	DataStores                 []*DataStoreType `yaml:"dataStores"`
 }
 
 const CliConfigDefaultYaml string = `
