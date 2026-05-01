@@ -27,7 +27,7 @@ func TestMakeTestFile(t *testing.T) {
 
 func TestMakeTestFilesTree(t *testing.T) {
 	td := t.TempDir()
-	ad, af, err := MakeTestFilesTree(td, 100, 1000, 12, 3*1024*1024)
+	sad, saf, err := MakeTestFilesTree(td, 7, 100, 16, 6*1024*1024)
 	require.Nil(t, err)
-	_, _ = ad, af
+	GetLogger().Debug("TestMakeTestFilesTree", "td", td, "sad", sad, "saf", saf)
 }

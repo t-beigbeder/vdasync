@@ -7,7 +7,6 @@ import (
 	mrand "math/rand"
 	"os"
 	"path"
-
 )
 
 func GetLogger() *slog.Logger {
@@ -51,11 +50,15 @@ func makeRandomDir(pPath string, depth, maxDirs, maxFiles, filesPerDir, dirsPerD
 			return 0, 0, err
 		}
 		if depth < 3 {
-			addedDirs, addedFiles, err := makeRandomDir(fdn, depth+1, maxDirs, maxFiles, filesPerDir, dirsPerDir, maxFileSize)
+			dpd := dirsPerDir
+			if depth == 2 {
+				dpd = 0
+			}
+			addedDirs, addedFiles, err := makeRandomDir(fdn, depth+1, maxDirs, maxFiles, filesPerDir, dpd, maxFileSize)
 			if err != nil {
 				return 0, 0, err
 			}
-			sumAddedDirs, sumAddedFiles = sumAddedDirs + addedDirs, sumAddedFiles + addedFiles
+			sumAddedDirs, sumAddedFiles = sumAddedDirs+addedDirs, sumAddedFiles+addedFiles
 		}
 		sumAddedDirs += 1
 	}
@@ -66,11 +69,6 @@ func makeRandomDir(pPath string, depth, maxDirs, maxFiles, filesPerDir, dirsPerD
 			return 0, 0, err
 		}
 		sumAddedFiles += 1
-	}
-	GetLogger().Debug("mrd", "path", pPath, "sad", sumAddedDirs, "saf", sumAddedFiles)
-	if sumAddedFiles >= 70 {
-		a := 1
-		_ = a
 	}
 	return sumAddedDirs, sumAddedFiles, nil
 }
