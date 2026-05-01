@@ -24,3 +24,10 @@ func TestMakeTestFile(t *testing.T) {
 
 	}
 }
+
+func TestMakeTestFilesTree(t *testing.T) {
+	td := t.TempDir()
+	ad, af, err := MakeTestFilesTree(td, 100, 1000, 12, 3*1024*1024)
+	require.Nil(t, err)
+	_, _ = ad, af
+}

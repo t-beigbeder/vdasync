@@ -10,6 +10,10 @@ vPATH := $(shell echo ${PATH})
 test:	## go test the application
 	go test -v ./...
 
+.PHONY: test-this
+test-this:	## go test the application
+	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/otvl_dtacsy/internal/common
+
 .PHONY: test-again
 test-again:	export QSTF_TEST_FULL = 1
 test-again:	## go test the application again

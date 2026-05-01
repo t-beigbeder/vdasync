@@ -4,7 +4,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"log/slog"
+	mrand "math/rand"
 	"os"
+	"path"
+
 )
 
 func GetLogger() *slog.Logger {
@@ -37,4 +40,44 @@ func MakeTestFile(tfPath string, size int) error {
 		}
 	}
 	return err
+}
+
+func makeRandomDir(pPath string, depth, maxDirs, maxFiles, filesPerDir, dirsPerDir, maxFileSize int) (int, int, error) {
+	sumAddedDirs, sumAddedFiles := 0, 0
+	for dx := 0; dx < dirsPerDir && sumAddedDirs < maxDirs && sumAddedFiles < maxFiles; dx++ {
+		dn := fmt.Sprintf("d%02d", dx)
+		fdn := path.Join(pPath, dn)
+		if err := os.Mkdir(fdn, 0750); err != nil {
+			return 0, 0, err
+		}
+		if depth < 3 {
+			addedDirs, addedFiles, err := makeRandomDir(fdn, depth+1, maxDirs, maxFiles, filesPerDir, dirsPerDir, maxFileSize)
+			if err != nil {
+				return 0, 0, err
+			}
+			sumAddedDirs, sumAddedFiles = sumAddedDirs + addedDirs, sumAddedFiles + addedFiles
+		}
+		sumAddedDirs += 1
+	}
+	for fx := 0; fx < filesPerDir && sumAddedFiles < maxFiles; fx++ {
+		fn := fmt.Sprintf("f%02d", fx)
+		cfs := mrand.Intn(1 + maxFileSize)
+		if err := MakeTestFile(path.Join(pPath, fn), cfs); err != nil {
+			return 0, 0, err
+		}
+		sumAddedFiles += 1
+	}
+	GetLogger().Debug("mrd", "path", pPath, "sad", sumAddedDirs, "saf", sumAddedFiles)
+	if sumAddedFiles >= 70 {
+		a := 1
+		_ = a
+	}
+	return sumAddedDirs, sumAddedFiles, nil
+}
+
+func MakeTestFilesTree(tdPath string, maxDirs, maxFiles, childrenPerDir, maxFileSize int) (int, int, error) {
+	filesPerDir := maxFiles / maxDirs
+	dirsPerDir := childrenPerDir - filesPerDir
+	sumAddedDirs, sumAddedFiles, err := makeRandomDir(tdPath, 0, maxDirs, maxFiles, filesPerDir, dirsPerDir, maxFileSize)
+	return sumAddedDirs, sumAddedFiles, err
 }
