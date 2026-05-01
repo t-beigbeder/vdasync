@@ -13,6 +13,7 @@ type PluginType struct {
 	ExecutablePath string   `yaml:"executablePath"` // defaults to current executable
 	AddArgs        []string `yaml:"addArgs"`
 	Port           int      `yaml`
+	ToBeTested     string   `yaml:"toBeTested"`
 }
 
 type CliConfig struct {
@@ -24,7 +25,7 @@ type CliConfig struct {
 	PluginTransportCredentials string        `yaml:"pluginTransportCredentials"`
 }
 
-const DefaultCliYamlConfig string = `
+const CliConfigDefaultYaml string = `
 version: "0.1"
 plugins:
 pluginReadyRetries: 3
@@ -33,29 +34,34 @@ pluginAddress: "localhost"
 pluginTransportCredentials: "insecure"
 `
 
-func configurePlugins(config *CliConfig) error {
-	exe, err := os.Executable()
-	if err != nil {
+const PluginTypeDefaultYaml string = `
+toBeTested: "shouldBeSet"
+`
+
+var defaultPluginTypeValues = &PluginType{}
+
+func init() {
+	yaml.Unmarshal([]byte(PluginTypeDefaultYaml), &defaultPluginTypeValues)
+	exe, _ := os.Executable()
+	defaultPluginTypeValues.ExecutablePath = exe
+}
+
+func umarshalPlugin(op *PluginType, b []byte) error {
+	tp := &PluginType{}
+	*tp = *defaultPluginTypeValues
+	if err := yaml.Unmarshal(b, tp); err != nil {
 		return err
 	}
-	for _, plugin := range config.Plugins {
-		if plugin.ExecutablePath != "" {
-			continue
-		}
-		plugin.ExecutablePath = exe
-	}
+	*op = *tp
 	return nil
 }
 
 func Load(configPath string) (*CliConfig, error) {
 	conf := CliConfig{}
-	if err := yaml.Unmarshal([]byte(DefaultCliYamlConfig), &conf); err != nil {
+	if err := yaml.Unmarshal([]byte(CliConfigDefaultYaml), &conf); err != nil {
 		return nil, err
 	}
-	if err := common.YamlLoad(configPath, &conf); err != nil {
-		return nil, err
-	}
-	if err := configurePlugins(&conf); err != nil {
+	if err := common.YamlLoad(configPath, &conf, yaml.CustomUnmarshaler(umarshalPlugin)); err != nil {
 		return nil, err
 	}
 	return &conf, nil

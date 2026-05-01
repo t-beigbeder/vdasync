@@ -2,3 +2,5 @@ a: 42
 b: "contenu de B"
 c:
   d: "contenu de D"
+e:
+  f: "contenu de F"

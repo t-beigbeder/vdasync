@@ -7,7 +7,7 @@ import (
 )
 
 // YamlLoad opens the file with provided path and unmarshal its yaml content to the value val with provided address.
-func YamlLoad(path string, val interface{}) error {
+func YamlLoad(path string, val interface{}, opts ...yaml.DecodeOption) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
@@ -17,7 +17,7 @@ func YamlLoad(path string, val interface{}) error {
 	if err != nil {
 		return err
 	}
-	err = yaml.Unmarshal(y, val)
+	err = yaml.UnmarshalWithOptions(y, val, opts...)
 	if err != nil {
 		return err
 	}

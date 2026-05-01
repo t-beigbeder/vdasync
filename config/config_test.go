@@ -27,4 +27,6 @@ func TestLoadConfig(t *testing.T) {
 	}
 	require.Nil(t, err)
 	require.Equal(t, "0.1", config.Version)
+	require.Equal(t, 1, len(config.Plugins))
+	require.Equal(t, "shouldBeSet", config.Plugins[0].ToBeTested)
 }
