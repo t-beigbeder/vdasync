@@ -9,16 +9,11 @@ service DataStorageSystem {
     rpc Stat(Path) returns (DataEntry) {}
     rpc SetStat(DataEntry) returns (Empty) {}
     rpc Put(stream PushedBlock) returns (Length) {}
-    rpc Get(PathAndSize) returns (stream PulledBlock) {}
+    rpc Get(Path) returns (stream PulledBlock) {}
 }
 
 message Path {
     repeated string path = 1;
-}
-
-message PathAndSize {
-    repeated string path = 1;
-    int64 size = 2;
 }
 
 message DataEntries {

@@ -57,7 +57,7 @@ func TestWriter(t *testing.T) {
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := MakeGrpcClient(context.Background(), cli)
-	for ix, size := range []int64{1023, 32*1024 - 1, 32*1024*1024 - 1, 32 * 1024 * 1024} {
+	for ix, size := range []int64{1023, 32*1024 - 1, 32 * 1024, 32*1024*1024 - 1, 32 * 1024 * 1024} {
 		fn := fmt.Sprintf("TestWriter%d.dat", ix)
 		fts := path.Join(tds, fn)
 		ftd := path.Join(tdt, fn)
@@ -91,7 +91,7 @@ func TestReader(t *testing.T) {
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := MakeGrpcClient(context.Background(), cli)
-	for ix, size := range []int64{1023, 32*1024 - 1, 32*1024*1024 - 1, 32 * 1024 * 1024} {
+	for ix, size := range []int64{1023, 32*1024 - 1, 32 * 1024, 32*1024*1024 - 1, 32 * 1024 * 1024} {
 		fn := fmt.Sprintf("TestReader%d.dat", ix)
 		fts := path.Join(tds, fn)
 		ftd := path.Join(tdt, fn)
@@ -113,5 +113,4 @@ func TestReader(t *testing.T) {
 		wrr.Close()
 		rc.Close()
 	}
-
 }

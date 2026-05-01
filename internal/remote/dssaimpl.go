@@ -80,9 +80,24 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 	}
 }
 
-func (s *dssaImpl) Get(*dssagrpc.PathAndSize, grpc.ServerStreamingServer[dssagrpc.PulledBlock]) error {
-	panic("")
-	// server side streaming
-	// get a reader from Dssa
-	// while read-ing on the Dssa, send to the stream
+func (s *dssaImpl) Get(
+	gp *dssagrpc.Path, stream grpc.ServerStreamingServer[dssagrpc.PulledBlock]) error {
+	rc, err := s.dssa_.GetReadCloser(gp.Path)
+	if err != nil {
+		return err
+	}
+	buffer := make([]byte, 32768)
+	for {
+		n, err := rc.Read(buffer)
+		if err != nil && err != io.EOF {
+			return err
+		}
+		sErr := stream.Send(&dssagrpc.PulledBlock{Data: buffer[0:n]})
+		if sErr != nil {
+			return sErr
+		}
+		if err == io.EOF {
+			return nil
+		}
+	}
 }

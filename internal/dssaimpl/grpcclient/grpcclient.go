@@ -44,10 +44,7 @@ func (gc *grpcClient) SetStat(de *dssa.DataEntry) error {
 
 // GetReader implements [dssa.Dssa].
 func (gc *grpcClient) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
-	panic("")
-	// returns a reader that implements client receiving server streaming
-	// each reader read() provides available buffered data with
-	// optional recv() to get more
+	return &grpcReader{gc: gc, path_: path_}, nil
 }
 
 // GetWriter implements [dssa.Dssa].
