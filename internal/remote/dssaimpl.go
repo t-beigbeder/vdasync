@@ -80,7 +80,7 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 	}
 }
 
-func (s *dssaImpl) Get(*dssagrpc.Path, grpc.ServerStreamingServer[dssagrpc.PulledBlock]) error {
+func (s *dssaImpl) Get(*dssagrpc.PathAndSize, grpc.ServerStreamingServer[dssagrpc.PulledBlock]) error {
 	panic("")
 	// server side streaming
 	// get a reader from Dssa
