@@ -29,7 +29,9 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 	}
 	dtes := []*dssa.DataEntry{}
 	for _, de := range des {
-		cPath := append(path_, de.Name())
+		cPath := make([]string, len(path_))
+		copy(cPath, path_)
+		cPath = append(cPath, de.Name())
 		dte, err := d.Stat(cPath)
 		if err != nil {
 			dte = &dssa.DataEntry{IsDir: de.IsDir(), Path: cPath, Error: err}
