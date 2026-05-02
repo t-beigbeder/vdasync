@@ -61,8 +61,6 @@ func (gr *grpcReader) Close() error {
 		return errors.New("grpcReader.Close: already closed")
 	}
 	gr.closed = true
-	if err := gr.Close(); err != nil {
-		return err
-	}
+	_  = gr.stream.CloseSend()
 	return nil
 }

@@ -67,7 +67,7 @@ func LoadFile(path string) ([]byte, error) {
 }
 
 func GetFileStat(path string) (os.FileInfo, [2]int, [3]dssa.Rights, error) {
-	fi, err := os.Stat(path)
+	fi, err := os.Lstat(path)
 	if err != nil {
 		return nil, [2]int{}, [3]dssa.Rights{}, err
 	}

@@ -65,6 +65,8 @@ https://protobuf.dev/installation/
 
 ### TODO
 
+- add dssa service to create symbolic link
+- an exist service may be needed in dssa for efficiency (or stat should return an explicit error)
 - SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
 - parse FIXMEs
 - dssa/grpc List operation with only Size/Time options if more efficient
