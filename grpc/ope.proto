@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package ope;
+
+option go_package = "./opegrpc";
+
+service Ope {
+  rpc Ready(Empty) returns (Bool) {}
+  rpc Version(Empty) returns (Value) {}
+  rpc Shutdown(Value) returns (Bool) {}
+}
+
+message Value {
+  string value = 1;
+}
+
+message Bool {
+  bool value = 1;
+}
+
+message Empty {
+}

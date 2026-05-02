@@ -1,0 +1,137 @@
+package plugin
+
+import (
+	"context"
+	"path"
+	"runtime"
+	"strings"
+	"testing"
+
+	"github.com/stretchr/testify/require"
+	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
+)
+
+func testDir() string {
+	_, filename, _, _ := runtime.Caller(0)
+	return path.Dir(filename)
+}
+
+func setExecutable(conf string) string {
+	exep := path.Clean(testDir() + "/../../bin/testmain")
+	return strings.Replace(conf, "${exe}", exep, -1)
+}
+
+func TestRunPluginOk(t *testing.T) {
+	const conf string = `
+plugins:
+- name: localFilesSample
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+`
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginOk.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	Shutdown(rps)
+	require.Zero(t, len(Errors(rps)))
+	WaitFor(rps)
+	require.Zero(t, len(Errors(rps)))
+}
+
+func TestRunPluginsOk(t *testing.T) {
+	const conf string = `
+plugins:
+- name: localFilesSample1
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+- name: localFilesSample2
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+`
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOk.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 2, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	Shutdown(rps)
+	require.Zero(t, len(Errors(rps)))
+	WaitFor(rps)
+	require.Zero(t, len(Errors(rps)))
+}
+
+func TestRunPluginsOneMisConf(t *testing.T) {
+	const conf string = `
+plugins:
+- name: localFilesSample1b
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+- name: localFilesSample2b
+  type: localFiles
+  executablePath: ${exe}doesnotexist
+  addArgs:
+  - "-is-plugin"
+`
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOneMisConf.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 2, len(rps))
+	require.Equal(t, 1, len(Errors(rps)))
+	Shutdown(rps)
+	require.Equal(t, 1, len(Errors(rps)))
+	WaitFor(rps)
+	require.Equal(t, 1, len(Errors(rps)))
+}
+
+func TestRunPluginsOneFail(t *testing.T) {
+	const conf string = `
+plugins:
+- name: localFilesSample1c
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+- name: localFilesSample2c
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+  - "-is-fatal"
+`
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOneFail.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 2, len(rps))
+	require.Equal(t, 1, len(Errors(rps)))
+	Shutdown(rps)
+	require.Equal(t, 1, len(Errors(rps)))
+	WaitFor(rps)
+	require.Equal(t, 1, len(Errors(rps)))
+}
+
+func TestRunPluginAndCallList(t *testing.T) {
+	const conf string = `
+plugins:
+- name: localFilesSample
+  type: localFiles
+  executablePath: ${exe}
+  addArgs:
+  - "-is-plugin"
+`
+	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginOk.yml"), setExecutable(conf))
+	require.Nil(t, err)
+	require.Equal(t, 1, len(rps))
+	require.Zero(t, len(Errors(rps)))
+	rp := rps[0]
+	des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
+	require.Nil(t, err)
+	require.GreaterOrEqual(t, len(des.Entries), 1)
+	Shutdown(rps)
+	require.Zero(t, len(Errors(rps)))
+	WaitFor(rps)
+	require.Zero(t, len(Errors(rps)))
+}
