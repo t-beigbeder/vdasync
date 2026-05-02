@@ -2,13 +2,25 @@
 
 Versatile data access and synchronization tool
 
+## Status
+
+Pre-alpha status:
+
+- basic API local and remote
+- plugin setup with local implementation for testing
+- walker structure for synchronization implementation
+- rather good test coverage
+
 ## Design
 
 ### Dssa: data storage system abstraction
 
+Features
+
 - local files
-- grpc server to local files or any plugin
-- plugin through grpc
+- grpc server to remote local files or any plugin
+- plugin through same grpc API
+  - grpc avoids having large and bloat binary
   - s3
   - sftp client
 
@@ -25,11 +37,6 @@ API
 ### Fast synchronization with parallelism
 
 Dssa walk requests pushed on worker queue
-
-### First steps
-
-- List impl. local, grpc server and plugin (last just for POC)
-- full local and grpc server implementation
 
 ## Dev
 
@@ -62,7 +69,6 @@ https://protobuf.dev/installation/
 - parse FIXMEs
 - dssa/grpc List operation with only Size/Time options if more efficient
 - grpc ope version
-- Dssa entry members (???)
 - secure plugin connection with
   - https://github.com/filosottile/mkcert
   - https://go.dev/src/crypto/tls/generate_cert.go
