@@ -9,8 +9,13 @@ import (
 )
 
 func TestLog(t *testing.T) {
+	sll := os.Getenv("GO_TEST_LOG_LEVEL")
+	GetLogger().Error("an error message", "with", "that", "GO_TEST_LOG_LEVEL", sll)
 	GetLogger().Info("a message", "with", "that")
 	GetLogger().Debug("another message", "that is for", "debug")
+	il := doGetLogger("INFO")
+	il.Debug("not displayed")
+	il.Info("displayed")
 }
 
 func TestMakeTestFile(t *testing.T) {

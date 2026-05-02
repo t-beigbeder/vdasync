@@ -9,8 +9,16 @@ import (
 	"path"
 )
 
+func doGetLogger(sll string) *slog.Logger {
+	sl := slog.Level(-4)
+	if sll != "" {
+		sl.UnmarshalText([]byte(sll))
+	}
+	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: sl}))
+}
+
 func GetLogger() *slog.Logger {
-	return slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+	return doGetLogger(os.Getenv("GO_TEST_LOG_LEVEL"))
 }
 
 func MakeTestFile(tfPath string, size int) error {

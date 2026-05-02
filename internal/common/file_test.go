@@ -47,3 +47,11 @@ func TestAccessRights(t *testing.T) {
 	require.Nil(t, err)
 	require.False(t, ugoRights[1].Write)
 }
+
+func TestSha256(t *testing.T) {
+	ft := path.Join(t.TempDir(), "TestSha256.dat")
+	require.Nil(t, WriteFile(ft, []byte(t.Name())))
+	h, err := FileSha256(ft)
+	require.Nil(t, err)
+	require.Equal(t, "f2a2e3a8f52eccf22084cf440466ca4d00b2203df70fd57b11a408567e5a03ff", h)
+}

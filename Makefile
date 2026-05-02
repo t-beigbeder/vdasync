@@ -7,7 +7,12 @@ help:	## show this help
 vPATH := $(shell echo ${PATH})
 
 .PHONY: test
+test: export GO_TEST_LOG_LEVEL = ERROR
 test:	## go test the application
+	go test -v ./...
+
+.PHONY: test-verbose
+test-verbose:	## go test the application
 	go test -v ./...
 
 .PHONY: test-this
