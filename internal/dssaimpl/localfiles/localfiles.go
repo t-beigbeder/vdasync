@@ -41,6 +41,13 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 	return dtes, nil
 }
 
+// Mkdir implements [dssa.Dssa].
+func (d *localFiles) Mkdir(de *dssa.DataEntry) error {
+	ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
+	err := os.Mkdir(osPath(de.Path), common.Rights2Mod([3]dssa.Rights(ugor)))
+	return err
+}
+
 // Stat implements [dssa.Dssa].
 func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 	fi, err := os.Lstat(osPath(path_))

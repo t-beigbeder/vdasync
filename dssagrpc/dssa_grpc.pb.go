@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	DataStorageSystem_List_FullMethodName    = "/dssa.DataStorageSystem/List"
 	DataStorageSystem_Stat_FullMethodName    = "/dssa.DataStorageSystem/Stat"
+	DataStorageSystem_Mkdir_FullMethodName   = "/dssa.DataStorageSystem/Mkdir"
 	DataStorageSystem_SetStat_FullMethodName = "/dssa.DataStorageSystem/SetStat"
 	DataStorageSystem_Put_FullMethodName     = "/dssa.DataStorageSystem/Put"
 	DataStorageSystem_Get_FullMethodName     = "/dssa.DataStorageSystem/Get"
@@ -33,6 +34,7 @@ const (
 type DataStorageSystemClient interface {
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
+	Mkdir(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
 	SetStat(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
 	Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error)
 	Get(ctx context.Context, in *Path, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PulledBlock], error)
@@ -61,6 +63,16 @@ func (c *dataStorageSystemClient) Stat(ctx context.Context, in *Path, opts ...gr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DataEntry)
 	err := c.cc.Invoke(ctx, DataStorageSystem_Stat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataStorageSystemClient) Mkdir(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, DataStorageSystem_Mkdir_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -125,6 +137,7 @@ func (c *dataStorageSystemClient) Symlink(ctx context.Context, in *OldNewPaths, 
 type DataStorageSystemServer interface {
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
+	Mkdir(context.Context, *DataEntry) (*Empty, error)
 	SetStat(context.Context, *DataEntry) (*Empty, error)
 	Put(grpc.ClientStreamingServer[PushedBlock, Length]) error
 	Get(*Path, grpc.ServerStreamingServer[PulledBlock]) error
@@ -144,6 +157,9 @@ func (UnimplementedDataStorageSystemServer) List(context.Context, *Path) (*DataE
 }
 func (UnimplementedDataStorageSystemServer) Stat(context.Context, *Path) (*DataEntry, error) {
 	return nil, status.Error(codes.Unimplemented, "method Stat not implemented")
+}
+func (UnimplementedDataStorageSystemServer) Mkdir(context.Context, *DataEntry) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method Mkdir not implemented")
 }
 func (UnimplementedDataStorageSystemServer) SetStat(context.Context, *DataEntry) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetStat not implemented")
@@ -210,6 +226,24 @@ func _DataStorageSystem_Stat_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DataStorageSystemServer).Stat(ctx, req.(*Path))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataStorageSystem_Mkdir_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DataEntry)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).Mkdir(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_Mkdir_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).Mkdir(ctx, req.(*DataEntry))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -282,6 +316,10 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Stat",
 			Handler:    _DataStorageSystem_Stat_Handler,
+		},
+		{
+			MethodName: "Mkdir",
+			Handler:    _DataStorageSystem_Mkdir_Handler,
 		},
 		{
 			MethodName: "SetStat",

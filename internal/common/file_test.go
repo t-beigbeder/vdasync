@@ -1,6 +1,7 @@
 package common
 
 import (
+	"io/fs"
 	"path"
 	"testing"
 
@@ -46,6 +47,9 @@ func TestAccessRights(t *testing.T) {
 	fi, ugIds, ugoRights, err = GetFileStat(ft)
 	require.Nil(t, err)
 	require.False(t, ugoRights[1].Write)
+	require.True(t, ugoRights[1].Read)
+	mode := Rights2Mod(ugoRights)
+	require.Equal(t, mode, fs.FileMode(0640))
 }
 
 func TestSha256(t *testing.T) {

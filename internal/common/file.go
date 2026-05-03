@@ -74,3 +74,35 @@ func GetFileStat(path string) (os.FileInfo, [2]int, [3]dssa.Rights, error) {
 	ugIds, ugoRights := GetAccessRights(fi)
 	return fi, ugIds, ugoRights, nil
 }
+
+func Rights2Mod(ugoRights [3]dssa.Rights) (mode os.FileMode) {
+	ur, gr, or := ugoRights[0], ugoRights[1], ugoRights[2]
+	if ur.Read {
+		mode |= 1 << 8
+	}
+	if ur.Write {
+		mode |= 1 << 7
+	}
+	if ur.Execute {
+		mode |= 1 << 6
+	}
+	if gr.Read {
+		mode |= 1 << 5
+	}
+	if gr.Write {
+		mode |= 1 << 4
+	}
+	if gr.Execute {
+		mode |= 1 << 3
+	}
+	if or.Read {
+		mode |= 1 << 2
+	}
+	if or.Write {
+		mode |= 1 << 1
+	}
+	if or.Execute {
+		mode |= 1
+	}
+	return
+}

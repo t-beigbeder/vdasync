@@ -14,9 +14,22 @@ type Walker interface {
 type ProcessedEntry struct {
 	DataEntry, parent *dssa.DataEntry
 	UserData          interface{}
+	Error             error
 	wi                *walkerImpl
 	children          []*dssa.DataEntry
 	done              func()
+}
+
+func (pe *ProcessedEntry) Lgr_() *slog.Logger {
+	return pe.wi.lgr
+}
+
+func (pe *ProcessedEntry) Dssa_() dssa.Dssa {
+	return pe.wi.ds
+}
+
+func (pe *ProcessedEntry) Args_() []interface{} {
+	return pe.wi.args
 }
 
 type EntryLister func(*ProcessedEntry) []*dssa.DataEntry

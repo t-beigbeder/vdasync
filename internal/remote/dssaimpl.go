@@ -29,6 +29,13 @@ func (s *dssaImpl) List(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.Da
 	return &gdtes, nil
 }
 
+func (s *dssaImpl) Mkdir(ctx context.Context, gdte *dssagrpc.DataEntry) (*dssagrpc.Empty, error) {
+	if err := s.dssa_.Mkdir(common.GrpcDte2DssDte(gdte)); err != nil {
+		return nil, err
+	}
+	return &dssagrpc.Empty{}, nil
+}
+
 func (s *dssaImpl) Stat(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.DataEntry, error) {
 	ddte, _ := s.dssa_.Stat(gpath.Path)
 	return common.DssDte2GrpcDte(ddte), nil

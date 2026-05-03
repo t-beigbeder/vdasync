@@ -7,6 +7,7 @@ option go_package = "./dssagrpc";
 service DataStorageSystem {
     rpc List(Path) returns (DataEntries) {}
     rpc Stat(Path) returns (DataEntry) {}
+    rpc Mkdir(DataEntry) returns (Empty) {}
     rpc SetStat(DataEntry) returns (Empty) {}
     rpc Put(stream PushedBlock) returns (Length) {}
     rpc Get(Path) returns (stream PulledBlock) {}

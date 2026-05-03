@@ -28,6 +28,12 @@ func (gc *grpcClient) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 	return dds, nil
 }
 
+// Mkdir implements [dssa.Dssa].
+func (gc *grpcClient) Mkdir(de *dssa.DataEntry) error {
+	_, err := gc.client.Mkdir(gc.ctx, common.DssDte2GrpcDte(de))
+	return err
+}
+
 // Stat implements [dssa.Dssa].
 func (gc *grpcClient) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 	gd, err := gc.client.Stat(gc.ctx, common.DssPath2GrpcPath(path_))

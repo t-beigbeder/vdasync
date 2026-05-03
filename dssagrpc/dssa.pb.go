@@ -578,12 +578,13 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x04Data\x18\x01 \x01(\fR\x04Data\" \n" +
 	"\x06Length\x12\x16\n" +
 	"\x06length\x18\x01 \x01(\x03R\x06length\"\a\n" +
-	"\x05Empty2\x91\x02\n" +
+	"\x05Empty2\xba\x02\n" +
 	"\x11DataStorageSystem\x12'\n" +
 	"\x04List\x12\n" +
 	".dssa.Path\x1a\x11.dssa.DataEntries\"\x00\x12%\n" +
 	"\x04Stat\x12\n" +
-	".dssa.Path\x1a\x0f.dssa.DataEntry\"\x00\x12)\n" +
+	".dssa.Path\x1a\x0f.dssa.DataEntry\"\x00\x12'\n" +
+	"\x05Mkdir\x12\x0f.dssa.DataEntry\x1a\v.dssa.Empty\"\x00\x12)\n" +
 	"\aSetStat\x12\x0f.dssa.DataEntry\x1a\v.dssa.Empty\"\x00\x12*\n" +
 	"\x03Put\x12\x11.dssa.PushedBlock\x1a\f.dssa.Length\"\x00(\x01\x12(\n" +
 	"\x03Get\x12\n" +
@@ -624,18 +625,20 @@ var file_grpc_dssa_proto_depIdxs = []int32{
 	0,  // 5: dssa.PushedBlock.path:type_name -> dssa.Path
 	0,  // 6: dssa.DataStorageSystem.List:input_type -> dssa.Path
 	0,  // 7: dssa.DataStorageSystem.Stat:input_type -> dssa.Path
-	3,  // 8: dssa.DataStorageSystem.SetStat:input_type -> dssa.DataEntry
-	5,  // 9: dssa.DataStorageSystem.Put:input_type -> dssa.PushedBlock
-	0,  // 10: dssa.DataStorageSystem.Get:input_type -> dssa.Path
-	1,  // 11: dssa.DataStorageSystem.Symlink:input_type -> dssa.OldNewPaths
-	2,  // 12: dssa.DataStorageSystem.List:output_type -> dssa.DataEntries
-	3,  // 13: dssa.DataStorageSystem.Stat:output_type -> dssa.DataEntry
-	8,  // 14: dssa.DataStorageSystem.SetStat:output_type -> dssa.Empty
-	7,  // 15: dssa.DataStorageSystem.Put:output_type -> dssa.Length
-	6,  // 16: dssa.DataStorageSystem.Get:output_type -> dssa.PulledBlock
-	8,  // 17: dssa.DataStorageSystem.Symlink:output_type -> dssa.Empty
-	12, // [12:18] is the sub-list for method output_type
-	6,  // [6:12] is the sub-list for method input_type
+	3,  // 8: dssa.DataStorageSystem.Mkdir:input_type -> dssa.DataEntry
+	3,  // 9: dssa.DataStorageSystem.SetStat:input_type -> dssa.DataEntry
+	5,  // 10: dssa.DataStorageSystem.Put:input_type -> dssa.PushedBlock
+	0,  // 11: dssa.DataStorageSystem.Get:input_type -> dssa.Path
+	1,  // 12: dssa.DataStorageSystem.Symlink:input_type -> dssa.OldNewPaths
+	2,  // 13: dssa.DataStorageSystem.List:output_type -> dssa.DataEntries
+	3,  // 14: dssa.DataStorageSystem.Stat:output_type -> dssa.DataEntry
+	8,  // 15: dssa.DataStorageSystem.Mkdir:output_type -> dssa.Empty
+	8,  // 16: dssa.DataStorageSystem.SetStat:output_type -> dssa.Empty
+	7,  // 17: dssa.DataStorageSystem.Put:output_type -> dssa.Length
+	6,  // 18: dssa.DataStorageSystem.Get:output_type -> dssa.PulledBlock
+	8,  // 19: dssa.DataStorageSystem.Symlink:output_type -> dssa.Empty
+	13, // [13:20] is the sub-list for method output_type
+	6,  // [6:13] is the sub-list for method input_type
 	6,  // [6:6] is the sub-list for extension type_name
 	6,  // [6:6] is the sub-list for extension extendee
 	0,  // [0:6] is the sub-list for field type_name
