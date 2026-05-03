@@ -23,6 +23,7 @@ type DataEntry struct {
 	IsSymLink     bool
 	SymLinkTarget string
 	Error         error
+	ErrNotExist   bool
 }
 
 type Dssa interface {
@@ -31,4 +32,5 @@ type Dssa interface {
 	SetStat(*DataEntry) error
 	GetReadCloser(Path) (io.ReadCloser, error)
 	GetWriteCloser(Path) (io.WriteCloser, error)
+	Symlink(old, new_ Path) error
 }

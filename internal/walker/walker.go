@@ -29,7 +29,7 @@ type walkerImpl struct {
 	ds          dssa.Dssa
 
 	onStartDirEntry  EntryLister
-	onStartNdirEntry func(*ProcessedEntry)
+	onStartNdirEntry EntryProcessor
 	onDoneDirs       EntryProcessor
 	onDoneFiles      EntryProcessor
 	onDoneEntry      EntryProcessor

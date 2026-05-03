@@ -30,10 +30,7 @@ func (s *dssaImpl) List(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.Da
 }
 
 func (s *dssaImpl) Stat(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.DataEntry, error) {
-	ddte, err := s.dssa_.Stat(gpath.Path)
-	if err != nil {
-		return nil, err
-	}
+	ddte, _ := s.dssa_.Stat(gpath.Path)
 	return common.DssDte2GrpcDte(ddte), nil
 }
 
@@ -100,4 +97,12 @@ func (s *dssaImpl) Get(
 			return nil
 		}
 	}
+}
+
+func (s *dssaImpl) Symlink(ctx context.Context, onp *dssagrpc.OldNewPaths) (*dssagrpc.Empty, error) {
+	err := s.dssa_.Symlink(onp.Old, onp.New_)
+	if err != nil {
+		return nil, err
+	}
+	return &dssagrpc.Empty{}, nil
 }

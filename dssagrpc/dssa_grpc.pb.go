@@ -24,6 +24,7 @@ const (
 	DataStorageSystem_SetStat_FullMethodName = "/dssa.DataStorageSystem/SetStat"
 	DataStorageSystem_Put_FullMethodName     = "/dssa.DataStorageSystem/Put"
 	DataStorageSystem_Get_FullMethodName     = "/dssa.DataStorageSystem/Get"
+	DataStorageSystem_Symlink_FullMethodName = "/dssa.DataStorageSystem/Symlink"
 )
 
 // DataStorageSystemClient is the client API for DataStorageSystem service.
@@ -35,6 +36,7 @@ type DataStorageSystemClient interface {
 	SetStat(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
 	Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error)
 	Get(ctx context.Context, in *Path, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PulledBlock], error)
+	Symlink(ctx context.Context, in *OldNewPaths, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type dataStorageSystemClient struct {
@@ -107,6 +109,16 @@ func (c *dataStorageSystemClient) Get(ctx context.Context, in *Path, opts ...grp
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DataStorageSystem_GetClient = grpc.ServerStreamingClient[PulledBlock]
 
+func (c *dataStorageSystemClient) Symlink(ctx context.Context, in *OldNewPaths, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, DataStorageSystem_Symlink_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DataStorageSystemServer is the server API for DataStorageSystem service.
 // All implementations must embed UnimplementedDataStorageSystemServer
 // for forward compatibility.
@@ -116,6 +128,7 @@ type DataStorageSystemServer interface {
 	SetStat(context.Context, *DataEntry) (*Empty, error)
 	Put(grpc.ClientStreamingServer[PushedBlock, Length]) error
 	Get(*Path, grpc.ServerStreamingServer[PulledBlock]) error
+	Symlink(context.Context, *OldNewPaths) (*Empty, error)
 	mustEmbedUnimplementedDataStorageSystemServer()
 }
 
@@ -140,6 +153,9 @@ func (UnimplementedDataStorageSystemServer) Put(grpc.ClientStreamingServer[Pushe
 }
 func (UnimplementedDataStorageSystemServer) Get(*Path, grpc.ServerStreamingServer[PulledBlock]) error {
 	return status.Error(codes.Unimplemented, "method Get not implemented")
+}
+func (UnimplementedDataStorageSystemServer) Symlink(context.Context, *OldNewPaths) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method Symlink not implemented")
 }
 func (UnimplementedDataStorageSystemServer) mustEmbedUnimplementedDataStorageSystemServer() {}
 func (UnimplementedDataStorageSystemServer) testEmbeddedByValue()                           {}
@@ -234,6 +250,24 @@ func _DataStorageSystem_Get_Handler(srv interface{}, stream grpc.ServerStream) e
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type DataStorageSystem_GetServer = grpc.ServerStreamingServer[PulledBlock]
 
+func _DataStorageSystem_Symlink_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(OldNewPaths)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).Symlink(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_Symlink_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).Symlink(ctx, req.(*OldNewPaths))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // DataStorageSystem_ServiceDesc is the grpc.ServiceDesc for DataStorageSystem service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -252,6 +286,10 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetStat",
 			Handler:    _DataStorageSystem_SetStat_Handler,
+		},
+		{
+			MethodName: "Symlink",
+			Handler:    _DataStorageSystem_Symlink_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -10,10 +10,16 @@ service DataStorageSystem {
     rpc SetStat(DataEntry) returns (Empty) {}
     rpc Put(stream PushedBlock) returns (Length) {}
     rpc Get(Path) returns (stream PulledBlock) {}
+    rpc Symlink(OldNewPaths) returns (Empty) {}
 }
 
 message Path {
     repeated string path = 1;
+}
+
+message OldNewPaths {
+    repeated string old = 1;
+    repeated string new_ = 2;
 }
 
 message DataEntries {
@@ -33,6 +39,7 @@ message DataEntry {
     bool is_sym_link = 10;
     string sym_link_target = 11;
     string error = 12;
+    bool err_not_exist = 13;
 }
 
 message Rights {

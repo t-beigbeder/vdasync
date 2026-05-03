@@ -44,6 +44,9 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 // Stat implements [dssa.Dssa].
 func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 	fi, err := os.Lstat(osPath(path_))
+	if err != nil {
+		return &dssa.DataEntry{Path: path_, Error: err, ErrNotExist: os.IsNotExist(err)}, err
+	}
 	isSymlink := fi.Mode().Type()&fs.ModeSymlink != 0
 	var linkTarget string
 	if isSymlink {
@@ -51,9 +54,6 @@ func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	if err != nil {
-		return nil, err
 	}
 	ugIds, ugoRights := common.GetAccessRights(fi)
 	return &dssa.DataEntry{
@@ -93,6 +93,11 @@ func (d *localFiles) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
 // GetWriter implements [dssa.Dssa].
 func (d *localFiles) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
 	return os.Create(osPath(path_))
+}
+
+// Symlink implements [dssa.Dssa].
+func (d *localFiles) Symlink(old dssa.Path, new_ dssa.Path) error {
+	return os.Symlink(osPath(old), osPath(new_))
 }
 
 func MakeLocalFilesDssa() dssa.Dssa {

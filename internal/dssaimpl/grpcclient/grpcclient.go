@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
 )
@@ -33,7 +34,8 @@ func (gc *grpcClient) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	return common.GrpcDte2DssDte(gd), nil
+	de := common.GrpcDte2DssDte(gd)
+	return de, de.Error
 }
 
 // SetStat implements [dssa.Dssa].
@@ -50,6 +52,12 @@ func (gc *grpcClient) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
 // GetWriter implements [dssa.Dssa].
 func (gc *grpcClient) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
 	return &grpcWriter{path_: path_, gc: gc}, nil
+}
+
+// Symlink implements [dssa.Dssa].
+func (gc *grpcClient) Symlink(old dssa.Path, new_ dssa.Path) error {
+	_, err := gc.client.Symlink(gc.ctx, &dssagrpc.OldNewPaths{Old: old, New_: new_})
+	return err
 }
 
 func MakeGrpcClient(ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {

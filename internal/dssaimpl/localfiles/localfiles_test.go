@@ -59,6 +59,13 @@ func TestFileFunctions(t *testing.T) {
 	lw, err := io.Copy(wc, rc)
 	require.Nil(t, err)
 	require.Equal(t, de.Size, lw)
+
+	nef := path.Join(t.TempDir(), "TestFileFunctionsNotYet.dat")
+	de4, err := lfd.Stat(common.OsPath2DssPath(nef))
+	require.NotNil(t, err)
+	require.NotNil(t, de4)
+	require.True(t, de4.ErrNotExist)
+	require.Equal(t, err, de4.Error)
 }
 
 func TestFileGetPut(t *testing.T) {

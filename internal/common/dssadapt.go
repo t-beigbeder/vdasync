@@ -38,6 +38,7 @@ func DssDte2GrpcDte(ddte *dssa.DataEntry) *dssagrpc.DataEntry {
 		IsSymLink:     ddte.IsSymLink,
 		SymLinkTarget: ddte.SymLinkTarget,
 		Error:         sErr,
+		ErrNotExist:   ddte.ErrNotExist,
 	}
 }
 
@@ -63,5 +64,6 @@ func GrpcDte2DssDte(gdte *dssagrpc.DataEntry) *dssa.DataEntry {
 		IsSymLink:     gdte.IsSymLink,
 		SymLinkTarget: gdte.SymLinkTarget,
 		Error:         err,
+		ErrNotExist:   gdte.ErrNotExist,
 	}
 }

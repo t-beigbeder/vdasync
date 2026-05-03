@@ -42,12 +42,19 @@ func TestFunctions(t *testing.T) {
 	require.Equal(t, de.Mtime, de3.Mtime)
 
 	lt := path.Join(t.TempDir(), "TestFileFunctions.symlink")
-	err = os.Symlink(ft, lt) // grpc server runs locally
+	err = dgc.Symlink(common.OsPath2DssPath(ft), common.OsPath2DssPath(lt))
 	require.Nil(t, err)
 	lde, err := dgc.Stat(common.OsPath2DssPath(lt))
 	require.Nil(t, err)
 	require.True(t, lde.IsSymLink)
 	require.Equal(t, ft, lde.SymLinkTarget)
+
+	net := path.Join(t.TempDir(), "TestFileFunctionsNotYet.dat")
+	de4, err := dgc.Stat(common.OsPath2DssPath(net))
+	require.NotNil(t, err)
+	require.NotNil(t, de4)
+	require.True(t, de4.ErrNotExist)
+	require.Equal(t, err, de4.Error)
 }
 
 func TestWriter(t *testing.T) {
@@ -92,7 +99,7 @@ func TestReader(t *testing.T) {
 	defer cFunc()
 	dgc := MakeGrpcClient(context.Background(), cli)
 	for ix, size := range []int64{1023, 32*1024 - 1, 32 * 1024, 32*1024*1024 - 1, 32 * 1024 * 1024} {
-		for jx, wBufSize := range []int{1021, 32*1024 - 1, 32 * 1024, 32*1024 + 1, 32 * 1024 * 1024, 32 * 1024 * 1024+1} {
+		for jx, wBufSize := range []int{1021, 32*1024 - 1, 32 * 1024, 32*1024 + 1, 32 * 1024 * 1024, 32*1024*1024 + 1} {
 			fn := fmt.Sprintf("TestReader2-%d-%d.dat", ix, jx)
 			fts := path.Join(tds, fn)
 			ftd := path.Join(tdd, fn)
