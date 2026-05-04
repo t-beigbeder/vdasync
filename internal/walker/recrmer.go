@@ -9,6 +9,7 @@ import (
 )
 
 type RmEntryStatus struct {
+	relPath                  string
 	IsDir                    bool
 	Size                     int64
 	AggregatedSize           int64
@@ -42,9 +43,10 @@ func NewRecursiveRemover(
 func RmResult(walker Walker) map[string]*RmEntryStatus {
 	result := map[string]*RmEntryStatus{}
 	walker.UserDataMap().Range(func(key, value any) bool {
-		jPath, _ := key.(string)
 		es, _ := value.(*RmEntryStatus)
-		result[jPath] = es
+		if es != nil {
+			result[es.relPath] = es
+		}
 		return true
 	})
 	return result
@@ -90,17 +92,22 @@ func setRmError(pe *ProcessedEntry, message string, err error) error {
 	return pe.Error
 }
 
+func entryStatusInit(pe *ProcessedEntry) {
+	es := &RmEntryStatus{}
+	es.IsDir = pe.DataEntry.IsDir
+	es.Size = pe.DataEntry.Size
+	es.Error = pe.Error
+	es.relPath = rmPeRelSPath(pe)
+	pe.wi.SetUserData(pe.DataEntry, es)
+}
+
 func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
 	if pe.parent == nil && rmData(pe).sourceRoot == nil {
 		sd := rmData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
 	}
 
-	es := &RmEntryStatus{}
-	es.IsDir = pe.DataEntry.IsDir
-	es.Size = pe.DataEntry.Size
-	es.Error = pe.Error
-	pe.wi.SetUserData(pe.DataEntry, es)
+	entryStatusInit(pe)
 
 	des, err := pe.Dssa_().List(pe.DataEntry.Path)
 	if err != nil {
@@ -113,11 +120,7 @@ func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
 }
 
 func onStartNdirEntryRRm(pe *ProcessedEntry) {
-	es := &RmEntryStatus{}
-	es.IsDir = pe.DataEntry.IsDir
-	es.Size = pe.DataEntry.Size
-	es.Error = pe.Error
-	pe.wi.SetUserData(pe.DataEntry, es)
+	entryStatusInit(pe)
 }
 
 func onDoneFilesRRm(pe *ProcessedEntry) {
@@ -154,18 +157,18 @@ func onDoneEntryRRm(pe *ProcessedEntry) {
 	}
 }
 
-func RemoveAll(lgr *slog.Logger, concurrency int, ds dssa.Dssa, path_ dssa.Path, dryRun bool) error {
+func RemoveAll(lgr *slog.Logger, concurrency int, ds dssa.Dssa, path_ dssa.Path, dryRun bool) (Walker, error) {
 	walker := NewRecursiveRemover(lgr, concurrency, ds, dryRun)
 	de, err := ds.Stat(path_)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	err = walker.Run(de)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if de.Error != nil {
-		return de.Error
+		return nil, de.Error
 	}
-	return nil
+	return walker, nil
 }
