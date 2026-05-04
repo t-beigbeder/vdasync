@@ -70,6 +70,20 @@ func TestFileFunctions(t *testing.T) {
 	td := path.Join(t.TempDir(), "TestFileFunctionsNotYetNewDir")
 	err = lfd.Mkdir(&dssa.DataEntry{Path: common.OsPath2DssPath(td), UserRights: dssa.Rights{Read: true, Execute: true, Write: true}})
 	require.Nil(t, err)
+
+	err = lfd.Rm(de3.Path)
+	require.Nil(t, err)
+	de3ne, err := lfd.Stat(de3.Path)
+	require.NotNil(t, err)
+	require.NotNil(t, de3ne)
+	require.True(t, de3ne.ErrNotExist)
+
+	err = lfd.Rm(common.OsPath2DssPath(td))
+	require.Nil(t, err)
+	dedne, err := lfd.Stat(common.OsPath2DssPath(td))
+	require.NotNil(t, err)
+	require.NotNil(t, dedne)
+	require.True(t, dedne.ErrNotExist)
 }
 
 func TestFileGetPut(t *testing.T) {

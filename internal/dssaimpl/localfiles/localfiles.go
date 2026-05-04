@@ -102,6 +102,11 @@ func (d *localFiles) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
 	return os.Create(osPath(path_))
 }
 
+// Rm implements [dssa.Dssa].
+func (d *localFiles) Rm(path_ dssa.Path) error {
+	return os.Remove(osPath(path_))
+}
+
 // Symlink implements [dssa.Dssa].
 func (d *localFiles) Symlink(old dssa.Path, new_ dssa.Path) error {
 	return os.Symlink(osPath(old), osPath(new_))

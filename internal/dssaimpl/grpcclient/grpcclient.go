@@ -61,6 +61,12 @@ func (gc *grpcClient) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
 }
 
 // Symlink implements [dssa.Dssa].
+func (gc *grpcClient) Rm(path_ dssa.Path) error {
+	_, err := gc.client.Rm(gc.ctx, &dssagrpc.Path{Path: path_})
+	return err
+}
+
+// Symlink implements [dssa.Dssa].
 func (gc *grpcClient) Symlink(old dssa.Path, new_ dssa.Path) error {
 	_, err := gc.client.Symlink(gc.ctx, &dssagrpc.OldNewPaths{Old: old, New_: new_})
 	return err

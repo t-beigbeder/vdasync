@@ -106,6 +106,14 @@ func (s *dssaImpl) Get(
 	}
 }
 
+func (s *dssaImpl) Rm(ctx context.Context, path_ *dssagrpc.Path) (*dssagrpc.Empty, error) {
+	err := s.dssa_.Rm(path_.Path)
+	if err != nil {
+		return nil, err
+	}
+	return &dssagrpc.Empty{}, nil
+}
+
 func (s *dssaImpl) Symlink(ctx context.Context, onp *dssagrpc.OldNewPaths) (*dssagrpc.Empty, error) {
 	err := s.dssa_.Symlink(onp.Old, onp.New_)
 	if err != nil {

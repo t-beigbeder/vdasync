@@ -59,6 +59,21 @@ func TestFunctions(t *testing.T) {
 	td := path.Join(t.TempDir(), "TestFileFunctionsMkdir")
 	err = dgc.Mkdir(&dssa.DataEntry{Path: common.OsPath2DssPath(td), UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
 	require.Nil(t, err)
+
+	err = dgc.Rm(de3.Path)
+	require.Nil(t, err)
+	de3nd, err := dgc.Stat(de3.Path)
+	require.NotNil(t, err)
+	require.NotNil(t, de3nd)
+	require.True(t, de3nd.ErrNotExist)
+
+	err = dgc.Rm(common.OsPath2DssPath(td))
+	require.Nil(t, err)
+	dednd, err := dgc.Stat(common.OsPath2DssPath(td))
+	require.NotNil(t, err)
+	require.NotNil(t, dednd)
+	require.True(t, dednd.ErrNotExist)
+
 }
 
 func TestWriter(t *testing.T) {

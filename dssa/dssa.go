@@ -33,5 +33,6 @@ type Dssa interface {
 	SetStat(*DataEntry) error
 	GetReadCloser(Path) (io.ReadCloser, error)
 	GetWriteCloser(Path) (io.WriteCloser, error)
+	Rm(Path) error
 	Symlink(old, new_ Path) error
 }

@@ -11,6 +11,7 @@ service DataStorageSystem {
     rpc SetStat(DataEntry) returns (Empty) {}
     rpc Put(stream PushedBlock) returns (Length) {}
     rpc Get(Path) returns (stream PulledBlock) {}
+    rpc Rm(Path) returns (Empty) {}
     rpc Symlink(OldNewPaths) returns (Empty) {}
 }
 
