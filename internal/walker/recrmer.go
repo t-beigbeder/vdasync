@@ -92,7 +92,7 @@ func setRmError(pe *ProcessedEntry, message string, err error) error {
 	return pe.Error
 }
 
-func entryStatusInit(pe *ProcessedEntry) {
+func rmEntryStatusInit(pe *ProcessedEntry) {
 	es := &RmEntryStatus{}
 	es.IsDir = pe.DataEntry.IsDir
 	es.Size = pe.DataEntry.Size
@@ -107,7 +107,7 @@ func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
 		sd.sourceRoot = pe.DataEntry.Path
 	}
 
-	entryStatusInit(pe)
+	rmEntryStatusInit(pe)
 
 	des, err := pe.Dssa_().List(pe.DataEntry.Path)
 	if err != nil {
@@ -120,18 +120,16 @@ func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
 }
 
 func onStartNdirEntryRRm(pe *ProcessedEntry) {
-	entryStatusInit(pe)
+	rmEntryStatusInit(pe)
 }
 
 func onDoneFilesRRm(pe *ProcessedEntry) {
 	ddes, nddes := splitDndFrom(pe.children)
-	pe.Lgr_().Debug("onDoneFilesRRm", "rp", rmPeRelSPath(pe), "pe.children", len(pe.children), "ddes", len(ddes), "nddes", len(nddes))
 	var (
 		agSz int64
 		agCN int
 	)
 	for _, dde := range ddes {
-		pe.Lgr_().Debug("onDoneFilesRRm: 1", "rp", rmPeRelSPath(pe), "crp", rmDeRelSPath(pe, dde), "cSt", rmUserData(pe, dde))
 		dud, _ := pe.wi.GetUserData(dde).(*RmEntryStatus)
 		agSz += dud.AggregatedSize
 		agCN += dud.AggregatedChildrenNumber
@@ -143,7 +141,7 @@ func onDoneFilesRRm(pe *ProcessedEntry) {
 	es := rmUserData(pe, nil)
 	es.AggregatedSize = agSz
 	es.AggregatedChildrenNumber = agCN + len(nddes)
-	pe.Lgr_().Debug("onDoneFilesRRm: 2", "rp", rmPeRelSPath(pe), "es", es)
+	pe.Lgr_().Debug("onDoneFilesRRm", "rp", rmPeRelSPath(pe), "es", es)
 }
 
 func onDoneEntryRRm(pe *ProcessedEntry) {

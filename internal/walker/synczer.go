@@ -11,14 +11,16 @@ import (
 )
 
 type SyncEntryStatus struct {
-	IsDir          bool
-	Size           int64
-	AggregatedSize int64
-	Created        bool
-	Updated        bool
-	Removed        bool
-	ModChanged     bool
-	Error          error
+	relPath                  string
+	IsDir                    bool
+	Size                     int64
+	AggregatedSize           int64
+	AggregatedChildrenNumber int
+	Created                  bool
+	Updated                  bool
+	Removed                  bool
+	ModChanged               bool
+	Error                    error
 }
 
 type syncDataType struct {
@@ -41,7 +43,7 @@ func NewSynchronizer(
 		onStartDirEntrySync,
 		onStartNdirEntrySync,
 		nil,
-		nil,
+		onDoneFilesSync,
 		nil,
 		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot},
 	)
@@ -49,10 +51,11 @@ func NewSynchronizer(
 
 func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 	result := map[string]*SyncEntryStatus{}
-	walker.UserDataMap().Range(func(key, value any) bool {
-		jPath, _ := key.(string)
+	walker.UserDataMap().Range(func(_, value any) bool {
 		es, _ := value.(*SyncEntryStatus)
-		result[jPath] = es
+		if es != nil {
+			result[es.relPath] = es
+		}
 		return true
 	})
 	return result
@@ -115,12 +118,22 @@ func setSyncError(pe *ProcessedEntry, message string, err error) error {
 	return pe.Error
 }
 
+func syncEntryStatusInit(pe *ProcessedEntry) {
+	es := &SyncEntryStatus{}
+	es.IsDir = pe.DataEntry.IsDir
+	es.Size = pe.DataEntry.Size
+	es.Error = pe.Error
+	es.relPath = syncRelSPath(pe)
+	pe.wi.SetUserData(pe.DataEntry, es)
+}
+
 func prepareTargetDir(pe *ProcessedEntry, sChildren []*dssa.DataEntry) error {
 	tp := targetPath(pe)
 	tde, err := targetDs(pe).Stat(tp)
 	if err != nil && !tde.ErrNotExist {
 		return setSyncError(pe, "onStartDirEntrySync: target Stat", err)
 	}
+
 	if !syncOptions(pe).Dryrun {
 		if tde.ErrNotExist {
 			tde.UserRights = dssa.Rights{Read: true, Write: true, Execute: true}
@@ -149,11 +162,8 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 		sd := syncData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
 	}
-	es := &SyncEntryStatus{}
-	es.IsDir = pe.DataEntry.IsDir
-	es.Size = pe.DataEntry.Size
-	es.Error = pe.Error
-	pe.wi.SetUserData(pe.DataEntry, es)
+
+	syncEntryStatusInit(pe)
 
 	if children, err = pe.Dssa_().List(pe.DataEntry.Path); err != nil {
 		setSyncError(pe, "onStartDirEntrySync: source List", err)
@@ -168,11 +178,7 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 }
 
 func onStartNdirEntrySync(pe *ProcessedEntry) {
-	es := &SyncEntryStatus{}
-	es.IsDir = pe.DataEntry.IsDir
-	es.Size = pe.DataEntry.Size
-	es.Error = pe.Error
-	pe.wi.SetUserData(pe.DataEntry, es)
+	syncEntryStatusInit(pe)
 
 	tp := targetPath(pe)
 	pe.Lgr_().Debug("onStartNdirEntrySync: sp, tp", "sp", pe.DataEntry.Path, "tp", tp)
@@ -205,4 +211,25 @@ func onStartNdirEntrySync(pe *ProcessedEntry) {
 			return
 		}
 	}
+}
+
+func onDoneFilesSync(pe *ProcessedEntry) {
+	ddes, nddes := splitDndFrom(pe.children)
+	var (
+		agSz int64
+		agCN int
+	)
+	for _, dde := range ddes {
+		dud, _ := pe.wi.GetUserData(dde).(*SyncEntryStatus)
+		agSz += dud.AggregatedSize
+		agCN += dud.AggregatedChildrenNumber
+	}
+	for _, ndde := range nddes {
+		dund, _ := pe.wi.GetUserData(ndde).(*SyncEntryStatus)
+		agSz += dund.Size
+	}
+	es := syncUserData(pe, nil)
+	es.AggregatedSize = agSz
+	es.AggregatedChildrenNumber = agCN + len(nddes)
+	pe.Lgr_().Debug("onDoneFilesRRm", "rp", rmPeRelSPath(pe), "es", es)
 }
