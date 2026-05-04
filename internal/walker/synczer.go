@@ -10,7 +10,7 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 )
 
-type EntryStatus struct {
+type SyncEntryStatus struct {
 	IsDir          bool
 	Size           int64
 	AggregatedSize int64
@@ -26,7 +26,7 @@ type syncDataType struct {
 	sourceRoot  dssa.Path
 	targetDs    dssa.Dssa
 	targetRoot  dssa.Path
-	syncResult  map[string]*EntryStatus
+	syncResult  map[string]*SyncEntryStatus
 }
 
 func NewSynchronizer(
@@ -48,7 +48,7 @@ func NewSynchronizer(
 	)
 }
 
-func SyncResult(walker Walker) map[string]*EntryStatus {
+func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 	wi, ok := walker.(*walkerImpl)
 	if !ok || len(wi.args) < 1 {
 		return nil
@@ -65,11 +65,11 @@ func syncData(pe *ProcessedEntry) *syncDataType {
 	if len(args) < 1 {
 		return &syncDataType{}
 	}
-	st, ok := args[0].(*syncDataType)
+	sd, ok := args[0].(*syncDataType)
 	if !ok {
 		return &syncDataType{}
 	}
-	return st
+	return sd
 }
 
 func syncOptions(pe *ProcessedEntry) *config.SyncOptionsType {
@@ -80,7 +80,7 @@ func targetDs(pe *ProcessedEntry) dssa.Dssa {
 	return syncData(pe).targetDs
 }
 
-func relPath(pe *ProcessedEntry) dssa.Path {
+func syncRelPath(pe *ProcessedEntry) dssa.Path {
 	sd := syncData(pe)
 	sr := sd.sourceRoot
 	sp := pe.DataEntry.Path
@@ -94,13 +94,13 @@ func targetPath(pe *ProcessedEntry) dssa.Path {
 	tr := sd.targetRoot
 	tp := make([]string, len(tr))
 	copy(tp, tr)
-	tp = append(tp, relPath(pe)...)
+	tp = append(tp, syncRelPath(pe)...)
 	return tp
 }
 
-func setResult(pe *ProcessedEntry, es *EntryStatus) {
+func setSyncResult(pe *ProcessedEntry, es *SyncEntryStatus) {
 	if es == nil {
-		es = &EntryStatus{}
+		es = &SyncEntryStatus{}
 		es.IsDir = pe.DataEntry.IsDir
 		es.Size = pe.DataEntry.Size
 		es.Error = pe.Error
@@ -108,31 +108,31 @@ func setResult(pe *ProcessedEntry, es *EntryStatus) {
 	syncData(pe).syncResult[path.Join(pe.DataEntry.Path...)] = es
 }
 
-func setError(pe *ProcessedEntry, message string, err error) error {
+func setSyncError(pe *ProcessedEntry, message string, err error) error {
 	pe.Error = fmt.Errorf("%s: %v", message, err)
-	pe.Lgr_().Error(message, "relPath", relPath(pe))
-	setResult(pe, nil)
+	pe.Lgr_().Error(message, "relPath", syncRelPath(pe))
+	setSyncResult(pe, nil)
 	return pe.Error
 }
 
-func prepareTargetDir(pe *ProcessedEntry) error {
+func prepareTargetDir(pe *ProcessedEntry, sChildren []*dssa.DataEntry) error {
 	tp := targetPath(pe)
 	tde, err := targetDs(pe).Stat(tp)
 	if err != nil && !tde.ErrNotExist {
-		return setError(pe, "onStartDirEntrySync: target Stat", err)
+		return setSyncError(pe, "onStartDirEntrySync: target Stat", err)
 	}
 	if !syncOptions(pe).Dryrun {
 		if tde.ErrNotExist {
 			tde.UserRights = dssa.Rights{Read: true, Write: true, Execute: true}
 			if err = targetDs(pe).Mkdir(tde); err != nil {
-				return setError(pe, "onStartDirEntrySync: target Mkdir", err)
+				return setSyncError(pe, "onStartDirEntrySync: target Mkdir", err)
 			}
 		} else {
 			if !tde.UserRights.Write {
 				wtde := *tde
 				wtde.UserRights.Write = true
 				if err := pe.Dssa_().SetStat(&wtde); err != nil {
-					return setError(pe, "onStartDirEntrySync: target SetStat", err)
+					return setSyncError(pe, "onStartDirEntrySync: target SetStat", err)
 				}
 			}
 		}
@@ -141,24 +141,26 @@ func prepareTargetDir(pe *ProcessedEntry) error {
 }
 
 func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
-	var err error
-
+	var (
+		children []*dssa.DataEntry
+		err      error
+	)
 	if pe.parent == nil && syncData(pe).sourceRoot == nil {
 		sd := syncData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
-		sd.syncResult = map[string]*EntryStatus{}
+		sd.syncResult = map[string]*SyncEntryStatus{}
 	}
 
-	if pe.children, err = pe.Dssa_().List(pe.DataEntry.Path); err != nil {
-		setError(pe, "onStartDirEntrySync: source List", err)
+	if children, err = pe.Dssa_().List(pe.DataEntry.Path); err != nil {
+		setSyncError(pe, "onStartDirEntrySync: source List", err)
 		return nil
 	}
 
-	if err = prepareTargetDir(pe); err != nil {
+	if err = prepareTargetDir(pe, children); err != nil {
 		return nil
 	}
 
-	return pe.children
+	return children
 }
 
 func onStartNdirEntrySync(pe *ProcessedEntry) {
