@@ -19,7 +19,6 @@ type RmEntryStatus struct {
 type rmDataType struct {
 	dryRun     bool
 	sourceRoot dssa.Path
-	rmResult   map[string]*RmEntryStatus
 }
 
 func NewRecursiveRemover(
@@ -32,7 +31,7 @@ func NewRecursiveRemover(
 		concurrency,
 		sourceDs,
 		onStartDirEntryRRm,
-		nil,
+		onStartNdirEntryRRm,
 		nil,
 		onDoneFilesRRm,
 		onDoneEntryRRm,
@@ -41,15 +40,14 @@ func NewRecursiveRemover(
 }
 
 func RmResult(walker Walker) map[string]*RmEntryStatus {
-	wi, ok := walker.(*walkerImpl)
-	if !ok || len(wi.args) < 1 {
-		return nil
-	}
-	rmData, ok := wi.args[0].(*rmDataType)
-	if !ok {
-		return nil
-	}
-	return rmData.rmResult
+	result := map[string]*RmEntryStatus{}
+	walker.UserDataMap().Range(func(key, value any) bool {
+		jPath, _ := key.(string)
+		es, _ := value.(*RmEntryStatus)
+		result[jPath] = es
+		return true
+	})
+	return result
 }
 
 func rmData(pe *ProcessedEntry) *rmDataType {
@@ -64,34 +62,31 @@ func rmData(pe *ProcessedEntry) *rmDataType {
 	return rd
 }
 
-func rmDeRelPath(pe *ProcessedEntry, de *dssa.DataEntry) dssa.Path {
+func rmDeRelSPath(pe *ProcessedEntry, de *dssa.DataEntry) string {
 	rd := rmData(pe)
 	sr := rd.sourceRoot
 	sp := de.Path
 	rp := make([]string, len(sp)-len(sr))
 	copy(rp, sp[len(sr):])
-	return rp
+	return path.Join(rp...)
 }
 
-func rmPeRelPath(pe *ProcessedEntry) dssa.Path {
-	return rmDeRelPath(pe, pe.DataEntry)
+func rmPeRelSPath(pe *ProcessedEntry) string {
+	return rmDeRelSPath(pe, pe.DataEntry)
 }
 
-func setRmResult(pe *ProcessedEntry, es *RmEntryStatus) *RmEntryStatus {
-	if es == nil {
-		es = &RmEntryStatus{}
-		es.IsDir = pe.DataEntry.IsDir
-		es.Size = pe.DataEntry.Size
-		es.Error = pe.Error
+func rmUserData(pe *ProcessedEntry, de *dssa.DataEntry) *RmEntryStatus {
+	if de == nil {
+		de = pe.DataEntry
 	}
-	rmData(pe).rmResult[path.Join(rmPeRelPath(pe)...)] = es
+	es, _ := pe.wi.GetUserData(de).(*RmEntryStatus)
 	return es
 }
 
 func setRmError(pe *ProcessedEntry, message string, err error) error {
 	pe.Error = fmt.Errorf("%s: %v", message, err)
-	pe.Lgr_().Error(message, "relPath", rmPeRelPath(pe))
-	setRmResult(pe, nil)
+	pe.Lgr_().Error(message, "relPath", rmPeRelSPath(pe))
+	rmUserData(pe, nil).Error = err
 	return pe.Error
 }
 
@@ -99,41 +94,58 @@ func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
 	if pe.parent == nil && rmData(pe).sourceRoot == nil {
 		sd := rmData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
-		sd.rmResult = map[string]*RmEntryStatus{}
 	}
+
+	es := &RmEntryStatus{}
+	es.IsDir = pe.DataEntry.IsDir
+	es.Size = pe.DataEntry.Size
+	es.Error = pe.Error
+	pe.wi.SetUserData(pe.DataEntry, es)
 
 	des, err := pe.Dssa_().List(pe.DataEntry.Path)
 	if err != nil {
 		setRmError(pe, "onStartDirEntryRRm: List", err)
 		return nil
 	}
+	ddes, nddes := splitDndFrom(des)
+	pe.Lgr_().Debug("onStartDirEntryRRm", "rp", rmPeRelSPath(pe), "des", len(des), "ddes", len(ddes), "nddes", len(nddes))
 	return des
+}
+
+func onStartNdirEntryRRm(pe *ProcessedEntry) {
+	es := &RmEntryStatus{}
+	es.IsDir = pe.DataEntry.IsDir
+	es.Size = pe.DataEntry.Size
+	es.Error = pe.Error
+	pe.wi.SetUserData(pe.DataEntry, es)
 }
 
 func onDoneFilesRRm(pe *ProcessedEntry) {
 	ddes, nddes := splitDndFrom(pe.children)
+	pe.Lgr_().Debug("onDoneFilesRRm", "rp", rmPeRelSPath(pe), "pe.children", len(pe.children), "ddes", len(ddes), "nddes", len(nddes))
 	var (
 		agSz int64
 		agCN int
 	)
-	rr := rmData(pe).rmResult
 	for _, dde := range ddes {
-		pe.Lgr_().Debug("onDoneFilesRRm: 0", "rp", rmPeRelPath(pe), "crp", rmDeRelPath(pe, dde), "cSt", rr[path.Join(rmDeRelPath(pe, dde)...)])
-		agSz += rr[path.Join(rmDeRelPath(pe, dde)...)].AggregatedSize
-		agCN += rr[path.Join(rmDeRelPath(pe, dde)...)].AggregatedChildrenNumber
+		pe.Lgr_().Debug("onDoneFilesRRm: 1", "rp", rmPeRelSPath(pe), "crp", rmDeRelSPath(pe, dde), "cSt", rmUserData(pe, dde))
+		dud, _ := pe.wi.GetUserData(dde).(*RmEntryStatus)
+		agSz += dud.AggregatedSize
+		agCN += dud.AggregatedChildrenNumber
 	}
 	for _, ndde := range nddes {
-		agSz += rr[path.Join(rmDeRelPath(pe, ndde)...)].Size
+		dund, _ := pe.wi.GetUserData(ndde).(*RmEntryStatus)
+		agSz += dund.Size
 	}
-	es := setRmResult(pe, nil)
+	es := rmUserData(pe, nil)
 	es.AggregatedSize = agSz
 	es.AggregatedChildrenNumber = agCN + len(nddes)
-	pe.Lgr_().Debug("onDoneFilesRRm: 1", "rp", rmPeRelPath(pe), "es", es)
+	pe.Lgr_().Debug("onDoneFilesRRm: 2", "rp", rmPeRelSPath(pe), "es", es)
 }
 
 func onDoneEntryRRm(pe *ProcessedEntry) {
-	setRmResult(pe, nil).Size = pe.DataEntry.Size
-	if rmData(pe).dryRun {
+	rmUserData(pe, nil).Size = pe.DataEntry.Size
+	if !rmData(pe).dryRun {
 		err := pe.Dssa_().Rm(pe.DataEntry.Path)
 		if err != nil {
 			setRmError(pe, "onDoneEntryRRm: Rm", err)

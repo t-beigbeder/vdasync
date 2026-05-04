@@ -49,5 +49,5 @@ func TestBasicActualSynczer(t *testing.T) {
 	require.Nil(t, err)
 	sr := SyncResult(walker)
 	require.NotNil(t, sr)
-	// require.Equal(t, sad + saf + 1, len(sr))
+	require.Equal(t, sad+saf+1, len(sr))
 }

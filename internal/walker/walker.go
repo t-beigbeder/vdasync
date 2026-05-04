@@ -2,6 +2,7 @@ package walker
 
 import (
 	"log/slog"
+	"path"
 	"sync"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
@@ -9,11 +10,13 @@ import (
 
 type Walker interface {
 	Run(*dssa.DataEntry) error
+	SetUserData(*dssa.DataEntry, interface{})
+	GetUserData(*dssa.DataEntry) interface{}
+	UserDataMap() *sync.Map
 }
 
 type ProcessedEntry struct {
 	DataEntry, parent *dssa.DataEntry
-	UserData          interface{}
 	Error             error
 	wi                *walkerImpl
 	children          []*dssa.DataEntry
@@ -49,7 +52,8 @@ type walkerImpl struct {
 
 	args []interface{}
 
-	pq chan *ProcessedEntry
+	pq  chan *ProcessedEntry
+	udm *sync.Map
 }
 
 var _ Walker = &walkerImpl{}
@@ -77,6 +81,7 @@ func MakeWalker(
 func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	wi.lgr.Info("Run: starting", "ds", wi.ds, "args", wi.args)
 	wi.pq = make(chan *ProcessedEntry, wi.concurrency)
+	wi.udm = &sync.Map{}
 	rootIsDone := make(chan bool)
 	done := func() {
 		wi.lgr.Debug("Run is done")
@@ -103,6 +108,19 @@ LOOP:
 	}
 	wi.lgr.Info("Run: stopping")
 	return nil
+}
+
+func (wi *walkerImpl) SetUserData(de *dssa.DataEntry, ud interface{}) {
+	wi.udm.Store(path.Join(de.Path...), ud)
+}
+
+func (wi *walkerImpl) GetUserData(de *dssa.DataEntry) interface{} {
+	ud, _ := wi.udm.Load(path.Join(de.Path...))
+	return ud
+}
+
+func (wi *walkerImpl) UserDataMap() *sync.Map {
+	return wi.udm
 }
 
 func (wi *walkerImpl) process(pe *ProcessedEntry) {

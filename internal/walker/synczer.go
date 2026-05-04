@@ -26,7 +26,6 @@ type syncDataType struct {
 	sourceRoot  dssa.Path
 	targetDs    dssa.Dssa
 	targetRoot  dssa.Path
-	syncResult  map[string]*SyncEntryStatus
 }
 
 func NewSynchronizer(
@@ -49,15 +48,14 @@ func NewSynchronizer(
 }
 
 func SyncResult(walker Walker) map[string]*SyncEntryStatus {
-	wi, ok := walker.(*walkerImpl)
-	if !ok || len(wi.args) < 1 {
-		return nil
-	}
-	syncData, ok := wi.args[0].(*syncDataType)
-	if !ok {
-		return nil
-	}
-	return syncData.syncResult
+	result := map[string]*SyncEntryStatus{}
+	walker.UserDataMap().Range(func(key, value any) bool {
+		jPath, _ := key.(string)
+		es, _ := value.(*SyncEntryStatus)
+		result[jPath] = es
+		return true
+	})
+	return result
 }
 
 func syncData(pe *ProcessedEntry) *syncDataType {
@@ -89,6 +87,10 @@ func syncRelPath(pe *ProcessedEntry) dssa.Path {
 	return rp
 }
 
+func syncRelSPath(pe *ProcessedEntry) string {
+	return path.Join(syncRelPath(pe)...)
+}
+
 func targetPath(pe *ProcessedEntry) dssa.Path {
 	sd := syncData(pe)
 	tr := sd.targetRoot
@@ -98,20 +100,18 @@ func targetPath(pe *ProcessedEntry) dssa.Path {
 	return tp
 }
 
-func setSyncResult(pe *ProcessedEntry, es *SyncEntryStatus) {
-	if es == nil {
-		es = &SyncEntryStatus{}
-		es.IsDir = pe.DataEntry.IsDir
-		es.Size = pe.DataEntry.Size
-		es.Error = pe.Error
+func syncUserData(pe *ProcessedEntry, de *dssa.DataEntry) *SyncEntryStatus {
+	if de == nil {
+		de = pe.DataEntry
 	}
-	syncData(pe).syncResult[path.Join(pe.DataEntry.Path...)] = es
+	es, _ := pe.wi.GetUserData(de).(*SyncEntryStatus)
+	return es
 }
 
 func setSyncError(pe *ProcessedEntry, message string, err error) error {
 	pe.Error = fmt.Errorf("%s: %v", message, err)
-	pe.Lgr_().Error(message, "relPath", syncRelPath(pe))
-	setSyncResult(pe, nil)
+	pe.Lgr_().Error(message, "relPath", syncRelSPath(pe))
+	syncUserData(pe, nil).Error = err
 	return pe.Error
 }
 
@@ -148,8 +148,12 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 	if pe.parent == nil && syncData(pe).sourceRoot == nil {
 		sd := syncData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
-		sd.syncResult = map[string]*SyncEntryStatus{}
 	}
+	es := &SyncEntryStatus{}
+	es.IsDir = pe.DataEntry.IsDir
+	es.Size = pe.DataEntry.Size
+	es.Error = pe.Error
+	pe.wi.SetUserData(pe.DataEntry, es)
 
 	if children, err = pe.Dssa_().List(pe.DataEntry.Path); err != nil {
 		setSyncError(pe, "onStartDirEntrySync: source List", err)
@@ -164,6 +168,12 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 }
 
 func onStartNdirEntrySync(pe *ProcessedEntry) {
+	es := &SyncEntryStatus{}
+	es.IsDir = pe.DataEntry.IsDir
+	es.Size = pe.DataEntry.Size
+	es.Error = pe.Error
+	pe.wi.SetUserData(pe.DataEntry, es)
+
 	tp := targetPath(pe)
 	pe.Lgr_().Debug("onStartNdirEntrySync: sp, tp", "sp", pe.DataEntry.Path, "tp", tp)
 	tde, err := targetDs(pe).Stat(tp)
