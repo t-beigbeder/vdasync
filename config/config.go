@@ -40,6 +40,7 @@ type SyncOptionsType struct {
 	Check   bool `yaml`
 	NoPerm  bool `yaml:"noPerm"`
 	NoMtime bool `yaml:"noMtime"`
+	Rm      bool `yaml`
 }
 
 type CliConfig struct {

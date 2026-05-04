@@ -4,16 +4,29 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path"
 
 	"github.com/t-beigbeder/otvl_dtacsy/config"
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 )
+
+type EntryStatus struct {
+	IsDir          bool
+	Size           int64
+	AggregatedSize int64
+	Created        bool
+	Updated        bool
+	Removed        bool
+	ModChanged     bool
+	Error          error
+}
 
 type syncDataType struct {
 	syncOptions *config.SyncOptionsType
 	sourceRoot  dssa.Path
 	targetDs    dssa.Dssa
 	targetRoot  dssa.Path
+	syncResult  map[string]*EntryStatus
 }
 
 func NewSynchronizer(
@@ -33,6 +46,18 @@ func NewSynchronizer(
 		nil,
 		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot},
 	)
+}
+
+func SyncResult(walker Walker) map[string]*EntryStatus {
+	wi, ok := walker.(*walkerImpl)
+	if !ok || len(wi.args) < 1 {
+		return nil
+	}
+	syncData, ok := wi.args[0].(*syncDataType)
+	if !ok {
+		return nil
+	}
+	return syncData.syncResult
 }
 
 func syncData(pe *ProcessedEntry) *syncDataType {
@@ -55,52 +80,85 @@ func targetDs(pe *ProcessedEntry) dssa.Dssa {
 	return syncData(pe).targetDs
 }
 
-func targetPath(pe *ProcessedEntry) dssa.Path {
+func relPath(pe *ProcessedEntry) dssa.Path {
 	sd := syncData(pe)
 	sr := sd.sourceRoot
 	sp := pe.DataEntry.Path
+	rp := make([]string, len(sp)-len(sr))
+	copy(rp, sp[len(sr):])
+	return rp
+}
+
+func targetPath(pe *ProcessedEntry) dssa.Path {
+	sd := syncData(pe)
 	tr := sd.targetRoot
 	tp := make([]string, len(tr))
 	copy(tp, tr)
-	tp = append(tp, sp[len(sr):]...)
+	tp = append(tp, relPath(pe)...)
 	return tp
 }
 
-func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
-	if pe.parent == nil && syncData(pe).sourceRoot == nil {
-		syncData(pe).sourceRoot = pe.DataEntry.Path
+func setResult(pe *ProcessedEntry, es *EntryStatus) {
+	if es == nil {
+		es = &EntryStatus{}
+		es.IsDir = pe.DataEntry.IsDir
+		es.Size = pe.DataEntry.Size
+		es.Error = pe.Error
 	}
+	syncData(pe).syncResult[path.Join(pe.DataEntry.Path...)] = es
+}
+
+func setError(pe *ProcessedEntry, message string, err error) error {
+	pe.Error = fmt.Errorf("%s: %v", message, err)
+	pe.Lgr_().Error(message, "relPath", relPath(pe))
+	setResult(pe, nil)
+	return pe.Error
+}
+
+func prepareTargetDir(pe *ProcessedEntry) error {
 	tp := targetPath(pe)
-	pe.Lgr_().Debug("onStartDirEntrySync: sp, tp", "sp", pe.DataEntry.Path, "tp", tp)
 	tde, err := targetDs(pe).Stat(tp)
 	if err != nil && !tde.ErrNotExist {
-		pe.Error = fmt.Errorf("onStartDirEntrySync: target Stat(%v): %v", tp, err)
-		return nil
+		return setError(pe, "onStartDirEntrySync: target Stat", err)
 	}
 	if !syncOptions(pe).Dryrun {
 		if tde.ErrNotExist {
 			tde.UserRights = dssa.Rights{Read: true, Write: true, Execute: true}
 			if err = targetDs(pe).Mkdir(tde); err != nil {
-				pe.Error = fmt.Errorf("onStartDirEntrySync: Mkdir(%s): %v", tde.Path, err)
-				return nil
+				return setError(pe, "onStartDirEntrySync: target Mkdir", err)
 			}
 		} else {
 			if !tde.UserRights.Write {
 				wtde := *tde
 				wtde.UserRights.Write = true
 				if err := pe.Dssa_().SetStat(&wtde); err != nil {
-					pe.Error = fmt.Errorf("onStartDirEntrySync: SetStat: %v", err)
-					return nil
+					return setError(pe, "onStartDirEntrySync: target SetStat", err)
 				}
 			}
 		}
 	}
-	des, err := pe.Dssa_().List(pe.DataEntry.Path)
-	if err != nil {
-		pe.Error = fmt.Errorf("onStartDirEntrySync: List(%v): %v", pe.DataEntry.Path, err)
+	return nil
+}
+
+func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
+	var err error
+
+	if pe.parent == nil && syncData(pe).sourceRoot == nil {
+		sd := syncData(pe)
+		sd.sourceRoot = pe.DataEntry.Path
+		sd.syncResult = map[string]*EntryStatus{}
+	}
+
+	if pe.children, err = pe.Dssa_().List(pe.DataEntry.Path); err != nil {
+		setError(pe, "onStartDirEntrySync: source List", err)
 		return nil
 	}
-	return des
+
+	if err = prepareTargetDir(pe); err != nil {
+		return nil
+	}
+
+	return pe.children
 }
 
 func onStartNdirEntrySync(pe *ProcessedEntry) {

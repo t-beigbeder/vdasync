@@ -40,7 +40,7 @@ func onDoneEntryRRm(pe *ProcessedEntry) {
 	}
 }
 
-func RemoveAll(lgr *slog.Logger,  concurrency int,ds dssa.Dssa, path_ dssa.Path) error {
+func RemoveAll(lgr *slog.Logger, concurrency int, ds dssa.Dssa, path_ dssa.Path) error {
 	walker := NewRecursiveRemover(lgr, concurrency, ds)
 	de, err := ds.Stat(path_)
 	if err != nil {
