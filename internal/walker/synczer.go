@@ -2,7 +2,6 @@ package walker
 
 import (
 	"fmt"
-	"io"
 	"log/slog"
 	"path"
 
@@ -12,6 +11,7 @@ import (
 
 type SyncEntryStatus struct {
 	relPath                  string
+	targetDe                 *dssa.DataEntry
 	IsDir                    bool
 	Size                     int64
 	AggregatedSize           int64
@@ -21,6 +21,8 @@ type SyncEntryStatus struct {
 	Removed                  bool
 	ModChanged               bool
 	Error                    error
+	RemovedSize              int64
+	RemovedChildrenNumber    int
 }
 
 type syncDataType struct {
@@ -103,19 +105,42 @@ func targetPath(pe *ProcessedEntry) dssa.Path {
 	return tp
 }
 
-func syncUserData(pe *ProcessedEntry, de *dssa.DataEntry) *SyncEntryStatus {
-	if de == nil {
-		de = pe.DataEntry
-	}
-	es, _ := pe.wi.GetUserData(de).(*SyncEntryStatus)
+func syncRelTargetPath(pe *ProcessedEntry, tde *dssa.DataEntry) dssa.Path {
+	sd := syncData(pe)
+	tr := sd.targetRoot
+	tp := tde.Path
+	rp := make([]string, len(tp)-len(tr))
+	copy(rp, tp[len(tr):])
+	return rp
+}
+
+func sourcePath(pe *ProcessedEntry, tde *dssa.DataEntry) dssa.Path {
+	sd := syncData(pe)
+	sr := sd.sourceRoot
+	sp := make([]string, len(sr))
+	copy(sp, sr)
+	sp = append(sp, syncRelTargetPath(pe, tde)...)
+	return sp
+}
+
+func syncUserData(pe *ProcessedEntry) *SyncEntryStatus {
+	es, _ := pe.wi.GetUserData(pe.DataEntry).(*SyncEntryStatus)
 	return es
 }
 
-func setSyncError(pe *ProcessedEntry, message string, err error) error {
+func setSyncError(pe *ProcessedEntry, message string, isTarget bool, err error) error {
 	pe.Error = fmt.Errorf("%s: %v", message, err)
 	pe.Lgr_().Error(message, "relPath", syncRelSPath(pe))
-	syncUserData(pe, nil).Error = err
+	syncUserData(pe).Error = err
 	return pe.Error
+}
+
+func dssInfoSync(pe *ProcessedEntry, isTarget bool, function string) {
+	sot := "source"
+	if isTarget {
+		sot = "target"
+	}
+	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "dss", sot, "de", syncRelSPath(pe))
 }
 
 func syncEntryStatusInit(pe *ProcessedEntry) {
@@ -125,32 +150,6 @@ func syncEntryStatusInit(pe *ProcessedEntry) {
 	es.Error = pe.Error
 	es.relPath = syncRelSPath(pe)
 	pe.wi.SetUserData(pe.DataEntry, es)
-}
-
-func prepareTargetDir(pe *ProcessedEntry, sChildren []*dssa.DataEntry) error {
-	tp := targetPath(pe)
-	tde, err := targetDs(pe).Stat(tp)
-	if err != nil && !tde.ErrNotExist {
-		return setSyncError(pe, "onStartDirEntrySync: target Stat", err)
-	}
-
-	if !syncOptions(pe).Dryrun {
-		if tde.ErrNotExist {
-			tde.UserRights = dssa.Rights{Read: true, Write: true, Execute: true}
-			if err = targetDs(pe).Mkdir(tde); err != nil {
-				return setSyncError(pe, "onStartDirEntrySync: target Mkdir", err)
-			}
-		} else {
-			if !tde.UserRights.Write {
-				wtde := *tde
-				wtde.UserRights.Write = true
-				if err := pe.Dssa_().SetStat(&wtde); err != nil {
-					return setSyncError(pe, "onStartDirEntrySync: target SetStat", err)
-				}
-			}
-		}
-	}
-	return nil
 }
 
 func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
@@ -165,12 +164,13 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 
 	syncEntryStatusInit(pe)
 
+	dssInfoSync(pe, false, "List")
 	if children, err = pe.Dssa_().List(pe.DataEntry.Path); err != nil {
-		setSyncError(pe, "onStartDirEntrySync: source List", err)
+		setSyncError(pe, "onStartDirEntrySync: source List", false, err)
 		return nil
 	}
 
-	if err = prepareTargetDir(pe, children); err != nil {
+	if err = prepareTargetDirCreate(pe, children); err != nil {
 		return nil
 	}
 
@@ -179,38 +179,7 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 
 func onStartNdirEntrySync(pe *ProcessedEntry) {
 	syncEntryStatusInit(pe)
-
-	tp := targetPath(pe)
-	pe.Lgr_().Debug("onStartNdirEntrySync: sp, tp", "sp", pe.DataEntry.Path, "tp", tp)
-	tde, err := targetDs(pe).Stat(tp)
-	if err != nil && !tde.ErrNotExist {
-		pe.Error = fmt.Errorf("onStartNdirEntrySync: target Stat(%v): %v", tp, err)
-		return
-	}
-	if !syncOptions(pe).Dryrun {
-		rdr, err := pe.wi.ds.GetReadCloser(pe.DataEntry.Path)
-		if err != nil {
-			pe.Error = fmt.Errorf("onStartNdirEntrySync: GetReadCloser(%v): %v", pe.DataEntry.Path, err)
-			return
-		}
-		defer rdr.Close()
-		wrr, err := targetDs(pe).GetWriteCloser(targetPath(pe))
-		if err != nil {
-			pe.Error = fmt.Errorf("onStartNdirEntrySync: GetWriteCloser(%v): %v", targetPath(pe), err)
-			return
-		}
-		defer wrr.Close()
-		_, err = io.Copy(wrr, rdr)
-		if err != nil {
-			pe.Error = fmt.Errorf("onStartNdirEntrySync: Copy(%v): %v", targetPath(pe), err)
-			return
-		}
-		err = wrr.Close()
-		if err != nil {
-			pe.Error = fmt.Errorf("onStartNdirEntrySync: Close(%v): %v", targetPath(pe), err)
-			return
-		}
-	}
+	runNdirEntrySync(pe)
 }
 
 func onDoneFilesSync(pe *ProcessedEntry) {
@@ -228,7 +197,7 @@ func onDoneFilesSync(pe *ProcessedEntry) {
 		dund, _ := pe.wi.GetUserData(ndde).(*SyncEntryStatus)
 		agSz += dund.Size
 	}
-	es := syncUserData(pe, nil)
+	es := syncUserData(pe)
 	es.AggregatedSize = agSz
 	es.AggregatedChildrenNumber = agCN + len(nddes)
 }

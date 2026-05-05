@@ -16,11 +16,13 @@ type Walker interface {
 }
 
 type ProcessedEntry struct {
-	DataEntry, parent *dssa.DataEntry
-	Error             error
-	wi                *walkerImpl
-	children          []*dssa.DataEntry
-	done              func()
+	DataEntry *dssa.DataEntry
+	Error     error
+	wi        *walkerImpl
+	parent    *ProcessedEntry
+	children  []*dssa.DataEntry
+	mx4child  sync.Mutex
+	done      func()
 }
 
 func (pe *ProcessedEntry) Lgr_() *slog.Logger {
@@ -161,7 +163,7 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 			ddone := func() {
 				wg.Done()
 			}
-			wi.pq <- &ProcessedEntry{DataEntry: dde, parent: pe.DataEntry, wi: wi, done: ddone}
+			wi.pq <- &ProcessedEntry{DataEntry: dde, parent: pe, wi: wi, done: ddone}
 		}()
 	}
 	wg.Wait()
@@ -176,7 +178,7 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 			nddone := func() {
 				wg.Done()
 			}
-			wi.pq <- &ProcessedEntry{DataEntry: ndde, parent: pe.DataEntry, wi: wi, done: nddone}
+			wi.pq <- &ProcessedEntry{DataEntry: ndde, parent: pe, wi: wi, done: nddone}
 		}()
 	}
 	wg.Wait()

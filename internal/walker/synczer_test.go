@@ -44,7 +44,7 @@ func TestBasicActualSynczer(t *testing.T) {
 	// require.Nil(t, err)
 	td2 := t.TempDir()
 
-	walker := NewSynchronizer(lgr, 5, &config.SyncOptionsType{},
+	walker := NewSynchronizer(lgr, 0, &config.SyncOptionsType{},
 		dssa1, dssa1, common.OsPath2DssPath(td2))
 	sde, err := dssa1.Stat(common.OsPath2DssPath(td1))
 	require.Nil(t, err)

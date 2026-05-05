@@ -18,7 +18,7 @@ type RmEntryStatus struct {
 }
 
 type rmDataType struct {
-	dssAlias string
+	dssAlias   string
 	dryRun     bool
 	sourceRoot dssa.Path
 }
@@ -79,18 +79,15 @@ func rmPeRelSPath(pe *ProcessedEntry) string {
 	return rmDeRelSPath(pe, pe.DataEntry)
 }
 
-func rmUserData(pe *ProcessedEntry, de *dssa.DataEntry) *RmEntryStatus {
-	if de == nil {
-		de = pe.DataEntry
-	}
-	es, _ := pe.wi.GetUserData(de).(*RmEntryStatus)
+func rmUserData(pe *ProcessedEntry) *RmEntryStatus {
+	es, _ := pe.wi.GetUserData(pe.DataEntry).(*RmEntryStatus)
 	return es
 }
 
 func setRmError(pe *ProcessedEntry, message string, err error) {
 	pe.Error = fmt.Errorf("%s: %v", message, err)
-	pe.Lgr_().Error(message, "alias", rmPeRelSPath(pe), "relPath", rmPeRelSPath(pe), "err", err)
-	rmUserData(pe, nil).Error = err
+	pe.Lgr_().Error(message, "dss", rmData(pe).dssAlias, "relPath", rmPeRelSPath(pe), "err", err)
+	rmUserData(pe).Error = err
 }
 
 func rmEntryStatusInit(pe *ProcessedEntry) {
@@ -142,13 +139,13 @@ func onDoneFilesRRm(pe *ProcessedEntry) {
 		dund, _ := pe.wi.GetUserData(ndde).(*RmEntryStatus)
 		agSz += dund.Size
 	}
-	es := rmUserData(pe, nil)
+	es := rmUserData(pe)
 	es.AggregatedSize = agSz
 	es.AggregatedChildrenNumber = agCN + len(nddes)
 }
 
 func onDoneEntryRRm(pe *ProcessedEntry) {
-	rmUserData(pe, nil).Size = pe.DataEntry.Size
+	rmUserData(pe).Size = pe.DataEntry.Size
 	if !rmData(pe).dryRun {
 		dssInfoRRm(pe, "Rm")
 		err := pe.Dssa_().Rm(pe.DataEntry.Path)
@@ -172,5 +169,14 @@ func RemoveAll(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ dssa.Path
 	if de.Error != nil {
 		return nil, de.Error
 	}
-	return walker, nil
+	hasErrors := false
+	for _, es := range RmResult(walker) {
+		if es.Error != nil {
+			hasErrors = true
+		}
+	}
+	if hasErrors {
+		err = fmt.Errorf("RemoveAll: some children removal failed")
+	}
+	return walker, err
 }
