@@ -231,5 +231,4 @@ func onDoneFilesSync(pe *ProcessedEntry) {
 	es := syncUserData(pe, nil)
 	es.AggregatedSize = agSz
 	es.AggregatedChildrenNumber = agCN + len(nddes)
-	pe.Lgr_().Debug("onDoneFilesRRm", "rp", rmPeRelSPath(pe), "es", es)
 }
