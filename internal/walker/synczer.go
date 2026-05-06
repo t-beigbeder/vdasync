@@ -12,6 +12,8 @@ import (
 type SyncEntryStatus struct {
 	relPath                  string
 	targetDe                 *dssa.DataEntry
+	sChecksum                string
+	tChecksum                string
 	IsDir                    bool
 	Size                     int64
 	AggregatedSize           int64
@@ -129,8 +131,12 @@ func syncUserData(pe *ProcessedEntry) *SyncEntryStatus {
 }
 
 func setSyncError(pe *ProcessedEntry, message string, isTarget bool, err error) error {
+	sot := "source"
+	if isTarget {
+		sot = "target"
+	}
 	pe.Error = fmt.Errorf("%s: %v", message, err)
-	pe.Lgr_().Error(message, "relPath", syncRelSPath(pe))
+	pe.Lgr_().Error(message, "dss", sot, "de", syncRelSPath(pe), "err", err)
 	syncUserData(pe).Error = err
 	return pe.Error
 }

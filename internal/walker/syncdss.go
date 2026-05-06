@@ -30,7 +30,7 @@ func prepareTargetDirForUpdate(pe *ProcessedEntry) error {
 			dssInfoSync(pe.parent, true, "SetStat(\"UserRights.Write\")")
 			wtde := *tde
 			wtde.UserRights.Write = true
-			if err := targetDs(pe.parent).SetStat(&wtde, false, false); err != nil {
+			if err := targetDs(pe.parent).SetStat(&wtde, false, true); err != nil {
 				return setSyncError(pe, "prepareTargetDirForUpdate: SetStat on parent", true, err)
 			}
 		}
@@ -44,6 +44,10 @@ func isTargetInSource(pe *ProcessedEntry, sChildren []*dssa.DataEntry, tde *dssa
 		if path.Join(sChild.Path...) == ssp {
 			if sChild.IsDir == tde.IsDir {
 				return true
+			} else if sChild.IsSymLink == tde.IsSymLink {
+				return true
+			} else {
+				return false
 			}
 		}
 	}
@@ -80,6 +84,13 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			for _, rmEs := range RmResult(walker) {
 				ses.RemovedSize += rmEs.AggregatedSize
 				ses.RemovedChildrenNumber += rmEs.AggregatedChildrenNumber
+			}
+		} else {
+			pe.Lgr_().Info(fmt.Sprintf("running dss %s", "Rm"), "dss", "target", "de", syncRelTargetPath(pe, tde))
+			if err := targetDs(pe).Rm(tde.Path); err != nil {
+				pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", syncRelTargetPath(pe, tde), "err", err)
+				hasErrors = true
+				continue
 			}
 		}
 	}
@@ -128,6 +139,10 @@ func prepareTargetDirCreate(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 	return nil
 }
 
+func prepareTargetFile(pe *ProcessedEntry, tde *dssa.DataEntry) (*dssa.DataEntry, error) {
+	return nil, nil
+}
+
 func runNdirEntrySync(pe *ProcessedEntry) {
 	tp := targetPath(pe)
 	dssInfoSync(pe, true, "Stat")
@@ -145,6 +160,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 			return
 		}
 	}
+
 	if !syncOptions(pe).Dryrun {
 		if err = prepareTargetDirForUpdate(pe); err != nil {
 			return
