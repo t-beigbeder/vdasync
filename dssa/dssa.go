@@ -24,6 +24,7 @@ type DataEntry struct {
 	SymLinkTarget string
 	Error         error
 	ErrNotExist   bool
+	Id            string
 }
 
 type Dssa interface {

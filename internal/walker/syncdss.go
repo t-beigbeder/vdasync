@@ -91,6 +91,7 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 
 func prepareTargetDirCreate(pe *ProcessedEntry, sChildren []*dssa.DataEntry) error {
 	tp := targetPath(pe)
+	// TODO: optimization if parent has no dte in dryrun
 	dssInfoSync(pe, true, "Stat")
 	tde, err := targetDs(pe).Stat(tp)
 	if err != nil && !tde.ErrNotExist {
@@ -109,6 +110,7 @@ func prepareTargetDirCreate(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			if err = targetDs(pe).Mkdir(tde); err != nil {
 				return setSyncError(pe, "prepareTargetDirCreate: Mkdir", true, err)
 			}
+			syncUserData(pe).targetDe = tde
 		}
 	} else if tde.IsDir {
 		syncUserData(pe).targetDe = tde

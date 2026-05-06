@@ -176,6 +176,7 @@ type DataEntry struct {
 	SymLinkTarget string                 `protobuf:"bytes,11,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
 	Error         string                 `protobuf:"bytes,12,opt,name=error,proto3" json:"error,omitempty"`
 	ErrNotExist   bool                   `protobuf:"varint,13,opt,name=err_not_exist,json=errNotExist,proto3" json:"err_not_exist,omitempty"`
+	Id            string                 `protobuf:"bytes,14,opt,name=id,proto3" json:"id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -299,6 +300,13 @@ func (x *DataEntry) GetErrNotExist() bool {
 		return x.ErrNotExist
 	}
 	return false
+}
+
+func (x *DataEntry) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
 }
 
 type Rights struct {
@@ -548,7 +556,7 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x03old\x18\x01 \x03(\tR\x03old\x12\x11\n" +
 	"\x04new_\x18\x02 \x03(\tR\x03new\"8\n" +
 	"\vDataEntries\x12)\n" +
-	"\aentries\x18\x01 \x03(\v2\x0f.dssa.DataEntryR\aentries\"\xa9\x03\n" +
+	"\aentries\x18\x01 \x03(\v2\x0f.dssa.DataEntryR\aentries\"\xb9\x03\n" +
 	"\tDataEntry\x12\x15\n" +
 	"\x06is_dir\x18\x01 \x01(\bR\x05isDir\x12\x1e\n" +
 	"\x04path\x18\x02 \x01(\v2\n" +
@@ -565,7 +573,8 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	" \x01(\bR\tisSymLink\x12&\n" +
 	"\x0fsym_link_target\x18\v \x01(\tR\rsymLinkTarget\x12\x14\n" +
 	"\x05error\x18\f \x01(\tR\x05error\x12\"\n" +
-	"\rerr_not_exist\x18\r \x01(\bR\verrNotExist\"L\n" +
+	"\rerr_not_exist\x18\r \x01(\bR\verrNotExist\x12\x0e\n" +
+	"\x02id\x18\x0e \x01(\tR\x02id\"L\n" +
 	"\x06Rights\x12\x12\n" +
 	"\x04read\x18\x01 \x01(\bR\x04read\x12\x14\n" +
 	"\x05write\x18\x02 \x01(\bR\x05write\x12\x18\n" +

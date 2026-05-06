@@ -32,7 +32,7 @@ func FileSha256(path string) (string, error) {
 		return "", err
 	}
 
-	return fmt.Sprintf("%016x", h.Sum(nil)), nil
+	return fmt.Sprintf("%064x", h.Sum(nil)), nil
 }
 
 func WriteFile(path string, data []byte) error {

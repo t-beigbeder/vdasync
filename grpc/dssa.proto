@@ -42,6 +42,7 @@ message DataEntry {
     string sym_link_target = 11;
     string error = 12;
     bool err_not_exist = 13;
+    string id = 14;
 }
 
 message Rights {
