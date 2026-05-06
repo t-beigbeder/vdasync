@@ -31,7 +31,7 @@ type Dssa interface {
 	List(Path) ([]*DataEntry, error)
 	Mkdir(*DataEntry) error
 	Stat(Path) (*DataEntry, error)
-	SetStat(*DataEntry) error
+	SetStat(_ *DataEntry, noPerm, noMtime bool) error
 	GetReadCloser(Path) (io.ReadCloser, error)
 	GetWriteCloser(Path) (io.WriteCloser, error)
 	Rm(Path) error

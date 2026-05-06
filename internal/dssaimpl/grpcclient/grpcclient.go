@@ -45,8 +45,13 @@ func (gc *grpcClient) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 }
 
 // SetStat implements [dssa.Dssa].
-func (gc *grpcClient) SetStat(de *dssa.DataEntry) error {
-	_, err := gc.client.SetStat(gc.ctx, common.DssDte2GrpcDte(de))
+func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error {
+	_, err := gc.client.SetStat(gc.ctx,
+		&dssagrpc.SetStatDataEntry{
+			DataEntry: common.DssDte2GrpcDte(ssde),
+			NoPerm:    noPerm,
+			NoMtime:   noMtime,
+		})
 	return err
 }
 

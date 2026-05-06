@@ -36,7 +36,7 @@ type DataStorageSystemClient interface {
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
 	Mkdir(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
-	SetStat(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
+	SetStat(ctx context.Context, in *SetStatDataEntry, opts ...grpc.CallOption) (*Empty, error)
 	Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error)
 	Get(ctx context.Context, in *Path, opts ...grpc.CallOption) (grpc.ServerStreamingClient[PulledBlock], error)
 	Rm(ctx context.Context, in *Path, opts ...grpc.CallOption) (*Empty, error)
@@ -81,7 +81,7 @@ func (c *dataStorageSystemClient) Mkdir(ctx context.Context, in *DataEntry, opts
 	return out, nil
 }
 
-func (c *dataStorageSystemClient) SetStat(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error) {
+func (c *dataStorageSystemClient) SetStat(ctx context.Context, in *SetStatDataEntry, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, DataStorageSystem_SetStat_FullMethodName, in, out, cOpts...)
@@ -150,7 +150,7 @@ type DataStorageSystemServer interface {
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
 	Mkdir(context.Context, *DataEntry) (*Empty, error)
-	SetStat(context.Context, *DataEntry) (*Empty, error)
+	SetStat(context.Context, *SetStatDataEntry) (*Empty, error)
 	Put(grpc.ClientStreamingServer[PushedBlock, Length]) error
 	Get(*Path, grpc.ServerStreamingServer[PulledBlock]) error
 	Rm(context.Context, *Path) (*Empty, error)
@@ -174,7 +174,7 @@ func (UnimplementedDataStorageSystemServer) Stat(context.Context, *Path) (*DataE
 func (UnimplementedDataStorageSystemServer) Mkdir(context.Context, *DataEntry) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Mkdir not implemented")
 }
-func (UnimplementedDataStorageSystemServer) SetStat(context.Context, *DataEntry) (*Empty, error) {
+func (UnimplementedDataStorageSystemServer) SetStat(context.Context, *SetStatDataEntry) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method SetStat not implemented")
 }
 func (UnimplementedDataStorageSystemServer) Put(grpc.ClientStreamingServer[PushedBlock, Length]) error {
@@ -265,7 +265,7 @@ func _DataStorageSystem_Mkdir_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _DataStorageSystem_SetStat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DataEntry)
+	in := new(SetStatDataEntry)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -277,7 +277,7 @@ func _DataStorageSystem_SetStat_Handler(srv interface{}, ctx context.Context, de
 		FullMethod: DataStorageSystem_SetStat_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataStorageSystemServer).SetStat(ctx, req.(*DataEntry))
+		return srv.(DataStorageSystemServer).SetStat(ctx, req.(*SetStatDataEntry))
 	}
 	return interceptor(ctx, in, info, handler)
 }

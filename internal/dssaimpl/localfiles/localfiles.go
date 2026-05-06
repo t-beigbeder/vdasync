@@ -79,15 +79,19 @@ func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 }
 
 // SetStat implements [dssa.Dssa].
-func (d *localFiles) SetStat(de *dssa.DataEntry) error {
+func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
 	path_ := path.Join(osPath(de.Path))
-	if err := common.SetAccessRights(
-		path_, [2]int{de.User, de.Group},
-		[3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}); err != nil {
-		return err
+	if !noPerm {
+		if err := common.SetAccessRights(
+			path_, [2]int{de.User, de.Group},
+			[3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}); err != nil {
+			return err
+		}
 	}
-	if err := common.Lutimes(path_, de.Mtime); err != nil {
-		return err
+	if !noMtime {
+		if err := common.Lutimes(path_, de.Mtime); err != nil {
+			return err
+		}
 	}
 	return nil
 }

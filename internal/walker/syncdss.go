@@ -30,7 +30,7 @@ func prepareTargetDirForUpdate(pe *ProcessedEntry) error {
 			dssInfoSync(pe.parent, true, "SetStat(\"UserRights.Write\")")
 			wtde := *tde
 			wtde.UserRights.Write = true
-			if err := targetDs(pe.parent).SetStat(&wtde); err != nil {
+			if err := targetDs(pe.parent).SetStat(&wtde, false, false); err != nil {
 				return setSyncError(pe, "prepareTargetDirForUpdate: SetStat on parent", true, err)
 			}
 		}

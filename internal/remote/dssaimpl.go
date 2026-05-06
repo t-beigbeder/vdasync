@@ -41,8 +41,8 @@ func (s *dssaImpl) Stat(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.Da
 	return common.DssDte2GrpcDte(ddte), nil
 }
 
-func (s *dssaImpl) SetStat(ctx context.Context, gdte *dssagrpc.DataEntry) (*dssagrpc.Empty, error) {
-	if err := s.dssa_.SetStat(common.GrpcDte2DssDte(gdte)); err != nil {
+func (s *dssaImpl) SetStat(ctx context.Context, gssde *dssagrpc.SetStatDataEntry) (*dssagrpc.Empty, error) {
+	if err := s.dssa_.SetStat(common.GrpcDte2DssDte(gssde.DataEntry), gssde.NoPerm, gssde.NoMtime); err != nil {
 		return nil, err
 	}
 	return &dssagrpc.Empty{}, nil

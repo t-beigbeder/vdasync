@@ -35,7 +35,7 @@ func TestFunctions(t *testing.T) {
 	de2.Mtime = de.Mtime
 	de2.GroupRights = dssa.Rights{}
 	de2.OtherRights = dssa.Rights{}
-	err = dgc.SetStat(de2)
+	err = dgc.SetStat(de2, false, false)
 	require.Nil(t, err)
 	de3, err := dgc.Stat(common.OsPath2DssPath(ft))
 	require.Nil(t, err)
