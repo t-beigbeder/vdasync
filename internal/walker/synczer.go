@@ -23,6 +23,11 @@ type SyncEntryStatus struct {
 	Removed                  bool
 	ModChanged               bool
 	Error                    error
+	AggregatedCreated        int
+	AggregatedUpdated        int
+	AggregatedRemoved        int
+	AggregatedModChanged     int
+	AggregatedError          int
 	RemovedSize              int64
 	RemovedChildrenNumber    int
 }
@@ -47,7 +52,7 @@ func NewSynchronizer(
 		onStartDirEntrySync,
 		onStartNdirEntrySync,
 		nil,
-		onDoneFilesSync,
+		nil,
 		onDoneEntrySync,
 		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot},
 	)
@@ -188,33 +193,87 @@ func onStartNdirEntrySync(pe *ProcessedEntry) {
 	runNdirEntrySync(pe)
 }
 
-func onDoneFilesSync(pe *ProcessedEntry) {
+func computeDdeAggregates(pe *ProcessedEntry) {
 	ddes, nddes := splitDndFrom(pe.children)
 	var (
 		agSz int64
 		agCN int
+		agC  int
+		agU  int
+		agR  int
+		agM  int
+		agE  int
 	)
 	for _, dde := range ddes {
 		dud, _ := pe.wi.GetUserData(dde).(*SyncEntryStatus)
 		agSz += dud.AggregatedSize
-		agCN += dud.AggregatedChildrenNumber
+		agCN += dud.AggregatedChildrenNumber + 1
+		agC += dud.AggregatedCreated
+		agU += dud.AggregatedUpdated
+		agR += dud.AggregatedRemoved
+		agM += dud.AggregatedModChanged
+		agE += dud.AggregatedError
 	}
 	for _, ndde := range nddes {
 		dund, _ := pe.wi.GetUserData(ndde).(*SyncEntryStatus)
 		agSz += dund.Size
+		agCN += 1
+		if dund.Created {
+			agC += 1
+		}
+		if dund.Updated {
+			agU += 1
+		}
+		if dund.Removed {
+			agR += 1
+		}
+		if dund.ModChanged {
+			agM += 1
+		}
+		if dund.Error != nil {
+			agE += 1
+		}
 	}
 	es := syncUserData(pe)
 	es.AggregatedSize = agSz
-	es.AggregatedChildrenNumber = agCN + len(nddes)
+	es.AggregatedChildrenNumber = agCN
+	if es.Created {
+		agC += 1
+	}
+	if es.Updated {
+		agU += 1
+	}
+	if es.Removed {
+		agR += 1
+	}
+	if es.ModChanged {
+		agM += 1
+	}
+	if es.Error != nil {
+		agE += 1
+	}
+	es.AggregatedCreated = agC
+	es.AggregatedUpdated = agU
+	es.AggregatedRemoved = agR
+	es.AggregatedModChanged = agU
+	es.AggregatedError = agE
 }
 
 func onDoneEntrySync(pe *ProcessedEntry) {
 	if !syncOptions(pe).Dryrun {
-		if !syncUserData(pe).Created && !syncUserData(pe).Updated {
-			return
+		if syncUserData(pe).Created || syncUserData(pe).Updated {
+			runSetStatEntrySync(pe)
 		}
-		if err := runSetStatEntrySync(pe); err != nil {
-			return
-		}
+	}
+	es := syncUserData(pe)
+	if es.Created {
+		es.Updated = false
+		es.ModChanged = false
+	}
+	if es.Updated {
+		es.ModChanged = false
+	}
+	if pe.DataEntry.IsDir {
+		computeDdeAggregates(pe)
 	}
 }
