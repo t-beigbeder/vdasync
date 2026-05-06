@@ -48,7 +48,7 @@ func NewSynchronizer(
 		onStartNdirEntrySync,
 		nil,
 		onDoneFilesSync,
-		nil,
+		onDoneEntrySync,
 		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot},
 	)
 }
@@ -206,4 +206,15 @@ func onDoneFilesSync(pe *ProcessedEntry) {
 	es := syncUserData(pe)
 	es.AggregatedSize = agSz
 	es.AggregatedChildrenNumber = agCN + len(nddes)
+}
+
+func onDoneEntrySync(pe *ProcessedEntry) {
+	if !syncOptions(pe).Dryrun {
+		if !syncUserData(pe).Created && !syncUserData(pe).Updated {
+			return
+		}
+		if err := runSetStatEntrySync(pe); err != nil {
+			return
+		}
+	}
 }
