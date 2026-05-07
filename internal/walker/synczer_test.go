@@ -181,4 +181,20 @@ func TestAugmentedTestDataSynczer(t *testing.T) {
 	require.Equal(t, total-1, res.AggregatedCreated)
 	require.Equal(t, 1, res.AggregatedUpdated)
 	require.Equal(t, 0, res.AggregatedError)
+
+	walker = NewSynchronizer(lgr, 4, &config.SyncOptionsType{Dryrun: true}, dssa1, dssa1, td2)
+	sde, err = dssa1.Stat(td1)
+	require.Nil(t, err)
+	err = walker.Run(sde)
+	require.Nil(t, err)
+	sr = SyncResult(walker)
+	require.NotNil(t, sr)
+	require.Equal(t, sad+saf+1, len(sr))
+	DisplaySyncResult(sr, io.Discard, true)
+	res = sr[""]
+	require.Equal(t, total-1, res.AggregatedChildrenNumber)
+	require.Equal(t, 0, res.AggregatedCreated)
+	require.Equal(t, 0, res.AggregatedUpdated)
+	require.Equal(t, 0, res.AggregatedError)
+
 }
