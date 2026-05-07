@@ -7,13 +7,21 @@ option go_package = "./dssagrpc";
 service DataStorageSystem {
     rpc List(Path) returns (DataEntries) {}
     rpc Stat(Path) returns (DataEntry) {}
-    rpc SetStat(DataEntry) returns (Empty) {}
+    rpc Mkdir(DataEntry) returns (Empty) {}
+    rpc SetStat(SetStatDataEntry) returns (Empty) {}
     rpc Put(stream PushedBlock) returns (Length) {}
     rpc Get(Path) returns (stream PulledBlock) {}
+    rpc Rm(Path) returns (Empty) {}
+    rpc Symlink(OldNewPaths) returns (Empty) {}
 }
 
 message Path {
     repeated string path = 1;
+}
+
+message OldNewPaths {
+    repeated string old = 1;
+    repeated string new_ = 2;
 }
 
 message DataEntries {
@@ -33,6 +41,14 @@ message DataEntry {
     bool is_sym_link = 10;
     string sym_link_target = 11;
     string error = 12;
+    bool err_not_exist = 13;
+    string id = 14;
+}
+
+message SetStatDataEntry {
+    DataEntry data_entry = 1;
+    bool no_perm = 2;
+    bool no_mtime = 3;
 }
 
 message Rights {

@@ -41,9 +41,19 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 	return dtes, nil
 }
 
+// Mkdir implements [dssa.Dssa].
+func (d *localFiles) Mkdir(de *dssa.DataEntry) error {
+	ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
+	err := os.Mkdir(osPath(de.Path), common.Rights2Mod([3]dssa.Rights(ugor)))
+	return err
+}
+
 // Stat implements [dssa.Dssa].
 func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 	fi, err := os.Lstat(osPath(path_))
+	if err != nil {
+		return &dssa.DataEntry{Path: path_, Error: err, ErrNotExist: os.IsNotExist(err)}, err
+	}
 	isSymlink := fi.Mode().Type()&fs.ModeSymlink != 0
 	var linkTarget string
 	if isSymlink {
@@ -51,9 +61,6 @@ func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 		if err != nil {
 			return nil, err
 		}
-	}
-	if err != nil {
-		return nil, err
 	}
 	ugIds, ugoRights := common.GetAccessRights(fi)
 	return &dssa.DataEntry{
@@ -72,15 +79,19 @@ func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 }
 
 // SetStat implements [dssa.Dssa].
-func (d *localFiles) SetStat(de *dssa.DataEntry) error {
+func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
 	path_ := path.Join(osPath(de.Path))
-	if err := common.SetAccessRights(
-		path_, [2]int{de.User, de.Group},
-		[3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}); err != nil {
-		return err
+	if !noPerm {
+		if err := common.SetAccessRights(
+			path_, [2]int{de.User, de.Group},
+			[3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}); err != nil {
+			return err
+		}
 	}
-	if err := common.Lutimes(path_, de.Mtime); err != nil {
-		return err
+	if !noMtime {
+		if err := common.Lutimes(path_, de.Mtime); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -93,6 +104,16 @@ func (d *localFiles) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
 // GetWriter implements [dssa.Dssa].
 func (d *localFiles) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
 	return os.Create(osPath(path_))
+}
+
+// Rm implements [dssa.Dssa].
+func (d *localFiles) Rm(path_ dssa.Path) error {
+	return os.Remove(osPath(path_))
+}
+
+// Symlink implements [dssa.Dssa].
+func (d *localFiles) Symlink(old dssa.Path, new_ dssa.Path) error {
+	return os.Symlink(osPath(old), osPath(new_))
 }
 
 func MakeLocalFilesDssa() dssa.Dssa {

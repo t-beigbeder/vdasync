@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
@@ -32,7 +33,7 @@ func TestFileFunctions(t *testing.T) {
 	gdte2.Mtime = ddte.Mtime
 	gdte2.GroupRights = common.DssRights2GrpcRights(dssa.Rights{})
 	gdte2.OtherRights = common.DssRights2GrpcRights(dssa.Rights{})
-	_, err = cli.SetStat(ctx, gdte2)
+	_, err = cli.SetStat(ctx, &dssagrpc.SetStatDataEntry{DataEntry: gdte2, NoPerm: false, NoMtime: false})
 	require.Nil(t, err)
 	gdte3, err := cli.Stat(ctx, common.OsPath2GrpcPath(ft))
 	require.Nil(t, err)

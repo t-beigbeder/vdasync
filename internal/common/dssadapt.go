@@ -9,6 +9,7 @@ import (
 )
 
 func OsPath2DssPath(path_ string) []string {
+	// FIXME: windows
 	return strings.Split(path_, "/")
 }
 
@@ -38,6 +39,8 @@ func DssDte2GrpcDte(ddte *dssa.DataEntry) *dssagrpc.DataEntry {
 		IsSymLink:     ddte.IsSymLink,
 		SymLinkTarget: ddte.SymLinkTarget,
 		Error:         sErr,
+		ErrNotExist:   ddte.ErrNotExist,
+		Id:            ddte.Id,
 	}
 }
 
@@ -63,5 +66,7 @@ func GrpcDte2DssDte(gdte *dssagrpc.DataEntry) *dssa.DataEntry {
 		IsSymLink:     gdte.IsSymLink,
 		SymLinkTarget: gdte.SymLinkTarget,
 		Error:         err,
+		ErrNotExist:   gdte.ErrNotExist,
+		Id:            gdte.Id,
 	}
 }

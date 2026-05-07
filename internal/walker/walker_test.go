@@ -3,7 +3,6 @@ package walker
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
@@ -37,9 +36,7 @@ func TestBasicWalker(t *testing.T) {
 	}
 	startNde := func(pe *ProcessedEntry) {
 	}
-	walker := MakeWalker(lgr, 5, dssa1, startDe, startNde, nil, nil, nil, "TestBasicWalker", td1, dssa2, td2)
+	walker := MakeWalker(lgr, 5, dssa1, startDe, startNde, nil, nil, nil, nil, "TestBasicWalker", td1, dssa2, td2)
 	walker.Run(&dssa.DataEntry{Path: common.OsPath2DssPath(td1), IsDir: true})
-	lgr.Debug("TestBasicWalker: sleeping...")
-	time.Sleep(500 * time.Millisecond)
 	lgr.Debug("TestBasicWalker: done")
 }

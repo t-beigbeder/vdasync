@@ -1,6 +1,7 @@
 package common
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"os"
@@ -19,6 +20,19 @@ func FileSize(path string) (int64, error) {
 		return 0, err
 	}
 	return fi.Size(), nil
+}
+
+func FileSha256(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%064x", h.Sum(nil)), nil
 }
 
 func WriteFile(path string, data []byte) error {
@@ -53,10 +67,42 @@ func LoadFile(path string) ([]byte, error) {
 }
 
 func GetFileStat(path string) (os.FileInfo, [2]int, [3]dssa.Rights, error) {
-	fi, err := os.Stat(path)
+	fi, err := os.Lstat(path)
 	if err != nil {
 		return nil, [2]int{}, [3]dssa.Rights{}, err
 	}
 	ugIds, ugoRights := GetAccessRights(fi)
 	return fi, ugIds, ugoRights, nil
+}
+
+func Rights2Mod(ugoRights [3]dssa.Rights) (mode os.FileMode) {
+	ur, gr, or := ugoRights[0], ugoRights[1], ugoRights[2]
+	if ur.Read {
+		mode |= 1 << 8
+	}
+	if ur.Write {
+		mode |= 1 << 7
+	}
+	if ur.Execute {
+		mode |= 1 << 6
+	}
+	if gr.Read {
+		mode |= 1 << 5
+	}
+	if gr.Write {
+		mode |= 1 << 4
+	}
+	if gr.Execute {
+		mode |= 1 << 3
+	}
+	if or.Read {
+		mode |= 1 << 2
+	}
+	if or.Write {
+		mode |= 1 << 1
+	}
+	if or.Execute {
+		mode |= 1
+	}
+	return
 }

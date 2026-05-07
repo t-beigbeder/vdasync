@@ -7,6 +7,13 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
+type PluginsOptionsType struct {
+	Tls            bool   `yaml`
+	CaCertPath     string `yaml:"caCertPath"`
+	ClientCertPath string `yaml:"clientCertPath"`
+	ClientKeyPath  string `yaml:"clientKeyPath"`
+}
+
 type PluginType struct {
 	Name           string   `yaml`
 	Type           string   `yaml`
@@ -28,14 +35,24 @@ type DataStoreType struct {
 	ClientKeyPath  string `yaml:"clientKeyPath"`
 }
 
+type SyncOptionsType struct {
+	Dryrun  bool `yaml`
+	Check   bool `yaml`
+	NoPerm  bool `yaml:"noPerm"`
+	NoMtime bool `yaml:"noMtime"`
+	Rm      bool `yaml`
+}
+
 type CliConfig struct {
-	Version                    string           `yaml`
-	Plugins                    []*PluginType    `yaml`
-	PluginReadyRetries         int              `yaml:"pluginReadyRetries"`
-	PluginReadyTimeout         string           `yaml:"pluginReadyTimeout"`
-	PluginAddress              string           `yaml:"pluginAddress"`
-	PluginTransportCredentials string           `yaml:"pluginTransportCredentials"`
-	DataStores                 []*DataStoreType `yaml:"dataStores"`
+	Version                    string              `yaml`
+	PluginsOptions             *PluginsOptionsType `yaml:"pluginsOptions"`
+	Plugins                    []*PluginType       `yaml`
+	PluginReadyRetries         int                 `yaml:"pluginReadyRetries"`
+	PluginReadyTimeout         string              `yaml:"pluginReadyTimeout"`
+	PluginAddress              string              `yaml:"pluginAddress"`
+	PluginTransportCredentials string              `yaml:"pluginTransportCredentials"`
+	DataStores                 []*DataStoreType    `yaml:"dataStores"`
+	SyncOptions                *SyncOptionsType    `yaml:"syncOptions"`
 }
 
 const CliConfigDefaultYaml string = `
