@@ -42,19 +42,4 @@ func TestMakeAugmentedTestFilesTree(t *testing.T) {
 	sad, saf, err := MakeAugmentedTestFilesTree(td, 7, 100, 16, 6*1024*1024)
 	GetLogger().Debug("TestMakeAugmentedTestFilesTree", "td", td, "sad", sad, "saf", saf)
 	require.Nil(t, err)
-	/*
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dAddFiles
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dAddFiles/dRemoved
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dAddFiles/dStay
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dAddFiles/fRemoved.dat
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dAddFiles/fStay.dat
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dLinks
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dLinks/dotDot.lnk
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dLinks/fRef.dat
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dLinks/fRef.lnk
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dLinks/notYet.lnk
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dMod
-		/local/tmp/TestMakeAugmentedTestFilesTree4265037193/001/dau/dRO
-	*/
 }

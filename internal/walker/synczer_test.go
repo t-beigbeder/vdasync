@@ -103,13 +103,15 @@ func TestBasicActualSynczer(t *testing.T) {
 func TestAugmentedTestDataSynczer(t *testing.T) {
 	lgr := common.GetLogger()
 	td1 := t.TempDir()
-	sad, saf, err := common.MakeAugmentedTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
+	sad, saf, err := PrepareAugmentedTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
+	defer SetTestDirRW(td1, "source")
 	require.Nil(t, err)
 	total := sad + saf + 1
 	dss := localfiles.MakeLocalFilesDssa()
 	sde, err := dss.Stat(td1)
 	require.Nil(t, err)
 	td2 := t.TempDir()
+	defer SetTestDirRW(td2, "target")
 	lgr.Debug("TestAugmentedTestDataSynczer", "td1", td1, "sad", sad, "saf", saf)
 
 	sr, err := runSyncTest(lgr, dss, sde, td2, &config.SyncOptionsType{Dryrun: true})

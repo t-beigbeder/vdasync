@@ -66,10 +66,6 @@ func rmData(pe *ProcessedEntry) *rmDataType {
 	return rd
 }
 
-func rmDeRelPath(pe *ProcessedEntry, de *dssa.DataEntry) string {
-	return common.RelPath(de.Path, rmData(pe).sourceRoot)
-}
-
 func rmPeRelPath(pe *ProcessedEntry) string {
 	return common.RelPath(pe.DataEntry.Path, rmData(pe).sourceRoot)
 }
