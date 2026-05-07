@@ -4,9 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"google.golang.org/grpc"
 )
 
@@ -14,7 +12,7 @@ import (
 // as data received may not fit with the reader's capacity,
 type grpcReader struct {
 	gc     *grpcClient
-	path_  dssa.Path
+	path_  string
 	stream grpc.ServerStreamingClient[dssagrpc.PulledBlock]
 	buffer []byte
 	closed bool
@@ -29,7 +27,7 @@ func (gr *grpcReader) Read(p []byte) (int, error) {
 		pb  *dssagrpc.PulledBlock
 	)
 	if gr.stream == nil {
-		gr.stream, err = gr.gc.client.Get(gr.gc.ctx, common.DssPath2GrpcPath(gr.path_))
+		gr.stream, err = gr.gc.client.Get(gr.gc.ctx, &dssagrpc.Path{Path: gr.path_})
 		if err != nil {
 			return 0, err
 		}

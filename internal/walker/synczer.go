@@ -7,6 +7,7 @@ import (
 
 	"github.com/t-beigbeder/otvl_dtacsy/config"
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
 type SyncEntryStatus struct {
@@ -34,16 +35,16 @@ type SyncEntryStatus struct {
 
 type syncDataType struct {
 	syncOptions *config.SyncOptionsType
-	sourceRoot  dssa.Path
+	sourceRoot  string
 	targetDs    dssa.Dssa
-	targetRoot  dssa.Path
+	targetRoot  string
 }
 
 func NewSynchronizer(
 	lgr *slog.Logger, concurrency int,
 	syncOptions *config.SyncOptionsType,
 	sourceDs dssa.Dssa,
-	targetDs dssa.Dssa, targetRoot dssa.Path,
+	targetDs dssa.Dssa, targetRoot string,
 ) Walker {
 	return MakeWalker(
 		lgr,
@@ -90,44 +91,20 @@ func targetDs(pe *ProcessedEntry) dssa.Dssa {
 	return syncData(pe).targetDs
 }
 
-func syncRelPath(pe *ProcessedEntry) dssa.Path {
-	sd := syncData(pe)
-	sr := sd.sourceRoot
-	sp := pe.DataEntry.Path
-	rp := make([]string, len(sp)-len(sr))
-	copy(rp, sp[len(sr):])
-	return rp
+func syncRelPath(pe *ProcessedEntry) string {
+	return common.RelPath(pe.DataEntry.Path, syncData(pe).sourceRoot)
 }
 
-func syncRelSPath(pe *ProcessedEntry) string {
-	return path.Join(syncRelPath(pe)...)
+func targetPath(pe *ProcessedEntry) string {
+	return path.Join(syncData(pe).targetRoot, syncRelPath(pe))
 }
 
-func targetPath(pe *ProcessedEntry) dssa.Path {
-	sd := syncData(pe)
-	tr := sd.targetRoot
-	tp := make([]string, len(tr))
-	copy(tp, tr)
-	tp = append(tp, syncRelPath(pe)...)
-	return tp
+func syncRelTargetPath(pe *ProcessedEntry, tde *dssa.DataEntry) string {
+	return common.RelPath(tde.Path, syncData(pe).targetRoot)
 }
 
-func syncRelTargetPath(pe *ProcessedEntry, tde *dssa.DataEntry) dssa.Path {
-	sd := syncData(pe)
-	tr := sd.targetRoot
-	tp := tde.Path
-	rp := make([]string, len(tp)-len(tr))
-	copy(rp, tp[len(tr):])
-	return rp
-}
-
-func sourcePath(pe *ProcessedEntry, tde *dssa.DataEntry) dssa.Path {
-	sd := syncData(pe)
-	sr := sd.sourceRoot
-	sp := make([]string, len(sr))
-	copy(sp, sr)
-	sp = append(sp, syncRelTargetPath(pe, tde)...)
-	return sp
+func sourcePath(pe *ProcessedEntry, tde *dssa.DataEntry) string {
+	return path.Join(syncData(pe).sourceRoot, syncRelTargetPath(pe, tde))
 }
 
 func syncUserData(pe *ProcessedEntry) *SyncEntryStatus {
@@ -141,7 +118,7 @@ func setSyncError(pe *ProcessedEntry, message string, isTarget bool, err error) 
 		sot = "target"
 	}
 	pe.Error = fmt.Errorf("%s: %v", message, err)
-	pe.Lgr_().Error(message, "dss", sot, "de", syncRelSPath(pe), "err", err)
+	pe.Lgr_().Error(message, "dss", sot, "de", syncRelPath(pe), "err", err)
 	syncUserData(pe).Error = err
 	return pe.Error
 }
@@ -151,7 +128,7 @@ func dssInfoSync(pe *ProcessedEntry, isTarget bool, function string) {
 	if isTarget {
 		sot = "target"
 	}
-	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "dss", sot, "de", syncRelSPath(pe))
+	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "dss", sot, "de", syncRelPath(pe))
 }
 
 func syncEntryStatusInit(pe *ProcessedEntry) {
@@ -159,7 +136,7 @@ func syncEntryStatusInit(pe *ProcessedEntry) {
 	es.IsDir = pe.DataEntry.IsDir
 	es.Size = pe.DataEntry.Size
 	es.Error = pe.Error
-	es.relPath = syncRelSPath(pe)
+	es.relPath = syncRelPath(pe)
 	pe.wi.SetUserData(pe.DataEntry, es)
 }
 
@@ -168,7 +145,7 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 		children []*dssa.DataEntry
 		err      error
 	)
-	if pe.parent == nil && syncData(pe).sourceRoot == nil {
+	if pe.parent == nil && syncData(pe).sourceRoot == "" {
 		sd := syncData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
 	}

@@ -3,6 +3,7 @@ package walker
 import (
 	"fmt"
 	"io"
+	"slices"
 )
 
 func computeSyncHeader(es *SyncEntryStatus) string {
@@ -41,11 +42,21 @@ func computeSyncHeader(es *SyncEntryStatus) string {
 }
 
 func DisplaySyncResult(sr map[string]*SyncEntryStatus, wr io.Writer, agg bool) {
-	for _, es := range sr {
+	keys := make([]string, len(sr))
+
+	i := 0
+	for k := range sr {
+		keys[i] = k
+		i++
+	}
+	slices.Sort(keys)
+
+	for _, key := range keys {
+		es := sr[key]
 		sAgg := ""
 		if agg {
 			sAgg = fmt.Sprintf(" %6d %9d c%6d u%6d", es.AggregatedChildrenNumber, es.AggregatedSize, es.AggregatedCreated, es.AggregatedUpdated)
 		}
-		wr.Write([]byte(fmt.Sprintf("%s %64s %s\n", computeSyncHeader(es), es.relPath, sAgg)))
+		wr.Write([]byte(fmt.Sprintf("%s %-64s %s\n", computeSyncHeader(es), es.relPath, sAgg)))
 	}
 }

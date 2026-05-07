@@ -13,25 +13,15 @@ import (
 type localFiles struct {
 }
 
-func osPath(path_ dssa.Path) string {
-	lp := path_
-	if lp[0] == "" {
-		lp[0] = "/"
-	}
-	return path.Join(path_...)
-}
-
 // List implements [dssa.Dssa].
-func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
-	des, err := os.ReadDir(osPath(path_))
+func (d *localFiles) List(path_ string) ([]*dssa.DataEntry, error) {
+	des, err := os.ReadDir(path_)
 	if err != nil {
 		return nil, err
 	}
 	dtes := []*dssa.DataEntry{}
 	for _, de := range des {
-		cPath := make([]string, len(path_))
-		copy(cPath, path_)
-		cPath = append(cPath, de.Name())
+		cPath := path.Join(path_, de.Name())
 		dte, err := d.Stat(cPath)
 		if err != nil {
 			dte = &dssa.DataEntry{IsDir: de.IsDir(), Path: cPath, Error: err}
@@ -44,20 +34,20 @@ func (d *localFiles) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
 // Mkdir implements [dssa.Dssa].
 func (d *localFiles) Mkdir(de *dssa.DataEntry) error {
 	ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
-	err := os.Mkdir(osPath(de.Path), common.Rights2Mod([3]dssa.Rights(ugor)))
+	err := os.Mkdir(de.Path, common.Rights2Mod([3]dssa.Rights(ugor)))
 	return err
 }
 
 // Stat implements [dssa.Dssa].
-func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
-	fi, err := os.Lstat(osPath(path_))
+func (d *localFiles) Stat(path_ string) (*dssa.DataEntry, error) {
+	fi, err := os.Lstat(path_)
 	if err != nil {
 		return &dssa.DataEntry{Path: path_, Error: err, ErrNotExist: os.IsNotExist(err)}, err
 	}
 	isSymlink := fi.Mode().Type()&fs.ModeSymlink != 0
 	var linkTarget string
 	if isSymlink {
-		linkTarget, err = os.Readlink(osPath(path_))
+		linkTarget, err = os.Readlink(path_)
 		if err != nil {
 			return nil, err
 		}
@@ -80,16 +70,15 @@ func (d *localFiles) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
 
 // SetStat implements [dssa.Dssa].
 func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
-	path_ := path.Join(osPath(de.Path))
-	if !noPerm {
+	if !noPerm && !de.IsSymLink {
 		if err := common.SetAccessRights(
-			path_, [2]int{de.User, de.Group},
+			de.Path, [2]int{de.User, de.Group},
 			[3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}); err != nil {
 			return err
 		}
 	}
 	if !noMtime {
-		if err := common.Lutimes(path_, de.Mtime); err != nil {
+		if err := common.Lutimes(de.Path, de.Mtime); err != nil {
 			return err
 		}
 	}
@@ -97,23 +86,23 @@ func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
 }
 
 // GetReader implements [dssa.Dssa].
-func (d *localFiles) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
-	return os.Open(osPath(path_))
+func (d *localFiles) GetReadCloser(path_ string) (io.ReadCloser, error) {
+	return os.Open(path_)
 }
 
 // GetWriter implements [dssa.Dssa].
-func (d *localFiles) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
-	return os.Create(osPath(path_))
+func (d *localFiles) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	return os.Create(path_)
 }
 
 // Rm implements [dssa.Dssa].
-func (d *localFiles) Rm(path_ dssa.Path) error {
-	return os.Remove(osPath(path_))
+func (d *localFiles) Rm(path_ string) error {
+	return os.Remove(path_)
 }
 
 // Symlink implements [dssa.Dssa].
-func (d *localFiles) Symlink(old dssa.Path, new_ dssa.Path) error {
-	return os.Symlink(osPath(old), osPath(new_))
+func (d *localFiles) Symlink(old string, new_ string) error {
+	return os.Symlink(old, new_)
 }
 
 func MakeLocalFilesDssa() dssa.Dssa {

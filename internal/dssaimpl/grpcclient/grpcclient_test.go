@@ -21,14 +21,14 @@ func TestFunctions(t *testing.T) {
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := MakeGrpcClient(context.Background(), cli)
-	des, err := dgc.List(common.OsPath2DssPath(path.Dir(ft)))
+	des, err := dgc.List(path.Dir(ft))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(des))
 
-	de, err := dgc.Stat(common.OsPath2DssPath(ft))
+	de, err := dgc.Stat(ft)
 	require.Nil(t, err)
 	require.Nil(t, common.Lutimes(ft, de.Mtime-600)) // grpc server runs locally
-	de2, err := dgc.Stat(common.OsPath2DssPath(ft))
+	de2, err := dgc.Stat(ft)
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime-600, de2.Mtime)
 
@@ -37,27 +37,27 @@ func TestFunctions(t *testing.T) {
 	de2.OtherRights = dssa.Rights{}
 	err = dgc.SetStat(de2, false, false)
 	require.Nil(t, err)
-	de3, err := dgc.Stat(common.OsPath2DssPath(ft))
+	de3, err := dgc.Stat(ft)
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime, de3.Mtime)
 
 	lt := path.Join(t.TempDir(), "TestFileFunctions.symlink")
-	err = dgc.Symlink(common.OsPath2DssPath(ft), common.OsPath2DssPath(lt))
+	err = dgc.Symlink(ft, lt)
 	require.Nil(t, err)
-	lde, err := dgc.Stat(common.OsPath2DssPath(lt))
+	lde, err := dgc.Stat(lt)
 	require.Nil(t, err)
 	require.True(t, lde.IsSymLink)
 	require.Equal(t, ft, lde.SymLinkTarget)
 
 	net := path.Join(t.TempDir(), "TestFileFunctionsNotYet.dat")
-	de4, err := dgc.Stat(common.OsPath2DssPath(net))
+	de4, err := dgc.Stat(net)
 	require.NotNil(t, err)
 	require.NotNil(t, de4)
 	require.True(t, de4.ErrNotExist)
 	require.Equal(t, err, de4.Error)
 
 	td := path.Join(t.TempDir(), "TestFileFunctionsMkdir")
-	err = dgc.Mkdir(&dssa.DataEntry{Path: common.OsPath2DssPath(td), UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+	err = dgc.Mkdir(&dssa.DataEntry{Path: td, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
 	require.Nil(t, err)
 
 	err = dgc.Rm(de3.Path)
@@ -67,9 +67,9 @@ func TestFunctions(t *testing.T) {
 	require.NotNil(t, de3nd)
 	require.True(t, de3nd.ErrNotExist)
 
-	err = dgc.Rm(common.OsPath2DssPath(td))
+	err = dgc.Rm(td)
 	require.Nil(t, err)
-	dednd, err := dgc.Stat(common.OsPath2DssPath(td))
+	dednd, err := dgc.Stat(td)
 	require.NotNil(t, err)
 	require.NotNil(t, dednd)
 	require.True(t, dednd.ErrNotExist)
@@ -94,7 +94,7 @@ func TestWriter(t *testing.T) {
 		require.Nil(t, err)
 		defer rdr.Close()
 
-		wc, err := dgc.GetWriteCloser(common.OsPath2DssPath(ftd))
+		wc, err := dgc.GetWriteCloser(ftd)
 		require.Nil(t, err)
 		defer wc.Close()
 
@@ -130,7 +130,7 @@ func TestReader(t *testing.T) {
 			require.Nil(t, err)
 			defer wrr.Close()
 
-			rc, err := dgc.GetReadCloser(common.OsPath2DssPath(fts))
+			rc, err := dgc.GetReadCloser(fts)
 			require.Nil(t, err)
 			defer rc.Close()
 

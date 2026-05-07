@@ -16,8 +16,8 @@ type grpcClient struct {
 }
 
 // List implements [dssa.Dssa].
-func (gc *grpcClient) List(path_ dssa.Path) ([]*dssa.DataEntry, error) {
-	gds, err := gc.client.List(gc.ctx, common.DssPath2GrpcPath(path_))
+func (gc *grpcClient) List(path_ string) ([]*dssa.DataEntry, error) {
+	gds, err := gc.client.List(gc.ctx, &dssagrpc.Path{Path: path_})
 	if err != nil {
 		return nil, err
 	}
@@ -35,8 +35,8 @@ func (gc *grpcClient) Mkdir(de *dssa.DataEntry) error {
 }
 
 // Stat implements [dssa.Dssa].
-func (gc *grpcClient) Stat(path_ dssa.Path) (*dssa.DataEntry, error) {
-	gd, err := gc.client.Stat(gc.ctx, common.DssPath2GrpcPath(path_))
+func (gc *grpcClient) Stat(path_ string) (*dssa.DataEntry, error) {
+	gd, err := gc.client.Stat(gc.ctx, &dssagrpc.Path{Path: path_})
 	if err != nil {
 		return nil, err
 	}
@@ -56,23 +56,23 @@ func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error 
 }
 
 // GetReader implements [dssa.Dssa].
-func (gc *grpcClient) GetReadCloser(path_ dssa.Path) (io.ReadCloser, error) {
+func (gc *grpcClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
 	return &grpcReader{gc: gc, path_: path_}, nil
 }
 
 // GetWriter implements [dssa.Dssa].
-func (gc *grpcClient) GetWriteCloser(path_ dssa.Path) (io.WriteCloser, error) {
+func (gc *grpcClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 	return &grpcWriter{path_: path_, gc: gc}, nil
 }
 
 // Symlink implements [dssa.Dssa].
-func (gc *grpcClient) Rm(path_ dssa.Path) error {
+func (gc *grpcClient) Rm(path_ string) error {
 	_, err := gc.client.Rm(gc.ctx, &dssagrpc.Path{Path: path_})
 	return err
 }
 
 // Symlink implements [dssa.Dssa].
-func (gc *grpcClient) Symlink(old dssa.Path, new_ dssa.Path) error {
+func (gc *grpcClient) Symlink(old string, new_ string) error {
 	_, err := gc.client.Symlink(gc.ctx, &dssagrpc.OldNewPaths{Old: old, New_: new_})
 	return err
 }

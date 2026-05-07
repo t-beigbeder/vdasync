@@ -3,9 +3,9 @@ package walker
 import (
 	"fmt"
 	"log/slog"
-	"path"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
 type RmEntryStatus struct {
@@ -20,7 +20,7 @@ type RmEntryStatus struct {
 type rmDataType struct {
 	dssAlias   string
 	dryRun     bool
-	sourceRoot dssa.Path
+	sourceRoot string
 }
 
 func NewRecursiveRemover(
@@ -66,17 +66,8 @@ func rmData(pe *ProcessedEntry) *rmDataType {
 	return rd
 }
 
-func rmDeRelSPath(pe *ProcessedEntry, de *dssa.DataEntry) string {
-	rd := rmData(pe)
-	sr := rd.sourceRoot
-	sp := de.Path
-	rp := make([]string, len(sp)-len(sr))
-	copy(rp, sp[len(sr):])
-	return path.Join(rp...)
-}
-
-func rmPeRelSPath(pe *ProcessedEntry) string {
-	return rmDeRelSPath(pe, pe.DataEntry)
+func rmPeRelPath(pe *ProcessedEntry) string {
+	return common.RelPath(pe.DataEntry.Path, rmData(pe).sourceRoot)
 }
 
 func rmUserData(pe *ProcessedEntry) *RmEntryStatus {
@@ -86,7 +77,7 @@ func rmUserData(pe *ProcessedEntry) *RmEntryStatus {
 
 func setRmError(pe *ProcessedEntry, message string, err error) {
 	pe.Error = fmt.Errorf("%s: %v", message, err)
-	pe.Lgr_().Error(message, "dss", rmData(pe).dssAlias, "relPath", rmPeRelSPath(pe), "err", err)
+	pe.Lgr_().Error(message, "dss", rmData(pe).dssAlias, "relPath", rmPeRelPath(pe), "err", err)
 	rmUserData(pe).Error = err
 }
 
@@ -95,16 +86,16 @@ func rmEntryStatusInit(pe *ProcessedEntry) {
 	es.IsDir = pe.DataEntry.IsDir
 	es.Size = pe.DataEntry.Size
 	es.Error = pe.Error
-	es.relPath = rmPeRelSPath(pe)
+	es.relPath = rmPeRelPath(pe)
 	pe.wi.SetUserData(pe.DataEntry, es)
 }
 
 func dssInfoRRm(pe *ProcessedEntry, function string) {
-	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "alias", rmData(pe).dssAlias, "de", rmPeRelSPath(pe))
+	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "alias", rmData(pe).dssAlias, "de", rmPeRelPath(pe))
 }
 
 func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
-	if pe.parent == nil && rmData(pe).sourceRoot == nil {
+	if pe.parent == nil && rmData(pe).sourceRoot == "" {
 		sd := rmData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
 	}
@@ -156,7 +147,7 @@ func onDoneEntryRRm(pe *ProcessedEntry) {
 	}
 }
 
-func RemoveAll(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ dssa.Path, dssAlias string, dryRun bool) (Walker, error) {
+func RemoveAll(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, dssAlias string, dryRun bool) (Walker, error) {
 	walker := NewRecursiveRemover(lgr, concurrency, dss, dssAlias, dryRun)
 	de, err := dss.Stat(path_)
 	if err != nil {

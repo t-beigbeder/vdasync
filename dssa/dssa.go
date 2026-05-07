@@ -2,8 +2,6 @@ package dssa
 
 import "io"
 
-type Path []string
-
 type Rights struct {
 	Read    bool
 	Write   bool
@@ -12,7 +10,7 @@ type Rights struct {
 
 type DataEntry struct {
 	IsDir         bool
-	Path          []string
+	Path          string
 	Size          int64
 	Mtime         int64
 	User          int
@@ -28,12 +26,12 @@ type DataEntry struct {
 }
 
 type Dssa interface {
-	List(Path) ([]*DataEntry, error)
+	List(string) ([]*DataEntry, error)
 	Mkdir(*DataEntry) error
-	Stat(Path) (*DataEntry, error)
+	Stat(string) (*DataEntry, error)
 	SetStat(_ *DataEntry, noPerm, noMtime bool) error
-	GetReadCloser(Path) (io.ReadCloser, error)
-	GetWriteCloser(Path) (io.WriteCloser, error)
-	Rm(Path) error
-	Symlink(old, new_ Path) error
+	GetReadCloser(string) (io.ReadCloser, error)
+	GetWriteCloser(string) (io.WriteCloser, error)
+	Rm(string) error
+	Symlink(old, new_ string) error
 }

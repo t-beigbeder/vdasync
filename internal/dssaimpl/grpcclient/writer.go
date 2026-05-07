@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"google.golang.org/grpc"
 )
 
@@ -15,7 +13,7 @@ import (
 // each writer write() translates to a grpc call to send() after initial put()
 type grpcWriter struct {
 	gc      *grpcClient
-	path_   dssa.Path
+	path_   string
 	stream  grpc.ClientStreamingClient[dssagrpc.PushedBlock, dssagrpc.Length]
 	written int64
 	closed  bool
@@ -27,16 +25,14 @@ var _ io.WriteCloser = &grpcWriter{}
 func (gw *grpcWriter) Write(p []byte) (int, error) {
 	var (
 		err error
-		gp  *dssagrpc.Path
 	)
 	if gw.stream == nil {
 		gw.stream, err = gw.gc.client.Put(gw.gc.ctx)
 		if err != nil {
 			return 0, err
 		}
-		gp = common.DssPath2GrpcPath(gw.path_)
 	}
-	err = gw.stream.Send(&dssagrpc.PushedBlock{Path: gp, Data: p})
+	err = gw.stream.Send(&dssagrpc.PushedBlock{Path: gw.path_, Data: p})
 	if err != nil {
 		return 0, err
 	}

@@ -4,7 +4,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -17,10 +16,10 @@ func TestFileFunctions(t *testing.T) {
 	ft := path.Join(td1, "TestFileFunctions.dat")
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
 	lfd := MakeLocalFilesDssa()
-	de, err := lfd.Stat(strings.Split(ft, "/"))
+	de, err := lfd.Stat(ft)
 	require.Nil(t, err)
 	require.Nil(t, common.Lutimes(ft, de.Mtime-600))
-	de2, err := lfd.Stat(strings.Split(ft, "/"))
+	de2, err := lfd.Stat(ft)
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime-600, de2.Mtime)
 	de2.Mtime = de.Mtime
@@ -28,14 +27,14 @@ func TestFileFunctions(t *testing.T) {
 	de2.OtherRights = dssa.Rights{}
 	err = lfd.SetStat(de2, false, false)
 	require.Nil(t, err)
-	de3, err := lfd.Stat(strings.Split(ft, "/"))
+	de3, err := lfd.Stat(ft)
 	require.Nil(t, err)
 	require.Equal(t, de.Mtime, de3.Mtime)
 
 	lt := path.Join(t.TempDir(), "TestFileFunctions.symlink")
 	err = os.Symlink(ft, lt)
 	require.Nil(t, err)
-	ltde, err := lfd.Stat(strings.Split(lt, "/"))
+	ltde, err := lfd.Stat(lt)
 	require.Nil(t, err)
 	require.True(t, ltde.IsSymLink)
 	require.Equal(t, ft, ltde.SymLinkTarget)
@@ -43,17 +42,17 @@ func TestFileFunctions(t *testing.T) {
 	ldt := path.Join(t.TempDir(), "TestFileFunctions.lnsd")
 	err = os.Symlink(td1, ldt)
 	require.Nil(t, err)
-	ldtde, err := lfd.Stat(strings.Split(ldt, "/"))
+	ldtde, err := lfd.Stat(ldt)
 	require.Nil(t, err)
 	require.True(t, ldtde.IsSymLink)
 	require.False(t, ldtde.IsDir)
 	require.Equal(t, td1, ldtde.SymLinkTarget)
 
 	tt := path.Join(t.TempDir(), "TestFileFunctionsCopied.dat")
-	rc, err := lfd.GetReadCloser(strings.Split(ft, "/"))
+	rc, err := lfd.GetReadCloser(ft)
 	require.Nil(t, err)
 	defer rc.Close()
-	wc, err := lfd.GetWriteCloser(strings.Split(tt, "/"))
+	wc, err := lfd.GetWriteCloser(tt)
 	require.Nil(t, err)
 	defer wc.Close()
 	lw, err := io.Copy(wc, rc)
@@ -61,14 +60,14 @@ func TestFileFunctions(t *testing.T) {
 	require.Equal(t, de.Size, lw)
 
 	nef := path.Join(t.TempDir(), "TestFileFunctionsNotYet.dat")
-	de4, err := lfd.Stat(common.OsPath2DssPath(nef))
+	de4, err := lfd.Stat(nef)
 	require.NotNil(t, err)
 	require.NotNil(t, de4)
 	require.True(t, de4.ErrNotExist)
 	require.Equal(t, err, de4.Error)
 
 	td := path.Join(t.TempDir(), "TestFileFunctionsNotYetNewDir")
-	err = lfd.Mkdir(&dssa.DataEntry{Path: common.OsPath2DssPath(td), UserRights: dssa.Rights{Read: true, Execute: true, Write: true}})
+	err = lfd.Mkdir(&dssa.DataEntry{Path: td, UserRights: dssa.Rights{Read: true, Execute: true, Write: true}})
 	require.Nil(t, err)
 
 	err = lfd.Rm(de3.Path)
@@ -78,9 +77,9 @@ func TestFileFunctions(t *testing.T) {
 	require.NotNil(t, de3ne)
 	require.True(t, de3ne.ErrNotExist)
 
-	err = lfd.Rm(common.OsPath2DssPath(td))
+	err = lfd.Rm(td)
 	require.Nil(t, err)
-	dedne, err := lfd.Stat(common.OsPath2DssPath(td))
+	dedne, err := lfd.Stat(td)
 	require.NotNil(t, err)
 	require.NotNil(t, dedne)
 	require.True(t, dedne.ErrNotExist)
@@ -92,15 +91,15 @@ func TestFileGetPut(t *testing.T) {
 	require.Nil(t, err)
 
 	lfd := MakeLocalFilesDssa()
-	de, err := lfd.Stat(strings.Split(ft, "/"))
+	de, err := lfd.Stat(ft)
 	require.Nil(t, err)
 	require.Equal(t, 32*1024*1024, int(de.Size))
 
 	tt := path.Join(t.TempDir(), "TestFileGetPutCopied.dat")
-	rc, err := lfd.GetReadCloser(strings.Split(ft, "/"))
+	rc, err := lfd.GetReadCloser(ft)
 	require.Nil(t, err)
 	defer rc.Close()
-	wc, err := lfd.GetWriteCloser(strings.Split(tt, "/"))
+	wc, err := lfd.GetWriteCloser(tt)
 	require.Nil(t, err)
 	defer wc.Close()
 	written := 0

@@ -87,3 +87,65 @@ func MakeTestFilesTree(tdPath string, maxDirs, maxFiles, childrenPerDir, maxFile
 	sumAddedDirs, sumAddedFiles, err := makeRandomDir(tdPath, 0, maxDirs, maxFiles, filesPerDir, dirsPerDir, maxFileSize)
 	return sumAddedDirs, sumAddedFiles, err
 }
+
+func AugmentTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, maxFileSize int) (sumAddedDirs int, sumAddedFiles int, err error) {
+	for _, sd := range []string{"dLinks", "dAddFiles", "dMod", "dRO"} {
+		if err = os.Mkdir(path.Join(td, sd), 0750); err != nil {
+			return
+		}
+		sumAddedDirs += 1
+	}
+	dld := path.Join(td, "dLinks")
+	if err = os.Symlink("..", path.Join(dld, "dotDot.lnk")); err != nil {
+		return
+	}
+	if err = MakeTestFile(path.Join(dld, "fRef.dat"), 1024); err != nil {
+		return
+	}
+	if err = os.Symlink("fRef.dat", path.Join(dld, "fRef.lnk")); err != nil {
+		return
+	}
+	if err = os.Symlink("notYet.dat", path.Join(dld, "notYet.lnk")); err != nil {
+		return
+	}
+	sumAddedFiles += 4
+	dafd := path.Join(td, "dAddFiles")
+	for _, sd := range []string{"dStay", "dRemoved"} {
+		if err = os.Mkdir(path.Join(dafd, sd), 0750); err != nil {
+			return
+		}
+	}
+	sumAddedDirs += 2
+	for _, sf := range []string{"fStay.dat", "fRemoved.dat"} {
+		if err = MakeTestFile(path.Join(dafd, sf), 1024); err != nil {
+			return
+		}
+	}
+	sumAddedFiles += 2
+	return
+}
+
+func MakeAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, maxFileSize int) (sumAddedDirs int, sumAddedFiles int, err error) {
+	if sumAddedDirs, sumAddedFiles, err = MakeTestFilesTree(td, maxDirs, maxFiles, childrenPerDir, maxFileSize); err != nil {
+		return
+	}
+	if err = os.Mkdir(path.Join(td, "dau"), 0750); err != nil {
+		return
+	}
+	sumAddedDirs += 1
+	addedDirs, addedFiles, err := AugmentTestFilesTree(path.Join(td, "dau"), maxDirs, maxFiles, childrenPerDir, maxFileSize)
+	if err != nil {
+		return
+	}
+	sumAddedDirs += addedDirs
+	sumAddedFiles += addedFiles
+	for _, sd := range []string{"dAddFiles/dRemoved", "dAddFiles/dStay", "dMod", "dRO"} {
+		addedDirs, addedFiles, err = AugmentTestFilesTree(path.Join(td, "dau", sd), maxDirs, maxFiles, childrenPerDir, maxFileSize)
+		if err != nil {
+			return
+		}
+		sumAddedDirs += addedDirs
+		sumAddedFiles += addedFiles
+	}
+	return
+}

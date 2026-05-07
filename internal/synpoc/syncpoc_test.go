@@ -18,7 +18,7 @@ func TestIt(t *testing.T) {
 	}
 	go func() {
 		pq <- &process_entry{
-			de:   &dssa.DataEntry{Path: []string{"root"}, IsDir: true},
+			de:   &dssa.DataEntry{Path: "root", IsDir: true},
 			done: done,
 		}
 	}()

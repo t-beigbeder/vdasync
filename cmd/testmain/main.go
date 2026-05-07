@@ -66,7 +66,11 @@ func main() {
 			}
 		}
 		if rp != nil {
-			des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
+			wd, err := os.Getwd()
+			if err != nil {
+				common.Fatal(log, fmt.Errorf("Getwd failed %s", err))
+			}
+			des, err := rp.Client.List(context.Background(), &dssagrpc.Path{Path: wd})
 			if err == nil {
 				for _, en := range des.Entries {
 					log.Debug("List result", "plugin", rp.Plugin.Name, "entry", en.Path)

@@ -4,10 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"path"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
 func parentUpdated(pe *ProcessedEntry) {
@@ -38,9 +36,9 @@ func prepareTargetDirForUpdate(pe *ProcessedEntry) error {
 }
 
 func isTargetSameKindInSource(pe *ProcessedEntry, sChildren []*dssa.DataEntry, tde *dssa.DataEntry) bool {
-	ssp := path.Join(sourcePath(pe, tde)...)
+	sp := sourcePath(pe, tde)
 	for _, sChild := range sChildren {
-		if path.Join(sChild.Path...) == ssp {
+		if sChild.Path == sp {
 			if sChild.IsDir == tde.IsDir {
 				if sChild.IsDir {
 					return true
@@ -224,8 +222,8 @@ func runFileEntrySync(pe *ProcessedEntry) error {
 
 func runSymlinkEntrySync(pe *ProcessedEntry) error {
 	dssInfoSync(pe, true, "Symlink")
-	if err := targetDs(pe).Symlink(targetPath(pe), common.OsPath2DssPath(pe.DataEntry.SymLinkTarget)); err != nil {
-		return setSyncError(pe, "runNdirEntrySync: GetWriteCloser", true, err)
+	if err := targetDs(pe).Symlink(pe.DataEntry.SymLinkTarget, targetPath(pe)); err != nil {
+		return setSyncError(pe, "runSymlinkEntrySync: Symlink", true, err)
 	}
 	return nil
 }
@@ -275,7 +273,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 		if err = prepareTargetDirForUpdate(pe); err != nil {
 			return
 		}
-		if !tde.IsSymLink {
+		if !pe.DataEntry.IsSymLink {
 			err = runFileEntrySync(pe)
 		} else {
 			err = runSymlinkEntrySync(pe)

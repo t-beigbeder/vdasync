@@ -36,3 +36,10 @@ func TestMakeTestFilesTree(t *testing.T) {
 	require.Nil(t, err)
 	GetLogger().Debug("TestMakeTestFilesTree", "td", td, "sad", sad, "saf", saf)
 }
+
+func TestMakeAugmentedTestFilesTree(t *testing.T) {
+	td := t.TempDir()
+	sad, saf, err := MakeAugmentedTestFilesTree(td, 7, 100, 16, 6*1024*1024)
+	GetLogger().Debug("TestMakeAugmentedTestFilesTree", "td", td, "sad", sad, "saf", saf)
+	require.Nil(t, err)
+}
