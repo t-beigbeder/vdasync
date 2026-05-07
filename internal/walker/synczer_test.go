@@ -26,8 +26,8 @@ func TestBasicDryrunSynczer(t *testing.T) {
 	td2 := t.TempDir()
 
 	walker := NewSynchronizer(lgr, 5, &config.SyncOptionsType{Dryrun: true},
-		dssa1, dssa1, common.OsPath2DssPath(td2))
-	sde, err := dssa1.Stat(common.OsPath2DssPath(td1))
+		dssa1, dssa1, td2)
+	sde, err := dssa1.Stat(td1)
 	require.Nil(t, err)
 	err = walker.Run(sde)
 	require.Nil(t, err)
@@ -50,8 +50,8 @@ func TestBasicActualSynczer(t *testing.T) {
 	td2 := t.TempDir()
 
 	walker := NewSynchronizer(lgr, 4, &config.SyncOptionsType{Dryrun: true},
-		dssa1, dssa1, common.OsPath2DssPath(td2))
-	sde, err := dssa1.Stat(common.OsPath2DssPath(td1))
+		dssa1, dssa1, td2)
+	sde, err := dssa1.Stat(td1)
 	require.Nil(t, err)
 	err = walker.Run(sde)
 	require.Nil(t, err)
@@ -66,8 +66,8 @@ func TestBasicActualSynczer(t *testing.T) {
 	require.Equal(t, 1, res.AggregatedUpdated)
 
 	walker = NewSynchronizer(lgr, 4, &config.SyncOptionsType{},
-		dssa1, dssa1, common.OsPath2DssPath(td2))
-	sde, err = dssa1.Stat(common.OsPath2DssPath(td1))
+		dssa1, dssa1, td2)
+	sde, err = dssa1.Stat(td1)
 	require.Nil(t, err)
 	err = walker.Run(sde)
 	require.Nil(t, err)
@@ -80,7 +80,7 @@ func TestBasicActualSynczer(t *testing.T) {
 	require.Equal(t, 1, res.AggregatedUpdated)
 
 	walker = NewSynchronizer(lgr, 4, &config.SyncOptionsType{Dryrun: true},
-		dssa1, dssa1, common.OsPath2DssPath(td2))
+		dssa1, dssa1, td2)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	sr = SyncResult(walker)
@@ -91,14 +91,14 @@ func TestBasicActualSynczer(t *testing.T) {
 	require.Equal(t, 0, res.AggregatedCreated)
 	require.Equal(t, 0, res.AggregatedUpdated)
 
-	err = dssa1.Mkdir(&dssa.DataEntry{Path: common.OsPath2DssPath(path.Join(td1, "d00", "d99")), UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+	err = dssa1.Mkdir(&dssa.DataEntry{Path: path.Join(td1, "d00", "d99"), UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
 	require.Nil(t, err)
 	sad2, saf2, err := common.MakeTestFilesTree(path.Join(td1, "d00", "d99"), 5, 10, 3, 6*1024*1024)
 	require.Nil(t, err)
 	newSubTotal := sad2 + saf2 + 1
 
 	walker = NewSynchronizer(lgr, 4, &config.SyncOptionsType{Dryrun: true},
-		dssa1, dssa1, common.OsPath2DssPath(td2))
+		dssa1, dssa1, td2)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	sr = SyncResult(walker)
@@ -110,7 +110,7 @@ func TestBasicActualSynczer(t *testing.T) {
 	require.Equal(t, 1, res.AggregatedUpdated)
 
 	walker = NewSynchronizer(lgr, 4, &config.SyncOptionsType{},
-		dssa1, dssa1, common.OsPath2DssPath(td2))
+		dssa1, dssa1, td2)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	sr = SyncResult(walker)
@@ -122,7 +122,7 @@ func TestBasicActualSynczer(t *testing.T) {
 	require.Equal(t, 1, res.AggregatedUpdated)
 
 	walker = NewSynchronizer(lgr, 4, &config.SyncOptionsType{Dryrun: true},
-		dssa1, dssa1, common.OsPath2DssPath(td2))
+		dssa1, dssa1, td2)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	sr = SyncResult(walker)

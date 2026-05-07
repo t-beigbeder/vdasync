@@ -72,7 +72,7 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 			return err
 		}
 		if wc == nil {
-			if wc, err = s.dssa_.GetWriteCloser(gpb.Path.Path); err != nil {
+			if wc, err = s.dssa_.GetWriteCloser(gpb.Path); err != nil {
 				return err
 			}
 			defer wc.Close()

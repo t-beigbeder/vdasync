@@ -3,6 +3,8 @@ package remote
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -32,11 +34,14 @@ func TestRunOpeDssaServer(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "0.1", rv.Value)
 
-	rl, err := cli.List(context.Background(), &dssagrpc.Path{Path: []string{"."}})
+	wd, err := os.Getwd()
+	require.Nil(t, err)
+	rl, err := cli.List(context.Background(), &dssagrpc.Path{Path: wd})
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rl.Entries))
 	require.False(t, rl.Entries[0].IsDir)
-	require.Equal(t, t.Name()+".txt", rl.Entries[0].Path.Path[1])
+	_, name := path.Split(rl.Entries[0].Path)
+	require.Equal(t, t.Name()+".txt", name)
 
 	cFunc()
 }

@@ -8,19 +8,6 @@ import (
 	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
 )
 
-func OsPath2DssPath(path_ string) []string {
-	// FIXME: windows
-	return strings.Split(path_, "/")
-}
-
-func DssPath2GrpcPath(dp []string) *dssagrpc.Path {
-	return &dssagrpc.Path{Path: dp}
-}
-
-func OsPath2GrpcPath(path_ string) *dssagrpc.Path {
-	return DssPath2GrpcPath(OsPath2DssPath(path_))
-}
-
 func DssDte2GrpcDte(ddte *dssa.DataEntry) *dssagrpc.DataEntry {
 	var sErr string
 	if ddte.Error != nil {
@@ -28,7 +15,7 @@ func DssDte2GrpcDte(ddte *dssa.DataEntry) *dssagrpc.DataEntry {
 	}
 	return &dssagrpc.DataEntry{
 		IsDir:         ddte.IsDir,
-		Path:          &dssagrpc.Path{Path: ddte.Path},
+		Path:          ddte.Path,
 		Size:          ddte.Size,
 		Mtime:         ddte.Mtime,
 		User:          int32(ddte.User),
@@ -55,7 +42,7 @@ func GrpcDte2DssDte(gdte *dssagrpc.DataEntry) *dssa.DataEntry {
 	}
 	return &dssa.DataEntry{
 		IsDir:         gdte.IsDir,
-		Path:          gdte.Path.Path,
+		Path:          gdte.Path,
 		Size:          gdte.Size,
 		Mtime:         gdte.Mtime,
 		User:          int(gdte.User),
@@ -69,4 +56,11 @@ func GrpcDte2DssDte(gdte *dssagrpc.DataEntry) *dssa.DataEntry {
 		ErrNotExist:   gdte.ErrNotExist,
 		Id:            gdte.Id,
 	}
+}
+
+func RelPath(fullPath, rootPath string) string {
+	if fullPath == rootPath {
+		return ""
+	}
+	return strings.Replace(fullPath, rootPath+"/", "", 1)
 }

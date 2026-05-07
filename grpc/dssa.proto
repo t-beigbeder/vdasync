@@ -16,12 +16,12 @@ service DataStorageSystem {
 }
 
 message Path {
-    repeated string path = 1;
+    string path = 1;
 }
 
 message OldNewPaths {
-    repeated string old = 1;
-    repeated string new_ = 2;
+    string old = 1;
+    string new_ = 2;
 }
 
 message DataEntries {
@@ -30,7 +30,7 @@ message DataEntries {
 
 message DataEntry {
     bool is_dir = 1;
-    Path path = 2;
+    string path = 2;
     int64 size = 3;
     int64 mtime = 4;
     int32 user = 5;
@@ -58,7 +58,7 @@ message Rights {
 }
 
 message PushedBlock {
-    Path path = 1;
+    string path = 1;
     bytes Data = 2;
 }
 

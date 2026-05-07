@@ -3,6 +3,8 @@ package common
 import (
 	"crypto/sha256"
 	"fmt"
+	"path"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -15,17 +17,18 @@ func GenId() (string, error) {
 	return fmt.Sprintf("%064x", sha256.Sum256([]byte(uuid_.String()))), nil
 }
 
-func Id2Path(id string) []string {
+func Id2Path(id string) string {
 	if len(id) != 64 {
-		return nil
-	}
-	return []string{id[0:3], id[3:6], id[6:]}
-}
-
-func Path2Id(path_ []string) string {
-	if len(path_) < 3 {
 		return ""
 	}
-	lp := len(path_)
-	return path_[lp-3] + path_[lp-2] + path_[lp-1]
+	return path.Join([]string{id[0:3], id[3:6], id[6:]}...)
+}
+
+func Path2Id(path_ string) string {
+	pe := strings.Split(path_, "/")
+	if len(pe) < 3 {
+		return ""
+	}
+	lp := len(pe)
+	return pe[lp-3] + pe[lp-2] + pe[lp-1]
 }

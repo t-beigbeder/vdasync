@@ -2,7 +2,6 @@ package walker
 
 import (
 	"log/slog"
-	"path"
 	"sync"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
@@ -113,11 +112,11 @@ LOOP:
 }
 
 func (wi *walkerImpl) SetUserData(de *dssa.DataEntry, ud interface{}) {
-	wi.udm.Store(path.Join(de.Path...), ud)
+	wi.udm.Store(de.Path, ud)
 }
 
 func (wi *walkerImpl) GetUserData(de *dssa.DataEntry) interface{} {
-	ud, _ := wi.udm.Load(path.Join(de.Path...))
+	ud, _ := wi.udm.Load(de.Path)
 	return ud
 }
 
