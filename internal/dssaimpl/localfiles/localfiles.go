@@ -70,7 +70,7 @@ func (d *localFiles) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // SetStat implements [dssa.Dssa].
 func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
-	if !noPerm {
+	if !noPerm && !de.IsSymLink {
 		if err := common.SetAccessRights(
 			de.Path, [2]int{de.User, de.Group},
 			[3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}); err != nil {

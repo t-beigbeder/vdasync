@@ -222,8 +222,8 @@ func runFileEntrySync(pe *ProcessedEntry) error {
 
 func runSymlinkEntrySync(pe *ProcessedEntry) error {
 	dssInfoSync(pe, true, "Symlink")
-	if err := targetDs(pe).Symlink(targetPath(pe), pe.DataEntry.SymLinkTarget); err != nil {
-		return setSyncError(pe, "runNdirEntrySync: GetWriteCloser", true, err)
+	if err := targetDs(pe).Symlink(pe.DataEntry.SymLinkTarget, targetPath(pe)); err != nil {
+		return setSyncError(pe, "runSymlinkEntrySync: Symlink", true, err)
 	}
 	return nil
 }
@@ -273,7 +273,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 		if err = prepareTargetDirForUpdate(pe); err != nil {
 			return
 		}
-		if !tde.IsSymLink {
+		if !pe.DataEntry.IsSymLink {
 			err = runFileEntrySync(pe)
 		} else {
 			err = runSymlinkEntrySync(pe)

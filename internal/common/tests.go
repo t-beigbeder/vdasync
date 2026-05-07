@@ -122,7 +122,7 @@ func AugmentTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, maxFileS
 		}
 	}
 	sumAddedFiles += 2
-	return sumAddedDirs, sumAddedFiles, err
+	return
 }
 
 func MakeAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, maxFileSize int) (sumAddedDirs int, sumAddedFiles int, err error) {
@@ -133,5 +133,19 @@ func MakeAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, ma
 		return
 	}
 	sumAddedDirs += 1
-	return sumAddedDirs, sumAddedFiles, err
+	addedDirs, addedFiles, err := AugmentTestFilesTree(path.Join(td, "dau"), maxDirs, maxFiles, childrenPerDir, maxFileSize)
+	if err != nil {
+		return
+	}
+	sumAddedDirs += addedDirs
+	sumAddedFiles += addedFiles
+	for _, sd := range []string{"dAddFiles/dRemoved", "dAddFiles/dStay", "dMod", "dRO"} {
+		addedDirs, addedFiles, err = AugmentTestFilesTree(path.Join(td, "dau", sd), maxDirs, maxFiles, childrenPerDir, maxFileSize)
+		if err != nil {
+			return
+		}
+		sumAddedDirs += addedDirs
+		sumAddedFiles += addedFiles
+	}
+	return
 }
