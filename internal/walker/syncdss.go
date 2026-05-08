@@ -118,7 +118,7 @@ func prepareTargetDirCreate(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 	// TODO: optimization if parent has no dte in dryrun
 	dssInfoSync(pe, true, "Stat")
 	tde, err := targetDs(pe).Stat(tp)
-	if err != nil && !tde.ErrNotExist {
+	if err != nil && (!tde.ErrNotExist || pe.parent == nil) {
 		return setSyncError(pe, "prepareTargetDirCreate: Stat", true, err)
 	}
 

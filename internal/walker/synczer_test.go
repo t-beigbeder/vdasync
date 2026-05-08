@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"path"
 	"testing"
 
@@ -24,7 +25,8 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	}
 	syncRes = SyncResult(walker)
 	if syncRes != nil {
-		DisplaySyncResult(syncRes, io.Discard, true)
+		_ = io.Discard
+		DisplaySyncResult(syncRes, os.Stderr, true, false)
 	}
 	return
 }
@@ -194,6 +196,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 			require.Equal(t, 0, sr[""].AggregatedError)
 
 			sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
+			require.Nil(t, err)
 			require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 			require.Equal(t, 0, sr[""].AggregatedCreated)
 			require.Equal(t, 0, sr[""].AggregatedUpdated)
@@ -206,10 +209,36 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 			require.Equal(t, 0, sr[""].AggregatedError)
 
 			sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: false, Rm: doRm})
+			require.Nil(t, err)
 			require.Equal(t, 0, sr[""].AggregatedError)
 
 			sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: doRm})
+			require.Nil(t, err)
 			require.Equal(t, 0, sr[""].AggregatedError)
 		}
 	}
+}
+
+func TestNoTarget(t *testing.T) {
+	dss := localfiles.MakeLocalFilesDssa()
+	lgr := common.GetLogger()
+	td1 := t.TempDir()
+	td2 := t.TempDir()
+	tRoot := path.Join(td2, "noSuchRoot")
+	sde, err := dss.Stat(td1)
+	require.Nil(t, err)
+	so := &config.SyncOptionsType{Dryrun: true}
+	walker := NewSynchronizer(lgr, 0, so, dss, dss, tRoot)
+	err = walker.Run(sde)
+	require.Nil(t, err)
+	syncRes := SyncResult(walker)
+	require.NotNil(t, syncRes[""].Error)
+
+	so = &config.SyncOptionsType{Dryrun: false}
+	walker = NewSynchronizer(lgr, 0, so, dss, dss, tRoot)
+	err = walker.Run(sde)
+	require.Nil(t, err)
+	syncRes = SyncResult(walker)
+	require.NotNil(t, syncRes[""].Error)
+
 }

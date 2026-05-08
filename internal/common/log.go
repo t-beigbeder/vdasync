@@ -1,0 +1,35 @@
+package common
+
+import (
+	"fmt"
+	"io"
+	"log/slog"
+	"os"
+	"path"
+)
+
+func CliLogger(cmd, sll, file string) (lgr *slog.Logger, err error) {
+	sl := slog.LevelError
+	lgr = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: sl}))
+	if sll != "" {
+		if err = sl.UnmarshalText([]byte(sll)); err != nil {
+			return
+		}
+	}
+	var wr io.Writer
+	if file == "" {
+		file = path.Join(os.TempDir(), fmt.Sprintf("%s-%5d.log", cmd, os.Getpid()))
+	} else if file != "stderr" {
+		wr, err = os.Create(file)
+		if err != nil {
+			return
+		}
+	} else {
+		wr = os.Stderr
+	}
+	if wr, err = os.Create(file); err != nil {
+		return
+	}
+	lgr = slog.New(slog.NewTextHandler(wr, &slog.HandlerOptions{Level: sl}))
+	return
+}

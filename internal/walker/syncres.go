@@ -41,7 +41,7 @@ func computeSyncHeader(es *SyncEntryStatus) string {
 	return s
 }
 
-func DisplaySyncResult(sr map[string]*SyncEntryStatus, wr io.Writer, agg bool) {
+func DisplaySyncResult(sr map[string]*SyncEntryStatus, wr io.Writer, agg, all bool) {
 	keys := make([]string, len(sr))
 
 	i := 0
@@ -53,10 +53,18 @@ func DisplaySyncResult(sr map[string]*SyncEntryStatus, wr io.Writer, agg bool) {
 
 	for _, key := range keys {
 		es := sr[key]
-		sAgg := ""
-		if agg {
-			sAgg = fmt.Sprintf(" %6d %9d c%6d u%6d", es.AggregatedChildrenNumber, es.AggregatedSize, es.AggregatedCreated, es.AggregatedUpdated)
+		hdr := computeSyncHeader(es)
+		if all || hdr[1:] != "-----" {
+			wr.Write([]byte(fmt.Sprintf("%s %s\n", hdr, es.relPath)))
 		}
-		wr.Write([]byte(fmt.Sprintf("%s %-64s %s\n", computeSyncHeader(es), es.relPath, sAgg)))
+	}
+	res := sr[""]
+	if agg {
+		wr.Write([]byte(fmt.Sprintf(
+			"total: %d errors: %d size: %d created: %d updated: %d removed: %d mod changed: %d\n",
+			res.AggregatedChildrenNumber, res.AggregatedError, res.AggregatedSize,
+			res.AggregatedCreated, res.AggregatedUpdated,
+			res.AggregatedRemoved, res.AggregatedModChanged,
+		)))
 	}
 }
