@@ -21,7 +21,13 @@ test-this:	## go test the application
 
 .PHONY: test-again
 test-again:	export QSTF_TEST_FULL = 1
+test-again: export GO_TEST_LOG_LEVEL = ERROR
 test-again:	## go test the application again
+	go test -v -count=1 ./...
+
+.PHONY: test-again-verbose
+test-again-verbose:	export QSTF_TEST_FULL = 1
+test-again-verbose:	## go test the application again
 	go test -v -count=1 ./...
 
 .PHONY: build-test

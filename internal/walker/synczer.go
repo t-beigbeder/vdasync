@@ -46,6 +46,7 @@ func NewSynchronizer(
 	sourceDs dssa.Dssa,
 	targetDs dssa.Dssa, targetRoot string,
 ) Walker {
+	lgr.Info("NewSynchronizer")
 	return MakeWalker(
 		lgr,
 		concurrency,
