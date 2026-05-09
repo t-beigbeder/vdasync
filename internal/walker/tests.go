@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/t-beigbeder/otvl_dtacsy/dssa"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/localfiles"
 )
@@ -41,6 +42,7 @@ func UpdateAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, 
 	var (
 		addedDirs  int
 		addedFiles int
+		sde        *dssa.DataEntry
 	)
 	lgr := common.GetLogger()
 	dss := localfiles.MakeLocalFilesDssa()
@@ -61,12 +63,28 @@ func UpdateAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, 
 	if err = os.Remove(path.Join(td, "dau/dAddFiles/fRemoved.dat")); err != nil {
 		return
 	}
-	for _, fp := range []string{"dau/dAddFiles/dStay/fNewOne.dat", "dau/dAddFiles/fStay.dat", "dau/dAddFiles/fNewOne.dat", "dau/dRO/fNewOne.dat"} {
+
+	for _, fp := range []string{
+		"dau/dAddFiles/dStay/fNewOne.dat", "dau/dAddFiles/fNewOne.dat",
+		"dau/dRO/fNewOne.dat", "dau/dMod/dAddFiles/fStay.dat",
+	} {
 		if err = common.MakeTestFile(path.Join(td, fp), 1024); err != nil {
 			return
 		}
 		sumAddedFiles += 1
 	}
+	mtfp := path.Join(td, "dau/dAddFiles/fStay.dat")
+	if sde, err = dss.Stat(mtfp); err != nil {
+		return
+	}
+	if err = common.MakeTestFile(mtfp, int(sde.Size)); err != nil {
+		return
+	}
+	if err = dss.SetStat(sde, true, false); err != nil {
+		return
+	}
+	sde2, _ := dss.Stat(mtfp)
+	_ = sde2
 
 	for _, sd := range []string{"dau/dAddFiles/dNewOne"} {
 		addedDirs, addedFiles, err = common.AugmentTestFilesTree(path.Join(td, sd))
@@ -84,6 +102,7 @@ func UpdateAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, 
 	if _, err = RecTouch(lgr, 2, dss, path.Join(td, "dau/dMod"), "source", plusUne); err != nil {
 		return
 	}
+
 	return
 }
 
