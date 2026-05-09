@@ -26,7 +26,8 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	syncRes = SyncResult(walker)
 	if syncRes != nil {
 		_ = io.Discard
-		DisplaySyncResult(syncRes, os.Stderr, true, false)
+		_ = os.Stderr
+		DisplaySyncResult(syncRes, io.Discard, true, false)
 	}
 	return
 }

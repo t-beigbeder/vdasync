@@ -60,6 +60,30 @@ func NewSynchronizer(
 	)
 }
 
+func RunSynchronizer(
+	lgr *slog.Logger, concurrency int,
+	syncOptions *config.SyncOptionsType,
+	sourceDs dssa.Dssa, sourceRoot string,
+	targetDs dssa.Dssa, targetRoot string,
+) (Walker, error) {
+	sde, err := sourceDs.Stat(sourceRoot)
+	if err != nil {
+		return nil, fmt.Errorf("RunSynchronizer: source %v", err)
+	}
+	if !sde.IsDir {
+		return nil, fmt.Errorf("RunSynchronizer: source %s is not a dir", sourceRoot)
+	}
+	tde, err := targetDs.Stat(targetRoot)
+	if err != nil {
+		return nil, fmt.Errorf("RunSynchronizer: target %v", err)
+	}
+	if !tde.IsDir {
+		return nil, fmt.Errorf("RunSynchronizer: target %s is not a dir", targetRoot)
+	}
+	wk := NewSynchronizer(lgr, concurrency, syncOptions, sourceDs, targetDs, targetRoot)
+	return wk, wk.Run(sde)
+}
+
 func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 	result := map[string]*SyncEntryStatus{}
 	walker.UserDataMap().Range(func(_, value any) bool {

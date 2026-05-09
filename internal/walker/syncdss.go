@@ -163,6 +163,9 @@ func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) bool {
 	if !syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime != tde.Mtime {
 		return true
 	}
+	if syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime > tde.Mtime {
+		return true
+	}
 	if pe.DataEntry.SymLinkTarget != tde.SymLinkTarget {
 		return true
 	}
