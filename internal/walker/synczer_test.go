@@ -178,7 +178,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 			doRm := ir%2 == 1
 			lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss)).With("doRm", doRm)
 			td1 := t.TempDir()
-			sad, saf, err := PrepareAugmentedTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
+			sad, saf, err := PrepareAugmentedTestFilesTree(td1, 7, 100, 16, 17*1024)
 			defer SetTestDirRW(td1, "source")
 			require.Nil(t, err)
 			total := sad + saf + 1
@@ -202,19 +202,22 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 			require.Equal(t, 0, sr[""].AggregatedUpdated)
 			require.Equal(t, 0, sr[""].AggregatedError)
 
-			sad2, saf2, err := UpdateAugmentedTestFilesTree(td1, 5, 10, 3, 6*1024*1024)
+			sad2, saf2, err := UpdateAugmentedTestFilesTree(td1, 5, 10, 3, 11*1024)
 			require.Nil(t, err)
 			_ = sad2 + saf2 + 1
 			sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: doRm})
 			require.Equal(t, 0, sr[""].AggregatedError)
+			require.NotEqual(t, 0, sr[""].AggregatedModChanged)
 
 			sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: false, Rm: doRm})
 			require.Nil(t, err)
 			require.Equal(t, 0, sr[""].AggregatedError)
+			require.NotEqual(t, 0, sr[""].AggregatedModChanged)
 
 			sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: doRm})
 			require.Nil(t, err)
 			require.Equal(t, 0, sr[""].AggregatedError)
+			require.LessOrEqual(t, sr[""].AggregatedModChanged, 1)
 		}
 	}
 }

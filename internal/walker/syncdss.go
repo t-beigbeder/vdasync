@@ -260,6 +260,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 	if tde.ErrNotExist {
 		syncUserData(pe).Created = true
 	} else {
+		syncUserData(pe).targetDe = tde
 		if !fileHasChanges(pe, tde) {
 			return
 		} else {
@@ -282,4 +283,27 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 			return
 		}
 	}
+}
+
+func setEntryChanges(pe *ProcessedEntry) {
+	es := syncUserData(pe)
+	if es.Error != nil || es.Created || es.Updated || es.ModChanged {
+		return
+	}
+	hasChanges := false
+	tde := es.targetDe
+	if tde == nil {
+		panic("here")
+	}
+	sde := pe.DataEntry
+	if !hasChanges && !syncData(pe).syncOptions.NoPerm {
+		hasChanges = tde.UserRights != sde.UserRights ||
+			tde.Group != sde.Group ||
+			tde.GroupRights != sde.GroupRights ||
+			tde.OtherRights != sde.OtherRights
+	}
+	if !hasChanges && !syncData(pe).syncOptions.NoMtime && tde.Mtime != sde.Mtime {
+		hasChanges = true
+	}
+	es.ModChanged = hasChanges
 }

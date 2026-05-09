@@ -233,17 +233,18 @@ func computeDdeAggregates(pe *ProcessedEntry) {
 	es.AggregatedCreated = agC
 	es.AggregatedUpdated = agU
 	es.AggregatedRemoved = agR
-	es.AggregatedModChanged = agU
+	es.AggregatedModChanged = agM
 	es.AggregatedError = agE
 }
 
 func onDoneEntrySync(pe *ProcessedEntry) {
+	setEntryChanges(pe)
+	es := syncUserData(pe)
 	if !syncOptions(pe).Dryrun {
-		if syncUserData(pe).Created || syncUserData(pe).Updated {
+		if es.Created || es.Updated || es.ModChanged {
 			runSetStatEntrySync(pe)
 		}
 	}
-	es := syncUserData(pe)
 	if es.Created {
 		es.Updated = false
 		es.ModChanged = false
