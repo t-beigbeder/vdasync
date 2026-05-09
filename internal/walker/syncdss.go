@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
 func parentUpdated(pe *ProcessedEntry) {
@@ -162,10 +163,38 @@ func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) bool {
 	if !syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime != tde.Mtime {
 		return true
 	}
-	if !syncData(pe).syncOptions.Check && syncUserData(pe).sChecksum != syncUserData(pe).tChecksum {
+	if pe.DataEntry.SymLinkTarget != tde.SymLinkTarget {
 		return true
 	}
-	return false
+	if !syncData(pe).syncOptions.Check || pe.DataEntry.IsSymLink {
+		return false
+	}
+
+	srdr, err := pe.wi.ds.GetReadCloser(pe.DataEntry.Path)
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: GetReadCloser", false, err)
+		return true
+	}
+	defer srdr.Close()
+	syncUserData(pe).sChecksum, err = common.ReaderSha256(srdr)
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: ReaderSha256", false, err)
+		return true
+	}
+
+	trdr, err := targetDs(pe).GetReadCloser(targetPath(pe))
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: GetReadCloser", true, err)
+		return true
+	}
+	defer trdr.Close()
+	syncUserData(pe).tChecksum, err = common.ReaderSha256(trdr)
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: ReaderSha256", true, err)
+		return true
+	}
+
+	return syncUserData(pe).sChecksum != syncUserData(pe).tChecksum
 }
 
 func prepareTargetFile(pe *ProcessedEntry, tde *dssa.DataEntry) error {
