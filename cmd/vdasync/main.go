@@ -3,28 +3,16 @@ package main
 import (
 	"errors"
 	"flag"
-	"fmt"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/walker"
 )
-
-func setSignalHandler() {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		for sig := range c {
-			fmt.Fprintf(os.Stderr, "signal %s received, preparing to exit\n", sig)
-		}
-	}()
-}
 
 func main() {
 	var (
@@ -36,15 +24,28 @@ func main() {
 		noPermFlag  = flag.Bool("noperm", false, "neither check nor set permissions")
 		noMtimeFlag = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 	)
-	setSignalHandler()
-	time.Sleep(10*time.Second)
 	cf := cli.CommonFlags()
 	flag.Parse()
 	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	lgr = lgr.With("app", "vdasync")
+
+	var rps []*plugin.RunningPlugin
+	if *cf.ConfigFlag != "" {
+		confData, err := common.LoadFile(*cf.ConfigFlag)
+		if err != nil {
+			common.Fatal(lgr, err)
+		}
+		if rps, err = cli.RunPlugins(string(confData)); err != nil {
+			common.Fatal(lgr, err)
+		}
+		defer cli.CleanUp(lgr, rps)
+	}
+	if rps != nil {
+		cli.SetSignalHandler(lgr, rps)
+	}
+
 	if *sourceFlag == "" || *targetFlag == "" {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
@@ -73,4 +74,5 @@ func main() {
 		syncRes := walker.SyncResult(swk)
 		walker.DisplaySyncResult(syncRes, os.Stdout, true, *cf.VerboseFlag)
 	}
+	time.Sleep(10 * time.Second)
 }

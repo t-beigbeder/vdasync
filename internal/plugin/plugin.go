@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -73,6 +74,17 @@ func applyIfOK(rps []*RunningPlugin, run func(*RunningPlugin)) {
 	}
 }
 
+func getExecutablePath(plugin *config.PluginType) (string, error) {
+	if plugin.ExecutablePath != "" {
+		return plugin.ExecutablePath, nil
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(path.Dir(exe), fmt.Sprintf("%s%s", plugin.Type, path.Ext(exe))), nil
+}
+
 func RunConfData(yamlConf string) ([]*RunningPlugin, error) {
 	config, err := config.Load(yamlConf)
 	if err != nil {
@@ -98,6 +110,13 @@ func RunConfData(yamlConf string) ([]*RunningPlugin, error) {
 		for _, addArg := range plugin.AddArgs {
 			args = append(args, addArg)
 		}
+		pExe, err := getExecutablePath(plugin)
+		if err != nil {
+			crp.Err = fmt.Errorf("plugin %s start error %s", plugin.Name, err)
+			rps = append(rps, &crp)
+			continue
+		}
+		plugin.ExecutablePath = pExe
 		cmd := exec.Command(plugin.ExecutablePath, args...)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout

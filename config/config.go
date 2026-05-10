@@ -1,8 +1,6 @@
 package config
 
 import (
-	"os"
-
 	"github.com/goccy/go-yaml"
 )
 
@@ -16,7 +14,7 @@ type PluginsOptionsType struct {
 type PluginType struct {
 	Name           string   `yaml`
 	Type           string   `yaml`
-	ExecutablePath string   `yaml:"executablePath"` // defaults to current executable
+	ExecutablePath string   `yaml:"executablePath"`
 	AddArgs        []string `yaml:"addArgs"`
 	Port           int      `yaml`
 	ToBeTested     string   `yaml:"toBeTested"`
@@ -69,10 +67,10 @@ toBeTested: "shouldBeSet"
 
 var defaultPluginTypeValues = &PluginType{}
 
+var DefaultPluginType = "localFiles"
+
 func init() {
 	yaml.Unmarshal([]byte(PluginTypeDefaultYaml), &defaultPluginTypeValues)
-	exe, _ := os.Executable()
-	defaultPluginTypeValues.ExecutablePath = exe
 }
 
 func umarshalPlugin(op *PluginType, b []byte) error {

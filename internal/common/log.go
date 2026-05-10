@@ -17,9 +17,10 @@ func CliLogger(cmd, sll, file string) (lgr *slog.Logger, err error) {
 		}
 	}
 	var wr io.Writer
-	if file == "" {
-		file = path.Join(os.TempDir(), fmt.Sprintf("%s-%5d.log", cmd, os.Getpid()))
-	} else if file != "stderr" {
+	if file != "stderr" {
+		if file == "" {
+			file = path.Join(os.TempDir(), fmt.Sprintf("%s-%5d.log", cmd, os.Getpid()))
+		}
 		wr, err = os.Create(file)
 		if err != nil {
 			return
@@ -27,6 +28,6 @@ func CliLogger(cmd, sll, file string) (lgr *slog.Logger, err error) {
 	} else {
 		wr = os.Stderr
 	}
-	lgr = slog.New(slog.NewTextHandler(wr, &slog.HandlerOptions{Level: sl}))
+	lgr = slog.New(slog.NewTextHandler(wr, &slog.HandlerOptions{Level: sl})).With("app", cmd)
 	return
 }

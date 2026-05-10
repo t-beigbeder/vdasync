@@ -32,6 +32,7 @@ test-again-verbose:	## go test the application again
 
 .PHONY: build
 build:	## go build commands
+	go build -o bin/localFiles cmd/plugins/localfiles/main.go
 	go build -o bin/vdasync cmd/vdasync/main.go
 	# bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target /local/tmp/copy-of-locgit
 
