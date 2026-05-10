@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"path"
 
-	"github.com/t-beigbeder/otvl_dtacsy/config"
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 type SyncEntryStatus struct {

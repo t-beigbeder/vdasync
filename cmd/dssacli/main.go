@@ -5,11 +5,11 @@ import (
 	"flag"
 	"os"
 
-	"github.com/t-beigbeder/otvl_dtacsy/config"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/cli"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/localfiles"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/walker"
+	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/internal/cli"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/walker"
 )
 
 func main() {

@@ -4,7 +4,7 @@ import (
 	"os"
 
 	"github.com/goccy/go-yaml"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 type PluginsOptionsType struct {

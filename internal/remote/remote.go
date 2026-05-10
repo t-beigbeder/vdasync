@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/dssagrpc"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 )
 

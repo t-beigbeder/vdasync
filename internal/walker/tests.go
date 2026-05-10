@@ -4,9 +4,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 )
 
 func PrepareAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, maxFileSize int) (sumAddedDirs int, sumAddedFiles int, err error) {

@@ -7,10 +7,10 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/t-beigbeder/otvl_dtacsy/config"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
-	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
+	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/remote"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

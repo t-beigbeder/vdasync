@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/vdasync/dssa"
 )
 
 func FileExists(path string) bool {

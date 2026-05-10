@@ -7,7 +7,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 func getCertDirs(testDir string, hosts []string) (string, string, string, string) {

@@ -1,4 +1,4 @@
-# otvl_dtacsy
+# vdasync
 
 Versatile data access and synchronization tool
 

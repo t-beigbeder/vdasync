@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
+	"github.com/t-beigbeder/vdasync/dssagrpc"
 )
 
 func testDir() string {

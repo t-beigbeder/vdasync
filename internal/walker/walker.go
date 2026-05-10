@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"sync"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/vdasync/dssa"
 )
 
 type Walker interface {

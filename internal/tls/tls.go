@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 // SelfSigned generates a new self-signed TLS certificate key pair for the given host

@@ -10,12 +10,12 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/t-beigbeder/otvl_dtacsy/config"
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/grpcclient"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/localfiles"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
+	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/remote"
 )
 
 func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tRoot string, so *config.SyncOptionsType) (syncRes map[string]*SyncEntryStatus, err error) {

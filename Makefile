@@ -17,7 +17,7 @@ test-verbose:	## go test the application
 
 .PHONY: test-this
 test-this:	## go test the application
-	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/otvl_dtacsy/internal/common
+	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/vdasync/internal/common
 
 .PHONY: test-again
 test-again:	export QSTF_TEST_FULL = 1

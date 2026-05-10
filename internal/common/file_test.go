@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/vdasync/dssa"
 )
 
 func TestFileFunctions(t *testing.T) {

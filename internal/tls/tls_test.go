@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 func TestSelfSigned(t *testing.T) {
