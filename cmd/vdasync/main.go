@@ -95,5 +95,5 @@ func main() {
 		syncRes := walker.SyncResult(swk)
 		walker.DisplaySyncResult(syncRes, os.Stdout, true, *cf.VerboseFlag)
 	}
-	time.Sleep(10 * time.Second)
+	time.Sleep(10 * time.Millisecond)
 }
