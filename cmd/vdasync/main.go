@@ -1,14 +1,17 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/walker"
@@ -49,27 +52,41 @@ func main() {
 	if *sourceFlag == "" || *targetFlag == "" {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
+
 	sPName, _, _, sourceRoot, err := cli.ParseUrl(*sourceFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
 	sRp := plugin.PluginFor(sPName, rps)
-	_ = sRp
+	if sPName != "" && sRp == nil {
+		common.Fatal(lgr, fmt.Errorf("source plugin %s unknown", sPName))
+	}
+	sDss := localfiles.MakeLocalFilesDssa()
+	if sRp != nil {
+		sDss = grpcclient.MakeGrpcClient(context.Background(), sRp.Client)
+	}
+
 	tPName, _, _, targetRoot, err := cli.ParseUrl(*targetFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
 	tRp := plugin.PluginFor(tPName, rps)
-	_ = tRp
-	dss := localfiles.MakeLocalFilesDssa()
+	if tPName != "" && tRp == nil {
+		common.Fatal(lgr, fmt.Errorf("target plugin %s unknown", tPName))
+	}
+	tDss := localfiles.MakeLocalFilesDssa()
+	if tRp != nil {
+		tDss = grpcclient.MakeGrpcClient(context.Background(), tRp.Client)
+	}
+
 	swk, err := walker.RunSynchronizer(
 		lgr, *cf.ConcurrencyFlag,
 		&config.SyncOptionsType{
 			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag,
 			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag,
 		},
-		dss, sourceRoot,
-		dss, targetRoot,
+		sDss, sourceRoot,
+		tDss, targetRoot,
 	)
 	if err != nil {
 		common.Fatal(lgr, err)
