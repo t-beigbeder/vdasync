@@ -156,3 +156,12 @@ func Errors(rps []*RunningPlugin) []error {
 	}
 	return errs
 }
+
+func PluginFor(pName string, rps []*RunningPlugin) *RunningPlugin {
+	for _, rp := range rps {
+		if rp.Plugin.Name == pName {
+			return rp
+		}
+	}
+	return nil
+}

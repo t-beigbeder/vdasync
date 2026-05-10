@@ -49,14 +49,18 @@ func main() {
 	if *sourceFlag == "" || *targetFlag == "" {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
-	sourceRoot, err := cli.NormalizeRoot(*sourceFlag)
+	sPName, _, _, sourceRoot, err := cli.ParseUrl(*sourceFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	targetRoot, err := cli.NormalizeRoot(*targetFlag)
+	sRp := plugin.PluginFor(sPName, rps)
+	_ = sRp
+	tPName, _, _, targetRoot, err := cli.ParseUrl(*targetFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	tRp := plugin.PluginFor(tPName, rps)
+	_ = tRp
 	dss := localfiles.MakeLocalFilesDssa()
 	swk, err := walker.RunSynchronizer(
 		lgr, *cf.ConcurrencyFlag,

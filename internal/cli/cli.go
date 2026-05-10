@@ -108,6 +108,7 @@ func ParseUrl(url string) (pluginName, host string, port int, rootPath string, e
 			rootPath = urlElts[0]
 		}
 	}
+	rootPath, err = NormalizeRoot(rootPath)
 	return
 }
 

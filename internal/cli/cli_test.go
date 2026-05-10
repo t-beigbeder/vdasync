@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -43,7 +44,11 @@ func TestParseUrl(t *testing.T) {
 		require.Equal(t, ref.pluginName, pluginName)
 		require.Equal(t, ref.host, host)
 		require.Equal(t, ref.port, port)
-		require.Equal(t, ref.rootPath, rootPath)
+		if ref.rootPath != "relativeRootPath" {
+			require.Equal(t, ref.rootPath, rootPath)
+		} else {
+			require.Equal(t, ref.rootPath, path.Base(rootPath))
+		}
 	}
 
 	// relativeRootPath
