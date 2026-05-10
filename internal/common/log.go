@@ -27,9 +27,6 @@ func CliLogger(cmd, sll, file string) (lgr *slog.Logger, err error) {
 	} else {
 		wr = os.Stderr
 	}
-	if wr, err = os.Create(file); err != nil {
-		return
-	}
 	lgr = slog.New(slog.NewTextHandler(wr, &slog.HandlerOptions{Level: sl}))
 	return
 }

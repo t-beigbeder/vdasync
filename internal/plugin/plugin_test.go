@@ -31,7 +31,7 @@ plugins:
   addArgs:
   - "-is-plugin"
 `
-	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginOk.yml"), setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -55,7 +55,7 @@ plugins:
   addArgs:
   - "-is-plugin"
 `
-	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOk.yml"), setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -79,7 +79,7 @@ plugins:
   addArgs:
   - "-is-plugin"
 `
-	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOneMisConf.yml"), setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -104,7 +104,7 @@ plugins:
   - "-is-plugin"
   - "-is-fatal"
 `
-	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginsOneFail.yml"), setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -123,7 +123,7 @@ plugins:
   addArgs:
   - "-is-plugin"
 `
-	rps, err := RunConfData(path.Join(t.TempDir(), "TestRunPluginOk.yml"), setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))

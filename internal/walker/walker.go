@@ -7,6 +7,16 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 )
 
+type BaseDoerData struct {
+	DoerLabel string
+}
+
+func (bdd *BaseDoerData) Label() string { return bdd.DoerLabel }
+
+type BaseDoerDataItf interface {
+	Label() string
+}
+
 type Walker interface {
 	Run(*dssa.DataEntry) error
 	SetUserData(*dssa.DataEntry, interface{})
@@ -25,7 +35,7 @@ type ProcessedEntry struct {
 }
 
 func (pe *ProcessedEntry) Lgr_() *slog.Logger {
-	return pe.wi.lgr
+	return pe.wi.implLgr
 }
 
 func (pe *ProcessedEntry) Dssa_() dssa.Dssa {
@@ -42,6 +52,7 @@ type EntryProcessor func(*ProcessedEntry)
 
 type walkerImpl struct {
 	lgr         *slog.Logger
+	implLgr     *slog.Logger
 	concurrency int
 	ds          dssa.Dssa
 
@@ -65,8 +76,16 @@ func MakeWalker(
 	onStartNdirEntry, onDoneDirs, onDoneFiles, onDoneEntry EntryProcessor,
 	args ...interface{},
 ) Walker {
+	dLabel := "undefined"
+	if len(args) > 0 {
+		wd, ok := args[0].(BaseDoerDataItf)
+		if ok {
+			dLabel = wd.Label()
+		}
+	}
 	wi := &walkerImpl{
-		lgr:              lgr,
+		lgr:              lgr.With("walker", true),
+		implLgr:          lgr.With("walkerImpl", dLabel),
 		concurrency:      concurrency,
 		ds:               ds,
 		onStartDirEntry:  onStartDirEntry,

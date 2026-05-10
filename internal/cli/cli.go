@@ -1,6 +1,9 @@
 package cli
 
-import "flag"
+import (
+	"flag"
+	"path/filepath"
+)
 
 type CommonFlagsType struct {
 	ConcurrencyFlag  *int
@@ -23,7 +26,7 @@ func CommonFlags() *CommonFlagsType {
 		ConcurrencyFlag: flag.Int("conc", 0, "number of concurrent activities"),
 		LogLevelFlag:    flag.String("level", "", "log level, defaults to ERROR"),
 		LogFlag: flag.String("log", "",
-			"log file, defaults to dssacli-<pid>.log in temp dir, \"stderr\" is a known keyword"),
+			"log file, defaults to vdasync-<pid>.log in temp dir, \"stderr\" is a known keyword"),
 		SilentFlag:       flag.Bool("silent", false, "no output"),
 		VerboseFlag:      flag.Bool("verbose", false, "detailed output"),
 		NoTlsFlag:        flag.Bool("notls", false, "unsecure communication with servers over http"),
@@ -35,4 +38,8 @@ func CommonFlags() *CommonFlagsType {
 		CertFlag:         flag.String("cert", "", "server or plugin TLS certificate"),
 		KeyFlag:          flag.String("key", "", "server or plugin TLS certificate key"),
 	}
+}
+
+func NormalizeRoot(cliRoot string) (string, error) {
+	return filepath.Abs(cliRoot)
 }

@@ -73,8 +73,8 @@ func applyIfOK(rps []*RunningPlugin, run func(*RunningPlugin)) {
 	}
 }
 
-func RunConfFile(confPath string) ([]*RunningPlugin, error) {
-	config, err := config.Load(confPath)
+func RunConfData(yamlConf string) ([]*RunningPlugin, error) {
+	config, err := config.Load(yamlConf)
 	if err != nil {
 		return nil, err
 	}
@@ -112,11 +112,12 @@ func RunConfFile(confPath string) ([]*RunningPlugin, error) {
 	return rps, nil
 }
 
-func RunConfData(tempFilePath string, conf string) ([]*RunningPlugin, error) {
-	if err := common.WriteFile(tempFilePath, []byte(conf)); err != nil {
+func RunConfFile(confPath string) ([]*RunningPlugin, error) {
+	bs, err := common.LoadFile(confPath)
+	if err != nil {
 		return nil, err
 	}
-	return RunConfFile(tempFilePath)
+	return RunConfData(string(bs))
 }
 
 func Shutdown(rps []*RunningPlugin) {

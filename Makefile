@@ -32,8 +32,8 @@ test-again-verbose:	## go test the application again
 
 .PHONY: build
 build:	## go build commands
-	go build -o bin/dssacli cmd/dssacli/main.go
-	# bin/dssacli -conc 4 -dryrun -rm -source ~/locgit -target /local/tmp/copy-of-locgit
+	go build -o bin/vdasync cmd/vdasync/main.go
+	# bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target /local/tmp/copy-of-locgit
 
 .PHONY: build-test
 build-test:	## go build test cmd

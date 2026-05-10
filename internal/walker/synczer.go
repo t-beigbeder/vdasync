@@ -34,6 +34,7 @@ type SyncEntryStatus struct {
 }
 
 type syncDataType struct {
+	BaseDoerData
 	syncOptions *config.SyncOptionsType
 	sourceRoot  string
 	targetDs    dssa.Dssa
@@ -46,7 +47,6 @@ func NewSynchronizer(
 	sourceDs dssa.Dssa,
 	targetDs dssa.Dssa, targetRoot string,
 ) Walker {
-	lgr.Info("NewSynchronizer")
 	return MakeWalker(
 		lgr,
 		concurrency,
@@ -56,7 +56,7 @@ func NewSynchronizer(
 		nil,
 		nil,
 		onDoneEntrySync,
-		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot},
+		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot, BaseDoerData: BaseDoerData{DoerLabel: "sync"}},
 	)
 }
 
@@ -81,6 +81,7 @@ func RunSynchronizer(
 		return nil, fmt.Errorf("RunSynchronizer: target %s is not a dir", targetRoot)
 	}
 	wk := NewSynchronizer(lgr, concurrency, syncOptions, sourceDs, targetDs, targetRoot)
+	lgr.Info("RunSynchronizer", "source", sourceRoot, "target", targetRoot)
 	return wk, wk.Run(sde)
 }
 
