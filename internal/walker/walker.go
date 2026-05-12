@@ -127,14 +127,14 @@ LOOP:
 		select {
 		case <-rootIsDone:
 			runtime.ReadMemStats(&m)
-			wi.lgr.Info("Run: root is done", "number processed", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+			wi.lgr.Info("Run: root is done", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 			break LOOP
 		case pe := <-wi.pq:
 			wi.lgr.Info("Run: pulling", "path", pe.DataEntry.Path, "isDir", pe.DataEntry.IsDir)
 			count++
 			if count%1000 == 0 {
 				runtime.ReadMemStats(&m)
-				wi.lgr.Info("Run: processed...", "number processed", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+				wi.lgr.Info("Run: processed...", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 			}
 			go wi.process(pe)
 		}
@@ -186,15 +186,18 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 	ddes, nddes := splitDndFrom(pe.children)
 
 	var wg sync.WaitGroup
+	childrenPq := make(chan bool, wi.concurrency)
 
-	// processing all subdirs in //
+	// processing as much subdirs in // as possible
 	wg.Add(len(ddes))
 	for _, dde := range ddes {
+		childrenPq <- true
 		go func() {
 			ddone := func() {
 				wg.Done()
 			}
 			wi.pq <- &ProcessedEntry{DataEntry: dde, parent: pe, wi: wi, done: ddone}
+			<- childrenPq
 		}()
 	}
 	wg.Wait()
@@ -202,7 +205,7 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 		wi.onDoneDirs(pe)
 	}
 
-	// processing all files in //
+	// processing as much files in // as possible
 	wg.Add(len(nddes))
 	for _, ndde := range nddes {
 		go func() {

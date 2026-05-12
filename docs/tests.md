@@ -37,3 +37,7 @@ time=2026-05-12T16:26:17.710Z level=INFO msg="RunOpeDssaServer: processed..." ap
 GOMEMLIMIT=2GiB bin/vdasync -conc 4 -rm -source ~ -target lf+dss:/local/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
 time=2026-05-12T16:57:27.425Z level=INFO msg="Run: processed..." app=vdasync walker=true "number processed"=66000 HeapInuse=6074008 HeapAlloc=6024994 StackInuse=177664
 time=2026-05-12T16:57:33.164Z level=INFO msg="Run: root is done" app=vdasync walker=true "number processed"=77643 HeapInuse=1825056 HeapAlloc=1764423 StackInuse=23776
+
+
+walker_test
+time=2026-05-12T17:20:16.583Z level=INFO msg="Run: root is done" walker=true count=108 HeapInuse=1816 HeapAlloc=766 StackInuse=704
