@@ -10,10 +10,16 @@ ulimit -Sv 3000000
 
 mkdir /local/tmp/copy-of-locgit
 chmod -R +w /local/tmp/copy-of-locgit && rm -fr /local/tmp/copy-of-locgit && mkdir /local/tmp/copy-of-locgit
-bin/vdasync -conc 0 -rm -source ~/locgit -target /local/tmp/copy-of-locgit -config testdata/cmd/basicConfig.yaml -silent
-bin/vdasync -conc 0 -rm -source ~/locgit -target lf+dss:/local/tmp/copy-of-locgit -config testdata/cmd/basicConfig.yaml -silent
+bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target /local/tmp/copy-of-locgit -silent
+bin/vdasync -conc 4 -rm -source ~/locgit -target /local/tmp/copy-of-locgit -config testdata/cmd/basicConfig.yaml -silent -level INFO
 
-time bin/vdasync -conc 4 -dryrun -rm -source ~ -target lf+dss:/local/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent
+bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target lf+dss:/local/tmp/copy-of-locgit -config testdata/cmd/basicConfig.yaml -silent -level INFO
+bin/vdasync -conc 4 -rm -source ~/locgit -target lf+dss:/local/tmp/copy-of-locgit -config testdata/cmd/basicConfig.yaml -silent -level INFO
+
+bin/vdasync -conc 4 -dryrun -rm -source ~ -target /local/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
+bin/vdasync -conc 4 -rm -source ~ -target /local/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
+
+bin/vdasync -conc 4 -dryrun -rm -source ~ -target lf+dss:/local/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
 
 time bin/vdasync -conc 4 -rm -source ~ -target /local/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent
 time=2026-05-10T17:20:15.314Z level=INFO msg="localFiles.main starting" app=localFiles host=localhost port=40517

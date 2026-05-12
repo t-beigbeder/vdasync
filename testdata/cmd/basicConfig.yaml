@@ -2,7 +2,5 @@ plugins:
 - name: lf
   type: localFiles
   addArgs:
-  - "-log"
-  - stderr
   - "-level"
   - INFO

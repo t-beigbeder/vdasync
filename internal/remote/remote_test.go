@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -20,7 +21,7 @@ func TestRunOpeDssaServer(t *testing.T) {
 	td := t.TempDir()
 	t.Chdir(td)
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
-	port, cFunc, err := RunOpeDssaServer(context.Background(), testHost, 0, nil, localfiles.MakeLocalFilesDssa(), nil)
+	port, cFunc, err := RunOpeDssaServer(common.GetLogger(), context.Background(), testHost, 0, nil, localfiles.MakeLocalFilesDssa(), nil)
 	require.Nil(t, err)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	cli, conn, err := NewOpeDssaClient(fmt.Sprintf("%s:%d", testHost, port), opts...)
@@ -44,4 +45,5 @@ func TestRunOpeDssaServer(t *testing.T) {
 	require.Equal(t, t.Name()+".txt", name)
 
 	cFunc()
+	time.Sleep(50 * time.Millisecond)
 }

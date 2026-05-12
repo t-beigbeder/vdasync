@@ -39,7 +39,7 @@ func main() {
 		lgr.Debug("shutdownCb called, closing done")
 		close(done)
 	}
-	_, _, err = remote.RunOpeDssaServer(context.Background(), *hostFlag, *portFlag, nil, localfiles.MakeLocalFilesDssa(), cb)
+	_, _, err = remote.RunOpeDssaServer(lgr, context.Background(), *hostFlag, *portFlag, nil, localfiles.MakeLocalFilesDssa(), cb)
 	<-done
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("RunOpeDssaServer failed %s", err))

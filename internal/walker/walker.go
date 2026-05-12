@@ -2,6 +2,7 @@ package walker
 
 import (
 	"log/slog"
+	"runtime"
 	"sync"
 
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -102,6 +103,12 @@ func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	wi.lgr.Info("Run: starting", "ds", wi.ds, "args", wi.args)
 	wi.pq = make(chan *ProcessedEntry, wi.concurrency)
 	wi.udm = &sync.Map{}
+
+	count := 0
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
+	wi.lgr.Info("Run: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+
 	rootIsDone := make(chan bool)
 	done := func() {
 		wi.lgr.Debug("Run is done")
@@ -119,10 +126,16 @@ LOOP:
 	for {
 		select {
 		case <-rootIsDone:
-			wi.lgr.Info("Run: root is done")
+			runtime.ReadMemStats(&m)
+			wi.lgr.Info("Run: root is done", "number processed", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 			break LOOP
 		case pe := <-wi.pq:
 			wi.lgr.Info("Run: pulling", "path", pe.DataEntry.Path, "isDir", pe.DataEntry.IsDir)
+			count++
+			if count%1000 == 0 {
+				runtime.ReadMemStats(&m)
+				wi.lgr.Info("Run: processed...", "number processed", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+			}
 			go wi.process(pe)
 		}
 	}

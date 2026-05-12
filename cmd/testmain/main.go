@@ -101,7 +101,7 @@ func main() {
 			log.Debug("shutdownCb called, closing done")
 			close(done)
 		}
-		_, _, err := remote.RunOpeDssaServer(context.Background(), "localhost", port, nil, localfiles.MakeLocalFilesDssa(), cb)
+		_, _, err := remote.RunOpeDssaServer(log, context.Background(), "localhost", port, nil, localfiles.MakeLocalFilesDssa(), cb)
 		<-done
 		if err != nil {
 			common.Fatal(log, fmt.Errorf("RunOpeDssaServer failed %s", err))
