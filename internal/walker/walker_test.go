@@ -36,7 +36,7 @@ func TestBasicWalker(t *testing.T) {
 	}
 	startNde := func(pe *ProcessedEntry) {
 	}
-	walker := MakeWalker(lgr, 5, dssa1, startDe, startNde, nil, nil, nil, nil, "TestBasicWalker", td1, dssa2, td2)
+	walker := MakeWalker(lgr, 4, dssa1, startDe, startNde, nil, nil, nil, nil, "TestBasicWalker", td1, dssa2, td2)
 	walker.Run(&dssa.DataEntry{Path: td1, IsDir: true})
 	lgr.Debug("TestBasicWalker: done")
 }

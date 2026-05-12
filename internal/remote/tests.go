@@ -32,6 +32,8 @@ func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, erro
 		return port, cCancel, err
 	}
 	grpcServer := grpc.NewServer(opts...)
+	callStats := make(chan string)
+
 	go func() {
 		if tToListen != 0 {
 			time.Sleep(tToListen)
@@ -41,15 +43,18 @@ func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, erro
 			return
 		}
 		opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
+
+		go getStat(common.GetLogger(), callStats)
 		dssagrpc.RegisterDataStorageSystemServer(
 			grpcServer,
-			&dssaImpl{grpcServer: grpcServer, dssa_: localfiles.MakeLocalFilesDssa()},
+			&dssaImpl{grpcServer: grpcServer, dssa_: localfiles.MakeLocalFilesDssa(), callStats: callStats},
 		)
 		grpcServer.Serve(lis)
 	}()
 	cancel := func() {
 		cCancel()
 		grpcServer.Stop()
+		close(callStats)
 	}
 	return port, cancel, nil
 }

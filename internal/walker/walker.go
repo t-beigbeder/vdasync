@@ -186,7 +186,7 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 	ddes, nddes := splitDndFrom(pe.children)
 
 	var wg sync.WaitGroup
-	childrenPq := make(chan bool, wi.concurrency)
+	childrenPq := make(chan bool, wi.concurrency+1)
 
 	// processing as much subdirs in // as possible
 	wg.Add(len(ddes))
@@ -197,7 +197,7 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 				wg.Done()
 			}
 			wi.pq <- &ProcessedEntry{DataEntry: dde, parent: pe, wi: wi, done: ddone}
-			<- childrenPq
+			<-childrenPq
 		}()
 	}
 	wg.Wait()
@@ -208,11 +208,13 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 	// processing as much files in // as possible
 	wg.Add(len(nddes))
 	for _, ndde := range nddes {
+		childrenPq <- true
 		go func() {
 			nddone := func() {
 				wg.Done()
 			}
 			wi.pq <- &ProcessedEntry{DataEntry: ndde, parent: pe, wi: wi, done: nddone}
+			<-childrenPq
 		}()
 	}
 	wg.Wait()
