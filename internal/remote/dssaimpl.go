@@ -67,7 +67,6 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 	s.callStats <- "Put"
 	for {
 		if gpb, err = stream.Recv(); err == io.EOF {
-			s.callStats <- "Put.Recv"
 			if wc != nil {
 				if err = wc.Close(); err != nil {
 					return err
@@ -84,6 +83,7 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 			}
 			defer wc.Close()
 		}
+		s.callStats <- "Put.Recv"
 		if cw, err = wc.Write(gpb.Data); err != nil {
 			return err
 		}
@@ -98,7 +98,7 @@ func (s *dssaImpl) Get(
 	if err != nil {
 		return err
 	}
-	buffer := make([]byte, 32768)
+	buffer := make([]byte, 8192)
 	for {
 		n, err := rc.Read(buffer)
 		if err != nil && err != io.EOF {

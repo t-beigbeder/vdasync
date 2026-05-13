@@ -67,60 +67,71 @@ func TestBasicDryrunSynczer(t *testing.T) {
 }
 
 func TestBasicActualSynczer(t *testing.T) {
+	type syncTestConfig struct {
+		sDss dssa.Dssa
+		tDss dssa.Dssa
+	}
 	rLgr := common.GetLogger()
-	dss1, dss2, cFunc, err := getTestDss()
+	lDss, rDss, cFunc, err := getTestDss()
 	require.Nil(t, err)
 	defer cFunc()
 
-	for _, tDss := range []dssa.Dssa{dss1, dss2} {
-		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
+	for _, tsCfg := range []syncTestConfig{
+		{sDss: lDss, tDss: lDss},
+		{sDss: lDss, tDss: rDss},
+		{sDss: rDss, tDss: lDss},
+		{sDss: rDss, tDss: rDss},
+	} {
+		sDss := tsCfg.sDss
+		tDss := tsCfg.tDss
+		lgr := rLgr.With("sDss", fmt.Sprintf("%T", sDss), "tDss", fmt.Sprintf("%T", tDss))
 		td1 := t.TempDir()
 		sad, saf, err := common.MakeTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
 		require.Nil(t, err)
 		total := sad + saf + 1
-		sde, err := dss1.Stat(td1)
+		sde, err := sDss.Stat(td1)
 		require.Nil(t, err)
 		td2 := t.TempDir()
 		lgr.Debug("TestBasicActualSynczer", "td1", td1, "sad", sad, "saf", saf)
 
-		sr, err := runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
+		sr, err := runSyncTest(lgr, sDss, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, total-1, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
 
-		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{})
+		sr, err = runSyncTest(lgr, sDss, tDss, sde, td2, &config.SyncOptionsType{})
 		require.Nil(t, err)
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, total-1, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
 
-		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
+		sr, err = runSyncTest(lgr, sDss, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, 0, sr[""].AggregatedCreated)
 		require.Equal(t, 0, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
 
-		err = dss1.Mkdir(&dssa.DataEntry{Path: path.Join(td1, "d00", "d99"), UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+		err = sDss.Mkdir(&dssa.DataEntry{Path: path.Join(td1, "d00", "d99"), UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
 		require.Nil(t, err)
 		sad2, saf2, err := common.MakeTestFilesTree(path.Join(td1, "d00", "d99"), 5, 10, 3, 6*1024*1024)
 		require.Nil(t, err)
 		newSubTotal := sad2 + saf2 + 1
 
-		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
+		sr, err = runSyncTest(lgr, sDss, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
 		require.Equal(t, total+newSubTotal-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, newSubTotal, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
 
-		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{})
+		sr, err = runSyncTest(lgr, sDss, tDss, sde, td2, &config.SyncOptionsType{})
 		require.Equal(t, total+newSubTotal-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, newSubTotal, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
 
-		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
+		sr, err = runSyncTest(lgr, sDss, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
 		require.Equal(t, total+newSubTotal-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, 0, sr[""].AggregatedCreated)
 		require.Equal(t, 0, sr[""].AggregatedUpdated)

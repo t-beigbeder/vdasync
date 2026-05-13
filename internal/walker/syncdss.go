@@ -240,24 +240,7 @@ func runFileEntrySync(pe *ProcessedEntry) error {
 	}
 	defer wrr.Close()
 	dssInfoSync(pe, true, "Copy source data to target")
-	buf := make([]byte, 1024)
-	for {
-		rn, rerr := rdr.Read(buf)
-		if rn > 0 {
-			_, werr := wrr.Write(buf[0:rn])
-			if werr != nil {
-				err = werr
-				break
-			}
-		}
-		if rerr != nil {
-			if rerr != io.EOF {
-				err = rerr
-			}
-			break
-		}
-	}
-	if err != nil {
+	if _, err = io.Copy(wrr, rdr); err != nil {
 		return setSyncError(pe, "runNdirEntrySync: Copy", true, err)
 	}
 	dssInfoSync(pe, true, "Close target")
