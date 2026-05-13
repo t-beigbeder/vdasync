@@ -8,7 +8,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/vdasync/dssa"
 	"golang.org/x/sys/unix"
 )
 

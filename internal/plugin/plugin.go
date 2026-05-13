@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"time"
 
-	"github.com/t-beigbeder/otvl_dtacsy/config"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
-	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
+	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/remote"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -73,8 +74,19 @@ func applyIfOK(rps []*RunningPlugin, run func(*RunningPlugin)) {
 	}
 }
 
-func RunConfFile(confPath string) ([]*RunningPlugin, error) {
-	config, err := config.Load(confPath)
+func getExecutablePath(plugin *config.PluginType) (string, error) {
+	if plugin.ExecutablePath != "" {
+		return plugin.ExecutablePath, nil
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return path.Join(path.Dir(exe), fmt.Sprintf("%s%s", plugin.Type, path.Ext(exe))), nil
+}
+
+func RunConfData(yamlConf string) ([]*RunningPlugin, error) {
+	config, err := config.Load(yamlConf)
 	if err != nil {
 		return nil, err
 	}
@@ -98,6 +110,13 @@ func RunConfFile(confPath string) ([]*RunningPlugin, error) {
 		for _, addArg := range plugin.AddArgs {
 			args = append(args, addArg)
 		}
+		pExe, err := getExecutablePath(plugin)
+		if err != nil {
+			crp.Err = fmt.Errorf("plugin %s start error %s", plugin.Name, err)
+			rps = append(rps, &crp)
+			continue
+		}
+		plugin.ExecutablePath = pExe
 		cmd := exec.Command(plugin.ExecutablePath, args...)
 		cmd.Stderr = os.Stderr
 		cmd.Stdout = os.Stdout
@@ -112,11 +131,12 @@ func RunConfFile(confPath string) ([]*RunningPlugin, error) {
 	return rps, nil
 }
 
-func RunConfData(tempFilePath string, conf string) ([]*RunningPlugin, error) {
-	if err := common.WriteFile(tempFilePath, []byte(conf)); err != nil {
+func RunConfFile(confPath string) ([]*RunningPlugin, error) {
+	bs, err := common.LoadFile(confPath)
+	if err != nil {
 		return nil, err
 	}
-	return RunConfFile(tempFilePath)
+	return RunConfData(string(bs))
 }
 
 func Shutdown(rps []*RunningPlugin) {
@@ -135,4 +155,13 @@ func Errors(rps []*RunningPlugin) []error {
 		}
 	}
 	return errs
+}
+
+func PluginFor(pName string, rps []*RunningPlugin) *RunningPlugin {
+	for _, rp := range rps {
+		if rp.Plugin.Name == pName {
+			return rp
+		}
+	}
+	return nil
 }

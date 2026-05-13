@@ -1,4 +1,4 @@
-module github.com/t-beigbeder/otvl_dtacsy
+module github.com/t-beigbeder/vdasync
 
 go 1.25.5
 
@@ -26,4 +26,4 @@ require (
 	golang.org/x/sys v0.43.0 // indirect
 )
 
-replace github.com/t-beigbeder/otvl_dtacsy => .
+replace github.com/t-beigbeder/vdasync => .

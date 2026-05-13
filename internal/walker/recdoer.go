@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 type DoerEntryStatus struct {
@@ -15,9 +15,9 @@ type DoerEntryStatus struct {
 }
 
 type doerDataType struct {
+	BaseDoerData
 	dssAlias   string
 	sourceRoot string
-	doerLabel  string
 }
 
 func NewRecursiveDoer(
@@ -36,7 +36,7 @@ func NewRecursiveDoer(
 		nil,
 		nil,
 		onDoneEntry,
-		&doerDataType{dssAlias: dssAlias, doerLabel: doerLabel},
+		&doerDataType{dssAlias: dssAlias, BaseDoerData: BaseDoerData{DoerLabel: doerLabel}},
 	)
 }
 
@@ -88,7 +88,7 @@ func doerEntryStatusInit(pe *ProcessedEntry) {
 }
 
 func dssInfoRDoer(pe *ProcessedEntry, function string) {
-	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "doer", doerData(pe).doerLabel, "alias", doerData(pe).dssAlias, "de", doerPeRelPath(pe))
+	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "alias", doerData(pe).dssAlias, "de", doerPeRelPath(pe))
 }
 
 func onStartDirEntryRDoer(pe *ProcessedEntry) []*dssa.DataEntry {

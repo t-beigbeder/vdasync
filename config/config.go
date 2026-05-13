@@ -1,10 +1,7 @@
 package config
 
 import (
-	"os"
-
 	"github.com/goccy/go-yaml"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
 )
 
 type PluginsOptionsType struct {
@@ -17,7 +14,7 @@ type PluginsOptionsType struct {
 type PluginType struct {
 	Name           string   `yaml`
 	Type           string   `yaml`
-	ExecutablePath string   `yaml:"executablePath"` // defaults to current executable
+	ExecutablePath string   `yaml:"executablePath"`
 	AddArgs        []string `yaml:"addArgs"`
 	Port           int      `yaml`
 	ToBeTested     string   `yaml:"toBeTested"`
@@ -70,10 +67,10 @@ toBeTested: "shouldBeSet"
 
 var defaultPluginTypeValues = &PluginType{}
 
+var DefaultPluginType = "localFiles"
+
 func init() {
 	yaml.Unmarshal([]byte(PluginTypeDefaultYaml), &defaultPluginTypeValues)
-	exe, _ := os.Executable()
-	defaultPluginTypeValues.ExecutablePath = exe
 }
 
 func umarshalPlugin(op *PluginType, b []byte) error {
@@ -86,12 +83,12 @@ func umarshalPlugin(op *PluginType, b []byte) error {
 	return nil
 }
 
-func Load(configPath string) (*CliConfig, error) {
+func Load(config string) (*CliConfig, error) {
 	conf := CliConfig{}
 	if err := yaml.Unmarshal([]byte(CliConfigDefaultYaml), &conf); err != nil {
 		return nil, err
 	}
-	if err := common.YamlLoad(configPath, &conf, yaml.CustomUnmarshaler(umarshalPlugin)); err != nil {
+	if err := yaml.UnmarshalWithOptions([]byte(config), &conf, yaml.CustomUnmarshaler(umarshalPlugin)); err != nil {
 		return nil, err
 	}
 	return &conf, nil

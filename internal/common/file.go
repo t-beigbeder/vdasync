@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/vdasync/dssa"
 )
 
 func FileExists(path string) bool {
@@ -22,17 +22,21 @@ func FileSize(path string) (int64, error) {
 	return fi.Size(), nil
 }
 
+func ReaderSha256(rdr io.Reader) (string, error) {
+	h := sha256.New()
+	if _, err := io.Copy(h, rdr); err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%064x", h.Sum(nil)), nil
+}
+
 func FileSha256(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
 	}
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("%064x", h.Sum(nil)), nil
+	return ReaderSha256(f)
 }
 
 func WriteFile(path string, data []byte) error {

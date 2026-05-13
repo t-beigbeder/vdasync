@@ -7,11 +7,11 @@ import (
 	"os"
 	"path"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/dssaimpl/localfiles"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/plugin"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/remote"
+	"github.com/t-beigbeder/vdasync/dssagrpc"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/plugin"
+	"github.com/t-beigbeder/vdasync/internal/remote"
 )
 
 const CliYamlConfigTest string = `
@@ -19,7 +19,7 @@ plugins:
 - name: localFilesSample
   type: localFiles
   port: 10314
-  # executablePath: /home/dv-user/locgit/otvl_dtacsy/bin/test
+  # executablePath: /home/dv-user/locgit/vdasync/bin/test
   addArgs:
   - "-is-plugin"
 - name: noTypeErrorSample
@@ -101,7 +101,7 @@ func main() {
 			log.Debug("shutdownCb called, closing done")
 			close(done)
 		}
-		_, _, err := remote.RunOpeDssaServer(context.Background(), "localhost", port, nil, localfiles.MakeLocalFilesDssa(), cb)
+		_, _, err := remote.RunOpeDssaServer(log, context.Background(), "localhost", port, nil, localfiles.MakeLocalFilesDssa(), cb)
 		<-done
 		if err != nil {
 			common.Fatal(log, fmt.Errorf("RunOpeDssaServer failed %s", err))

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
+	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"google.golang.org/grpc"
 )
 
@@ -24,6 +24,7 @@ var _ io.WriteCloser = &grpcWriter{}
 // Write implements [io.WriteCloser].
 func (gw *grpcWriter) Write(p []byte) (int, error) {
 	var (
+		pPath string
 		err error
 	)
 	if gw.stream == nil {
@@ -31,19 +32,34 @@ func (gw *grpcWriter) Write(p []byte) (int, error) {
 		if err != nil {
 			return 0, err
 		}
+		pPath = gw.path_
 	}
-	err = gw.stream.Send(&dssagrpc.PushedBlock{Path: gw.path_, Data: p})
-	if err != nil {
-		return 0, err
+	for start := 0; start <= len(p); {
+		end := len(p)
+		if end - start > 8192 {
+			end = start + 8192
+		}
+		err = gw.stream.Send(&dssagrpc.PushedBlock{Path: pPath, Data: p[start:end]})
+		pPath = ""
+		written := end - start
+		gw.written += int64(written)
+		start += written
+		if err != nil {
+			return 0, err
+		}
+		if written == 0 {
+			break
+		}
 	}
-	gw.written += int64(len(p))
 	return len(p), nil
 }
 
 // Close implements [io.WriteCloser].
 func (gw *grpcWriter) Close() error {
 	if gw.stream == nil {
-		return errors.New("grpcWriter.Close: stream was not yet opened")
+		if _, err := gw.Write(nil); err != nil {
+			return fmt.Errorf("grpcWriter.Close: nil write %v", err)
+		}
 	}
 	if gw.closed {
 		return errors.New("grpcWriter.Close: already closed")

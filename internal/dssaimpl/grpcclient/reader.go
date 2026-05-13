@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
+	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"google.golang.org/grpc"
 )
 

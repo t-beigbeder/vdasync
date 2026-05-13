@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"path"
 
-	"github.com/t-beigbeder/otvl_dtacsy/config"
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 type SyncEntryStatus struct {
@@ -34,6 +34,7 @@ type SyncEntryStatus struct {
 }
 
 type syncDataType struct {
+	BaseDoerData
 	syncOptions *config.SyncOptionsType
 	sourceRoot  string
 	targetDs    dssa.Dssa
@@ -55,8 +56,33 @@ func NewSynchronizer(
 		nil,
 		nil,
 		onDoneEntrySync,
-		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot},
+		&syncDataType{syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot, BaseDoerData: BaseDoerData{DoerLabel: "sync"}},
 	)
+}
+
+func RunSynchronizer(
+	lgr *slog.Logger, concurrency int,
+	syncOptions *config.SyncOptionsType,
+	sourceDs dssa.Dssa, sourceRoot string,
+	targetDs dssa.Dssa, targetRoot string,
+) (Walker, error) {
+	sde, err := sourceDs.Stat(sourceRoot)
+	if err != nil {
+		return nil, fmt.Errorf("RunSynchronizer: source %v", err)
+	}
+	if !sde.IsDir {
+		return nil, fmt.Errorf("RunSynchronizer: source %s is not a dir", sourceRoot)
+	}
+	tde, err := targetDs.Stat(targetRoot)
+	if err != nil {
+		return nil, fmt.Errorf("RunSynchronizer: target %v", err)
+	}
+	if !tde.IsDir {
+		return nil, fmt.Errorf("RunSynchronizer: target %s is not a dir", targetRoot)
+	}
+	wk := NewSynchronizer(lgr, concurrency, syncOptions, sourceDs, targetDs, targetRoot)
+	lgr.Info("RunSynchronizer", "source", sourceRoot, "target", targetRoot)
+	return wk, wk.Run(sde)
 }
 
 func SyncResult(walker Walker) map[string]*SyncEntryStatus {
@@ -232,17 +258,18 @@ func computeDdeAggregates(pe *ProcessedEntry) {
 	es.AggregatedCreated = agC
 	es.AggregatedUpdated = agU
 	es.AggregatedRemoved = agR
-	es.AggregatedModChanged = agU
+	es.AggregatedModChanged = agM
 	es.AggregatedError = agE
 }
 
 func onDoneEntrySync(pe *ProcessedEntry) {
+	setEntryChanges(pe)
+	es := syncUserData(pe)
 	if !syncOptions(pe).Dryrun {
-		if syncUserData(pe).Created || syncUserData(pe).Updated {
+		if es.Created || es.Updated || es.ModChanged {
 			runSetStatEntrySync(pe)
 		}
 	}
-	es := syncUserData(pe)
 	if es.Created {
 		es.Updated = false
 		es.ModChanged = false

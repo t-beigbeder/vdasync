@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 func parentUpdated(pe *ProcessedEntry) {
@@ -118,7 +119,7 @@ func prepareTargetDirCreate(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 	// TODO: optimization if parent has no dte in dryrun
 	dssInfoSync(pe, true, "Stat")
 	tde, err := targetDs(pe).Stat(tp)
-	if err != nil && !tde.ErrNotExist {
+	if err != nil && (!tde.ErrNotExist || pe.parent == nil) {
 		return setSyncError(pe, "prepareTargetDirCreate: Stat", true, err)
 	}
 
@@ -162,10 +163,41 @@ func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) bool {
 	if !syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime != tde.Mtime {
 		return true
 	}
-	if !syncData(pe).syncOptions.Check && syncUserData(pe).sChecksum != syncUserData(pe).tChecksum {
+	if syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime > tde.Mtime {
 		return true
 	}
-	return false
+	if pe.DataEntry.SymLinkTarget != tde.SymLinkTarget {
+		return true
+	}
+	if !syncData(pe).syncOptions.Check || pe.DataEntry.IsSymLink {
+		return false
+	}
+
+	srdr, err := pe.wi.ds.GetReadCloser(pe.DataEntry.Path)
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: GetReadCloser", false, err)
+		return true
+	}
+	defer srdr.Close()
+	syncUserData(pe).sChecksum, err = common.ReaderSha256(srdr)
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: ReaderSha256", false, err)
+		return true
+	}
+
+	trdr, err := targetDs(pe).GetReadCloser(targetPath(pe))
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: GetReadCloser", true, err)
+		return true
+	}
+	defer trdr.Close()
+	syncUserData(pe).tChecksum, err = common.ReaderSha256(trdr)
+	if err != nil {
+		setSyncError(pe, "fileHasChanges: ReaderSha256", true, err)
+		return true
+	}
+
+	return syncUserData(pe).sChecksum != syncUserData(pe).tChecksum
 }
 
 func prepareTargetFile(pe *ProcessedEntry, tde *dssa.DataEntry) error {
@@ -208,8 +240,7 @@ func runFileEntrySync(pe *ProcessedEntry) error {
 	}
 	defer wrr.Close()
 	dssInfoSync(pe, true, "Copy source data to target")
-	_, err = io.Copy(wrr, rdr)
-	if err != nil {
+	if _, err = io.Copy(wrr, rdr); err != nil {
 		return setSyncError(pe, "runNdirEntrySync: Copy", true, err)
 	}
 	dssInfoSync(pe, true, "Close target")
@@ -260,6 +291,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 	if tde.ErrNotExist {
 		syncUserData(pe).Created = true
 	} else {
+		syncUserData(pe).targetDe = tde
 		if !fileHasChanges(pe, tde) {
 			return
 		} else {
@@ -282,4 +314,27 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 			return
 		}
 	}
+}
+
+func setEntryChanges(pe *ProcessedEntry) {
+	es := syncUserData(pe)
+	if es.Error != nil || es.Created || es.Updated || es.ModChanged {
+		return
+	}
+	hasChanges := false
+	tde := es.targetDe
+	if tde == nil {
+		panic("here")
+	}
+	sde := pe.DataEntry
+	if !hasChanges && !syncData(pe).syncOptions.NoPerm {
+		hasChanges = tde.UserRights != sde.UserRights ||
+			tde.Group != sde.Group ||
+			tde.GroupRights != sde.GroupRights ||
+			tde.OtherRights != sde.OtherRights
+	}
+	if !hasChanges && !syncData(pe).syncOptions.NoMtime && tde.Mtime != sde.Mtime {
+		hasChanges = true
+	}
+	es.ModChanged = hasChanges
 }

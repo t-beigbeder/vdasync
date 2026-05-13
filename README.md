@@ -1,78 +1,51 @@
-# otvl_dtacsy
+# vdasync
 
-Versatile data access and synchronization tool
+Versatile data access and synchronization tool.
+
+Vdasync provides access to files or data, either local or remote,
+through a CLI and a Golang simple API.
+The CLI main use is to synchronize data among different locations,
+for instance for backup and restore.
+Synchronization may be very fast as the implementation leverages concurrency.
+
+The API also enables an easy implementation or various data access means
+through the use of plugins. The tool provides the following plugins:
+
+- object storage through an S3 API
+- sftp client
+- client-side encrypted storage on any kind of storage: files or plugin
 
 ## Status
 
-Pre-alpha status:
+Alpha status
 
-- basic API local and remote
-- plugin setup with local implementation for testing
-- walker structure for synchronization implementation
-- rather good test coverage
+- go API and gRPC API complete with rather good test coverage, missing I/O errors
+- CLI for synchronization with plugin to simulate gRPC server on localhost, both using local filesystem
 
 ## Design
 
-### Dssa: data storage system abstraction
+### Golang API
 
-Features
+The Golang API sees any data store through the following simple interface:
 
-- local files
-- grpc server to remote local files or any plugin
-- plugin through same grpc API
-  - grpc avoids having large and bloat binary
-  - s3
-  - sftp client
+- List to retrieve directory entries
+- Stat to retrieve entry status like size, permissions and modification time
+- Get to read the content of a non-directory entry
+- Mkdir to create a new directory entry
+- SetStat to change the permissions and modification time of an entry
+- Put to write the content of a non-directory entry
+- Rm to remove an entry
+- Symlink to create a symbolic linl
 
-API, cli-tool, both through configuration file for enhanced operability and better security
+### gRPC API
 
-API
+A gRPC API providing the same kind of interface as the Golang one is provided.
 
-- list
-- get
-- put
-- delete
-- stat, setStat
+Both remote access and plugin access use this API.
+Thus a plugin may be implemented with any language supported by gRPC.
 
-### Fast synchronization with parallelism
+### Concurrency
 
-Dssa walk requests pushed on worker queue
-
-## Dev
-
-### Go
-
-Random useful commands
-
-    go clean -modcache
-    go get github.com/goccy/go-yaml
-    go build -o bin/manager cmd/main.go
-
-### code-server golang extension
-
-[go extension](https://github.com/golang/vscode-go/wiki/)
-[run/debug](https://github.com/golang/vscode-go/wiki/debugging#launchjson-attributes)
-
-    go install -v github.com/go-delve/delve/cmd/dlv@latest
-
-### Protobuf
-
-https://protobuf.dev/installation/
-
-    go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-    go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-    go get google.golang.org/grpc
-
-### TODO
-
-- SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
-- parse FIXMEs
-- dssa/grpc List operation with only Size/Time options if more efficient
-- grpc ope version
-- secure plugin connection with
-  - https://github.com/filosottile/mkcert
-  - https://go.dev/src/crypto/tls/generate_cert.go
-  - https://github.com/grpc/grpc-go/tree/master/examples/features/encryption
-- defer shutdown server and wait plugin
-- ctrl/c signal for server
-- mTLS: test with simple auto-generated certs (without CA)
+The synchronization tooling leverages Golang concurrency features,
+thus enabling very fast data access through parallelization of I/O
+and data processing, if the infrastructure permits.

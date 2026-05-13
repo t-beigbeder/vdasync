@@ -2,10 +2,21 @@ package walker
 
 import (
 	"log/slog"
+	"runtime"
 	"sync"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
+	"github.com/t-beigbeder/vdasync/dssa"
 )
+
+type BaseDoerData struct {
+	DoerLabel string
+}
+
+func (bdd *BaseDoerData) Label() string { return bdd.DoerLabel }
+
+type BaseDoerDataItf interface {
+	Label() string
+}
 
 type Walker interface {
 	Run(*dssa.DataEntry) error
@@ -25,7 +36,7 @@ type ProcessedEntry struct {
 }
 
 func (pe *ProcessedEntry) Lgr_() *slog.Logger {
-	return pe.wi.lgr
+	return pe.wi.implLgr
 }
 
 func (pe *ProcessedEntry) Dssa_() dssa.Dssa {
@@ -42,6 +53,7 @@ type EntryProcessor func(*ProcessedEntry)
 
 type walkerImpl struct {
 	lgr         *slog.Logger
+	implLgr     *slog.Logger
 	concurrency int
 	ds          dssa.Dssa
 
@@ -65,8 +77,16 @@ func MakeWalker(
 	onStartNdirEntry, onDoneDirs, onDoneFiles, onDoneEntry EntryProcessor,
 	args ...interface{},
 ) Walker {
+	dLabel := "undefined"
+	if len(args) > 0 {
+		wd, ok := args[0].(BaseDoerDataItf)
+		if ok {
+			dLabel = wd.Label()
+		}
+	}
 	wi := &walkerImpl{
-		lgr:              lgr,
+		lgr:              lgr.With("walker", true),
+		implLgr:          lgr.With("walkerImpl", dLabel),
 		concurrency:      concurrency,
 		ds:               ds,
 		onStartDirEntry:  onStartDirEntry,
@@ -83,6 +103,12 @@ func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	wi.lgr.Info("Run: starting", "ds", wi.ds, "args", wi.args)
 	wi.pq = make(chan *ProcessedEntry, wi.concurrency)
 	wi.udm = &sync.Map{}
+
+	count := 0
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
+	wi.lgr.Info("Run: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+
 	rootIsDone := make(chan bool)
 	done := func() {
 		wi.lgr.Debug("Run is done")
@@ -100,10 +126,16 @@ LOOP:
 	for {
 		select {
 		case <-rootIsDone:
-			wi.lgr.Info("Run: root is done")
+			runtime.ReadMemStats(&m)
+			wi.lgr.Info("Run: root is done", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 			break LOOP
 		case pe := <-wi.pq:
 			wi.lgr.Info("Run: pulling", "path", pe.DataEntry.Path, "isDir", pe.DataEntry.IsDir)
+			count++
+			if count%1000 == 0 {
+				runtime.ReadMemStats(&m)
+				wi.lgr.Info("Run: processed...", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+			}
 			go wi.process(pe)
 		}
 	}
@@ -154,15 +186,18 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 	ddes, nddes := splitDndFrom(pe.children)
 
 	var wg sync.WaitGroup
+	childrenPq := make(chan bool, wi.concurrency+1)
 
-	// processing all subdirs in //
+	// processing as much subdirs in // as possible
 	wg.Add(len(ddes))
 	for _, dde := range ddes {
+		childrenPq <- true
 		go func() {
 			ddone := func() {
 				wg.Done()
 			}
 			wi.pq <- &ProcessedEntry{DataEntry: dde, parent: pe, wi: wi, done: ddone}
+			<-childrenPq
 		}()
 	}
 	wg.Wait()
@@ -170,14 +205,16 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 		wi.onDoneDirs(pe)
 	}
 
-	// processing all files in //
+	// processing as much files in // as possible
 	wg.Add(len(nddes))
 	for _, ndde := range nddes {
+		childrenPq <- true
 		go func() {
 			nddone := func() {
 				wg.Done()
 			}
 			wi.pq <- &ProcessedEntry{DataEntry: ndde, parent: pe, wi: wi, done: nddone}
+			<-childrenPq
 		}()
 	}
 	wg.Wait()

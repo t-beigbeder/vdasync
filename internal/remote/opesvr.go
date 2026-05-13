@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 )
 

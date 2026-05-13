@@ -17,12 +17,24 @@ test-verbose:	## go test the application
 
 .PHONY: test-this
 test-this:	## go test the application
-	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/otvl_dtacsy/internal/common
+	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/vdasync/internal/common
 
 .PHONY: test-again
 test-again:	export QSTF_TEST_FULL = 1
+test-again: export GO_TEST_LOG_LEVEL = ERROR
 test-again:	## go test the application again
 	go test -v -count=1 ./...
+
+.PHONY: test-again-verbose
+test-again-verbose:	export QSTF_TEST_FULL = 1
+test-again-verbose:	## go test the application again
+	go test -v -count=1 ./...
+
+.PHONY: build
+build:	## go build commands
+	go build -o bin/localFiles cmd/plugins/localfiles/main.go
+	go build -o bin/vdasync cmd/vdasync/main.go
+	# bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target /local/tmp/copy-of-locgit
 
 .PHONY: build-test
 build-test:	## go build test cmd

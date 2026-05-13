@@ -3,12 +3,14 @@ package remote
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net"
+	"runtime"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/dssagrpc"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
-	"github.com/t-beigbeder/otvl_dtacsy/opegrpc"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/dssagrpc"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 )
 
@@ -47,7 +49,29 @@ func CheckServerReadiness(target string, opts ...grpc.DialOption) (
 	return cli, err
 }
 
+func getStat(lgr *slog.Logger, callStat chan string) {
+	count := 0
+	m := runtime.MemStats{}
+	runtime.ReadMemStats(&m)
+	lgr.Info("RunOpeDssaServer: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+	statMap := make(map[string]int)
+	for stat := range callStat {
+		count++
+		statMap[stat]++
+		if count%1000 == 0 {
+			lgr.Info("RunOpeDssaServer: processed...", "count", count,
+				"HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024,
+				"statMap", statMap)
+		}
+		_ = stat
+	}
+	lgr.Info("RunOpeDssaServer: done", "count", count,
+		"HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024,
+		"statMap", statMap)
+}
+
 func RunOpeDssaServer(
+	lgr *slog.Logger,
 	ctx context.Context,
 	host string,
 	port int,
@@ -77,14 +101,18 @@ func RunOpeDssaServer(
 		return port, cCancel, err
 	}
 	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb})
+
+	callStats := make(chan string)
+	go getStat(lgr, callStats)
 	dssagrpc.RegisterDataStorageSystemServer(
 		grpcServer,
-		&dssaImpl{grpcServer: grpcServer, dssa_: dssa_},
+		&dssaImpl{grpcServer: grpcServer, dssa_: dssa_, callStats: callStats},
 	)
 	go grpcServer.Serve(lis)
 	cancel := func() {
 		cCancel()
 		grpcServer.Stop()
+		close(callStats)
 	}
 	return port, cancel, nil
 }

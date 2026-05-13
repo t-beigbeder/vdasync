@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/t-beigbeder/otvl_dtacsy/dssa"
-	"github.com/t-beigbeder/otvl_dtacsy/internal/common"
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 type RmEntryStatus struct {
@@ -18,6 +18,7 @@ type RmEntryStatus struct {
 }
 
 type rmDataType struct {
+	BaseDoerData
 	dssAlias   string
 	dryRun     bool
 	sourceRoot string
@@ -38,7 +39,7 @@ func NewRecursiveRemover(
 		nil,
 		onDoneFilesRRm,
 		onDoneEntryRRm,
-		&rmDataType{dssAlias: dssAlias, dryRun: dryRun},
+		&rmDataType{dssAlias: dssAlias, dryRun: dryRun, BaseDoerData: BaseDoerData{DoerLabel: "rRm"}},
 	)
 }
 

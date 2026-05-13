@@ -3,6 +3,7 @@ package common
 import (
 	"crypto/rand"
 	"fmt"
+	"io"
 	"log/slog"
 	mrand "math/rand"
 	"os"
@@ -19,6 +20,10 @@ func doGetLogger(sll string) *slog.Logger {
 
 func GetLogger() *slog.Logger {
 	return doGetLogger(os.Getenv("GO_TEST_LOG_LEVEL"))
+}
+
+func GetNullLogger() *slog.Logger {
+	return slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 }
 
 func MakeTestFile(tfPath string, size int) error {
@@ -88,7 +93,7 @@ func MakeTestFilesTree(tdPath string, maxDirs, maxFiles, childrenPerDir, maxFile
 	return sumAddedDirs, sumAddedFiles, err
 }
 
-func AugmentTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, maxFileSize int) (sumAddedDirs int, sumAddedFiles int, err error) {
+func AugmentTestFilesTree(td string) (sumAddedDirs int, sumAddedFiles int, err error) {
 	for _, sd := range []string{"dLinks", "dAddFiles", "dMod", "dRO"} {
 		if err = os.Mkdir(path.Join(td, sd), 0750); err != nil {
 			return
@@ -133,14 +138,14 @@ func MakeAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, ma
 		return
 	}
 	sumAddedDirs += 1
-	addedDirs, addedFiles, err := AugmentTestFilesTree(path.Join(td, "dau"), maxDirs, maxFiles, childrenPerDir, maxFileSize)
+	addedDirs, addedFiles, err := AugmentTestFilesTree(path.Join(td, "dau"))
 	if err != nil {
 		return
 	}
 	sumAddedDirs += addedDirs
 	sumAddedFiles += addedFiles
 	for _, sd := range []string{"dAddFiles/dRemoved", "dAddFiles/dStay", "dMod", "dRO"} {
-		addedDirs, addedFiles, err = AugmentTestFilesTree(path.Join(td, "dau", sd), maxDirs, maxFiles, childrenPerDir, maxFileSize)
+		addedDirs, addedFiles, err = AugmentTestFilesTree(path.Join(td, "dau", sd))
 		if err != nil {
 			return
 		}
