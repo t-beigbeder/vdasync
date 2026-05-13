@@ -23,7 +23,7 @@ GOMEMLIMIT=250MiB bin/vdasync -conc 4 -rm -source ~/locgit -target lf+dss:/tmp/c
 time=2026-05-12T16:53:27.543Z level=INFO msg="Run: root is done" app=vdasync walker=true "number processed"=11351 HeapInuse=184032 HeapAlloc=170153 StackInuse=4000
 
 
-chmod -R +w /tmp/copy-of-home && rm -fr /tmp/copy-of-home && mkdir /tmp/copy-of-home
+chmod -R +w /tmp/copy-of-home ; rm -fr /tmp/copy-of-home && mkdir /tmp/copy-of-home
 
 bin/vdasync -conc 4 -dryrun -rm -source ~ -target /tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
 bin/vdasync -conc 4 -rm -source ~ -target /tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
@@ -41,6 +41,8 @@ time=2026-05-12T16:26:17.710Z level=INFO msg="RunOpeDssaServer: processed..." ap
 >> time=2026-05-12T19:48:33.918Z level=INFO msg="RunOpeDssaServer: processed..." app=localFiles count=296000 HeapInuse=1104 HeapAlloc=603 StackInuse=384 statMap="map[List:1 Mkdir:12414 Put:64127 Put.Recv:64126 SetStat:77626 Stat:77642 Symlink:64]"
 >>> time=2026-05-12T20:30:16.610Z level=INFO msg="Run: root is done" app=vdasync walker=true count=77716 HeapInuse=1755520 HeapAlloc=1548769 StackInuse=27200
 >>> time=2026-05-12T20:30:16.274Z level=INFO msg="RunOpeDssaServer: processed..." app=localFiles count=296000 HeapInuse=1256 HeapAlloc=604 StackInuse=384 statMap="map[List:1 Mkdir:12414 Put:64128 Put.Recv:64126 SetStat:77624 Stat:77643 Symlink:64]"
+
+bin/vdasync -conc 4 -rm -source lf+dss:/home/dv-user -target lf+dss:/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
 
 
 GOMEMLIMIT=2GiB bin/vdasync -conc 4 -rm -source ~ -target lf+dss:/tmp/copy-of-home -config testdata/cmd/basicConfig.yaml -silent -level INFO
