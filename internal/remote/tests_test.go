@@ -2,9 +2,7 @@ package remote
 
 import (
 	"context"
-	ctls "crypto/tls"
 	"fmt"
-	"net"
 	"os"
 	"path"
 	"testing"
@@ -108,27 +106,16 @@ func TestRunGrpcTestServerSelfSigned(t *testing.T) {
 	require.Nil(t, err)
 	creds, err := credentials.NewServerTLSFromFile(cf, kf)
 	require.Nil(t, err)
-
-	address := fmt.Sprintf("%s:%d", "localhost", 9443)
-
-	go func() {
-		s := grpc.NewServer(grpc.Creds(creds))
-		lis, err := net.Listen("tcp", address)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Listen failed %v\n", err)
-			time.Sleep(10 * time.Second)
-		}
-		s.Serve(lis)
-		fmt.Fprintf(os.Stderr, "Serve done\n")
-	}()
-	config := &ctls.Config{
-		InsecureSkipVerify: true,
-	}
-	time.Sleep(1 * time.Second)
-	cli, _, err := NewOpeDssaClient(address, grpc.WithTransportCredentials(credentials.NewTLS(config)))
+	tcskip := credentials.NewTLS(tls.GetInsecureSkipVerifyConfig())
+	dop := grpc.WithTransportCredentials(tcskip)
+	cli, _, err := GrpcGetTestClient(dop, grpc.Creds(creds))
 	require.Nil(t, err)
-	rs, err := cli.Shutdown(context.Background(), &opegrpc.Value{Value: "500ms"})
+
+	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
 	require.Nil(t, err)
-	_ = rs
-	time.Sleep(1 * time.Second)
+	require.True(t, rr.Value)
+
+	rs, err := cli.Shutdown(context.Background(), &opegrpc.Value{Value: "10ms"})
+	require.Nil(t, err)
+	require.True(t, rs.Value)
 }

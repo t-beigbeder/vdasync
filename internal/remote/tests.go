@@ -68,13 +68,9 @@ func RunGrpcTestServer(opt ...grpc.ServerOption) (int, context.CancelFunc, error
 func checkLocalServerReadiness(port int) (
 	cli OpeDssaClient, err error,
 ) {
-	config := &tls.Config{
-		InsecureSkipVerify: false,
-	}
-	tcskip := credentials.NewTLS(config)
 	tcinsec := insecure.NewCredentials()
 	_, _ = tcinsec, tcskip
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(tcinsec)}
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(tcskip)}
 	return CheckServerReadiness(fmt.Sprintf("%s:%d", testHost, port), opts...)
 }
 
