@@ -14,7 +14,6 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/tls"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -104,11 +103,29 @@ func TestRunGrpcTestServerSelfSigned(t *testing.T) {
 	kf := path.Join(td, "self-key.pem")
 	err := tls.SelfSignedFiles("localhost", cf, kf)
 	require.Nil(t, err)
-	creds, err := credentials.NewServerTLSFromFile(cf, kf)
+	sopt, err := GetSimpleTlsSOpt(cf, kf)
 	require.Nil(t, err)
-	tcskip := credentials.NewTLS(tls.GetInsecureSkipVerifyConfig())
-	dop := grpc.WithTransportCredentials(tcskip)
-	cli, _, err := GrpcGetTestClient(dop, grpc.Creds(creds))
+	cli, _, err := GrpcGetTestClient(GetInsecureSkipVerifyCopt(), sopt)
+	require.Nil(t, err)
+
+	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
+	require.Nil(t, err)
+	require.True(t, rr.Value)
+
+	rs, err := cli.Shutdown(context.Background(), &opegrpc.Value{Value: "10ms"})
+	require.Nil(t, err)
+	require.True(t, rs.Value)
+}
+
+func TestRunGrpcTestServerMTls(t *testing.T) {
+	td := t.TempDir()
+	cfs, err := tls.NewTestCerts(td, []string{"0.0.0.0", "localhost"}, true)
+	require.Nil(t, err)
+	copt, err := GetMutualTlsCopt(cfs["cac"], cfs["c1c"], cfs["c1k"])
+	require.Nil(t, err)
+	sopt, err := GetMutualTlsSOpt(cfs["cac"], cfs["svc"], cfs["svk"])
+
+	cli, _, err := GrpcGetTestClient(copt, sopt)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})

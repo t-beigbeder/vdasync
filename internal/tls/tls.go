@@ -304,3 +304,40 @@ func GetInsecureSkipVerifyConfig() *tls.Config {
 		InsecureSkipVerify: true,
 	}
 }
+
+func getTlsCertsFor(caCertFile, certFile, keyFile string) (*x509.CertPool, *tls.Certificate, error) {
+	caPEM, err := common.LoadFile(caCertFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM(caPEM)
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	return certPool, &cert, nil
+}
+
+func GetMTlsServerConfig(caCertFile, certFile, keyFile string) (*tls.Config, error) {
+	certPool, pCert, err := getTlsCertsFor(caCertFile, certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates: []tls.Certificate{*pCert},
+		ClientCAs:    certPool,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+	}, nil
+}
+
+func GetMTlsClientConfig(caCertFile, certFile, keyFile string) (*tls.Config, error) {
+	certPool, pCert, err := getTlsCertsFor(caCertFile, certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates: []tls.Certificate{*pCert},
+		RootCAs:      certPool,
+	}, nil
+}

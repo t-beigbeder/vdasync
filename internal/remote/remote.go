@@ -10,8 +10,10 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/tls"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -30,6 +32,34 @@ func GetDefaultCopt(copt grpc.DialOption) grpc.DialOption {
 		copt = grpc.WithTransportCredentials(insecure.NewCredentials())
 	}
 	return copt
+}
+
+func GetSimpleTlsSOpt(certFile, keyFile string) (grpc.ServerOption, error) {
+	creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return grpc.Creds(creds), nil
+}
+
+func GetInsecureSkipVerifyCopt() grpc.DialOption {
+	return grpc.WithTransportCredentials(credentials.NewTLS(tls.GetInsecureSkipVerifyConfig()))
+}
+
+func GetMutualTlsSOpt(caCertFile, certFile, keyFile string) (grpc.ServerOption, error) {
+	tc, err := tls.GetMTlsServerConfig(caCertFile, certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return grpc.Creds(credentials.NewTLS(tc)), nil
+}
+
+func GetMutualTlsCopt(caCertFile, certFile, keyFile string) (grpc.DialOption, error) {
+	tc, err := tls.GetMTlsClientConfig(caCertFile, certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return grpc.WithTransportCredentials(credentials.NewTLS(tc)), nil
 }
 
 func NewOpeDssaClient(target string, copt grpc.DialOption) (OpeDssaClient, *grpc.ClientConn, error) {

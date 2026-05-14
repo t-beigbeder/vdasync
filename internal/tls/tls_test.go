@@ -209,24 +209,11 @@ func TestNewClientServerCertFiles(t *testing.T) {
 	td := t.TempDir()
 	cfs, err := NewTestCerts(td, []string{"0.0.0.0", "localhost"}, false)
 	require.NoError(t, err)
-	caPEM, err := common.LoadFile(cfs["cac"])
+	sCfg, err := GetMTlsServerConfig(cfs["cac"], cfs["svc"], cfs["svk"])
 	require.NoError(t, err)
-	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(caPEM)
-	sCert, err := tls.LoadX509KeyPair(cfs["svc"], cfs["svk"])
-	require.NoError(t, err)
-	cCert, err := tls.LoadX509KeyPair(cfs["c1c"], cfs["c1k"])
-	require.NoError(t, err)
-
-	cfg := &tls.Config{
-		MinVersion:   tls.VersionTLS13,
-		Certificates: []tls.Certificate{sCert},
-		ClientCAs:    certPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-	}
 	srv := &http.Server{
 		Addr:         "0.0.0.0:9443",
-		TLSConfig:    cfg,
+		TLSConfig:    sCfg,
 		ReadTimeout:  time.Minute,
 		WriteTimeout: time.Minute,
 	}
@@ -235,13 +222,12 @@ func TestNewClientServerCertFiles(t *testing.T) {
 	}()
 	defer func() { _ = srv.Shutdown(context.TODO()) }()
 	time.Sleep(200 * time.Millisecond)
+
+	cCfg, err := GetMTlsClientConfig(cfs["cac"], cfs["c1c"], cfs["c1k"])
+	require.NoError(t, err)
 	hc := http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion:   tls.VersionTLS13,
-				Certificates: []tls.Certificate{cCert},
-				RootCAs:      certPool,
-			},
+			TLSClientConfig: cCfg,
 		},
 	}
 	get, err := hc.Get("https://localhost:9443")
