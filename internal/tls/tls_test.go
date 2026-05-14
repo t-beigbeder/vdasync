@@ -15,7 +15,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
-func TestSelfSigned(t *testing.T) {
+func TestSelfSignedKP(t *testing.T) {
 	cert, err := SelfSigned("localhost")
 	if err != nil {
 		t.Fatal(err)
@@ -161,14 +161,21 @@ func TestNewCertFiles(t *testing.T) {
 	)
 	require.NoError(t, err)
 	_ = pair
+	err = SelfSignedFiles("test-host", filepath.Join(td, "self.pem"), filepath.Join(td, "self-key.pem"))
+	require.NoError(t, err)
+	pair, err = tls.LoadX509KeyPair(
+		filepath.Join(td, "self.pem"),
+		filepath.Join(td, "self-key.pem"),
+	)
+	require.NoError(t, err)
 }
 
 func TestNewTestCerts(t *testing.T) {
-	if os.Getenv("QSTF_TEST_FULL") == "" {
-		t.Skip("QSTF_TEST_FULL not set")
+	if os.Getenv("OTVL_TEST_FULL") == "" {
+		t.Skip("OTVL_TEST_FULL not set")
 	}
 	logger := common.GetLogger()
-	os.Setenv("QSTF_TEST_CACHE", "")
+	os.Setenv("OTVL_TEST_CACHE", "")
 	td := t.TempDir()
 	logger.Info("TestNewTestCerts", "msg", "first no cache")
 	cfs, err := NewTestCerts(td, []string{"0.0.0.0", "localhost"}, false)
@@ -177,7 +184,7 @@ func TestNewTestCerts(t *testing.T) {
 	logger.Info("TestNewTestCerts", "msg", "second no cache, second client")
 	cfs, err = NewTestCerts(td, []string{"0.0.0.0", "localhost"}, true)
 	require.NoError(t, err)
-	os.Setenv("QSTF_TEST_CACHE", "1")
+	os.Setenv("OTVL_TEST_CACHE", "1")
 	td = t.TempDir()
 	logger.Info("TestNewTestCerts", "msg", "first in cache")
 	cfs, err = NewTestCerts(td, []string{"0.0.0.0", "localhost"}, false)

@@ -2,7 +2,9 @@ package remote
 
 import (
 	"context"
+	ctls "crypto/tls"
 	"fmt"
+	"net"
 	"os"
 	"path"
 	"testing"
@@ -11,8 +13,10 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/tls"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
@@ -94,4 +98,37 @@ func TestRunGrpcTestServerShutdown(t *testing.T) {
 	rs, err := cli.Shutdown(context.Background(), &opegrpc.Value{Value: "10ms"})
 	require.Nil(t, err)
 	require.True(t, rs.Value)
+}
+
+func TestRunGrpcTestServerSelfSigned(t *testing.T) {
+	td := t.TempDir()
+	cf := path.Join(td, "self-cert.pem")
+	kf := path.Join(td, "self-key.pem")
+	err := tls.SelfSignedFiles("localhost", cf, kf)
+	require.Nil(t, err)
+	creds, err := credentials.NewServerTLSFromFile(cf, kf)
+	require.Nil(t, err)
+
+	address := fmt.Sprintf("%s:%d", "localhost", 9443)
+
+	go func() {
+		s := grpc.NewServer(grpc.Creds(creds))
+		lis, err := net.Listen("tcp", address)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Listen failed %v\n", err)
+			time.Sleep(10 * time.Second)
+		}
+		s.Serve(lis)
+		fmt.Fprintf(os.Stderr, "Serve done\n")
+	}()
+	config := &ctls.Config{
+		InsecureSkipVerify: true,
+	}
+	time.Sleep(1 * time.Second)
+	cli, _, err := NewOpeDssaClient(address, grpc.WithTransportCredentials(credentials.NewTLS(config)))
+	require.Nil(t, err)
+	rs, err := cli.Shutdown(context.Background(), &opegrpc.Value{Value: "500ms"})
+	require.Nil(t, err)
+	_ = rs
+	time.Sleep(1 * time.Second)
 }

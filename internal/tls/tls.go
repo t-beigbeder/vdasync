@@ -66,6 +66,44 @@ func SelfSigned(host string) (*tls.Certificate, error) {
 	return &cert, err
 }
 
+// SelfSignedFiles generates a new self-signed TLS certificate key pair files for the given host
+func SelfSignedFiles(host string, certFile, keyFile string) error {
+	cert, err := SelfSigned(host)
+	if err != nil {
+		return err
+	}
+	certPEM := new(bytes.Buffer)
+	err = pem.Encode(certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Leaf.Raw,
+	})
+	if err != nil {
+		return err
+	}
+	err = common.WriteFile(certFile, certPEM.Bytes())
+	if err != nil {
+		return err
+	}
+
+	certPrivKeyPEM := new(bytes.Buffer)
+	certPrik, ok := cert.PrivateKey.(*rsa.PrivateKey)
+	if !ok {
+		return fmt.Errorf("expected RSA private key, got %T", cert.PrivateKey)
+	}
+	err = pem.Encode(certPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(certPrik),
+	})
+	if err != nil {
+		return err
+	}
+	err = common.WriteFile(keyFile, certPrivKeyPEM.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 var snCount = 1
 
 func getRandSN() (*big.Int, error) {
@@ -259,11 +297,4 @@ func NewCertFiles(hosts []string, caCertFile, caKeyFile, certFile, keyFile strin
 	}
 	return nil
 
-}
-
-func NextProtosFor(alpn string) []string {
-	if alpn == "" {
-		return nil
-	}
-	return []string{alpn}
 }

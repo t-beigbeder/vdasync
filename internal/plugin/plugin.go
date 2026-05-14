@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -35,11 +36,10 @@ func checkReadiness(rp *RunningPlugin) {
 		return
 	}
 	opts := []grpc.DialOption{}
-	switch rp.config.PluginTransportCredentials {
-	case "insecure":
+	if rp.config.PluginsOptions.NoTls {
 		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	default:
-		rp.Err = fmt.Errorf("incorrect PluginTransportCredentials: %s", rp.config.PluginTransportCredentials)
+	} else {
+		rp.Err = errors.New("TLS for plugins not yet implemented")
 		return
 	}
 	for count := 0; count < rp.config.PluginReadyRetries; count++ {

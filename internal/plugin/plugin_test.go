@@ -18,18 +18,19 @@ func testDir() string {
 }
 
 func setExecutable(conf string) string {
-	exep := path.Clean(testDir() + "/../../bin/testmain")
+	exep := path.Clean(testDir() + "/../../bin/localFiles")
 	return strings.Replace(conf, "${exe}", exep, -1)
 }
 
 func TestRunPluginOk(t *testing.T) {
 	const conf string = `
+pluginsOptions:
+  noTls: true
 plugins:
 - name: localFilesSample
   type: localFiles
   executablePath: ${exe}
-  addArgs:
-  - "-is-plugin"
+  addArgs: [-notls, -log, stderr, -level, INFO]
 `
 	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
@@ -43,17 +44,17 @@ plugins:
 
 func TestRunPluginsOk(t *testing.T) {
 	const conf string = `
+pluginsOptions:
+  noTls: true
 plugins:
 - name: localFilesSample1
   type: localFiles
   executablePath: ${exe}
-  addArgs:
-  - "-is-plugin"
+  addArgs: [-notls, -log, stderr, -level, INFO]
 - name: localFilesSample2
   type: localFiles
   executablePath: ${exe}
-  addArgs:
-  - "-is-plugin"
+  addArgs: [-notls, -log, stderr, -level, INFO]
 `
 	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
@@ -67,17 +68,17 @@ plugins:
 
 func TestRunPluginsOneMisConf(t *testing.T) {
 	const conf string = `
+pluginsOptions:
+  noTls: true
 plugins:
 - name: localFilesSample1b
   type: localFiles
   executablePath: ${exe}
-  addArgs:
-  - "-is-plugin"
+  addArgs: [-notls, -log, stderr, -level, INFO]
 - name: localFilesSample2b
   type: localFiles
   executablePath: ${exe}doesnotexist
-  addArgs:
-  - "-is-plugin"
+  addArgs: [-notls, -log, stderr, -level, INFO]
 `
 	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
@@ -91,18 +92,17 @@ plugins:
 
 func TestRunPluginsOneFail(t *testing.T) {
 	const conf string = `
+pluginsOptions:
+  noTls: true
 plugins:
 - name: localFilesSample1c
   type: localFiles
   executablePath: ${exe}
-  addArgs:
-  - "-is-plugin"
+  addArgs: [-notls, -log, stderr, -level, INFO]
 - name: localFilesSample2c
   type: localFiles
   executablePath: ${exe}
-  addArgs:
-  - "-is-plugin"
-  - "-is-fatal"
+  addArgs: [-notls, -log, stderr, -level, INFO, -badoption]
 `
 	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)
@@ -116,12 +116,13 @@ plugins:
 
 func TestRunPluginAndCallList(t *testing.T) {
 	const conf string = `
+pluginsOptions:
+  noTls: true
 plugins:
 - name: localFilesSample
   type: localFiles
   executablePath: ${exe}
-  addArgs:
-  - "-is-plugin"
+  addArgs: [-notls, -log, stderr, -level, INFO]
 `
 	rps, err := RunConfData(setExecutable(conf))
 	require.Nil(t, err)

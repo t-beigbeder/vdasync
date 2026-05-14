@@ -20,13 +20,13 @@ test-this:	## go test the application
 	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/vdasync/internal/common
 
 .PHONY: test-again
-test-again:	export QSTF_TEST_FULL = 1
+test-again:	export OTVL_TEST_FULL = 1
 test-again: export GO_TEST_LOG_LEVEL = ERROR
 test-again:	## go test the application again
 	go test -v -count=1 ./...
 
 .PHONY: test-again-verbose
-test-again-verbose:	export QSTF_TEST_FULL = 1
+test-again-verbose:	export OTVL_TEST_FULL = 1
 test-again-verbose:	## go test the application again
 	go test -v -count=1 ./...
 
@@ -34,19 +34,6 @@ test-again-verbose:	## go test the application again
 build:	## go build commands
 	go build -o bin/localFiles cmd/plugins/localfiles/main.go
 	go build -o bin/vdasync cmd/vdasync/main.go
-	# bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target /local/tmp/copy-of-locgit
-
-.PHONY: build-test
-build-test:	## go build test cmd
-	go build -o bin/testmain cmd/testmain/main.go
-
-.PHONY: run-test
-run-test:	## go build and run test cmd
-run-test: build-test
-	bin/testmain -is-root
-
-build: ## go build all
-build: build-test
 
 .PHONY: format
 format:	## format go code

@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"time"
@@ -11,17 +12,17 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 const testHost = "localhost"
 
-func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, error) {
+func doRunGrpcTestServer(tToListen time.Duration, opt ...grpc.ServerOption) (int, context.CancelFunc, error) {
 	_, cCancel := context.WithCancel(context.Background())
 	var (
 		err  error
 		port int
-		opts []grpc.ServerOption
 	)
 	defer func() {
 		if err != nil {
@@ -31,7 +32,7 @@ func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, erro
 	if port, err = common.GetFreePort(); err != nil {
 		return port, cCancel, err
 	}
-	grpcServer := grpc.NewServer(opts...)
+	grpcServer := grpc.NewServer(opt...)
 	callStats := make(chan string)
 
 	go func() {
@@ -50,6 +51,7 @@ func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, erro
 			&dssaImpl{grpcServer: grpcServer, dssa_: localfiles.MakeLocalFilesDssa(), callStats: callStats},
 		)
 		grpcServer.Serve(lis)
+		common.GetLogger().Error("doRunGrpcTestServer: stopped serving")
 	}()
 	cancel := func() {
 		cCancel()
@@ -59,18 +61,24 @@ func doRunGrpcTestServer(tToListen time.Duration) (int, context.CancelFunc, erro
 	return port, cancel, nil
 }
 
-func RunGrpcTestServer() (int, context.CancelFunc, error) {
-	return doRunGrpcTestServer(0)
+func RunGrpcTestServer(opt ...grpc.ServerOption) (int, context.CancelFunc, error) {
+	return doRunGrpcTestServer(0, opt...)
 }
 
 func checkLocalServerReadiness(port int) (
 	cli OpeDssaClient, err error,
 ) {
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	config := &tls.Config{
+		InsecureSkipVerify: false,
+	}
+	tcskip := credentials.NewTLS(config)
+	tcinsec := insecure.NewCredentials()
+	_, _ = tcinsec, tcskip
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(tcinsec)}
 	return CheckServerReadiness(fmt.Sprintf("%s:%d", testHost, port), opts...)
 }
 
-func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration) (
+func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration, opt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
 	var (
@@ -78,7 +86,7 @@ func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDel
 		err    error
 		cli    OpeDssaClient
 	)
-	port, cancel, err := doRunGrpcTestServer(serverTToListen)
+	port, cancel, err := doRunGrpcTestServer(serverTToListen, opt...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("doGrpcGetTestClient: doRunGrpcTestServer failed %v", err)
 	}
@@ -90,11 +98,14 @@ func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDel
 		time.Sleep(time.Duration(retryDelay))
 		retryDelay *= 2
 	}
+	if err != nil {
+		return nil, nil, err
+	}
 	return cli, cancel, nil
 }
 
-func GrpcGetTestClient() (
+func GrpcGetTestClient(opt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
-	return doGrpcGetTestClient(0, 3, 20*time.Millisecond)
+	return doGrpcGetTestClient(0, 3, 20*time.Millisecond, opt...)
 }

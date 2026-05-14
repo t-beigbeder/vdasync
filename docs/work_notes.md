@@ -76,3 +76,15 @@ https://protobuf.dev/installation/
 - defer shutdown server and wait plugin
 - ctrl/c signal for server
 - mTLS: test with simple auto-generated certs (without CA)
+
+generate certificates
+- gen test CA
+- gen server and or client cert/key
+
+server
+- internally gen server cert/key
+
+service
+- health-check client
+
+testing
