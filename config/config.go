@@ -7,6 +7,8 @@ import (
 type PluginsOptionsType struct {
 	NoTls          bool   `yaml:"noTls"`
 	Insecure       bool   `yaml`
+	CertPath       string `yaml:"certPath"`
+	KeyPath        string `yaml:"keyPath"`
 	CaCertPath     string `yaml:"caCertPath"`
 	ClientCertPath string `yaml:"clientCertPath"`
 	ClientKeyPath  string `yaml:"clientKeyPath"`

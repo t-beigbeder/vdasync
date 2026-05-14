@@ -1,3 +1,5 @@
+pluginsOptions:
+  noTls: true
 plugins:
 - name: lf
   type: localFiles

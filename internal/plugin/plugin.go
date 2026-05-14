@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -22,8 +21,11 @@ type RunningPlugin struct {
 	port   int
 	cmd    *exec.Cmd
 	Client remote.OpeDssaClient
+	TlsClientOptions grpc.DialOption
 	Err    error
 }
+
+type TlsArgsBuilder func(*config.PluginsOptionsType) ([]string, grpc.DialOption, error)
 
 func checkReadiness(rp *RunningPlugin) {
 	if rp.config.PluginReadyRetries == 0 || rp.config.PluginReadyTimeout == "" {
@@ -34,13 +36,7 @@ func checkReadiness(rp *RunningPlugin) {
 		rp.Err = fmt.Errorf("ParseDuration failed with error %s", err)
 		return
 	}
-	var opts grpc.DialOption
-	if rp.config.PluginsOptions.NoTls {
-		opts = remote.GetDefaultCopt(nil)
-	} else {
-		rp.Err = errors.New("TLS for plugins not yet implemented")
-		return
-	}
+	opts := rp.TlsClientOptions
 	for count := 0; count < rp.config.PluginReadyRetries; count++ {
 		cli, err := remote.CheckServerReadiness(fmt.Sprintf("%s:%d", rp.config.PluginAddress, rp.port), opts)
 		rp.Err = err
@@ -84,7 +80,7 @@ func getExecutablePath(plugin *config.PluginType) (string, error) {
 	return path.Join(path.Dir(exe), fmt.Sprintf("%s%s", plugin.Type, path.Ext(exe))), nil
 }
 
-func RunConfData(yamlConf string) ([]*RunningPlugin, error) {
+func RunConfData(yamlConf string, tab TlsArgsBuilder) ([]*RunningPlugin, error) {
 	config, err := config.Load(yamlConf)
 	if err != nil {
 		return nil, err
@@ -108,6 +104,18 @@ func RunConfData(yamlConf string) ([]*RunningPlugin, error) {
 		}
 		for _, addArg := range plugin.AddArgs {
 			args = append(args, addArg)
+		}
+		if tab != nil {
+			pArgs, cOpts, err := tab(config.PluginsOptions)
+			if err != nil {
+				crp.Err = fmt.Errorf("PluginsOptions for %s error %s", plugin.Name, err)
+				rps = append(rps, &crp)
+				continue
+			}
+			for _, addArg := range pArgs {
+				args = append(args, addArg)
+			}
+			crp.TlsClientOptions = cOpts
 		}
 		pExe, err := getExecutablePath(plugin)
 		if err != nil {
@@ -135,7 +143,7 @@ func RunConfFile(confPath string) ([]*RunningPlugin, error) {
 	if err != nil {
 		return nil, err
 	}
-	return RunConfData(string(bs))
+	return RunConfData(string(bs), nil)
 }
 
 func Shutdown(rps []*RunningPlugin) {

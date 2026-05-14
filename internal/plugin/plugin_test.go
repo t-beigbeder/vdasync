@@ -32,7 +32,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -56,7 +56,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -80,7 +80,7 @@ plugins:
   executablePath: ${exe}doesnotexist
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -104,7 +104,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO, -badoption]
 `
-	rps, err := RunConfData(setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -124,7 +124,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf))
+	rps, err := RunConfData(setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))

@@ -35,6 +35,7 @@ func TestParseUrl(t *testing.T) {
 		{"dss://server/root/path8", "", "server", 0, "/root/path8", false},
 		{"dss://server:443/rootpath9", "", "server", 443, "/rootpath9", false},
 		{"dss://server:443/root/path10", "", "server", 443, "/root/path10", false},
+		{"lf+dss://server:443/root/path11", "lf", "server", 443, "/root/path11", false},
 		{"notdss:/rootPath3", "", "", 0, "", true},
 		{"lf+notdss:/rootPath3", "", "", 0, "", true},
 		{"lf+notdss://server:443/root/path10", "", "", 0, "", true},

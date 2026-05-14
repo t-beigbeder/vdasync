@@ -40,8 +40,13 @@ func main() {
 		if err != nil {
 			common.Fatal(lgr, err)
 		}
-		if rps, err = cli.RunPlugins(string(confData)); err != nil {
+		if rps, err = cli.RunPlugins(string(confData), cf); err != nil {
 			common.Fatal(lgr, err)
+		}
+		if len(plugin.Errors(rps)) > 0 {
+			lgr.Error("some errors occured in plugins", "errs", plugin.Errors(rps))
+			cli.CleanUp(lgr, rps)
+			common.Fatal(lgr, errors.New("plugins error(s)"))
 		}
 		defer cli.CleanUp(lgr, rps)
 	}

@@ -11,7 +11,9 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
+	"google.golang.org/grpc"
 )
 
 type CommonFlagsType struct {
@@ -120,8 +122,12 @@ func NormalizeRoot(rootPath string) (string, error) {
 	return filepath.Abs(rootPath)
 }
 
-func RunPlugins(confData string) ([]*plugin.RunningPlugin, error) {
-	rps, err := plugin.RunConfData(confData)
+func RunPlugins(confData string, cf *CommonFlagsType) ([]*plugin.RunningPlugin, error) {
+	tab := func(cfg *config.PluginsOptionsType) ([]string, grpc.DialOption, error) {
+		dop, err := GetClientPluginTls(cf, cfg)
+		return GetPluginTlsOpts(cf, cfg), dop, err
+	}
+	rps, err := plugin.RunConfData(confData, tab)
 	if err != nil {
 		return nil, err
 	}

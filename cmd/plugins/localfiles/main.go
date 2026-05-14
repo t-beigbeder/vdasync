@@ -11,6 +11,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/remote"
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -31,15 +32,24 @@ func main() {
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	_, _ = *nameFlag, *typeFlag
+	sop, err := cli.GetServerOrPluginTls(cf)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
+	var sops []grpc.ServerOption
+	if sop != nil {
+		sops = []grpc.ServerOption{sop}
+	}
 
-	lgr.Info(fmt.Sprintf("%s.main starting", cmd), "host", *hostFlag, "port", *portFlag)
+	lgr.Info(fmt.Sprintf("%s.main starting", cmd), "name", *nameFlag, "type", *typeFlag, "host", *hostFlag, "port", *portFlag)
 	done := make(chan bool)
 	cb := func() {
 		lgr.Debug("shutdownCb called, closing done")
 		close(done)
 	}
-	_, _, err = remote.RunOpeDssaServer(lgr, context.Background(), *hostFlag, *portFlag, nil, localfiles.MakeLocalFilesDssa(), cb)
+	_, _, err = remote.RunOpeDssaServer(
+		lgr, context.Background(), *hostFlag, *portFlag,
+		sops, localfiles.MakeLocalFilesDssa(), cb)
 	<-done
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("RunOpeDssaServer failed %s", err))
