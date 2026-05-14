@@ -16,7 +16,7 @@ func TestFileFunctions(t *testing.T) {
 	td := t.TempDir()
 	ft := path.Join(td, "TestFileFunctions.dat")
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
-	cli, cFunc, err := GrpcGetTestClient()
+	cli, cFunc, err := GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
 	ctx := context.Background()

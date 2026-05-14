@@ -33,7 +33,7 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 }
 
 func getTestDss() (dssa.Dssa, dssa.Dssa, context.CancelFunc, error) {
-	cli, cFunc, err := remote.GrpcGetTestClient()
+	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	if err != nil {
 		return nil, nil, nil, err
 	}

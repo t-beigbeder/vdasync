@@ -300,7 +300,7 @@ func NewCertFiles(hosts []string, caCertFile, caKeyFile, certFile, keyFile strin
 }
 
 func GetInsecureSkipVerifyConfig() *tls.Config {
-		return &tls.Config{
+	return &tls.Config{
 		InsecureSkipVerify: true,
 	}
 }

@@ -2,7 +2,6 @@ package remote
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"net"
 	"time"
@@ -12,8 +11,6 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 const testHost = "localhost"
@@ -65,16 +62,14 @@ func RunGrpcTestServer(opt ...grpc.ServerOption) (int, context.CancelFunc, error
 	return doRunGrpcTestServer(0, opt...)
 }
 
-func checkLocalServerReadiness(port int) (
+func checkLocalServerReadiness(port int, copt grpc.DialOption) (
 	cli OpeDssaClient, err error,
 ) {
-	tcinsec := insecure.NewCredentials()
-	_, _ = tcinsec, tcskip
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(tcskip)}
-	return CheckServerReadiness(fmt.Sprintf("%s:%d", testHost, port), opts...)
+	return CheckServerReadiness(fmt.Sprintf("%s:%d", testHost, port), GetDefaultCopt(copt))
 }
 
-func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration, opt ...grpc.ServerOption) (
+func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration,
+	copt grpc.DialOption, sopt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
 	var (
@@ -82,12 +77,12 @@ func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDel
 		err    error
 		cli    OpeDssaClient
 	)
-	port, cancel, err := doRunGrpcTestServer(serverTToListen, opt...)
+	port, cancel, err := doRunGrpcTestServer(serverTToListen, sopt...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("doGrpcGetTestClient: doRunGrpcTestServer failed %v", err)
 	}
 	for count := 0; count < retryCount; count++ {
-		cli, err = checkLocalServerReadiness(port)
+		cli, err = checkLocalServerReadiness(port, copt)
 		if err == nil {
 			break
 		}
@@ -100,8 +95,8 @@ func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDel
 	return cli, cancel, nil
 }
 
-func GrpcGetTestClient(opt ...grpc.ServerOption) (
+func GrpcGetTestClient(copt grpc.DialOption, sopt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
-	return doGrpcGetTestClient(0, 3, 20*time.Millisecond, opt...)
+	return doGrpcGetTestClient(0, 3, 20*time.Millisecond, copt, sopt...)
 }

@@ -23,7 +23,7 @@ func TestGrpcGetTestClientBase(t *testing.T) {
 	t.Chdir(td)
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
 
-	cli, cFunc, err := GrpcGetTestClient()
+	cli, cFunc, err := GrpcGetTestClient(nil)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
@@ -63,7 +63,7 @@ func TestGrpcGetTestClientWaitSlowStart(t *testing.T) {
 	t.Chdir(td)
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
 
-	cli, cFunc, err := doGrpcGetTestClient(250*time.Millisecond, 5, 20*time.Millisecond)
+	cli, cFunc, err := doGrpcGetTestClient(250*time.Millisecond, 5, 20*time.Millisecond, nil)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
@@ -86,7 +86,7 @@ func TestGrpcGetTestClientWaitSlowStart(t *testing.T) {
 }
 
 func TestRunGrpcTestServerShutdown(t *testing.T) {
-	cli, _, err := GrpcGetTestClient()
+	cli, _, err := GrpcGetTestClient(nil)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})

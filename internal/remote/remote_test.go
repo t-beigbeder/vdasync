@@ -13,8 +13,6 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/opegrpc"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 func TestRunOpeDssaServer(t *testing.T) {
@@ -23,8 +21,7 @@ func TestRunOpeDssaServer(t *testing.T) {
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
 	port, cFunc, err := RunOpeDssaServer(common.GetLogger(), context.Background(), testHost, 0, nil, localfiles.MakeLocalFilesDssa(), nil)
 	require.Nil(t, err)
-	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	cli, conn, err := NewOpeDssaClient(fmt.Sprintf("%s:%d", testHost, port), opts...)
+	cli, conn, err := NewOpeDssaClient(fmt.Sprintf("%s:%d", testHost, port), nil)
 	require.Nil(t, err)
 	defer conn.Close()
 

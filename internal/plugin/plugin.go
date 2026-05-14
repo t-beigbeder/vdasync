@@ -14,7 +14,6 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/remote"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 type RunningPlugin struct {
@@ -35,15 +34,15 @@ func checkReadiness(rp *RunningPlugin) {
 		rp.Err = fmt.Errorf("ParseDuration failed with error %s", err)
 		return
 	}
-	opts := []grpc.DialOption{}
+	var opts grpc.DialOption
 	if rp.config.PluginsOptions.NoTls {
-		opts = append(opts, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		opts = remote.GetDefaultCopt(nil)
 	} else {
 		rp.Err = errors.New("TLS for plugins not yet implemented")
 		return
 	}
 	for count := 0; count < rp.config.PluginReadyRetries; count++ {
-		cli, err := remote.CheckServerReadiness(fmt.Sprintf("%s:%d", rp.config.PluginAddress, rp.port), opts...)
+		cli, err := remote.CheckServerReadiness(fmt.Sprintf("%s:%d", rp.config.PluginAddress, rp.port), opts)
 		rp.Err = err
 		if err == nil {
 			rp.Client = cli

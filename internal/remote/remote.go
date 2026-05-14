@@ -12,6 +12,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type OpeDssaClient interface {
@@ -24,8 +25,15 @@ type opeDssaClient struct {
 	dssagrpc.DataStorageSystemClient
 }
 
-func NewOpeDssaClient(target string, opts ...grpc.DialOption) (OpeDssaClient, *grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(target, opts...)
+func GetDefaultCopt(copt grpc.DialOption) grpc.DialOption {
+	if copt == nil {
+		copt = grpc.WithTransportCredentials(insecure.NewCredentials())
+	}
+	return copt
+}
+
+func NewOpeDssaClient(target string, copt grpc.DialOption) (OpeDssaClient, *grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(target, GetDefaultCopt(copt))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -34,10 +42,10 @@ func NewOpeDssaClient(target string, opts ...grpc.DialOption) (OpeDssaClient, *g
 	return opeDssaClient{OpeClient: oc, DataStorageSystemClient: dc}, conn, nil
 }
 
-func CheckServerReadiness(target string, opts ...grpc.DialOption) (
+func CheckServerReadiness(target string, copt grpc.DialOption) (
 	OpeDssaClient, error,
 ) {
-	cli, conn, err := NewOpeDssaClient(target, opts...)
+	cli, conn, err := NewOpeDssaClient(target, GetDefaultCopt(copt))
 	if err != nil {
 		return nil, err
 	}
