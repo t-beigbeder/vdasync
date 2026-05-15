@@ -48,10 +48,10 @@ func CommonFlags() *CommonFlagsType {
 		NoTlsPluginFlag:    flag.Bool("notlsplugin", false, "insecure communication with plugins over http"),
 		TlsInsecFlag:       flag.Bool("insec", false, "don't check certificate when communicating with server"),
 		TlsInsecPluginFlag: flag.Bool("insecplugin", false, "don't check certificate when communicating with plugins"),
-		ClientCaCertFlag:   flag.String("clientca", "", "client TLS certificate CA"),
+		ClientCaCertFlag:   flag.String("clientca", "", "client TLS CA certificate"),
 		ClientCertFlag:     flag.String("clientcert", "", "client TLS certificate"),
 		ClientKeyFlag:      flag.String("clientkey", "", "client TLS certificate key"),
-		CaCertFlag:         flag.String("ca", "", "server or plugin TLS certificate CA"),
+		CaCertFlag:         flag.String("ca", "", "server or plugin TLS CA certificate"),
 		CertFlag:           flag.String("cert", "", "server or plugin TLS certificate"),
 		KeyFlag:            flag.String("key", "", "server or plugin TLS certificate key"),
 	}

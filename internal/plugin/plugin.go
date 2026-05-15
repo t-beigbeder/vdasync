@@ -16,13 +16,13 @@ import (
 )
 
 type RunningPlugin struct {
-	config *config.CliConfig
-	Plugin *config.PluginType
-	port   int
-	cmd    *exec.Cmd
-	Client remote.OpeDssaClient
+	config           *config.CliConfig
+	Plugin           *config.PluginType
+	port             int
+	cmd              *exec.Cmd
+	Client           remote.OpeDssaClient
 	TlsClientOptions grpc.DialOption
-	Err    error
+	Err              error
 }
 
 type TlsArgsBuilder func(*config.PluginsOptionsType) ([]string, grpc.DialOption, error)

@@ -34,6 +34,20 @@ test-again-verbose:	## go test the application again
 build:	## go build commands
 	go build -o bin/localFiles cmd/plugins/localfiles/main.go
 	go build -o bin/vdasync cmd/vdasync/main.go
+	go build -o bin/testcerts cmd/testcerts/main.go
+	go build -o bin/vdaserver cmd/vdaserver/main.go
+
+.PHONY: gencerts
+gencerts:	## generate test certificates
+	go build -o bin/testcerts cmd/testcerts/main.go
+	bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem
+	@echo openssl x509 -in /tmp/ca-cert.pem -text -noout
+	bin/testcerts -cert /tmp/self-cert.pem -key /tmp/self-key.pem
+	@echo openssl x509 -in /tmp/self-cert.pem -text -noout
+	bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem -hosts localhost,the-server -cert /tmp/localhost-cert.pem -key /tmp/localhost-key.pem
+	@echo openssl x509 -in /tmp/localhost-cert.pem -text -noout
+	bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem -cert /tmp/client-cert.pem -key /tmp/client-key.pem
+	@echo openssl x509 -in /tmp/client-cert.pem -text -noout
 
 .PHONY: format
 format:	## format go code
