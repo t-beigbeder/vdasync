@@ -3,17 +3,9 @@ package cli
 import (
 	"flag"
 	"fmt"
-	"log/slog"
-	"os"
-	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"syscall"
-
-	"github.com/t-beigbeder/vdasync/config"
-	"github.com/t-beigbeder/vdasync/internal/plugin"
-	"google.golang.org/grpc"
 )
 
 type CommonFlagsType struct {
@@ -120,40 +112,4 @@ func ParseUrl(url string) (pluginName, host string, port int, rootPath string, e
 
 func NormalizeRoot(rootPath string) (string, error) {
 	return filepath.Abs(rootPath)
-}
-
-func RunPlugins(confData string, cf *CommonFlagsType) ([]*plugin.RunningPlugin, error) {
-	tab := func(cfg *config.PluginsOptionsType) ([]string, grpc.DialOption, error) {
-		dop, err := GetClientPluginTls(cf, cfg)
-		return GetPluginTlsOpts(cf, cfg), dop, err
-	}
-	rps, err := plugin.RunConfData(confData, tab)
-	if err != nil {
-		return nil, err
-	}
-	return rps, nil
-}
-
-func SetSignalHandler(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		for sig := range c {
-			lgr.Error("main: signal received, preparing to exit", "signal", sig)
-			CleanUp(lgr, rps)
-			os.Exit(1)
-		}
-	}()
-}
-
-func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
-	lgr.Info("CleanUp: plugins Shutdown")
-	plugin.Shutdown(rps)
-	lgr.Info("CleanUp: plugins WaitFor")
-	plugin.WaitFor(rps)
-	for _, rp := range rps {
-		if rp.Err != nil {
-			lgr.Error("main: plugin error", "error", rp.Err)
-		}
-	}
 }

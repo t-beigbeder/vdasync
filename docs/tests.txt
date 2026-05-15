@@ -1,7 +1,11 @@
 mkdir /tmp/copy-of-locgit
 bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target /tmp/copy-of-locgit -silent
+
 mkdir /tmp/copy-of-bin
 bin/vdasync -conc 4 -dryrun -rm -source bin -target lf+dss:/tmp/copy-of-bin -config testdata/cmd/basicConfig.yaml -level INFO
+
+bin/vdaserver -host localhost -port 8080 -log stderr -level INFO -notls
+bin/vdasync -conc 4 -dryrun -rm -source bin -target dss://localhost:8080/tmp/copy-of-bin -config testdata/cmd/basicConfig.yaml -level INFO
 
 bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target lf+dss:/tmp/copy-of-locgit -config testdata/cmd/basicConfig.yaml -silent
 

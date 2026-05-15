@@ -11,9 +11,9 @@ import (
 
 func main() {
 	var (
-		CaKeyFlag = flag.String("cakey", "", "TLS CA certificate key")
-		HostFlag = flag.String("host", "localhost", "TLS certificate host for self-signed")
-		HostsFlag = flag.String("hosts", "", "List of TLS certificate hosts, separated by comma, if empty: client certificate")
+		caKeyFlag = flag.String("cakey", "", "TLS CA certificate key")
+		hostFlag = flag.String("host", "localhost", "TLS certificate host for self-signed")
+		hostsFlag = flag.String("hosts", "", "List of TLS certificate hosts, separated by comma, if empty: client certificate")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -23,25 +23,25 @@ func main() {
 	}
 	if *cf.CaCertFlag != "" && *cf.CertFlag == "" {
 		// bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem
-		if err := tls.NewCaCertFiles(*cf.CaCertFlag, *CaKeyFlag); err != nil {
+		if err := tls.NewCaCertFiles(*cf.CaCertFlag, *caKeyFlag); err != nil {
 			common.Fatal(lgr, err)
 		}
 		return
 	}
 	if *cf.CertFlag != "" && *cf.CaCertFlag == "" {
 		// bin/testcerts -cert /tmp/loc-cert.pem -key /tmp/loc-key.pem
-		if err := tls.SelfSignedFiles(*HostFlag, *cf.CertFlag, *cf.KeyFlag); err != nil {
+		if err := tls.SelfSignedFiles(*hostFlag, *cf.CertFlag, *cf.KeyFlag); err != nil {
 			common.Fatal(lgr, err)
 		}
 		return
 	}
 	// bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem
 	var hosts []string
-	if *HostsFlag != "" {
-		hosts = strings.Split(*HostsFlag, ",")
+	if *hostsFlag != "" {
+		hosts = strings.Split(*hostsFlag, ",")
 	}
 	lgr.Info("hosts", "hosts", hosts)
-	if err := tls.NewCertFiles(hosts, *cf.CaCertFlag, *CaKeyFlag, *cf.CertFlag, *cf.KeyFlag); err != nil {
+	if err := tls.NewCertFiles(hosts, *cf.CaCertFlag, *caKeyFlag, *cf.CertFlag, *cf.KeyFlag); err != nil {
 		common.Fatal(lgr, err)
 	}
 }
