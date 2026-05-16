@@ -59,8 +59,8 @@ func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 func GetDssAndRootFor(cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin) (dss dssa.Dssa, root string, err error) {
 	var (
 		pName string
-		host string
-		port int
+		host  string
+		port  int
 	)
 	sot := "source"
 	if isTarget {

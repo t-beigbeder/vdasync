@@ -12,9 +12,9 @@ import (
 func main() {
 	var (
 		caKeyFlag = flag.String("cakey", "", "TLS CA certificate key")
-		hostFlag = flag.String("host", "localhost", "TLS certificate host for self-signed")
+		hostFlag  = flag.String("host", "localhost", "TLS certificate host for self-signed")
 		hostsFlag = flag.String("hosts", "", "List of TLS certificate hosts, separated by comma, if empty: client certificate")
-		cnFlag = flag.String("cn", "CA", "Common name of the TLS CA")
+		cnFlag    = flag.String("cn", "CA", "Common name of the TLS CA")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
