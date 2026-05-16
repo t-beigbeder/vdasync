@@ -65,7 +65,7 @@ func RunGrpcTestServer(opt ...grpc.ServerOption) (int, context.CancelFunc, error
 func checkLocalServerReadiness(port int, copt grpc.DialOption) (
 	cli OpeDssaClient, err error,
 ) {
-	return CheckServerReadiness(fmt.Sprintf("%s:%d", testHost, port), GetDefaultCopt(copt))
+	return CheckServerReadiness(fmt.Sprintf("%s:%d", testHost, port), CoptOrDefault(copt))
 }
 
 func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration,

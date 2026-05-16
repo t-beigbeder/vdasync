@@ -14,6 +14,7 @@ func main() {
 		caKeyFlag = flag.String("cakey", "", "TLS CA certificate key")
 		hostFlag = flag.String("host", "localhost", "TLS certificate host for self-signed")
 		hostsFlag = flag.String("hosts", "", "List of TLS certificate hosts, separated by comma, if empty: client certificate")
+		cnFlag = flag.String("cn", "CA", "Common name of the TLS CA")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -23,7 +24,7 @@ func main() {
 	}
 	if *cf.CaCertFlag != "" && *cf.CertFlag == "" {
 		// bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem
-		if err := tls.NewCaCertFiles(*cf.CaCertFlag, *caKeyFlag); err != nil {
+		if err := tls.NewCaCertFiles(*cf.CaCertFlag, *caKeyFlag, *cnFlag); err != nil {
 			common.Fatal(lgr, err)
 		}
 		return

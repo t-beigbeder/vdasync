@@ -27,9 +27,13 @@ type opeDssaClient struct {
 	dssagrpc.DataStorageSystemClient
 }
 
-func GetDefaultCopt(copt grpc.DialOption) grpc.DialOption {
+func GetNoTlsCopt() grpc.DialOption {
+	return grpc.WithTransportCredentials(insecure.NewCredentials())
+}
+
+func CoptOrDefault(copt grpc.DialOption) grpc.DialOption {
 	if copt == nil {
-		copt = grpc.WithTransportCredentials(insecure.NewCredentials())
+		return GetNoTlsCopt()
 	}
 	return copt
 }
@@ -63,7 +67,7 @@ func GetMutualTlsCopt(caCertFile, certFile, keyFile string) (grpc.DialOption, er
 }
 
 func NewOpeDssaClient(target string, copt grpc.DialOption) (OpeDssaClient, *grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(target, GetDefaultCopt(copt))
+	conn, err := grpc.NewClient(target, CoptOrDefault(copt))
 	if err != nil {
 		return nil, nil, err
 	}
@@ -75,7 +79,7 @@ func NewOpeDssaClient(target string, copt grpc.DialOption) (OpeDssaClient, *grpc
 func CheckServerReadiness(target string, copt grpc.DialOption) (
 	OpeDssaClient, error,
 ) {
-	cli, conn, err := NewOpeDssaClient(target, GetDefaultCopt(copt))
+	cli, conn, err := NewOpeDssaClient(target, CoptOrDefault(copt))
 	if err != nil {
 		return nil, err
 	}

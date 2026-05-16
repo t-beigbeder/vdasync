@@ -47,7 +47,7 @@ func TestSelfSignedKP(t *testing.T) {
 }
 
 func TestNewServerCert(t *testing.T) {
-	pool, caCert, caPrik, err := NewCaCert()
+	pool, caCert, caPrik, err := NewCaCert("CA")
 	require.NoError(t, err)
 	_, _, _ = pool, caCert, caPrik
 	tlsCert, err := NewCert([]string{"0.0.0.0", "localhost"}, caCert, caPrik)
@@ -81,7 +81,7 @@ func TestNewServerCert(t *testing.T) {
 }
 
 func TestNewClientServerCert(t *testing.T) {
-	pool, caCert, caPrik, err := NewCaCert()
+	pool, caCert, caPrik, err := NewCaCert("CA")
 	require.NoError(t, err)
 	sCert, err := NewCert([]string{"0.0.0.0", "localhost"}, caCert, caPrik)
 	require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestNewCaCertFiles(t *testing.T) {
 	td := t.TempDir()
 	err := NewCaCertFiles(
 		filepath.Join(td, "cacert.pem"),
-		filepath.Join(td, "cacert-key.pem"))
+		filepath.Join(td, "cacert-key.pem"), "CA")
 	require.NoError(t, err)
 	pair, err := tls.LoadX509KeyPair(filepath.Join(td, "cacert.pem"), filepath.Join(td, "cacert-key.pem"))
 	require.NoError(t, err)
@@ -146,7 +146,7 @@ func TestNewCertFiles(t *testing.T) {
 	td := t.TempDir()
 	err := NewCaCertFiles(
 		filepath.Join(td, "cacert.pem"),
-		filepath.Join(td, "cacert-key.pem"))
+		filepath.Join(td, "cacert-key.pem"), "CA")
 	require.NoError(t, err)
 	err = NewCertFiles(nil,
 		filepath.Join(td, "cacert.pem"),

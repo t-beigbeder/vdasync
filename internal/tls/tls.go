@@ -116,7 +116,7 @@ func getRandSN() (*big.Int, error) {
 }
 
 // NewCaCert generates a private CA for tests
-func NewCaCert() (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
+func NewCaCert(cn string) (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
 	notBefore := time.Now()
 	notAfter := notBefore.Add(365 * 24 * time.Hour)
 	serialNumber, err := getRandSN()
@@ -127,7 +127,7 @@ func NewCaCert() (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			Organization: []string{"otvl"},
-			CommonName:   "CA",
+			CommonName:   cn,
 		},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
@@ -159,8 +159,8 @@ func NewCaCert() (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 // NewCaCertFiles generate a private CA PEM files for tests
-func NewCaCertFiles(certFile, keyFile string) error {
-	_, caCert, caPrik, err := NewCaCert()
+func NewCaCertFiles(certFile, keyFile string, cn string) error {
+	_, caCert, caPrik, err := NewCaCert(cn)
 	if err != nil {
 		return err
 	}

@@ -5,6 +5,7 @@ help:	## show this help
 	@fgrep -h "##" $(MAKEFILE_LIST) | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/##//'
 
 vPATH := $(shell echo ${PATH})
+CERTS_PATH := $(shell if [ -z "${CERTS_PATH}" ] ; then echo /local/tmp/certs ; else echo ${CERTS_PATH} ; fi)
 
 .PHONY: test
 test: export GO_TEST_LOG_LEVEL = ERROR
@@ -37,17 +38,22 @@ build:	## go build commands
 	go build -o bin/testcerts cmd/testcerts/main.go
 	go build -o bin/vdaserver cmd/vdaserver/main.go
 
-.PHONY: gencerts
-gencerts:	## generate test certificates
+.PHONY: certs
+certs:	## generate test certificates
+	@mkdir -p $(CERTS_PATH)
 	go build -o bin/testcerts cmd/testcerts/main.go
-	bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem
-	@echo openssl x509 -in /tmp/ca-cert.pem -text -noout
-	bin/testcerts -cert /tmp/self-cert.pem -key /tmp/self-key.pem
-	@echo openssl x509 -in /tmp/self-cert.pem -text -noout
-	bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem -hosts localhost,the-server -cert /tmp/localhost-cert.pem -key /tmp/localhost-key.pem
-	@echo openssl x509 -in /tmp/localhost-cert.pem -text -noout
-	bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem -cert /tmp/client-cert.pem -key /tmp/client-key.pem
-	@echo openssl x509 -in /tmp/client-cert.pem -text -noout
+	bin/testcerts -ca $(CERTS_PATH)/sca-cert.pem -cakey $(CERTS_PATH)/sca-key.pem -cn Server-CA
+	@echo openssl x509 -in $(CERTS_PATH)/sca-cert.pem -text -noout
+	bin/testcerts -ca $(CERTS_PATH)/cca-cert.pem -cakey $(CERTS_PATH)/cca-key.pem -cn Client-CA
+	@echo openssl x509 -in $(CERTS_PATH)/cca-cert.pem -text -noout
+	bin/testcerts -cert $(CERTS_PATH)/self-cert.pem -key $(CERTS_PATH)/self-key.pem
+	@echo openssl x509 -in $(CERTS_PATH)/self-cert.pem -text -noout
+	bin/testcerts -ca $(CERTS_PATH)/sca-cert.pem -cakey $(CERTS_PATH)/sca-key.pem -hosts localhost,the-server -cert $(CERTS_PATH)/localhost-cert.pem -key $(CERTS_PATH)/localhost-key.pem
+	@echo openssl x509 -in $(CERTS_PATH)/localhost-cert.pem -text -noout
+	bin/testcerts -ca $(CERTS_PATH)/cca-cert.pem -cakey $(CERTS_PATH)/cca-key.pem -hosts localhost -cert $(CERTS_PATH)/plugin-cert.pem -key $(CERTS_PATH)/plugin-key.pem
+	@echo openssl x509 -in $(CERTS_PATH)/plugin-cert.pem -text -noout
+	bin/testcerts -ca $(CERTS_PATH)/cca-cert.pem -cakey $(CERTS_PATH)/cca-key.pem -cert $(CERTS_PATH)/client-cert.pem -key $(CERTS_PATH)/client-key.pem
+	@echo openssl x509 -in $(CERTS_PATH)/client-cert.pem -text -noout
 
 .PHONY: format
 format:	## format go code

@@ -58,7 +58,7 @@ func NewTestCerts(testDir string, hosts []string, hasSecClient bool) (map[string
 		"c1k": path.Join(c1Dir, "c1cert-key.pem"),
 	}
 	if err := makeCertIf(caDir, func() error {
-		return NewCaCertFiles(cfs["cac"], cfs["cak"])
+		return NewCaCertFiles(cfs["cac"], cfs["cak"], "CA")
 	}); err != nil {
 		return nil, err
 	}

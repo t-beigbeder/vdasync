@@ -6,7 +6,7 @@ Vdasync provides access to files or data, either local or remote,
 through a CLI and a simple API.
 
 The CLI main use is to synchronize data among different locations,
-for instance for backup and restore, or controlled data replication.
+for instance for data backup and restore or replication.
 Synchronization may be very fast as the implementation leverages concurrency.
 
 Remote access is implemented with gRPC that uses HTTP/2 transport.
@@ -18,7 +18,7 @@ through the use of plugins. The tool provides the following plugins:
 synchronizing OS files and directories attributes if wanted
 - sftp client
 - client-side encrypted storage over any kind of data access mean: files or plugin
-- testing plugin simply providing access to local files
+- access to local files, a plugin that simulates remote access locally for testing purpose
 
 ## Status
 
