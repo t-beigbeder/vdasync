@@ -6,6 +6,7 @@ help:	## show this help
 
 vPATH := $(shell echo ${PATH})
 CERTS_PATH := $(shell if [ -z "${CERTS_PATH}" ] ; then echo /local/tmp/certs ; else echo ${CERTS_PATH} ; fi)
+CERT_SERVER := $(shell if [ -z "${CERT_SERVER}" ] ; then hostname ; else echo ${CERT_SERVER} ; fi)
 
 .PHONY: test
 test: export GO_TEST_LOG_LEVEL = ERROR
@@ -48,7 +49,7 @@ certs:	## generate test certificates
 	@echo openssl x509 -in $(CERTS_PATH)/cca-cert.pem -text -noout
 	bin/testcerts -cert $(CERTS_PATH)/self-cert.pem -key $(CERTS_PATH)/self-key.pem
 	@echo openssl x509 -in $(CERTS_PATH)/self-cert.pem -text -noout
-	bin/testcerts -ca $(CERTS_PATH)/sca-cert.pem -cakey $(CERTS_PATH)/sca-key.pem -hosts localhost,the-server -cert $(CERTS_PATH)/localhost-cert.pem -key $(CERTS_PATH)/localhost-key.pem
+	bin/testcerts -ca $(CERTS_PATH)/sca-cert.pem -cakey $(CERTS_PATH)/sca-key.pem -hosts localhost,$(CERT_SERVER) -cert $(CERTS_PATH)/localhost-cert.pem -key $(CERTS_PATH)/localhost-key.pem
 	@echo openssl x509 -in $(CERTS_PATH)/localhost-cert.pem -text -noout
 	bin/testcerts -ca $(CERTS_PATH)/cca-cert.pem -cakey $(CERTS_PATH)/cca-key.pem -hosts localhost -cert $(CERTS_PATH)/plugin-cert.pem -key $(CERTS_PATH)/plugin-key.pem
 	@echo openssl x509 -in $(CERTS_PATH)/plugin-cert.pem -text -noout

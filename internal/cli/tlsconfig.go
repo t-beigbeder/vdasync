@@ -6,12 +6,12 @@ import (
 	"google.golang.org/grpc"
 )
 
-func GetServerTls(cf *CommonFlagsType) (grpc.ServerOption, error) {
+func GetServerOrPluginTls(cf *CommonFlagsType) (grpc.ServerOption, error) {
 	if *cf.NoTlsFlag {
 		return nil, nil
 	}
-	if *cf.TlsInsecFlag {
-		return nil, nil
+	if *cf.ClientCaCertFlag == "" {
+		return remote.GetSimpleTlsSOpt(*cf.CertFlag, *cf.KeyFlag)
 	}
 	return remote.GetMutualTlsSOpt(*cf.ClientCaCertFlag, *cf.CertFlag, *cf.KeyFlag)
 }
@@ -27,6 +27,9 @@ func confStringMerge(s1, s2 string) string {
 }
 
 func GetClientServerTls(cf *CommonFlagsType, cfg *config.DataStoreType) (grpc.DialOption, error) {
+	if cfg == nil {
+		cfg = &config.DataStoreType{}
+	}
 	if *cf.NoTlsFlag || cfg.NoTls {
 		return nil, nil
 	}
@@ -36,6 +39,9 @@ func GetClientServerTls(cf *CommonFlagsType, cfg *config.DataStoreType) (grpc.Di
 	caf := confStringMerge(*cf.CaCertFlag, cfg.CaCertPath)
 	ccf := confStringMerge(*cf.ClientCertFlag, cfg.ClientCertPath)
 	ckf := confStringMerge(*cf.ClientKeyFlag, cfg.ClientKeyPath)
+	if ccf == "" {
+		return nil, nil
+	}
 	return remote.GetMutualTlsCopt(caf, ccf, ckf)
 }
 
@@ -46,7 +52,7 @@ func GetClientPluginTls(cf *CommonFlagsType, cfg *config.PluginsOptionsType) (gr
 	if *cf.TlsInsecPluginFlag || cfg.Insecure {
 		return remote.GetInsecureSkipVerifyCopt(), nil
 	}
-	caf := confStringMerge(*cf.CaCertFlag, cfg.CaCertPath)
+	caf := confStringMerge(*cf.ClientCaCertFlag, cfg.CaCertPath)
 	ccf := confStringMerge(*cf.ClientCertFlag, cfg.ClientCertPath)
 	ckf := confStringMerge(*cf.ClientKeyFlag, cfg.ClientKeyPath)
 	return remote.GetMutualTlsCopt(caf, ccf, ckf)
@@ -58,7 +64,7 @@ func GetPluginTlsOpts(cf *CommonFlagsType, cfg *config.PluginsOptionsType) (tlsA
 		tlsArgs = append(tlsArgs, "-notls")
 		return
 	}
-	caf := confStringMerge(*cf.CaCertFlag, cfg.CaCertPath)
+	caf := confStringMerge(*cf.ClientCaCertFlag, cfg.CaCertPath)
 	if caf != "" {
 		tlsArgs = append(tlsArgs, "-clientca", caf)
 	}
@@ -71,14 +77,4 @@ func GetPluginTlsOpts(cf *CommonFlagsType, cfg *config.PluginsOptionsType) (tlsA
 		tlsArgs = append(tlsArgs, "-key", ckf)
 	}
 	return
-}
-
-func GetServerOrPluginTls(cf *CommonFlagsType) (grpc.ServerOption, error) {
-	if *cf.NoTlsFlag {
-		return nil, nil
-	}
-	if *cf.ClientCaCertFlag == "" {
-		return remote.GetSimpleTlsSOpt(*cf.CertFlag, *cf.KeyFlag)
-	}
-	return remote.GetMutualTlsSOpt(*cf.ClientCaCertFlag, *cf.CertFlag, *cf.KeyFlag)
 }

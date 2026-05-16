@@ -98,3 +98,15 @@ func Load(config string) (*CliConfig, error) {
 	}
 	return &conf, nil
 }
+
+func RemoteDataStore(cfg *CliConfig, host string, port int) (*DataStoreType) {
+	if cfg == nil {
+		cfg = &CliConfig{}
+	}
+	for _, ds := range cfg.DataStores {
+		if ds.Host == host && ds.Port == port {
+			return ds
+		}
+	}
+	return nil
+}

@@ -4,8 +4,20 @@ bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target /tmp/copy-of-locgit -si
 mkdir /tmp/copy-of-bin
 bin/vdasync -conc 4 -dryrun -rm -source bin -target lf+dss:/tmp/copy-of-bin -config testdata/cmd/basicConfig.yaml -level INFO
 
-bin/vdaserver -host localhost -port 8080 -log stderr -level INFO -notls
-bin/vdasync -conc 4 -dryrun -rm -source bin -target dss://localhost:8080/tmp/copy-of-bin -config testdata/cmd/basicConfig.yaml -level INFO
+bin/vdaserver -host `hostname` -port 9090 -log stderr -level INFO -notls
+bin/vdasync -conc 4 -dryrun -rm -source bin -target dss://`hostname`:9090/tmp/copy-of-bin -level INFO -notls
+
+bin/vdaserver -host `hostname` -port 9443 -log stderr -level INFO -cert /local/tmp/certs/self-cert.pem -key /local/tmp/certs/self-key.pem
+bin/vdasync -conc 4 -dryrun -rm -source bin -target dss://`hostname`:9443/tmp/copy-of-bin -level INFO -insec
+
+bin/vdaserver -host `hostname` -port 9443 -log stderr -level INFO -cert /local/tmp/certs/localhost-cert.pem -key /local/tmp/certs/localhost-key.pem
+bin/vdasync -conc 4 -dryrun -rm -source bin -target dss://`hostname`:9443/tmp/copy-of-bin -level INFO -ca /local/tmp/certs/sca-cert.pem -insec
+
+bin/vdaserver -host `hostname` -port 9443 -log stderr -level INFO -cert /local/tmp/certs/localhost-cert.pem -key /local/tmp/certs/localhost-key.pem -clientca /local/tmp/certs/cca-cert.pem
+bin/vdasync -conc 4 -dryrun -rm -source bin -target dss://`hostname`:9443/tmp/copy-of-bin -level INFO -ca /local/tmp/certs/sca-cert.pem -clientcert /local/tmp/certs/client-cert.pem -clientkey /local/tmp/certs/client-key.pem
+bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target dss://`hostname`:9443/tmp/copy-of-locgit -level INFO -ca /local/tmp/certs/sca-cert.pem -clientcert /local/tmp/certs/client-cert.pem -clientkey /local/tmp/certs/client-key.pem
+bin/vdasync -conc 4 -rm -source ~/locgit -target dss://`hostname`:9443/tmp/copy-of-locgit -level INFO -silent -ca /local/tmp/certs/sca-cert.pem -clientcert /local/tmp/certs/client-cert.pem -clientkey /local/tmp/certs/client-key.pem
+
 
 bin/vdasync -conc 4 -dryrun -rm -source ~/locgit -target lf+dss:/tmp/copy-of-locgit -config testdata/cmd/basicConfig.yaml -silent
 

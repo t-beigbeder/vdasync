@@ -11,13 +11,18 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
+	"github.com/t-beigbeder/vdasync/internal/remote"
 	"google.golang.org/grpc"
 )
 
 func RunPlugins(confData string, cf *CommonFlagsType) ([]*plugin.RunningPlugin, error) {
 	tab := func(cfg *config.PluginsOptionsType) ([]string, grpc.DialOption, error) {
 		dop, err := GetClientPluginTls(cf, cfg)
+		if err != nil {
+			return nil, nil, err
+		}
 		return GetPluginTlsOpts(cf, cfg), dop, err
 	}
 	rps, err := plugin.RunConfData(confData, tab)
@@ -51,7 +56,7 @@ func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	}
 }
 
-func GetDssAndRootFor(isTarget bool, url string, rps []*plugin.RunningPlugin) (dss dssa.Dssa, root string, err error) {
+func GetDssAndRootFor(cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin) (dss dssa.Dssa, root string, err error) {
 	var (
 		pName string
 		host string
@@ -65,6 +70,10 @@ func GetDssAndRootFor(isTarget bool, url string, rps []*plugin.RunningPlugin) (d
 	if err != nil {
 		return
 	}
+	if pName == "" && host == "" && port == 0 {
+		dss = localfiles.MakeLocalFilesDssa()
+		return
+	}
 	if pName != "" {
 		rp := plugin.PluginFor(pName, rps)
 		if rp == nil {
@@ -74,8 +83,16 @@ func GetDssAndRootFor(isTarget bool, url string, rps []*plugin.RunningPlugin) (d
 		dss = grpcclient.MakeGrpcClient(context.Background(), rp.Client)
 		return
 	}
+	dst := config.RemoteDataStore(cfg, host, port)
+	copt, err := GetClientServerTls(cf, dst)
+	if err != nil {
+		return
+	}
 	address := fmt.Sprintf("%s:%d", host, port)
-	//remote.CheckServerReadiness(address, )
-	err = fmt.Errorf("not yet implemented, url %s, address %s", url, address)
+	cli, err := remote.CheckServerReadiness(address, copt)
+	if err != nil {
+		return
+	}
+	dss = grpcclient.MakeGrpcClient(context.Background(), cli)
 	return
 }
