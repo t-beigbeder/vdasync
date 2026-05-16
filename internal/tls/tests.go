@@ -11,12 +11,12 @@ import (
 )
 
 func getCertDirs(testDir string, hosts []string) (string, string, string, string) {
-	if os.Getenv("QSTF_TEST_CACHE") == "" {
+	if os.Getenv("OTVL_TEST_CACHE") == "" {
 		return testDir, testDir, testDir, testDir
 	}
-	tcd := os.Getenv("QSTF_TEST_CERTS_DIR")
+	tcd := os.Getenv("OTVL_TEST_CERTS_DIR")
 	if tcd == "" {
-		tcd = path.Join(os.TempDir(), "qstf_test_certs")
+		tcd = path.Join(os.TempDir(), "otvl_test_certs")
 	}
 	svh := fmt.Sprintf("%064x", sha256.Sum256([]byte(strings.Join(hosts, ","))))
 	return path.Join(tcd, "ca"),
@@ -26,7 +26,7 @@ func getCertDirs(testDir string, hosts []string) (string, string, string, string
 }
 
 func makeCertIf(certDir string, maker func() error) error {
-	if os.Getenv("QSTF_TEST_CACHE") == "" {
+	if os.Getenv("OTVL_TEST_CACHE") == "" {
 		return maker()
 	}
 	ffn := path.Join(certDir, "done.flag")
@@ -58,7 +58,7 @@ func NewTestCerts(testDir string, hosts []string, hasSecClient bool) (map[string
 		"c1k": path.Join(c1Dir, "c1cert-key.pem"),
 	}
 	if err := makeCertIf(caDir, func() error {
-		return NewCaCertFiles(cfs["cac"], cfs["cak"])
+		return NewCaCertFiles(cfs["cac"], cfs["cak"], "CA")
 	}); err != nil {
 		return nil, err
 	}

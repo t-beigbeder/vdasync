@@ -17,7 +17,7 @@ import (
 func TestFunctions(t *testing.T) {
 	ft := path.Join(t.TempDir(), "TestFileFunctions.dat")
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
-	cli, cFunc, err := remote.GrpcGetTestClient()
+	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := MakeGrpcClient(context.Background(), cli)
@@ -79,7 +79,7 @@ func TestFunctions(t *testing.T) {
 func TestWriter(t *testing.T) {
 	tds := t.TempDir()
 	tdt := t.TempDir()
-	cli, cFunc, err := remote.GrpcGetTestClient()
+	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := MakeGrpcClient(context.Background(), cli)
@@ -113,7 +113,7 @@ func TestWriter(t *testing.T) {
 func TestReader(t *testing.T) {
 	tds := t.TempDir()
 	tdd := t.TempDir()
-	cli, cFunc, err := remote.GrpcGetTestClient()
+	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := MakeGrpcClient(context.Background(), cli)

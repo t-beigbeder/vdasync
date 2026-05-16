@@ -5,7 +5,10 @@ import (
 )
 
 type PluginsOptionsType struct {
-	Tls            bool   `yaml`
+	NoTls          bool   `yaml:"noTls"`
+	Insecure       bool   `yaml`
+	CertPath       string `yaml:"certPath"`
+	KeyPath        string `yaml:"keyPath"`
 	CaCertPath     string `yaml:"caCertPath"`
 	ClientCertPath string `yaml:"clientCertPath"`
 	ClientKeyPath  string `yaml:"clientKeyPath"`
@@ -26,7 +29,8 @@ type DataStoreType struct {
 	PluginName     string `yaml:"pluginName"`
 	Host           string `yaml`
 	Port           int    `yaml`
-	Tls            bool   `yaml`
+	Insecure       bool   `yaml`
+	NoTls          bool   `yaml`
 	CaCertPath     string `yaml:"caCertPath"`
 	ClientCertPath string `yaml:"clientCertPath"`
 	ClientKeyPath  string `yaml:"clientKeyPath"`
@@ -41,24 +45,25 @@ type SyncOptionsType struct {
 }
 
 type CliConfig struct {
-	Version                    string              `yaml`
-	PluginsOptions             *PluginsOptionsType `yaml:"pluginsOptions"`
-	Plugins                    []*PluginType       `yaml`
-	PluginReadyRetries         int                 `yaml:"pluginReadyRetries"`
-	PluginReadyTimeout         string              `yaml:"pluginReadyTimeout"`
-	PluginAddress              string              `yaml:"pluginAddress"`
-	PluginTransportCredentials string              `yaml:"pluginTransportCredentials"`
-	DataStores                 []*DataStoreType    `yaml:"dataStores"`
-	SyncOptions                *SyncOptionsType    `yaml:"syncOptions"`
+	Version            string              `yaml`
+	PluginsOptions     *PluginsOptionsType `yaml:"pluginsOptions"`
+	Plugins            []*PluginType       `yaml`
+	PluginReadyRetries int                 `yaml:"pluginReadyRetries"`
+	PluginReadyTimeout string              `yaml:"pluginReadyTimeout"`
+	PluginAddress      string              `yaml:"pluginAddress"`
+	DataStores         []*DataStoreType    `yaml:"dataStores"`
+	SyncOptions        *SyncOptionsType    `yaml:"syncOptions"`
 }
 
 const CliConfigDefaultYaml string = `
 version: "0.1"
+pluginsOptions:
+  noTls: false
+  insecure: false
 plugins:
 pluginReadyRetries: 3
 pluginReadyTimeout: "20ms"
 pluginAddress: "localhost"
-pluginTransportCredentials: "insecure"
 `
 
 const PluginTypeDefaultYaml string = `
@@ -92,4 +97,16 @@ func Load(config string) (*CliConfig, error) {
 		return nil, err
 	}
 	return &conf, nil
+}
+
+func RemoteDataStore(cfg *CliConfig, host string, port int) (*DataStoreType) {
+	if cfg == nil {
+		cfg = &CliConfig{}
+	}
+	for _, ds := range cfg.DataStores {
+		if ds.Host == host && ds.Port == port {
+			return ds
+		}
+	}
+	return nil
 }

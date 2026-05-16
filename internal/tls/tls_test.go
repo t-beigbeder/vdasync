@@ -15,7 +15,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
-func TestSelfSigned(t *testing.T) {
+func TestSelfSignedKP(t *testing.T) {
 	cert, err := SelfSigned("localhost")
 	if err != nil {
 		t.Fatal(err)
@@ -47,7 +47,7 @@ func TestSelfSigned(t *testing.T) {
 }
 
 func TestNewServerCert(t *testing.T) {
-	pool, caCert, caPrik, err := NewCaCert()
+	pool, caCert, caPrik, err := NewCaCert("CA")
 	require.NoError(t, err)
 	_, _, _ = pool, caCert, caPrik
 	tlsCert, err := NewCert([]string{"0.0.0.0", "localhost"}, caCert, caPrik)
@@ -81,7 +81,7 @@ func TestNewServerCert(t *testing.T) {
 }
 
 func TestNewClientServerCert(t *testing.T) {
-	pool, caCert, caPrik, err := NewCaCert()
+	pool, caCert, caPrik, err := NewCaCert("CA")
 	require.NoError(t, err)
 	sCert, err := NewCert([]string{"0.0.0.0", "localhost"}, caCert, caPrik)
 	require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestNewCaCertFiles(t *testing.T) {
 	td := t.TempDir()
 	err := NewCaCertFiles(
 		filepath.Join(td, "cacert.pem"),
-		filepath.Join(td, "cacert-key.pem"))
+		filepath.Join(td, "cacert-key.pem"), "CA")
 	require.NoError(t, err)
 	pair, err := tls.LoadX509KeyPair(filepath.Join(td, "cacert.pem"), filepath.Join(td, "cacert-key.pem"))
 	require.NoError(t, err)
@@ -146,7 +146,7 @@ func TestNewCertFiles(t *testing.T) {
 	td := t.TempDir()
 	err := NewCaCertFiles(
 		filepath.Join(td, "cacert.pem"),
-		filepath.Join(td, "cacert-key.pem"))
+		filepath.Join(td, "cacert-key.pem"), "CA")
 	require.NoError(t, err)
 	err = NewCertFiles(nil,
 		filepath.Join(td, "cacert.pem"),
@@ -161,14 +161,21 @@ func TestNewCertFiles(t *testing.T) {
 	)
 	require.NoError(t, err)
 	_ = pair
+	err = SelfSignedFiles("test-host", filepath.Join(td, "self.pem"), filepath.Join(td, "self-key.pem"))
+	require.NoError(t, err)
+	pair, err = tls.LoadX509KeyPair(
+		filepath.Join(td, "self.pem"),
+		filepath.Join(td, "self-key.pem"),
+	)
+	require.NoError(t, err)
 }
 
 func TestNewTestCerts(t *testing.T) {
-	if os.Getenv("QSTF_TEST_FULL") == "" {
-		t.Skip("QSTF_TEST_FULL not set")
+	if os.Getenv("OTVL_TEST_FULL") == "" {
+		t.Skip("OTVL_TEST_FULL not set")
 	}
 	logger := common.GetLogger()
-	os.Setenv("QSTF_TEST_CACHE", "")
+	os.Setenv("OTVL_TEST_CACHE", "")
 	td := t.TempDir()
 	logger.Info("TestNewTestCerts", "msg", "first no cache")
 	cfs, err := NewTestCerts(td, []string{"0.0.0.0", "localhost"}, false)
@@ -177,7 +184,7 @@ func TestNewTestCerts(t *testing.T) {
 	logger.Info("TestNewTestCerts", "msg", "second no cache, second client")
 	cfs, err = NewTestCerts(td, []string{"0.0.0.0", "localhost"}, true)
 	require.NoError(t, err)
-	os.Setenv("QSTF_TEST_CACHE", "1")
+	os.Setenv("OTVL_TEST_CACHE", "1")
 	td = t.TempDir()
 	logger.Info("TestNewTestCerts", "msg", "first in cache")
 	cfs, err = NewTestCerts(td, []string{"0.0.0.0", "localhost"}, false)
@@ -202,24 +209,11 @@ func TestNewClientServerCertFiles(t *testing.T) {
 	td := t.TempDir()
 	cfs, err := NewTestCerts(td, []string{"0.0.0.0", "localhost"}, false)
 	require.NoError(t, err)
-	caPEM, err := common.LoadFile(cfs["cac"])
+	sCfg, err := GetMTlsServerConfig(cfs["cac"], cfs["svc"], cfs["svk"])
 	require.NoError(t, err)
-	certPool := x509.NewCertPool()
-	certPool.AppendCertsFromPEM(caPEM)
-	sCert, err := tls.LoadX509KeyPair(cfs["svc"], cfs["svk"])
-	require.NoError(t, err)
-	cCert, err := tls.LoadX509KeyPair(cfs["c1c"], cfs["c1k"])
-	require.NoError(t, err)
-
-	cfg := &tls.Config{
-		MinVersion:   tls.VersionTLS13,
-		Certificates: []tls.Certificate{sCert},
-		ClientCAs:    certPool,
-		ClientAuth:   tls.RequireAndVerifyClientCert,
-	}
 	srv := &http.Server{
 		Addr:         "0.0.0.0:9443",
-		TLSConfig:    cfg,
+		TLSConfig:    sCfg,
 		ReadTimeout:  time.Minute,
 		WriteTimeout: time.Minute,
 	}
@@ -228,13 +222,12 @@ func TestNewClientServerCertFiles(t *testing.T) {
 	}()
 	defer func() { _ = srv.Shutdown(context.TODO()) }()
 	time.Sleep(200 * time.Millisecond)
+
+	cCfg, err := GetMTlsClientConfig(cfs["cac"], cfs["c1c"], cfs["c1k"])
+	require.NoError(t, err)
 	hc := http.Client{
 		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{
-				MinVersion:   tls.VersionTLS13,
-				Certificates: []tls.Certificate{cCert},
-				RootCAs:      certPool,
-			},
+			TLSClientConfig: cCfg,
 		},
 	}
 	get, err := hc.Get("https://localhost:9443")

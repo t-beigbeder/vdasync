@@ -66,6 +66,44 @@ func SelfSigned(host string) (*tls.Certificate, error) {
 	return &cert, err
 }
 
+// SelfSignedFiles generates a new self-signed TLS certificate key pair files for the given host
+func SelfSignedFiles(host string, certFile, keyFile string) error {
+	cert, err := SelfSigned(host)
+	if err != nil {
+		return err
+	}
+	certPEM := new(bytes.Buffer)
+	err = pem.Encode(certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: cert.Leaf.Raw,
+	})
+	if err != nil {
+		return err
+	}
+	err = common.WriteFile(certFile, certPEM.Bytes())
+	if err != nil {
+		return err
+	}
+
+	certPrivKeyPEM := new(bytes.Buffer)
+	certPrik, ok := cert.PrivateKey.(*rsa.PrivateKey)
+	if !ok {
+		return fmt.Errorf("expected RSA private key, got %T", cert.PrivateKey)
+	}
+	err = pem.Encode(certPrivKeyPEM, &pem.Block{
+		Type:  "RSA PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(certPrik),
+	})
+	if err != nil {
+		return err
+	}
+	err = common.WriteFile(keyFile, certPrivKeyPEM.Bytes())
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 var snCount = 1
 
 func getRandSN() (*big.Int, error) {
@@ -78,7 +116,7 @@ func getRandSN() (*big.Int, error) {
 }
 
 // NewCaCert generates a private CA for tests
-func NewCaCert() (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
+func NewCaCert(cn string) (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
 	notBefore := time.Now()
 	notAfter := notBefore.Add(365 * 24 * time.Hour)
 	serialNumber, err := getRandSN()
@@ -89,7 +127,7 @@ func NewCaCert() (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
 		SerialNumber: serialNumber,
 		Subject: pkix.Name{
 			Organization: []string{"otvl"},
-			CommonName:   "CA",
+			CommonName:   cn,
 		},
 		NotBefore:             notBefore,
 		NotAfter:              notAfter,
@@ -121,8 +159,8 @@ func NewCaCert() (*x509.CertPool, *x509.Certificate, *rsa.PrivateKey, error) {
 }
 
 // NewCaCertFiles generate a private CA PEM files for tests
-func NewCaCertFiles(certFile, keyFile string) error {
-	_, caCert, caPrik, err := NewCaCert()
+func NewCaCertFiles(certFile, keyFile string, cn string) error {
+	_, caCert, caPrik, err := NewCaCert(cn)
 	if err != nil {
 		return err
 	}
@@ -261,9 +299,45 @@ func NewCertFiles(hosts []string, caCertFile, caKeyFile, certFile, keyFile strin
 
 }
 
-func NextProtosFor(alpn string) []string {
-	if alpn == "" {
-		return nil
+func GetInsecureSkipVerifyConfig() *tls.Config {
+	return &tls.Config{
+		InsecureSkipVerify: true,
 	}
-	return []string{alpn}
+}
+
+func getTlsCertsFor(caCertFile, certFile, keyFile string) (*x509.CertPool, *tls.Certificate, error) {
+	caPEM, err := common.LoadFile(caCertFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	certPool := x509.NewCertPool()
+	certPool.AppendCertsFromPEM(caPEM)
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	return certPool, &cert, nil
+}
+
+func GetMTlsServerConfig(caCertFile, certFile, keyFile string) (*tls.Config, error) {
+	certPool, pCert, err := getTlsCertsFor(caCertFile, certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates: []tls.Certificate{*pCert},
+		ClientCAs:    certPool,
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+	}, nil
+}
+
+func GetMTlsClientConfig(caCertFile, certFile, keyFile string) (*tls.Config, error) {
+	certPool, pCert, err := getTlsCertsFor(caCertFile, certFile, keyFile)
+	if err != nil {
+		return nil, err
+	}
+	return &tls.Config{
+		Certificates: []tls.Certificate{*pCert},
+		RootCAs:      certPool,
+	}, nil
 }

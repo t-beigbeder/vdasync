@@ -76,3 +76,53 @@ https://protobuf.dev/installation/
 - defer shutdown server and wait plugin
 - ctrl/c signal for server
 - mTLS: test with simple auto-generated certs (without CA)
+
+generate certificates
+- gen test CA
+- gen server and or client cert/key
+
+server
+- internally gen server cert/key
+
+service
+- health-check client
+
+testing
+
+### TLS for service and its plugins
+
+service loads config with plugins config
+it calls plugin with related config, or, if not set, with provided args
+
+  -ca string
+        server or plugin TLS certificate CA
+        used by client to check
+        => plugin: as -clientca
+  -cert string
+        server or plugin TLS certificate
+        => plugin: ONLY
+  -clientca string
+        client TLS certificate CA
+        used by server or plugin to check
+        => plugin: NO
+  -clientcert string
+        client TLS certificate
+        => plugin: NO
+  -clientkey string
+        client TLS certificate key
+        => plugin: NO
+  -insec
+        don't check certificate when communicating with server
+        => plugin: NO
+  -insecplugin
+        don't check certificate when communicating with plugins
+        => plugin: NO, not necessary
+  -key string
+        server or plugin TLS certificate key
+        => plugin: ONLY
+  -notls
+        insecure communication with servers over http
+        => plugin: NO
+  -notlsplugin
+        insecure communication with plugins over http
+        => plugin: as -notls

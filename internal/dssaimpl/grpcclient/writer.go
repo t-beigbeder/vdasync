@@ -25,7 +25,7 @@ var _ io.WriteCloser = &grpcWriter{}
 func (gw *grpcWriter) Write(p []byte) (int, error) {
 	var (
 		pPath string
-		err error
+		err   error
 	)
 	if gw.stream == nil {
 		gw.stream, err = gw.gc.client.Put(gw.gc.ctx)
@@ -36,7 +36,7 @@ func (gw *grpcWriter) Write(p []byte) (int, error) {
 	}
 	for start := 0; start <= len(p); {
 		end := len(p)
-		if end - start > 8192 {
+		if end-start > 8192 {
 			end = start + 8192
 		}
 		err = gw.stream.Send(&dssagrpc.PushedBlock{Path: pPath, Data: p[start:end]})

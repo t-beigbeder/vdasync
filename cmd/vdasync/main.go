@@ -1,18 +1,14 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
-	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
-	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/walker"
 )
@@ -35,15 +31,24 @@ func main() {
 	}
 
 	var rps []*plugin.RunningPlugin
+	var cfg *config.CliConfig
 	if *cf.ConfigFlag != "" {
 		confData, err := common.LoadFile(*cf.ConfigFlag)
 		if err != nil {
 			common.Fatal(lgr, err)
 		}
-		if rps, err = cli.RunPlugins(string(confData)); err != nil {
+		if rps, err = cli.RunPlugins(string(confData), cf); err != nil {
 			common.Fatal(lgr, err)
 		}
+		if len(plugin.Errors(rps)) > 0 {
+			lgr.Error("some errors occured in plugins", "errs", plugin.Errors(rps))
+			cli.CleanUp(lgr, rps)
+			common.Fatal(lgr, errors.New("plugins error(s)"))
+		}
 		defer cli.CleanUp(lgr, rps)
+		if cfg, err = config.Load(string(confData)); err != nil {
+			common.Fatal(lgr, err)
+		}
 	}
 	if rps != nil {
 		cli.SetSignalHandler(lgr, rps)
@@ -53,30 +58,13 @@ func main() {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
 
-	sPName, _, _, sourceRoot, err := cli.ParseUrl(*sourceFlag)
+	sDss, sourceRoot, err := cli.GetDssAndRootFor(cf, cfg, false, *sourceFlag, rps)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	sRp := plugin.PluginFor(sPName, rps)
-	if sPName != "" && sRp == nil {
-		common.Fatal(lgr, fmt.Errorf("source plugin %s unknown", sPName))
-	}
-	sDss := localfiles.MakeLocalFilesDssa()
-	if sRp != nil {
-		sDss = grpcclient.MakeGrpcClient(context.Background(), sRp.Client)
-	}
-
-	tPName, _, _, targetRoot, err := cli.ParseUrl(*targetFlag)
+	tDss, targetRoot, err := cli.GetDssAndRootFor(cf, cfg, true, *targetFlag, rps)
 	if err != nil {
 		common.Fatal(lgr, err)
-	}
-	tRp := plugin.PluginFor(tPName, rps)
-	if tPName != "" && tRp == nil {
-		common.Fatal(lgr, fmt.Errorf("target plugin %s unknown", tPName))
-	}
-	tDss := localfiles.MakeLocalFilesDssa()
-	if tRp != nil {
-		tDss = grpcclient.MakeGrpcClient(context.Background(), tRp.Client)
 	}
 
 	swk, err := walker.RunSynchronizer(
