@@ -14,7 +14,7 @@ import (
 
 const (
 	testProfile = "otvl-tests"
-	testBucket = "otvl-tests"
+	testBucket  = "otvl-tests"
 )
 
 func TestJustToSee(t *testing.T) {
@@ -27,20 +27,29 @@ func TestJustToSee(t *testing.T) {
 	tc, err := config.LoadDefaultConfig(context.TODO(), config.WithSharedConfigProfile("otvl-tests"))
 	require.NoError(t, err)
 	client := s3.NewFromConfig(tc)
-    output, err := client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
-        Bucket: aws.String("otvl-tests"),
-    })
+	output, err := client.ListObjectsV2(context.TODO(), &s3.ListObjectsV2Input{
+		Bucket: aws.String("otvl-tests"),
+	})
 	require.NoError(t, err)
 	lgr := common.GetLogger()
-    for _, object := range output.Contents {
+	for _, object := range output.Contents {
 		lgr.Info("list", "key", aws.ToString(object.Key), "size", *object.Size)
-    }
+	}
 }
 
-func TestInit(t *testing.T) {
+func cleanup() error {
+	s3m := s3Meta{
+		profileName: testProfile,
+		bucketName:  testBucket,
+		rootPrefix:  "vdasync/tests/default"}
+	return s3m.DeleteRepo()
+}
+
+func TestInitRepo(t *testing.T) {
+	require.NoError(t, cleanup())
 	dss := MakeS3MetaDssa(testProfile, testBucket, "vdasync/tests/default")
 	s3m, ok := dss.(*s3Meta)
 	require.True(t, ok)
-	err := s3m.InitBucket()
-	require.NoError(t, err)
+	require.NoError(t, s3m.InitRepo())
+	require.NoError(t, cleanup())
 }
