@@ -14,7 +14,7 @@ type s3Reader struct {
 
 func (rdr *s3Reader) Read(p []byte) (n int, err error) {
 	if rdr.buffer == nil {
-		rdr.buffer = <- rdr.pull
+		rdr.buffer = <-rdr.pull
 	}
 	if len(rdr.buffer) > 0 {
 		n := copy(p, rdr.buffer)
@@ -28,14 +28,18 @@ func (rdr *s3Reader) Read(p []byte) (n int, err error) {
 	return 0, io.EOF
 }
 
+type CloseCbType func(int64, error)
+
 type ApiWriter struct {
-	Key    string
-	Rc     *S3RepoClient
-	rdr    *s3Reader
-	wg     sync.WaitGroup
-	push   chan []byte
-	rdrErr error
-	closed bool
+	Key      string
+	Rc       *S3RepoClient
+	CloseCb  CloseCbType
+	nWritten int64
+	rdr      *s3Reader
+	wg       sync.WaitGroup
+	push     chan []byte
+	rdrErr   error
+	closed   bool
 }
 
 func (sw *ApiWriter) Write(p []byte) (int, error) {
@@ -49,23 +53,33 @@ func (sw *ApiWriter) Write(p []byte) (int, error) {
 		}()
 	}
 	sw.push <- p
+	sw.nWritten += int64(len(p))
 	return len(p), nil
 }
 
-func (sw *ApiWriter) Close() error {
+func (sw *ApiWriter) Close() (rErr error) {
+	defer func() {
+		if sw.CloseCb != nil {
+			sw.CloseCb(sw.nWritten, rErr)
+			sw.CloseCb = nil
+		}
+	}()
 	if sw.rdr == nil {
 		if _, err := sw.Write(nil); err != nil {
-			return fmt.Errorf("ApiWriter.Close: nil write %v", err)
+			rErr = fmt.Errorf("ApiWriter.Close: nil write %v", err)
+			return
 		}
 	}
 	if sw.closed {
-		return errors.New("ApiWriter.Close: already closed")
+		rErr = errors.New("ApiWriter.Close: already closed")
+		return
 	}
 	sw.closed = true
 	close(sw.push)
 	sw.wg.Wait()
 	if sw.rdrErr != nil {
-		return sw.rdrErr
+		rErr = sw.rdrErr
+		return
 	}
-	return nil
+	return
 }

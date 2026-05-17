@@ -3,6 +3,7 @@ package s3meta
 import (
 	"io"
 	"path"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -29,7 +30,16 @@ func (s3d *s3Meta) GetReadCloser(string) (io.ReadCloser, error) {
 
 // GetWriteCloser implements [dssa.Dssa].
 func (s3d *s3Meta) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	return &s3common.ApiWriter{Key: path.Join(s3d.rootPrefix, "files", path_), Rc: s3d.repoClient()}, nil
+	return &s3common.ApiWriter{
+		Key: path.Join(s3d.rootPrefix, "files", path_),
+		Rc:  s3d.repoClient(),
+		CloseCb: func(nWritten int64, err error) {
+			if err != nil {
+				return
+			}
+			s3d.di.Put(&dssa.DataEntry{Path: path_, Size: nWritten, Mtime: time.Now().Unix()})
+		},
+	}, nil
 }
 
 func (s3d *s3Meta) doList(path_ string) ([]*dssa.DataEntry, error) {
