@@ -32,7 +32,7 @@ func (s3d *s3Meta) List(path_ string) ([]*dssa.DataEntry, error) {
 	if err := s3d.initS3Client(); err != nil {
 		return nil, err
 	}
-	ok, s3d.repoClient().ObjectExists(path.Join(s3d.rootPrefix, path_))
+	//ok, s3d.repoClient().ObjectExists(path.Join(s3d.rootPrefix, path_))
 	panic("unimplemented")
 }
 

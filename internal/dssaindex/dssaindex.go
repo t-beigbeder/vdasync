@@ -77,7 +77,7 @@ func (mid *memIndexDssa) List(path_ string) ([]*dssa.DataEntry, error) {
 		return nil, fmt.Errorf("memIndexDssa.List: %s: not a directory", path_)
 	}
 	var des []*dssa.DataEntry
-	for cp, _ := range mid.dirs[path_] {
+	for cp := range mid.dirs[path_] {
 		des = append(des, mid.entries[cp])
 	}
 	return des, nil
