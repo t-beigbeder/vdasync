@@ -1,12 +1,10 @@
 package s3meta
 
 import (
-	"context"
-	"errors"
 	"fmt"
+	"os"
+	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 )
 
@@ -14,19 +12,35 @@ func (s3m *s3Meta) InitRepo() error {
 	if err := s3m.initS3Client(); err != nil {
 		return err
 	}
-	key := s3m.rootPrefix + "/dirs/."
-	_, err := s3m.s3Client.HeadObject(
-		context.TODO(),
-		&s3.HeadObjectInput{Bucket: &s3m.bucketName, Key: &key},
-	)
-	if err == nil {
-		return fmt.Errorf("InitBucket: key %s already exists", key)
+	dp := s3m.rootPrefix + "/dirs/"
+	for _, dir := range []string{".", ".."} {
+		key := dp + dir
+		exists, err := s3m.repoClient().ObjectExists(key)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return fmt.Errorf("InitBucket: key %s already exists", key)
+		}
 	}
-	var ae *types.NotFound
-	if !errors.As(err, &ae) {
+
+	if err := s3m.putProtoMessage(dp+".", &dssagrpc.DataEntries{Entries: []*dssagrpc.DataEntry{}}); err != nil {
 		return err
 	}
-	return s3m.putProtoMessage(key, &dssagrpc.DataEntries{Entries: []*dssagrpc.DataEntry{}})
+	dotDe := dssagrpc.DataEntry{
+		IsDir:      true,
+		Path:       "/",
+		Mtime:      time.Now().Unix(),
+		User:       int32(os.Getuid()),
+		UserRights: &dssagrpc.Rights{Read: true, Write: true, Execute: true},
+		Group:      int32(os.Getgid()),
+	}
+	if err := s3m.putProtoMessage(dp+"..",
+		&dssagrpc.DataEntries{Entries: []*dssagrpc.DataEntry{&dotDe}},
+	); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s3m *s3Meta) DeleteRepo() error {

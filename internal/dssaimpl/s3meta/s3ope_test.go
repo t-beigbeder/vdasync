@@ -17,10 +17,23 @@ const (
 	testBucket  = "otvl-tests"
 )
 
-func TestJustToSee(t *testing.T) {
-	if os.Getenv("OTVL_TEST_FULL") == "" {
-		t.Skip("OTVL_TEST_FULL not set")
+func getS3Env() (pf, bk, rp string) {
+	pf = os.Getenv("OTVL_TEST_S3_PF")
+	if pf == "" {
+		pf = "otvl-tests"
 	}
+	bk = os.Getenv("OTVL_TEST_S3_BK")
+	if bk == "" {
+		bk = "otvl-tests"
+	}
+	rp = os.Getenv("OTVL_TEST_S3_RP")
+	if rp == "" {
+		rp = "vdasync/tests/default"
+	}
+	return
+}
+func TestJustToSee(t *testing.T) {
+	SkipIf(t)
 	dc, err := config.LoadDefaultConfig(context.TODO())
 	require.NoError(t, err)
 	_ = dc
@@ -46,6 +59,7 @@ func cleanup() error {
 }
 
 func TestInitRepo(t *testing.T) {
+	SkipIf(t)
 	require.NoError(t, cleanup())
 	dss := MakeS3MetaDssa(testProfile, testBucket, "vdasync/tests/default")
 	s3m, ok := dss.(*s3Meta)

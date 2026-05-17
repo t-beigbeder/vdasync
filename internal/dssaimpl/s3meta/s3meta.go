@@ -16,42 +16,42 @@ type s3Meta struct {
 }
 
 // GetReadCloser implements [dssa.Dssa].
-func (s *s3Meta) GetReadCloser(string) (io.ReadCloser, error) {
+func (s3d *s3Meta) GetReadCloser(string) (io.ReadCloser, error) {
 	panic("unimplemented")
 }
 
 // GetWriteCloser implements [dssa.Dssa].
-func (s *s3Meta) GetWriteCloser(string) (io.WriteCloser, error) {
+func (s3d *s3Meta) GetWriteCloser(string) (io.WriteCloser, error) {
 	panic("unimplemented")
 }
 
 // List implements [dssa.Dssa].
-func (s *s3Meta) List(string) ([]*dssa.DataEntry, error) {
+func (s3d *s3Meta) List(string) ([]*dssa.DataEntry, error) {
 	panic("unimplemented")
 }
 
 // Mkdir implements [dssa.Dssa].
-func (s *s3Meta) Mkdir(*dssa.DataEntry) error {
+func (s3d *s3Meta) Mkdir(*dssa.DataEntry) error {
 	panic("unimplemented")
 }
 
 // Rm implements [dssa.Dssa].
-func (s *s3Meta) Rm(string) error {
+func (s3d *s3Meta) Rm(string) error {
 	panic("unimplemented")
 }
 
 // SetStat implements [dssa.Dssa].
-func (s *s3Meta) SetStat(_ *dssa.DataEntry, noPerm bool, noMtime bool) error {
+func (s3d *s3Meta) SetStat(_ *dssa.DataEntry, noPerm bool, noMtime bool) error {
 	panic("unimplemented")
 }
 
 // Stat implements [dssa.Dssa].
-func (s *s3Meta) Stat(string) (*dssa.DataEntry, error) {
+func (s3d *s3Meta) Stat(string) (*dssa.DataEntry, error) {
 	panic("unimplemented")
 }
 
 // Symlink implements [dssa.Dssa].
-func (s *s3Meta) Symlink(old string, new_ string) error {
+func (s3d *s3Meta) Symlink(old string, new_ string) error {
 	panic("unimplemented")
 }
 

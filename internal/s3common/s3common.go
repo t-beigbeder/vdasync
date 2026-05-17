@@ -3,6 +3,7 @@ package s3common
 import (
 	"bytes"
 	"context"
+	"errors"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -54,6 +55,21 @@ func (rc *S3RepoClient) DeleteAll(prefix string) error {
 			return err
 		}
 	}
+}
+
+func (rc *S3RepoClient) ObjectExists(key string) (bool, error) {
+	_, err := rc.Client.HeadObject(
+		context.TODO(),
+		&s3.HeadObjectInput{Bucket: &rc.BucketName, Key: &key},
+	)
+	if err == nil {
+		return true, nil
+	}
+	var ae *types.NotFound
+	if !errors.As(err, &ae) {
+		return false, err
+	}
+	return false, nil
 }
 
 func (rc *S3RepoClient) PutObject(key string, data []byte) error {

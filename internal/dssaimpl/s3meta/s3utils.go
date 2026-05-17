@@ -1,7 +1,7 @@
 package s3meta
 
 import (
-	"github.com/t-beigbeder/vdasync/internal/dssaimpl/s3common"
+	"github.com/t-beigbeder/vdasync/internal/s3common"
 	"google.golang.org/protobuf/proto"
 )
 

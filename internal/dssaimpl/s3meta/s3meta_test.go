@@ -1,7 +1,6 @@
 package s3meta
 
 import (
-	"os"
 	"path"
 	"testing"
 
@@ -10,15 +9,25 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
+func getRepo(t *testing.T) dssa.Dssa {
+	pf, bk, rp := getS3Env()
+	s3m := s3Meta{
+		profileName: pf,
+		bucketName:  bk,
+		rootPrefix:  rp}
+	require.NoError(t, s3m.DeleteRepo())
+	require.NoError(t, s3m.InitRepo())
+	return MakeS3MetaDssa(pf, bk, rp)
+}
+
 func TestFileFunctions(t *testing.T) {
-	if os.Getenv("OTVL_TEST_FULL") == "" {
-		t.Skip("OTVL_TEST_FULL not set")
-	}
+	SkipIf(t)
 	td1 := t.TempDir()
 	ft := path.Join(td1, "TestFileFunctions.dat")
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
-	s3d := MakeS3MetaDssa(testProfile, testBucket, "vdasync/tests/default")
-	r777 := dssa.Rights{Read: true, Write: true, Execute: true}
-	re := dssa.DataEntry{IsDir: true, Path: "/", UserRights: r777}
-	require.NoError(t, s3d.Mkdir(&re))
+
+	s3d := getRepo(t)
+	des, err := s3d.List("/")
+	require.NoError(t, err)
+	require.Zero(t, len(des))
 }
