@@ -1,4 +1,4 @@
-package dssaindex
+package dirindex
 
 import (
 	"fmt"

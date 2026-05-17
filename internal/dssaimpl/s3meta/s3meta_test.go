@@ -24,10 +24,15 @@ func TestFileFunctions(t *testing.T) {
 	SkipIf(t)
 	td1 := t.TempDir()
 	ft := path.Join(td1, "TestFileFunctions.dat")
+	fn := "TestFileFunctions.dat"
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
-
 	s3d := getRepo(t)
+
 	des, err := s3d.List("/")
 	require.NoError(t, err)
 	require.Zero(t, len(des))
+
+	wc, err := s3d.GetWriteCloser(fn)
+	require.NoError(t, err)
+	defer wc.Close()
 }

@@ -82,6 +82,14 @@ func (rc *S3RepoClient) PutObject(key string, data []byte) error {
 	return err
 }
 
+func (rc *S3RepoClient) UploadObject(key string, rdr io.Reader) error {
+	_, err := rc.Client.PutObject(
+		context.TODO(),
+		&s3.PutObjectInput{Bucket: &rc.BucketName, Key: &key, Body: rdr},
+	)
+	return err
+}
+
 func (rc *S3RepoClient) GetObject(key string) ([]byte, error) {
 	gor, err := rc.Client.GetObject(
 		context.TODO(),

@@ -167,9 +167,9 @@ func (mid *memIndexDssa) Symlink(old string, new_ string) error {
 		return fmt.Errorf("memIndexDssa.Symlink: %s: no such file or directory", pp)
 	}
 	mid.entries[new_] = &dssa.DataEntry{
-		IsSymLink: true,
+		IsSymLink:     true,
 		SymLinkTarget: old,
-		Mtime: time.Now().Unix(),
+		Mtime:         time.Now().Unix(),
 	}
 	mid.dirs[pp][new_] = true
 	pde.Mtime = time.Now().Unix()

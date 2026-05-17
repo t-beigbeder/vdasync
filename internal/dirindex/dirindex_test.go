@@ -1,4 +1,4 @@
-package dssaindex
+package dirindex
 
 import (
 	"testing"
@@ -25,8 +25,8 @@ func TestXxx(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 1, len(des))
 
-	require.NoError(t, mid.Put(&dssa.DataEntry{Path:"/d1/f1"}))
-	require.NoError(t, mid.Put(&dssa.DataEntry{Path:"/d1/d2/f2"}))
+	require.NoError(t, mid.Put(&dssa.DataEntry{Path: "/d1/f1"}))
+	require.NoError(t, mid.Put(&dssa.DataEntry{Path: "/d1/d2/f2"}))
 
 	require.Error(t, mid.Del("/d1/d2"))
 	require.NoError(t, mid.Del("/d1/d2/f2"))
