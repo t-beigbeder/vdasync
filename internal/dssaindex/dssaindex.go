@@ -183,6 +183,7 @@ func (mid *memIndexDssa) init() {
 	mid.dirs["/"] = map[string]bool{}
 }
 
+// Currently not used, would require actual Dssa as backend
 func MakeMemIndexDssa() dssa.Dssa {
 	mid := &memIndexDssa{
 		entries: map[string]*dssa.DataEntry{},

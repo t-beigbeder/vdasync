@@ -1,10 +1,12 @@
 package s3meta
 
 import (
+	"io"
+	"path"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/t-beigbeder/vdasync/dssa"
-	"io"
 )
 
 type s3Meta struct {
@@ -26,7 +28,11 @@ func (s3d *s3Meta) GetWriteCloser(string) (io.WriteCloser, error) {
 }
 
 // List implements [dssa.Dssa].
-func (s3d *s3Meta) List(string) ([]*dssa.DataEntry, error) {
+func (s3d *s3Meta) List(path_ string) ([]*dssa.DataEntry, error) {
+	if err := s3d.initS3Client(); err != nil {
+		return nil, err
+	}
+	ok, s3d.repoClient().ObjectExists(path.Join(s3d.rootPrefix, path_))
 	panic("unimplemented")
 }
 

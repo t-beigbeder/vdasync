@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -79,4 +80,16 @@ func (rc *S3RepoClient) PutObject(key string, data []byte) error {
 		&s3.PutObjectInput{Bucket: &rc.BucketName, Key: &key, Body: bdt},
 	)
 	return err
+}
+
+func (rc *S3RepoClient) GetObject(key string) ([]byte, error) {
+	gor, err := rc.Client.GetObject(
+		context.TODO(),
+		&s3.GetObjectInput{Bucket: &rc.BucketName, Key: &key},
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer gor.Body.Close()
+	return io.ReadAll(gor.Body)
 }

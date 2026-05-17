@@ -29,3 +29,11 @@ func (s3m *s3Meta) putProtoMessage(key string, m proto.Message) error {
 	}
 	return s3m.repoClient().PutObject(key, bs)
 }
+
+func (s3m *s3Meta) getProtoMessage(key string, m proto.Message) error {
+	bs, err := s3m.repoClient().GetObject(key)
+	if err != nil {
+		return err
+	}
+	return proto.Unmarshal(bs, m)
+}
