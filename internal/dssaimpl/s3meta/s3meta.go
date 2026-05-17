@@ -29,7 +29,7 @@ func (s3d *s3Meta) GetReadCloser(string) (io.ReadCloser, error) {
 
 // GetWriteCloser implements [dssa.Dssa].
 func (s3d *s3Meta) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	return &s3common.ApiWriter{Key: path.Join(s3d.rootPrefix, path_), Rc: s3d.repoClient()}, nil
+	return &s3common.ApiWriter{Key: path.Join(s3d.rootPrefix, "files", path_), Rc: s3d.repoClient()}, nil
 }
 
 func (s3d *s3Meta) doList(path_ string) ([]*dssa.DataEntry, error) {

@@ -34,5 +34,7 @@ func TestFileFunctions(t *testing.T) {
 
 	wc, err := s3d.GetWriteCloser(fn)
 	require.NoError(t, err)
+	wc.Write([]byte(fn))
+	require.NoError(t, wc.Close())
 	defer wc.Close()
 }
