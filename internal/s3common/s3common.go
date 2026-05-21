@@ -31,6 +31,21 @@ func InitS3Client(profileName string) (cfg aws.Config, client *s3.Client, err er
 	return
 }
 
+func NewS3RepoClient(profileName string, bucketName string) (*S3RepoClient, error) {
+	_, client, err := InitS3Client(profileName)
+	if err != nil {
+		return nil, err
+	}
+	_, err = client.HeadBucket(
+		context.TODO(),
+		&s3.HeadBucketInput{Bucket: &bucketName},
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &S3RepoClient{Client: client, BucketName: bucketName}, nil
+}
+
 func (rc *S3RepoClient) DeleteAll(prefix string) error {
 	ctx := context.TODO()
 	for {

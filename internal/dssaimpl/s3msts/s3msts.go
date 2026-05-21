@@ -8,8 +8,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
 	"github.com/t-beigbeder/vdasync/internal/s3common"
@@ -18,29 +16,9 @@ import (
 // s3MetaSts implements dssa.Dssa to store data files as s3 objects
 // and delegate meta data storage to a MetaStorageSvc
 type s3MetaSts struct {
-	profileName string
-	bucketName  string
-	rootPrefix  string
-	awsCfg      aws.Config
-	s3Client    *s3.Client
-	msts        metasts.MetaStorageSvc
-}
-
-func (s3m *s3MetaSts) repoClient() *s3common.S3RepoClient {
-	return &s3common.S3RepoClient{Client: s3m.s3Client, BucketName: s3m.bucketName}
-}
-
-func (s3m *s3MetaSts) initS3Client() error {
-	if s3m.s3Client != nil {
-		return nil
-	}
-	cfg, client, err := s3common.InitS3Client(s3m.profileName)
-	if err != nil {
-		return err
-	}
-	s3m.awsCfg = cfg
-	s3m.s3Client = client
-	return nil
+	rootPrefix string
+	s3repo     *s3common.S3RepoClient
+	msts       metasts.MetaStorageSvc
 }
 
 func (s3m *s3MetaSts) getDe(path_ string) (*dssa.DataEntry, error) {
@@ -56,10 +34,7 @@ func (s3m *s3MetaSts) getDe(path_ string) (*dssa.DataEntry, error) {
 
 // GetReadCloser implements [dssa.Dssa].
 func (s3m *s3MetaSts) GetReadCloser(path_ string) (io.ReadCloser, error) {
-	if err := s3m.initS3Client(); err != nil {
-		return nil, err
-	}
-	return s3m.repoClient().GetReadCloser(path.Join(s3m.rootPrefix, path_))
+	return s3m.s3repo.GetReadCloser(path.Join(s3m.rootPrefix, path_))
 }
 
 // GetWriteCloser implements [dssa.Dssa].
@@ -70,17 +45,17 @@ func (s3m *s3MetaSts) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 	}
 	return &s3common.ApiWriter{
 		Key: path.Join(s3m.rootPrefix, path_),
-		Rc:  s3m.repoClient(),
+		Rc:  s3m.s3repo,
 		CloseCb: func(nWritten int64, err error) {
 			if err != nil {
 				return
 			}
 			if de == nil {
 				de = &dssa.DataEntry{
-					Path: path_,
-					Size: nWritten,
-					Mtime: time.Now().Unix(),
-					User: os.Getuid(),
+					Path:       path_,
+					Size:       nWritten,
+					Mtime:      time.Now().Unix(),
+					User:       os.Getuid(),
 					UserRights: dssa.Rights{Read: true, Write: true},
 				}
 			} else {
@@ -116,7 +91,7 @@ func (s3m *s3MetaSts) Rm(path_ string) error {
 		return err
 	}
 	if !de.IsDir || !de.IsSymLink {
-		if err = s3m.repoClient().DeleteObject(path.Join(s3m.rootPrefix, path_)); err != nil {
+		if err = s3m.s3repo.DeleteObject(path.Join(s3m.rootPrefix, path_)); err != nil {
 			return err
 		}
 	}
@@ -165,20 +140,20 @@ func (s3m *s3MetaSts) Symlink(old string, new_ string) error {
 		return fs.ErrExist
 	}
 	de = &dssa.DataEntry{
-		Path: new_,
-		IsSymLink: true,
+		Path:          new_,
+		IsSymLink:     true,
 		SymLinkTarget: old,
-		Mtime: time.Now().Unix(),
-		User: os.Getuid(),
-		UserRights: dssa.Rights{Read: true, Write: true, Execute: true},
+		Mtime:         time.Now().Unix(),
+		User:          os.Getuid(),
+		UserRights:    dssa.Rights{Read: true, Write: true, Execute: true},
 	}
 	return s3m.msts.Put(de)
 }
 
-func MakeS3MstsDssa(profileName, bucketName, rootPrefix string) dssa.Dssa {
-	return &s3MetaSts{
-		profileName: profileName,
-		bucketName:  bucketName,
-		rootPrefix:  rootPrefix,
+func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, msts metasts.MetaStorageSvc) (dssa.Dssa, *s3common.S3RepoClient, error) {
+	s3repo, err := s3common.NewS3RepoClient(profileName, bucketName)
+	if err != nil {
+		return nil, nil, err
 	}
+	return &s3MetaSts{rootPrefix: rootPrefix, s3repo: s3repo, msts: msts}, s3repo, nil
 }
