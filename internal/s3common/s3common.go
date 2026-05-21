@@ -96,7 +96,7 @@ func (rc *S3RepoClient) UploadObject(key string, rdr io.Reader) error {
 	return err
 }
 
-func (rc *S3RepoClient) GetObject(key string) ([]byte, error) {
+func (rc *S3RepoClient) GetReadCloser(key string) (io.ReadCloser, error) {
 	gor, err := rc.Client.GetObject(
 		context.TODO(),
 		&s3.GetObjectInput{Bucket: &rc.BucketName, Key: &key},
@@ -104,6 +104,22 @@ func (rc *S3RepoClient) GetObject(key string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer gor.Body.Close()
-	return io.ReadAll(gor.Body)
+	return gor.Body, nil
+}
+
+func (rc *S3RepoClient) GetObject(key string) ([]byte, error) {
+	rrc, err := rc.GetReadCloser(key)
+	if err != nil {
+		return nil, err
+	}
+	defer rrc.Close()
+	return io.ReadAll(rrc)
+}
+
+func (rc *S3RepoClient) DeleteObject(key string) error {
+	_, err := rc.Client.DeleteObject(
+		context.TODO(),
+		&s3.DeleteObjectInput{Bucket: &rc.BucketName, Key: &key},
+	)
+	return err
 }
