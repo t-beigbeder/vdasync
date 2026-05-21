@@ -84,7 +84,7 @@ func (s3m *s3MetaSts) Rm(path_ string) error {
 		return err
 	}
 	if !ok {
-		return fmt.Errorf("s3MetaSts.Rm: %s: no such file or directory")
+		return fmt.Errorf("s3MetaSts.Rm: %s: no such file or directory", path_)
 	}
 	de, err := s3m.msts.Get(path_)
 	if err != nil {
@@ -150,10 +150,10 @@ func (s3m *s3MetaSts) Symlink(old string, new_ string) error {
 	return s3m.msts.Put(de)
 }
 
-func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, msts metasts.MetaStorageSvc) (dssa.Dssa, *s3common.S3RepoClient, error) {
+func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, msts metasts.MetaStorageSvc) (dssa.Dssa, error) {
 	s3repo, err := s3common.NewS3RepoClient(profileName, bucketName)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return &s3MetaSts{rootPrefix: rootPrefix, s3repo: s3repo, msts: msts}, s3repo, nil
+	return &s3MetaSts{rootPrefix: rootPrefix, s3repo: s3repo, msts: msts}, nil
 }

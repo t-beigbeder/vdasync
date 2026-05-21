@@ -72,3 +72,12 @@ message Length {
 
 message Empty {
 }
+
+message Paths {
+    repeated string paths = 1;
+}
+
+message MetaEntries {
+    map<string, DataEntry> Entries = 1;
+    map<string, Paths> Dirs = 2;
+}
