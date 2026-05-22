@@ -13,12 +13,34 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/s3common"
 )
 
+type S3DssaWithMsts interface {
+	dssa.Dssa
+	RootPrefix() string
+	S3Repo() *s3common.S3RepoClient
+	Msts() metasts.MetaStorageSvc
+}
+
 // s3MetaSts implements dssa.Dssa to store data files as s3 objects
 // and delegate meta data storage to a MetaStorageSvc
 type s3MetaSts struct {
 	rootPrefix string
 	s3repo     *s3common.S3RepoClient
 	msts       metasts.MetaStorageSvc
+}
+
+// RootPrefix implements [S3DssaWithMsts].
+func (s3m *s3MetaSts) RootPrefix() string {
+	return s3m.rootPrefix
+}
+
+// Msts implements [S3DssaWithMsts].
+func (s3m *s3MetaSts) Msts() metasts.MetaStorageSvc {
+	return s3m.msts
+}
+
+// S3Repo implements [S3DssaWithMsts].
+func (s3m *s3MetaSts) S3Repo() *s3common.S3RepoClient {
+	return s3m.s3repo
 }
 
 func (s3m *s3MetaSts) getDe(path_ string) (*dssa.DataEntry, error) {
@@ -163,9 +185,11 @@ const (
 	MSTS_FUTURE
 )
 
-func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, type_ int) (
-	ds dssa.Dssa, msts metasts.MetaStorageSvc, err error) {
-	var s3repo *s3common.S3RepoClient
+func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, type_ int) (ds S3DssaWithMsts, err error) {
+	var (
+		s3repo *s3common.S3RepoClient
+		msts   metasts.MetaStorageSvc
+	)
 
 	switch type_ {
 	case MSTS_M2S3:
@@ -173,7 +197,7 @@ func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, type_ int) (
 			return
 		}
 	default:
-		return nil, nil, fmt.Errorf("MakeS3MstsDssa: type %v not yet implemented", type_)
+		return nil, fmt.Errorf("MakeS3MstsDssa: type %v not yet implemented", type_)
 	}
 	if s3repo, err = s3common.NewS3RepoClient(profileName, bucketName); err != nil {
 		return

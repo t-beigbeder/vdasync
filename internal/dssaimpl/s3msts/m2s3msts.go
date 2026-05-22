@@ -17,10 +17,10 @@ import (
 
 type m2s3svc struct {
 	rootPrefix string
-	s3repo  *s3common.S3RepoClient
-	mx      sync.Mutex
-	entries map[string]*dssa.DataEntry
-	dirs    map[string]map[string]bool
+	s3repo     *s3common.S3RepoClient
+	mx         sync.Mutex
+	entries    map[string]*dssa.DataEntry
+	dirs       map[string]map[string]bool
 }
 
 // Del implements [metasts.MetaStorageSvc].
@@ -103,7 +103,7 @@ func (msts *m2s3svc) List(path_ string) ([]*dssa.DataEntry, error) {
 		return nil, fmt.Errorf("%s: not a directory", path_)
 	}
 	var cdes []*dssa.DataEntry
-	for pc := range(msts.dirs[path_]) {
+	for pc := range msts.dirs[path_] {
 		cde, ok := msts.entries[pc]
 		if !ok {
 			return nil, fmt.Errorf("%s: child %s does not exist", path_, pc)

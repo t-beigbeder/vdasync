@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/t-beigbeder/vdasync/dssa"
 )
 
 const (
@@ -30,14 +29,19 @@ func getS3Env() (pf, bk, rp string) {
 	return
 }
 
-func getRepo (t *testing.T) dssa.Dssa {
+func getRepo(t *testing.T) S3DssaWithMsts {
 	pf, bk, rp := getS3Env()
-	ds, _, err := MakeS3MstsDssa(pf, bk, rp, MSTS_M2S3)
+	ds, err := MakeS3MstsDssa(pf, bk, rp, MSTS_M2S3)
 	require.NoError(t, err)
 	return ds
+}
+
+func cleanup(ds S3DssaWithMsts) error {
+	return ds.S3Repo().DeleteAll(ds.RootPrefix() + "/")
 }
 
 func TestXxx(t *testing.T) {
 	ds := getRepo(t)
 	require.NotNil(t, ds)
+	require.NoError(t, cleanup(ds))
 }
