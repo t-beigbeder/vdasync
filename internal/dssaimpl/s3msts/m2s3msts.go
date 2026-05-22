@@ -166,9 +166,6 @@ func (msts *m2s3svc) Put(de *dssa.DataEntry) error {
 		return fmt.Errorf("parent %s for entry %s to be created does not exist", pp, de.Path)
 	}
 	pde.Mtime = time.Now().Unix()
-	if msts.dirs[pp] == nil {
-		panic("here")
-	}
 	msts.dirs[pp][de.Path] = true
 	ede, ok := msts.entries[de.Path]
 	if ok {
