@@ -32,9 +32,7 @@ func getS3Env() (pf, bk, rp string) {
 
 func getRepo (t *testing.T) dssa.Dssa {
 	pf, bk, rp := getS3Env()
-	msts, err := MakeM2S3MetaStorageSvc(pf, bk, rp)
-	require.NoError(t, err)
-	ds, err := MakeS3MstsDssa(pf, bk, rp, msts)
+	ds, _, err := MakeS3MstsDssa(pf, bk, rp, MSTS_M2S3)
 	require.NoError(t, err)
 	return ds
 }

@@ -150,10 +150,34 @@ func (s3m *s3MetaSts) Symlink(old string, new_ string) error {
 	return s3m.msts.Put(de)
 }
 
-func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, msts metasts.MetaStorageSvc) (dssa.Dssa, error) {
+func doMakeS3MstsDssa(profileName, bucketName, rootPrefix string, msts metasts.MetaStorageSvc) (dssa.Dssa, error) {
 	s3repo, err := s3common.NewS3RepoClient(profileName, bucketName)
 	if err != nil {
 		return nil, err
 	}
 	return &s3MetaSts{rootPrefix: rootPrefix, s3repo: s3repo, msts: msts}, nil
+}
+
+const (
+	MSTS_M2S3 = iota
+	MSTS_FUTURE
+)
+
+func MakeS3MstsDssa(profileName, bucketName, rootPrefix string, type_ int) (
+	ds dssa.Dssa, msts metasts.MetaStorageSvc, err error) {
+	var s3repo *s3common.S3RepoClient
+
+	switch type_ {
+	case MSTS_M2S3:
+		if msts, err = MakeM2S3MetaStorageSvc(profileName, bucketName, rootPrefix); err != nil {
+			return
+		}
+	default:
+		return nil, nil, fmt.Errorf("MakeS3MstsDssa: type %v not yet implemented", type_)
+	}
+	if s3repo, err = s3common.NewS3RepoClient(profileName, bucketName); err != nil {
+		return
+	}
+	ds = &s3MetaSts{rootPrefix: rootPrefix, s3repo: s3repo, msts: msts}
+	return
 }
