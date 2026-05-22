@@ -1,47 +1,51 @@
 package s3msts
 
 import (
-	"os"
-
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/t-beigbeder/vdasync/dssa"
 )
 
-const (
-	testProfile = "otvl-tests"
-	testBucket  = "otvl-tests"
-)
-
-func getS3Env() (pf, bk, rp string) {
-	pf = os.Getenv("OTVL_TEST_S3_PF")
-	if pf == "" {
-		pf = "otvl-tests"
+func wtf(ds S3DssaWithMsts, path_ string) error {
+	wc, err := ds.GetWriteCloser(path_)
+	if err != nil {
+		return err
 	}
-	bk = os.Getenv("OTVL_TEST_S3_BK")
-	if bk == "" {
-		bk = "otvl-tests"
+	if _, err = wc.Write([]byte(path_ + "\n")); err != nil {
+		return err
 	}
-	rp = os.Getenv("OTVL_TEST_S3_RP")
-	if rp == "" {
-		rp = "vdasync/tests/default"
+	if err = wc.Close(); err != nil {
+		return err
 	}
-	return
+	return nil
 }
 
-func getRepo(t *testing.T) S3DssaWithMsts {
-	pf, bk, rp := getS3Env()
-	ds, err := MakeS3MstsDssa(pf, bk, rp, MSTS_M2S3)
-	require.NoError(t, err)
-	return ds
-}
-
-func cleanup(ds S3DssaWithMsts) error {
-	return ds.S3Repo().DeleteAll(ds.RootPrefix() + "/")
-}
-
-func TestXxx(t *testing.T) {
-	ds := getRepo(t)
+func TestBasicDirsAndFiles(t *testing.T) {
+	SkipIf(t)
+	ds := GetRepo(t)
 	require.NotNil(t, ds)
-	require.NoError(t, cleanup(ds))
+	require.NoError(t, Cleanup(ds))
+	require.NoError(t, ds.Msts().NewSession())
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
+	require.NoError(t, ds.Msts().EndSession())
+	require.NoError(t, ds.Msts().NewSession())
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d2", IsDir: true}))
+	require.NoError(t, ds.Msts().EndSession())
+	require.NoError(t, ds.Msts().NewSession())
+	require.NoError(t, wtf(ds, "/d1/f1.txt"))
+	require.NoError(t, wtf(ds, "/d2/f2.txt"))
+	require.NoError(t, wtf(ds, "/d2/f3.txt"))
+	require.NoError(t, wtf(ds, "/f0.txt"))
+	ls, err := ds.List("/")
+	require.NoError(t, err)
+	require.Equal(t, 3, len(ls))
+	require.NoError(t, ds.Msts().EndSession())
+	require.NoError(t, ds.Msts().NewSession())
+	ls, err = ds.List("/")
+	require.NoError(t, err)
+	require.Equal(t, 3, len(ls))
+	ls, err = ds.List("/d2")
+	require.NoError(t, err)
+	require.Equal(t, 2, len(ls))
 }

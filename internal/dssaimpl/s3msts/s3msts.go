@@ -96,6 +96,7 @@ func (s3m *s3MetaSts) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // Mkdir implements [dssa.Dssa].
 func (s3m *s3MetaSts) Mkdir(de *dssa.DataEntry) error {
+	de.IsDir = true // implicit for localfiles
 	return s3m.msts.Put(de)
 }
 

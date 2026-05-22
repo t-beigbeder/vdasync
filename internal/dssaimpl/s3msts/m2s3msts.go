@@ -69,7 +69,7 @@ func (msts *m2s3svc) EndSession() error {
 	if err != nil {
 		return err
 	}
-	return msts.s3repo.PutObject(path.Join(msts.rootPrefix, "/."), bs)
+	return msts.s3repo.PutObject(path.Join(msts.rootPrefix, "/.vdasync/m2s3msts.meta"), bs)
 }
 
 // Exists implements [metasts.MetaStorageSvc].
@@ -117,14 +117,23 @@ func (msts *m2s3svc) List(path_ string) ([]*dssa.DataEntry, error) {
 func (msts *m2s3svc) NewSession() error {
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
-	key := path.Join(msts.rootPrefix, "/.")
+	key := path.Join(msts.rootPrefix, "/.vdasync/m2s3msts.meta")
 	ok, err := msts.s3repo.ObjectExists(key)
 	if err != nil {
 		return err
 	}
+	msts.entries = map[string]*dssa.DataEntry{}
+	msts.dirs = map[string]map[string]bool{}
 	if !ok {
-		msts.entries = map[string]*dssa.DataEntry{}
-		msts.dirs = map[string]map[string]bool{}
+		msts.dirs["/.."] = map[string]bool{}
+		msts.dirs["/.."]["/"] = true
+		msts.entries["/.."] = &dssa.DataEntry{}
+		msts.dirs["/"] = map[string]bool{}
+		msts.entries["/"] = &dssa.DataEntry{
+			Path:  "/",
+			IsDir: true,
+			Mtime: time.Now().Unix(),
+		}
 		return nil
 	}
 	bs, err := msts.s3repo.GetObject(key)
@@ -149,12 +158,18 @@ func (msts *m2s3svc) Put(de *dssa.DataEntry) error {
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	pp := path.Dir(de.Path)
+	if de.Path == "/" {
+		pp = "/.."
+	}
 	pde, ok := msts.entries[pp]
 	if !ok {
 		return fmt.Errorf("parent %s for entry %s to be created does not exist", pp, de.Path)
 	}
 	pde.Mtime = time.Now().Unix()
-	msts.dirs[pp][pde.Path] = true
+	if msts.dirs[pp] == nil {
+		panic("here")
+	}
+	msts.dirs[pp][de.Path] = true
 	ede, ok := msts.entries[de.Path]
 	if ok {
 		if ede.IsDir {
