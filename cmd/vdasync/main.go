@@ -37,7 +37,7 @@ func main() {
 		if err != nil {
 			common.Fatal(lgr, err)
 		}
-		if rps, err = cli.RunPlugins(string(confData), cf); err != nil {
+		if rps, err = cli.RunPlugins(lgr, string(confData), cf); err != nil {
 			common.Fatal(lgr, err)
 		}
 		if len(plugin.Errors(rps)) > 0 {

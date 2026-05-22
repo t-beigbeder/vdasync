@@ -3,6 +3,7 @@ package plugin
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"os/exec"
 	"path"
@@ -80,7 +81,7 @@ func getExecutablePath(plugin *config.PluginType) (string, error) {
 	return path.Join(path.Dir(exe), fmt.Sprintf("%s%s", plugin.Type, path.Ext(exe))), nil
 }
 
-func RunConfData(yamlConf string, tab TlsArgsBuilder) ([]*RunningPlugin, error) {
+func RunConfData(lgr *slog.Logger, yamlConf string, tab TlsArgsBuilder) ([]*RunningPlugin, error) {
 	config, err := config.Load(yamlConf)
 	if err != nil {
 		return nil, err
@@ -138,12 +139,12 @@ func RunConfData(yamlConf string, tab TlsArgsBuilder) ([]*RunningPlugin, error) 
 	return rps, nil
 }
 
-func RunConfFile(confPath string) ([]*RunningPlugin, error) {
+func RunConfFile(lgr *slog.Logger, confPath string) ([]*RunningPlugin, error) {
 	bs, err := common.LoadFile(confPath)
 	if err != nil {
 		return nil, err
 	}
-	return RunConfData(string(bs), nil)
+	return RunConfData(lgr, string(bs), nil)
 }
 
 func Shutdown(rps []*RunningPlugin) {

@@ -1,0 +1,17 @@
+pluginsOptions:
+  noTls: true
+plugins:
+- name: s3
+  type: vdas3
+  pluginReadyRetries: cinq
+  addArgs:
+  - "-level"
+  - INFO
+  - "-log"
+  - stderr
+  - "-s3profile"
+  - otvl-tests
+  - "-s3bucket"
+  - otvl-tests
+  - "-s3prefix"
+  - vdasync/tests/default

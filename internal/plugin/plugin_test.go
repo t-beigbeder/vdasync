@@ -10,6 +10,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 func testDir() string {
@@ -32,7 +33,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf), nil)
+	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -56,7 +57,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf), nil)
+	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -80,7 +81,7 @@ plugins:
   executablePath: ${exe}doesnotexist
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf), nil)
+	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -104,7 +105,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO, -badoption]
 `
-	rps, err := RunConfData(setExecutable(conf), nil)
+	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -124,7 +125,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(setExecutable(conf), nil)
+	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))

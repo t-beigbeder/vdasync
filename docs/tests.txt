@@ -69,3 +69,5 @@ time=2026-05-12T16:57:33.164Z level=INFO msg="Run: root is done" app=vdasync wal
 
 walker_test
 time=2026-05-12T17:20:16.583Z level=INFO msg="Run: root is done" walker=true count=108 HeapInuse=1816 HeapAlloc=766 StackInuse=704
+
+bin/vdasync -conc 4 -dryrun -rm -source bin -target s3+dss:/ -config testdata/cmd/s3Config.yaml -level INFO
