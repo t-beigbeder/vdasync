@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -50,9 +51,14 @@ func RunS3Plugin() {
 	}
 	lgr.Debug("main", "s3PurgeFlag", *s3PurgeFlag, "S3Repo", dss.S3Repo())
 	if *s3PurgeFlag {
-		if err = dss.S3Repo().DeleteAll(*s3PrefixFlag); err != nil {
+		pf := strings.TrimPrefix(*s3PrefixFlag, "/")
+		if !strings.HasSuffix(pf, "/") {
+			pf += "/"
+		}
+		if err = dss.S3Repo().DeleteAll(pf); err != nil {
 			common.Fatal(lgr, fmt.Errorf("dss.S3Repo().DeleteAll: %v", err))
 		}
+		os.Exit(0)
 	}
 
 	sop, err := cli.GetServerOrPluginTls(cf)
