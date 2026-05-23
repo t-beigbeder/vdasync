@@ -82,12 +82,14 @@ func getExecutablePath(plugin *config.PluginType) (string, error) {
 }
 
 func RunConfData(lgr *slog.Logger, yamlConf string, tab TlsArgsBuilder) ([]*RunningPlugin, error) {
+	lgr.Info("RunConfData: starting")
 	config, err := config.Load(yamlConf)
 	if err != nil {
 		return nil, err
 	}
 	rps := []*RunningPlugin{}
 	for _, plugin := range config.Plugins {
+		lgr.Info("RunConfData: starting plugin", "plugin", plugin)
 		crp := RunningPlugin{config: config, Plugin: plugin, port: plugin.Port}
 		if crp.port == 0 {
 			port, err := common.GetFreePort()

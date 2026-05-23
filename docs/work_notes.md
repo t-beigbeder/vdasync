@@ -67,7 +67,7 @@ https://protobuf.dev/installation/
 
 https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/getting-started.html
 
-/local/venvs/ddpestores/bin/aws s3 --profile otvl-tests ls s3://otvl-tests/vdasync/tests/default/dirs/
+/local/venvs/ddpestores/bin/aws s3 --profile otvl-tests ls s3://otvl-tests/vdasync/tests/default/
 
 ### TODO
 

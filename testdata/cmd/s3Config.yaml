@@ -1,9 +1,10 @@
 pluginsOptions:
   noTls: true
+pluginReadyRetries: 4
+pluginReadyTimeout: "100ms"
 plugins:
 - name: s3
   type: vdas3
-  pluginReadyRetries: cinq
   addArgs:
   - "-level"
   - INFO

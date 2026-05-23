@@ -30,21 +30,14 @@ func RunS3Plugin() {
 	flag.Parse()
 	exe, err := os.Executable()
 	if err != nil {
-		common.Fatal(nil, err)
+		common.Fatal(nil, fmt.Errorf("os.Executable: %v", err))
 	}
 	cmd := path.Base(exe)
 	lgr, err := common.CliLogger(cmd, *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
-		common.Fatal(lgr, err)
+		common.Fatal(lgr, fmt.Errorf("path.Base: %s: %v", exe, err))
 	}
-	sop, err := cli.GetServerOrPluginTls(cf)
-	if err != nil {
-		common.Fatal(lgr, err)
-	}
-	var sops []grpc.ServerOption
-	if sop != nil {
-		sops = []grpc.ServerOption{sop}
-	}
+
 	if *s3BucketFlag == "" {
 		common.Fatal(lgr, errors.New("s3bucket empty"))
 	}
@@ -53,13 +46,24 @@ func RunS3Plugin() {
 	}
 	dss, err := s3msts.MakeS3MstsDssa(*s3ProfileFlag, *s3BucketFlag, *s3PrefixFlag, s3msts.MSTS_M2S3)
 	if err != nil {
-		common.Fatal(lgr, err)
+		common.Fatal(lgr, fmt.Errorf("s3msts.MakeS3MstsDssa: %s: %v", exe, err))
 	}
+	lgr.Debug("main", "s3PurgeFlag", *s3PurgeFlag, "S3Repo", dss.S3Repo())
 	if *s3PurgeFlag {
 		if err = dss.S3Repo().DeleteAll(*s3PrefixFlag); err != nil {
-			common.Fatal(lgr, err)
+			common.Fatal(lgr, fmt.Errorf("dss.S3Repo().DeleteAll: %v", err))
 		}
 	}
+
+	sop, err := cli.GetServerOrPluginTls(cf)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
+	var sops []grpc.ServerOption
+	if sop != nil {
+		sops = []grpc.ServerOption{sop}
+	}
+
 	if err = dss.Msts().NewSession(); err != nil {
 		common.Fatal(lgr, err)
 	}
