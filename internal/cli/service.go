@@ -56,7 +56,7 @@ func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	}
 }
 
-func GetDssAndRootFor(cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin) (dss dssa.Dssa, root string, err error) {
+func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin) (dss dssa.Dssa, root string, err error) {
 	var (
 		pName string
 		host  string
@@ -80,7 +80,10 @@ func GetDssAndRootFor(cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool,
 			err = fmt.Errorf("%s: url %s: unkown plugin %s", sot, url, pName)
 			return
 		}
-		dss = grpcclient.MakeGrpcClient(context.Background(), rp.Client)
+		dss = grpcclient.MakeGrpcClient(lgr, context.Background(), rp.Client)
+		if err = dss.NewSession(); err != nil {
+			return
+		}
 		return
 	}
 	dst := config.RemoteDataStore(cfg, host, port)
@@ -93,7 +96,7 @@ func GetDssAndRootFor(cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool,
 	if err != nil {
 		return
 	}
-	dss = grpcclient.MakeGrpcClient(context.Background(), cli)
+	dss = grpcclient.MakeGrpcClient(lgr, context.Background(), cli)
 	if err = dss.NewSession(); err != nil {
 		return
 	}

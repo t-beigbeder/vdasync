@@ -58,12 +58,12 @@ func main() {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
 
-	sDss, sourceRoot, err := cli.GetDssAndRootFor(cf, cfg, false, *sourceFlag, rps)
+	sDss, sourceRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
 	defer sDss.EndSession()
-	tDss, targetRoot, err := cli.GetDssAndRootFor(cf, cfg, true, *targetFlag, rps)
+	tDss, targetRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}

@@ -3,6 +3,7 @@ package grpcclient
 import (
 	"context"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -11,18 +12,21 @@ import (
 )
 
 type grpcClient struct {
+	lgr    *slog.Logger
 	ctx    context.Context
 	client remote.OpeDssaClient
 }
 
 // EndSession implements [dssa.Dssa].
 func (gc *grpcClient) EndSession() error {
+	gc.lgr.Info("grpcClient.EndSession")
 	_, err := gc.client.EndSession(gc.ctx, &dssagrpc.Empty{})
 	return err
 }
 
 // NewSession implements [dssa.Dssa].
 func (gc *grpcClient) NewSession() error {
+	gc.lgr.Info("grpcClient.NewSession")
 	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
 	return err
 }
@@ -89,6 +93,6 @@ func (gc *grpcClient) Symlink(old string, new_ string) error {
 	return err
 }
 
-func MakeGrpcClient(ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
-	return &grpcClient{ctx, client}
+func MakeGrpcClient(lgr *slog.Logger, ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
+	return &grpcClient{lgr, ctx, client}
 }
