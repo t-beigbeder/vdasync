@@ -3,6 +3,7 @@ package s3msts
 import (
 	"fmt"
 	"io/fs"
+	"log/slog"
 	"path"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 )
 
 type m2s3svc struct {
+	lgr        *slog.Logger
 	rootPrefix string
 	s3repo     *s3common.S3RepoClient
 	mx         sync.Mutex
@@ -48,6 +50,7 @@ func (msts *m2s3svc) Del(path_ string) error {
 
 // EndSession implements [metasts.MetaStorageSvc].
 func (msts *m2s3svc) EndSession() error {
+	msts.lgr.Info("m2s3svc: EndSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	var metaEntries dssagrpc.MetaEntries
@@ -115,6 +118,7 @@ func (msts *m2s3svc) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // NewSession implements [metasts.MetaStorageSvc].
 func (msts *m2s3svc) NewSession() error {
+	msts.lgr.Info("m2s3svc: NewSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	key := path.Join(msts.rootPrefix, "/.vdasync/m2s3msts.meta")
@@ -183,10 +187,10 @@ func (msts *m2s3svc) Put(de *dssa.DataEntry) error {
 	return nil
 }
 
-func MakeM2S3MetaStorageSvc(profileName, bucketName, rootPrefix string) (metasts.MetaStorageSvc, error) {
-	s3repo, err := s3common.NewS3RepoClient(profileName, bucketName)
+func MakeM2S3MetaStorageSvc(lgr *slog.Logger, profileName, bucketName, rootPrefix string) (metasts.MetaStorageSvc, error) {
+	s3repo, err := s3common.NewS3RepoClient(lgr, profileName, bucketName)
 	if err != nil {
 		return nil, err
 	}
-	return &m2s3svc{rootPrefix: rootPrefix, s3repo: s3repo}, nil
+	return &m2s3svc{lgr: lgr, rootPrefix: rootPrefix, s3repo: s3repo}, nil
 }

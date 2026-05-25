@@ -18,14 +18,14 @@ import (
 
 func RunS3Plugin() {
 	var (
-		hostFlag = flag.String("host", "localhost", "host/address to listen, defaults to localhost")
-		portFlag = flag.Int("port", 0, "port to listen")
-		nameFlag = flag.String("name", "", "plugin name")
-		typeFlag = flag.String("type", "", "plugin type")
+		hostFlag      = flag.String("host", "localhost", "host/address to listen, defaults to localhost")
+		portFlag      = flag.Int("port", 0, "port to listen")
+		nameFlag      = flag.String("name", "", "plugin name")
+		typeFlag      = flag.String("type", "", "plugin type")
 		s3ProfileFlag = flag.String("s3profile", "", "aws config profile name, default if not specified")
-		s3BucketFlag = flag.String("s3bucket", "", "aws s3 bucket name")
-		s3PrefixFlag = flag.String("s3prefix", "", "aws s3 prefix in the bucket")
-		s3PurgeFlag = flag.Bool("s3purge", false, "don't run the plugin, clean up all s3 objects under the given prefix")
+		s3BucketFlag  = flag.String("s3bucket", "", "aws s3 bucket name")
+		s3PrefixFlag  = flag.String("s3prefix", "", "aws s3 prefix in the bucket")
+		s3PurgeFlag   = flag.Bool("s3purge", false, "don't run the plugin, clean up all s3 objects under the given prefix")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -45,7 +45,7 @@ func RunS3Plugin() {
 	if *s3PrefixFlag == "" {
 		common.Fatal(lgr, errors.New("s3prefix empty"))
 	}
-	dss, err := s3msts.MakeS3MstsDssa(*s3ProfileFlag, *s3BucketFlag, *s3PrefixFlag, s3msts.MSTS_M2S3)
+	dss, err := s3msts.MakeS3MstsDssa(lgr, *s3ProfileFlag, *s3BucketFlag, *s3PrefixFlag, s3msts.MSTS_M2S3)
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("s3msts.MakeS3MstsDssa: %s: %v", exe, err))
 	}

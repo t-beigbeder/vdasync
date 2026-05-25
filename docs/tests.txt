@@ -70,4 +70,6 @@ time=2026-05-12T16:57:33.164Z level=INFO msg="Run: root is done" app=vdasync wal
 walker_test
 time=2026-05-12T17:20:16.583Z level=INFO msg="Run: root is done" walker=true count=108 HeapInuse=1816 HeapAlloc=766 StackInuse=704
 
-bin/vdasync -conc 4 -dryrun -rm -source bin -target s3+dss:/ -config testdata/cmd/s3Config.yaml -level INFO
+bin/vdasync -conc 4 -dryrun -rm -source bin -target s3+dss:/ -config testdata/cmd/s3Config.yaml -level INFO -log stderr
+bin/vdas3 -s3profile otvl-tests -s3bucket otvl-tests -s3prefix vdasync/tests/default -s3purge  -level INFO -log stderr
+/local/venvs/ddpestores/bin/aws s3 --profile otvl-tests ls s3://otvl-tests/vdasync/tests/default/

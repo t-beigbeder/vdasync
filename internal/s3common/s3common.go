@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -13,6 +14,7 @@ import (
 )
 
 type S3RepoClient struct {
+	Lgr        *slog.Logger
 	Client     *s3.Client
 	BucketName string
 }
@@ -31,7 +33,7 @@ func InitS3Client(profileName string) (cfg aws.Config, client *s3.Client, err er
 	return
 }
 
-func NewS3RepoClient(profileName string, bucketName string) (*S3RepoClient, error) {
+func NewS3RepoClient(lgr *slog.Logger, profileName string, bucketName string) (*S3RepoClient, error) {
 	_, client, err := InitS3Client(profileName)
 	if err != nil {
 		return nil, err
@@ -43,7 +45,7 @@ func NewS3RepoClient(profileName string, bucketName string) (*S3RepoClient, erro
 	if err != nil {
 		return nil, err
 	}
-	return &S3RepoClient{Client: client, BucketName: bucketName}, nil
+	return &S3RepoClient{Lgr: lgr, Client: client, BucketName: bucketName}, nil
 }
 
 func (rc *S3RepoClient) DeleteAll(prefix string) error {
