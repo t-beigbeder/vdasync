@@ -29,7 +29,9 @@ func InitS3Client(profileName string) (cfg aws.Config, client *s3.Client, err er
 	if err != nil {
 		return
 	}
-	client = s3.NewFromConfig(cfg)
+	client = s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.DisableLogOutputChecksumValidationSkipped = true
+	})
 	return
 }
 

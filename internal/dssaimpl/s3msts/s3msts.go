@@ -32,12 +32,12 @@ type s3MetaSts struct {
 
 // EndSession implements [S3DssaWithMsts].
 func (s3m *s3MetaSts) EndSession() error {
-	return s3m.EndSession()
+	return s3m.Msts().EndSession()
 }
 
 // NewSession implements [S3DssaWithMsts].
 func (s3m *s3MetaSts) NewSession() error {
-	return s3m.NewSession()
+	return s3m.Msts().NewSession()
 }
 
 // RootPrefix implements [S3DssaWithMsts].

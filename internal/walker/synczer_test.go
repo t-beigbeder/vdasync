@@ -37,7 +37,7 @@ func getTestDss(t *testing.T, hasS3 bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWi
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.NoError(t, err)
 	dss1 := localfiles.MakeLocalFilesDssa()
-	dss2 := grpcclient.MakeGrpcClient(context.Background(), cli)
+	dss2 := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
 	var dss3 s3msts.S3DssaWithMsts
 	if hasS3 {
 		s3msts.SkipIf(t)

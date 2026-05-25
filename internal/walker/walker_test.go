@@ -26,7 +26,7 @@ func TestBasicWalker(t *testing.T) {
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
-	dssa2 := grpcclient.MakeGrpcClient(context.Background(), cli)
+	dssa2 := grpcclient.MakeGrpcClient(lgr, context.Background(), cli)
 	// _, err = dssa2.List(common.OsPath2DssPath(td2))
 	// require.Nil(t, err)
 

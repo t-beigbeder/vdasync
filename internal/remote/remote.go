@@ -148,7 +148,7 @@ func RunOpeDssaServer(
 	go getStat(lgr, callStats)
 	dssagrpc.RegisterDataStorageSystemServer(
 		grpcServer,
-		&dssaImpl{grpcServer: grpcServer, dssa_: dssa_, callStats: callStats},
+		&dssaImpl{lgr: lgr, grpcServer: grpcServer, dssa_: dssa_, callStats: callStats},
 	)
 	go grpcServer.Serve(lis)
 	cancel := func() {

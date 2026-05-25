@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -12,15 +13,24 @@ import (
 
 type dssaImpl struct {
 	dssagrpc.UnimplementedDataStorageSystemServer
+	lgr * slog.Logger
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string
 }
 
 func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
+	s.lgr.Info("dssaImpl.NewSession")
+	if err := s.dssa_.NewSession(); err != nil {
+		return nil, err
+	}
 	return &dssagrpc.Empty{}, nil
 }
 func (s *dssaImpl) EndSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
+	s.lgr.Info("dssaImpl.EndSession")
+	if err := s.dssa_.EndSession(); err != nil {
+		return nil, err
+	}
 	return &dssagrpc.Empty{}, nil
 }
 

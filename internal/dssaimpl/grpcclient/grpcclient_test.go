@@ -20,7 +20,7 @@ func TestFunctions(t *testing.T) {
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
-	dgc := MakeGrpcClient(context.Background(), cli)
+	dgc := MakeGrpcClient(common.GetLogger(), context.Background(), cli)
 	des, err := dgc.List(path.Dir(ft))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(des))
@@ -82,7 +82,7 @@ func TestWriter(t *testing.T) {
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
-	dgc := MakeGrpcClient(context.Background(), cli)
+	dgc := MakeGrpcClient(common.GetLogger(), context.Background(), cli)
 	for ix, size := range []int64{0, 1023, 32*1024 - 1, 32 * 1024, 32*1024*1024 - 1, 32 * 1024 * 1024} {
 		fn := fmt.Sprintf("TestWriter%d.dat", ix)
 		fts := path.Join(tds, fn)
@@ -116,7 +116,7 @@ func TestReader(t *testing.T) {
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.Nil(t, err)
 	defer cFunc()
-	dgc := MakeGrpcClient(context.Background(), cli)
+	dgc := MakeGrpcClient(common.GetLogger(), context.Background(), cli)
 	for ix, size := range []int64{1023, 32*1024 - 1, 32 * 1024, 32*1024*1024 - 1, 32 * 1024 * 1024} {
 		for jx, wBufSize := range []int{1021, 32*1024 - 1, 32 * 1024, 32*1024 + 1, 32 * 1024 * 1024, 32*1024*1024 + 1} {
 			fn := fmt.Sprintf("TestReader2-%d-%d.dat", ix, jx)
