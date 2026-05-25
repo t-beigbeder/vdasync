@@ -33,7 +33,7 @@ func GetS3Env() (pf, bk, rp string) {
 
 func GetRepo(t *testing.T) S3DssaWithMsts {
 	pf, bk, rp := GetS3Env()
-	ds, err := MakeS3MstsDssa(common.GetLogger(), pf, bk, rp, MSTS_M2S3)
+	ds, err := MakeS3MstsDssa(common.DbgLogger(), pf, bk, rp, MSTS_M2S3)
 	require.NoError(t, err)
 	return ds
 }

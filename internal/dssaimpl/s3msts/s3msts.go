@@ -98,6 +98,7 @@ func (s3m *s3MetaSts) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 			}
 			s3m.msts.Put(de)
 		},
+		Lgr: s3m.lgr,
 	}, nil
 }
 

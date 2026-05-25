@@ -22,6 +22,10 @@ func GetLogger() *slog.Logger {
 	return doGetLogger(os.Getenv("GO_TEST_LOG_LEVEL"))
 }
 
+func DbgLogger() *slog.Logger {
+	return doGetLogger("DEBUG")
+}
+
 func GetNullLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 }
@@ -49,6 +53,39 @@ func MakeTestFile(tfPath string, size int) error {
 		}
 		if nw != nr {
 			return fmt.Errorf("MakeTestFile: %s written %d != read %d", tfPath, nw, nr)
+		}
+	}
+	return err
+}
+
+func MakeTextTestFile(tfPath string, size int) error {
+	buf := make([]byte, 32*1024)
+	fd, err := os.Create(tfPath)
+	if err != nil {
+		return err
+	}
+	defer fd.Close()
+	bw := len(buf)
+	for written := 0; written < size; written += bw {
+		if size-written < len(buf) {
+			bw = size - written
+			buf = make([]byte, bw)
+		}
+		for i := 0 ; i < len(buf) ; i++ {
+			buf[i] = byte(0x41 + (i % 26))
+			if i % 26 == 25 {
+				buf[i] = byte(0x0a)
+			}
+		}
+		if err != nil {
+			return err
+		}
+		nw, err := fd.Write(buf)
+		if err != nil {
+			return err
+		}
+		if nw != len(buf) {
+			return fmt.Errorf("MakeTestFile: %s written %d != read %d", tfPath, nw, len(buf))
 		}
 	}
 	return err
