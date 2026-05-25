@@ -62,10 +62,12 @@ func main() {
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	defer sDss.EndSession()
 	tDss, targetRoot, err := cli.GetDssAndRootFor(cf, cfg, true, *targetFlag, rps)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	defer tDss.EndSession()
 
 	swk, err := walker.RunSynchronizer(
 		lgr, *cf.ConcurrencyFlag,

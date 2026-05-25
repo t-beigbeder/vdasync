@@ -15,6 +15,18 @@ type grpcClient struct {
 	client remote.OpeDssaClient
 }
 
+// EndSession implements [dssa.Dssa].
+func (gc *grpcClient) EndSession() error {
+	_, err := gc.client.EndSession(gc.ctx, &dssagrpc.Empty{})
+	return err
+}
+
+// NewSession implements [dssa.Dssa].
+func (gc *grpcClient) NewSession() error {
+	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
+	return err
+}
+
 // List implements [dssa.Dssa].
 func (gc *grpcClient) List(path_ string) ([]*dssa.DataEntry, error) {
 	gds, err := gc.client.List(gc.ctx, &dssagrpc.Path{Path: path_})

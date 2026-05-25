@@ -26,6 +26,8 @@ type DataEntry struct {
 }
 
 type Dssa interface {
+	NewSession() error
+	EndSession() error
 	List(string) ([]*DataEntry, error)
 	Mkdir(*DataEntry) error
 	Stat(string) (*DataEntry, error)

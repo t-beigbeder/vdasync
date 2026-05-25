@@ -30,6 +30,16 @@ type s3MetaSts struct {
 	msts       metasts.MetaStorageSvc
 }
 
+// EndSession implements [S3DssaWithMsts].
+func (s3m *s3MetaSts) EndSession() error {
+	return s3m.EndSession()
+}
+
+// NewSession implements [S3DssaWithMsts].
+func (s3m *s3MetaSts) NewSession() error {
+	return s3m.NewSession()
+}
+
 // RootPrefix implements [S3DssaWithMsts].
 func (s3m *s3MetaSts) RootPrefix() string {
 	return s3m.rootPrefix

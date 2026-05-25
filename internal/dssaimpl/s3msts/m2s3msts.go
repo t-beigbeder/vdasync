@@ -1,6 +1,7 @@
 package s3msts
 
 import (
+	"errors"
 	"fmt"
 	"io/fs"
 	"log/slog"
@@ -21,6 +22,7 @@ type m2s3svc struct {
 	rootPrefix string
 	s3repo     *s3common.S3RepoClient
 	mx         sync.Mutex
+	hasSession bool
 	entries    map[string]*dssa.DataEntry
 	dirs       map[string]map[string]bool
 }
@@ -53,6 +55,10 @@ func (msts *m2s3svc) EndSession() error {
 	msts.lgr.Info("m2s3svc: EndSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
+	if !msts.hasSession {
+		return errors.New("m2s3svc.EndSession: no active session")
+	}
+	msts.hasSession = false
 	var metaEntries dssagrpc.MetaEntries
 	entries := map[string]*dssagrpc.DataEntry{}
 	metaEntries.Entries = entries
@@ -121,6 +127,10 @@ func (msts *m2s3svc) NewSession() error {
 	msts.lgr.Info("m2s3svc: NewSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
+	if msts.hasSession {
+		return errors.New("m2s3svc.NewSession: there is already an active session")
+	}
+	msts.hasSession = true
 	key := path.Join(msts.rootPrefix, "/.vdasync/m2s3msts.meta")
 	ok, err := msts.s3repo.ObjectExists(key)
 	if err != nil {

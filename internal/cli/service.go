@@ -94,5 +94,8 @@ func GetDssAndRootFor(cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool,
 		return
 	}
 	dss = grpcclient.MakeGrpcClient(context.Background(), cli)
+	if err = dss.NewSession(); err != nil {
+		return
+	}
 	return
 }

@@ -17,7 +17,13 @@ type dssaImpl struct {
 	callStats  chan string
 }
 
-// List implements [dssagrpc.DataStorageSystemServer].
+func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
+	return &dssagrpc.Empty{}, nil
+}
+func (s *dssaImpl) EndSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
+	return &dssagrpc.Empty{}, nil
+}
+
 func (s *dssaImpl) List(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.DataEntries, error) {
 	s.callStats <- "List"
 	ddtes, err := s.dssa_.List(gpath.Path)

@@ -70,9 +70,6 @@ func RunS3Plugin() {
 		sops = []grpc.ServerOption{sop}
 	}
 
-	if err = dss.Msts().NewSession(); err != nil {
-		common.Fatal(lgr, err)
-	}
 	lgr.Info(fmt.Sprintf("%s.main starting", cmd), "name", *nameFlag, "type", *typeFlag, "host", *hostFlag, "port", *portFlag)
 	done := make(chan bool)
 	cb := func() {
@@ -87,9 +84,6 @@ func RunS3Plugin() {
 		common.Fatal(lgr, fmt.Errorf("RunOpeDssaServer failed %s", err))
 	}
 	lgr.Info(fmt.Sprintf("%s.main done", cmd), "host", *hostFlag, "port", *portFlag)
-	if err = dss.Msts().EndSession(); err != nil {
-		common.Fatal(lgr, err)
-	}
 }
 
 func main() {

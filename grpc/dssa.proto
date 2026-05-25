@@ -5,6 +5,8 @@ package dssa;
 option go_package = "./dssagrpc";
 
 service DataStorageSystem {
+	rpc NewSession(Empty) returns (Empty) {}
+	rpc EndSession(Empty) returns (Empty) {}
     rpc List(Path) returns (DataEntries) {}
     rpc Stat(Path) returns (DataEntry) {}
     rpc Mkdir(DataEntry) returns (Empty) {}
