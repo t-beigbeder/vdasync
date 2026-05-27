@@ -42,7 +42,7 @@ func doRunGrpcTestServer(tToListen time.Duration, opt ...grpc.ServerOption) (int
 		}
 		opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
 
-		lgr := common.GetLogger()
+		lgr := common.GetNullLogger()
 		go getStat(lgr, callStats)
 		dssagrpc.RegisterDataStorageSystemServer(
 			grpcServer,
