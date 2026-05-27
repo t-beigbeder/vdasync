@@ -13,7 +13,7 @@ import (
 
 type dssaImpl struct {
 	dssagrpc.UnimplementedDataStorageSystemServer
-	lgr * slog.Logger
+	lgr        *slog.Logger
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string

@@ -71,9 +71,9 @@ func MakeTextTestFile(tfPath string, size int) error {
 			bw = size - written
 			buf = make([]byte, bw)
 		}
-		for i := 0 ; i < len(buf) ; i++ {
+		for i := 0; i < len(buf); i++ {
 			buf[i] = byte(0x41 + (i % 26))
-			if i % 26 == 25 {
+			if i%26 == 25 {
 				buf[i] = byte(0x0a)
 			}
 		}
