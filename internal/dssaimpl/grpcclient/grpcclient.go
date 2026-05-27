@@ -73,12 +73,12 @@ func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error 
 
 // GetReader implements [dssa.Dssa].
 func (gc *grpcClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
-	return &grpcReader{gc: gc, path_: path_}, nil
+	return &grpcReader{lgr: gc.lgr, gc: gc, path_: path_}, nil
 }
 
 // GetWriter implements [dssa.Dssa].
 func (gc *grpcClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	return &grpcWriter{path_: path_, gc: gc}, nil
+	return &grpcWriter{lgr: gc.lgr, path_: path_, gc: gc}, nil
 }
 
 // Symlink implements [dssa.Dssa].

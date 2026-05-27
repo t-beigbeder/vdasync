@@ -171,6 +171,7 @@ func (msts *m2s3svc) NewSession() error {
 func (msts *m2s3svc) Put(de *dssa.DataEntry) error {
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
+	msts.lgr.Debug("m2s3svc.Put", "de", de.Path)
 	pp := path.Dir(de.Path)
 	if de.Path == "/" {
 		pp = "/.."

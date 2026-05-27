@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"google.golang.org/grpc"
@@ -12,6 +13,7 @@ import (
 // A writer that implements client streaming
 // each writer write() translates to a grpc call to send() after initial put()
 type grpcWriter struct {
+	lgr     *slog.Logger
 	gc      *grpcClient
 	path_   string
 	stream  grpc.ClientStreamingClient[dssagrpc.PushedBlock, dssagrpc.Length]
@@ -34,11 +36,16 @@ func (gw *grpcWriter) Write(p []byte) (int, error) {
 		}
 		pPath = gw.path_
 	}
+	gw.lgr.Debug("grpcWriter.Write", "path", gw.path_, "p", len(p))
 	for start := 0; start <= len(p); {
+		if start == len(p) && start > 0 {
+			break
+		}
 		end := len(p)
 		if end-start > 8192 {
 			end = start + 8192
 		}
+		gw.lgr.Debug("grpcWriter.Write", "path", gw.path_, "end-start", end-start)
 		err = gw.stream.Send(&dssagrpc.PushedBlock{Path: pPath, Data: p[start:end]})
 		pPath = ""
 		written := end - start
@@ -51,6 +58,7 @@ func (gw *grpcWriter) Write(p []byte) (int, error) {
 			break
 		}
 	}
+	gw.lgr.Debug("grpcWriter.Write: written", "path", gw.path_, "p", len(p), "written", gw.written)
 	return len(p), nil
 }
 
@@ -64,6 +72,7 @@ func (gw *grpcWriter) Close() error {
 	if gw.closed {
 		return errors.New("grpcWriter.Close: already closed")
 	}
+	gw.lgr.Debug("grpcWriter.Close", "path", gw.path_)
 	gw.closed = true
 	gl, err := gw.stream.CloseAndRecv()
 	if err != nil {
