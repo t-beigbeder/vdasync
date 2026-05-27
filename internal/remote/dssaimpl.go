@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -12,13 +13,29 @@ import (
 
 type dssaImpl struct {
 	dssagrpc.UnimplementedDataStorageSystemServer
+	lgr        *slog.Logger
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string
 }
 
-// List implements [dssagrpc.DataStorageSystemServer].
+func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
+	s.lgr.Info("dssaImpl.NewSession")
+	if err := s.dssa_.NewSession(); err != nil {
+		return nil, err
+	}
+	return &dssagrpc.Empty{}, nil
+}
+func (s *dssaImpl) EndSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
+	s.lgr.Info("dssaImpl.EndSession")
+	if err := s.dssa_.EndSession(); err != nil {
+		return nil, err
+	}
+	return &dssagrpc.Empty{}, nil
+}
+
 func (s *dssaImpl) List(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.DataEntries, error) {
+	s.lgr.Debug("dssaImpl.List", "path", gpath.Path)
 	s.callStats <- "List"
 	ddtes, err := s.dssa_.List(gpath.Path)
 	if err != nil {
@@ -32,6 +49,7 @@ func (s *dssaImpl) List(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.Da
 }
 
 func (s *dssaImpl) Mkdir(ctx context.Context, gdte *dssagrpc.DataEntry) (*dssagrpc.Empty, error) {
+	s.lgr.Debug("dssaImpl.Mkdir", "path", gdte.Path)
 	s.callStats <- "Mkdir"
 	if err := s.dssa_.Mkdir(common.GrpcDte2DssDte(gdte)); err != nil {
 		return nil, err
@@ -40,12 +58,14 @@ func (s *dssaImpl) Mkdir(ctx context.Context, gdte *dssagrpc.DataEntry) (*dssagr
 }
 
 func (s *dssaImpl) Stat(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.DataEntry, error) {
+	s.lgr.Debug("dssaImpl.Stat", "path", gpath.Path)
 	s.callStats <- "Stat"
 	ddte, _ := s.dssa_.Stat(gpath.Path)
 	return common.DssDte2GrpcDte(ddte), nil
 }
 
 func (s *dssaImpl) SetStat(ctx context.Context, gssde *dssagrpc.SetStatDataEntry) (*dssagrpc.Empty, error) {
+	s.lgr.Debug("dssaImpl.SetStat", "path", gssde.DataEntry.Path)
 	s.callStats <- "SetStat"
 	if err := s.dssa_.SetStat(common.GrpcDte2DssDte(gssde.DataEntry), gssde.NoPerm, gssde.NoMtime); err != nil {
 		return nil, err
@@ -59,14 +79,17 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 	// while recv-ing on the stream, write to Dssa
 	var (
 		gpb     *dssagrpc.PushedBlock
+		path_   string
 		wc      io.WriteCloser
 		written int64
 		cw      int
 		err     error
 	)
+	s.lgr.Debug("dssaImpl.Put...")
 	s.callStats <- "Put"
 	for {
 		if gpb, err = stream.Recv(); err == io.EOF {
+			s.lgr.Debug("dssaImpl.Put", "path", path_, "Recv", "EOF")
 			if wc != nil {
 				if err = wc.Close(); err != nil {
 					return err
@@ -78,12 +101,15 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 			return err
 		}
 		if wc == nil {
+			s.lgr.Debug("dssaImpl.Put", "path", gpb.Path)
+			path_ = gpb.Path
 			if wc, err = s.dssa_.GetWriteCloser(gpb.Path); err != nil {
 				return err
 			}
 			defer wc.Close()
 		}
 		s.callStats <- "Put.Recv"
+		s.lgr.Debug("dssaImpl.Put", "path", path_, "Data", len(gpb.Data))
 		if cw, err = wc.Write(gpb.Data); err != nil {
 			return err
 		}
@@ -93,6 +119,7 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 
 func (s *dssaImpl) Get(
 	gp *dssagrpc.Path, stream grpc.ServerStreamingServer[dssagrpc.PulledBlock]) error {
+	s.lgr.Debug("dssaImpl.Get...")
 	s.callStats <- "Get"
 	rc, err := s.dssa_.GetReadCloser(gp.Path)
 	if err != nil {
@@ -105,6 +132,7 @@ func (s *dssaImpl) Get(
 			return err
 		}
 		s.callStats <- "Get.Send"
+		s.lgr.Debug("dssaImpl.Get", "Send", n, "read err", err)
 		sErr := stream.Send(&dssagrpc.PulledBlock{Data: buffer[0:n]})
 		if sErr != nil {
 			return sErr
@@ -116,6 +144,7 @@ func (s *dssaImpl) Get(
 }
 
 func (s *dssaImpl) Rm(ctx context.Context, path_ *dssagrpc.Path) (*dssagrpc.Empty, error) {
+	s.lgr.Debug("dssaImpl.Rm", "path", path_)
 	s.callStats <- "Rm"
 	err := s.dssa_.Rm(path_.Path)
 	if err != nil {
@@ -125,6 +154,7 @@ func (s *dssaImpl) Rm(ctx context.Context, path_ *dssagrpc.Path) (*dssagrpc.Empt
 }
 
 func (s *dssaImpl) Symlink(ctx context.Context, onp *dssagrpc.OldNewPaths) (*dssagrpc.Empty, error) {
+	s.lgr.Debug("dssaImpl.Symlink", "path", onp.New_)
 	s.callStats <- "Symlink"
 	err := s.dssa_.Symlink(onp.Old, onp.New_)
 	if err != nil {

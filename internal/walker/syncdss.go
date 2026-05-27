@@ -323,9 +323,6 @@ func setEntryChanges(pe *ProcessedEntry) {
 	}
 	hasChanges := false
 	tde := es.targetDe
-	if tde == nil {
-		panic("here")
-	}
 	sde := pe.DataEntry
 	if !hasChanges && !syncData(pe).syncOptions.NoPerm {
 		hasChanges = tde.UserRights != sde.UserRights ||

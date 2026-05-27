@@ -19,20 +19,24 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DataStorageSystem_List_FullMethodName    = "/dssa.DataStorageSystem/List"
-	DataStorageSystem_Stat_FullMethodName    = "/dssa.DataStorageSystem/Stat"
-	DataStorageSystem_Mkdir_FullMethodName   = "/dssa.DataStorageSystem/Mkdir"
-	DataStorageSystem_SetStat_FullMethodName = "/dssa.DataStorageSystem/SetStat"
-	DataStorageSystem_Put_FullMethodName     = "/dssa.DataStorageSystem/Put"
-	DataStorageSystem_Get_FullMethodName     = "/dssa.DataStorageSystem/Get"
-	DataStorageSystem_Rm_FullMethodName      = "/dssa.DataStorageSystem/Rm"
-	DataStorageSystem_Symlink_FullMethodName = "/dssa.DataStorageSystem/Symlink"
+	DataStorageSystem_NewSession_FullMethodName = "/dssa.DataStorageSystem/NewSession"
+	DataStorageSystem_EndSession_FullMethodName = "/dssa.DataStorageSystem/EndSession"
+	DataStorageSystem_List_FullMethodName       = "/dssa.DataStorageSystem/List"
+	DataStorageSystem_Stat_FullMethodName       = "/dssa.DataStorageSystem/Stat"
+	DataStorageSystem_Mkdir_FullMethodName      = "/dssa.DataStorageSystem/Mkdir"
+	DataStorageSystem_SetStat_FullMethodName    = "/dssa.DataStorageSystem/SetStat"
+	DataStorageSystem_Put_FullMethodName        = "/dssa.DataStorageSystem/Put"
+	DataStorageSystem_Get_FullMethodName        = "/dssa.DataStorageSystem/Get"
+	DataStorageSystem_Rm_FullMethodName         = "/dssa.DataStorageSystem/Rm"
+	DataStorageSystem_Symlink_FullMethodName    = "/dssa.DataStorageSystem/Symlink"
 )
 
 // DataStorageSystemClient is the client API for DataStorageSystem service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DataStorageSystemClient interface {
+	NewSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+	EndSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
 	Mkdir(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
@@ -49,6 +53,26 @@ type dataStorageSystemClient struct {
 
 func NewDataStorageSystemClient(cc grpc.ClientConnInterface) DataStorageSystemClient {
 	return &dataStorageSystemClient{cc}
+}
+
+func (c *dataStorageSystemClient) NewSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, DataStorageSystem_NewSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataStorageSystemClient) EndSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, DataStorageSystem_EndSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *dataStorageSystemClient) List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error) {
@@ -147,6 +171,8 @@ func (c *dataStorageSystemClient) Symlink(ctx context.Context, in *OldNewPaths, 
 // All implementations must embed UnimplementedDataStorageSystemServer
 // for forward compatibility.
 type DataStorageSystemServer interface {
+	NewSession(context.Context, *Empty) (*Empty, error)
+	EndSession(context.Context, *Empty) (*Empty, error)
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
 	Mkdir(context.Context, *DataEntry) (*Empty, error)
@@ -165,6 +191,12 @@ type DataStorageSystemServer interface {
 // pointer dereference when methods are called.
 type UnimplementedDataStorageSystemServer struct{}
 
+func (UnimplementedDataStorageSystemServer) NewSession(context.Context, *Empty) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method NewSession not implemented")
+}
+func (UnimplementedDataStorageSystemServer) EndSession(context.Context, *Empty) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method EndSession not implemented")
+}
 func (UnimplementedDataStorageSystemServer) List(context.Context, *Path) (*DataEntries, error) {
 	return nil, status.Error(codes.Unimplemented, "method List not implemented")
 }
@@ -208,6 +240,42 @@ func RegisterDataStorageSystemServer(s grpc.ServiceRegistrar, srv DataStorageSys
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&DataStorageSystem_ServiceDesc, srv)
+}
+
+func _DataStorageSystem_NewSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).NewSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_NewSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).NewSession(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataStorageSystem_EndSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).EndSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_EndSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).EndSession(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DataStorageSystem_List_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -343,6 +411,14 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "dssa.DataStorageSystem",
 	HandlerType: (*DataStorageSystemServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "NewSession",
+			Handler:    _DataStorageSystem_NewSession_Handler,
+		},
+		{
+			MethodName: "EndSession",
+			Handler:    _DataStorageSystem_EndSession_Handler,
+		},
 		{
 			MethodName: "List",
 			Handler:    _DataStorageSystem_List_Handler,

@@ -37,7 +37,7 @@ func main() {
 		if err != nil {
 			common.Fatal(lgr, err)
 		}
-		if rps, err = cli.RunPlugins(string(confData), cf); err != nil {
+		if rps, err = cli.RunPlugins(lgr, string(confData), cf); err != nil {
 			common.Fatal(lgr, err)
 		}
 		if len(plugin.Errors(rps)) > 0 {
@@ -58,14 +58,16 @@ func main() {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
 
-	sDss, sourceRoot, err := cli.GetDssAndRootFor(cf, cfg, false, *sourceFlag, rps)
+	sDss, sourceRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	tDss, targetRoot, err := cli.GetDssAndRootFor(cf, cfg, true, *targetFlag, rps)
+	defer sDss.EndSession()
+	tDss, targetRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	defer tDss.EndSession()
 
 	swk, err := walker.RunSynchronizer(
 		lgr, *cf.ConcurrencyFlag,

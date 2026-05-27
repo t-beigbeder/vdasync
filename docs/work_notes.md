@@ -63,6 +63,12 @@ https://protobuf.dev/installation/
     go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
     go get google.golang.org/grpc
 
+### aws sdk
+
+https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/getting-started.html
+
+/local/venvs/ddpestores/bin/aws s3 --profile otvl-tests ls s3://otvl-tests/vdasync/tests/default/
+
 ### TODO
 
 - SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig

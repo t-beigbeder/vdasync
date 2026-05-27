@@ -81,7 +81,7 @@ func RunSynchronizer(
 		return nil, fmt.Errorf("RunSynchronizer: target %s is not a dir", targetRoot)
 	}
 	wk := NewSynchronizer(lgr, concurrency, syncOptions, sourceDs, targetDs, targetRoot)
-	lgr.Info("RunSynchronizer", "source", sourceRoot, "target", targetRoot)
+	lgr.Info("RunSynchronizer", "concurrency", concurrency, "source", sourceRoot, "target", targetRoot)
 	return wk, wk.Run(sde)
 }
 

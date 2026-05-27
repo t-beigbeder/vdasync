@@ -3,6 +3,7 @@ package grpcclient
 import (
 	"context"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -11,8 +12,23 @@ import (
 )
 
 type grpcClient struct {
+	lgr    *slog.Logger
 	ctx    context.Context
 	client remote.OpeDssaClient
+}
+
+// EndSession implements [dssa.Dssa].
+func (gc *grpcClient) EndSession() error {
+	gc.lgr.Info("grpcClient.EndSession")
+	_, err := gc.client.EndSession(gc.ctx, &dssagrpc.Empty{})
+	return err
+}
+
+// NewSession implements [dssa.Dssa].
+func (gc *grpcClient) NewSession() error {
+	gc.lgr.Info("grpcClient.NewSession")
+	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
+	return err
 }
 
 // List implements [dssa.Dssa].
@@ -57,12 +73,12 @@ func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error 
 
 // GetReader implements [dssa.Dssa].
 func (gc *grpcClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
-	return &grpcReader{gc: gc, path_: path_}, nil
+	return &grpcReader{lgr: gc.lgr, gc: gc, path_: path_}, nil
 }
 
 // GetWriter implements [dssa.Dssa].
 func (gc *grpcClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	return &grpcWriter{path_: path_, gc: gc}, nil
+	return &grpcWriter{lgr: gc.lgr, path_: path_, gc: gc}, nil
 }
 
 // Symlink implements [dssa.Dssa].
@@ -77,6 +93,6 @@ func (gc *grpcClient) Symlink(old string, new_ string) error {
 	return err
 }
 
-func MakeGrpcClient(ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
-	return &grpcClient{ctx, client}
+func MakeGrpcClient(lgr *slog.Logger, ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
+	return &grpcClient{lgr, ctx, client}
 }

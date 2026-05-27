@@ -13,6 +13,16 @@ import (
 type localFiles struct {
 }
 
+// EndSession implements [dssa.Dssa].
+func (d *localFiles) EndSession() error {
+	return nil
+}
+
+// NewSession implements [dssa.Dssa].
+func (d *localFiles) NewSession() error {
+	return nil
+}
+
 // List implements [dssa.Dssa].
 func (d *localFiles) List(path_ string) ([]*dssa.DataEntry, error) {
 	des, err := os.ReadDir(path_)

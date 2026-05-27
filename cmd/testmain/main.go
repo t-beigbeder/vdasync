@@ -51,7 +51,7 @@ func main() {
 		if err != nil {
 			common.Fatal(log, err)
 		}
-		rps, err := plugin.RunConfFile(tf)
+		rps, err := plugin.RunConfFile(log, tf)
 		if err != nil {
 			common.Fatal(log, fmt.Errorf("RunConfFile failed %s", err))
 		}

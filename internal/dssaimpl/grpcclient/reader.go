@@ -3,6 +3,7 @@ package grpcclient
 import (
 	"errors"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"google.golang.org/grpc"
@@ -11,6 +12,7 @@ import (
 // a reader that implements client receiving server streaming
 // as data received may not fit with the reader's capacity,
 type grpcReader struct {
+	lgr    *slog.Logger
 	gc     *grpcClient
 	path_  string
 	stream grpc.ServerStreamingClient[dssagrpc.PulledBlock]

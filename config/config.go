@@ -99,7 +99,7 @@ func Load(config string) (*CliConfig, error) {
 	return &conf, nil
 }
 
-func RemoteDataStore(cfg *CliConfig, host string, port int) (*DataStoreType) {
+func RemoteDataStore(cfg *CliConfig, host string, port int) *DataStoreType {
 	if cfg == nil {
 		cfg = &CliConfig{}
 	}

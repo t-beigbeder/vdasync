@@ -1,0 +1,18 @@
+pluginsOptions:
+  noTls: true
+pluginReadyRetries: 4
+pluginReadyTimeout: "100ms"
+plugins:
+- name: s3
+  type: vdas3
+  addArgs:
+  - "-level"
+  - ERROR
+  - "-log"
+  - stderr
+  - "-s3profile"
+  - otvl-tests
+  - "-s3bucket"
+  - otvl-tests
+  - "-s3prefix"
+  - vdasync/tests/default

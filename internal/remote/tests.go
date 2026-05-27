@@ -42,13 +42,14 @@ func doRunGrpcTestServer(tToListen time.Duration, opt ...grpc.ServerOption) (int
 		}
 		opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
 
-		go getStat(common.GetLogger(), callStats)
+		lgr := common.GetLogger()
+		go getStat(lgr, callStats)
 		dssagrpc.RegisterDataStorageSystemServer(
 			grpcServer,
-			&dssaImpl{grpcServer: grpcServer, dssa_: localfiles.MakeLocalFilesDssa(), callStats: callStats},
+			&dssaImpl{lgr: lgr, grpcServer: grpcServer, dssa_: localfiles.MakeLocalFilesDssa(), callStats: callStats},
 		)
 		grpcServer.Serve(lis)
-		common.GetLogger().Error("doRunGrpcTestServer: stopped serving")
+		lgr.Error("doRunGrpcTestServer: stopped serving")
 	}()
 	cancel := func() {
 		cCancel()
