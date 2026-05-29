@@ -7,9 +7,7 @@ plugins:
   type: vdas3
   addArgs:
   - "-level"
-  - ERROR
-  - "-log"
-  - stderr
+  - INFO
   - "-s3profile"
   - otvl-tests
   - "-s3bucket"

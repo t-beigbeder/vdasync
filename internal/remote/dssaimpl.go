@@ -125,7 +125,7 @@ func (s *dssaImpl) Get(
 	if err != nil {
 		return err
 	}
-	buffer := make([]byte, 8192)
+	buffer := make([]byte, 32768)
 	for {
 		n, err := rc.Read(buffer)
 		if err != nil && err != io.EOF {

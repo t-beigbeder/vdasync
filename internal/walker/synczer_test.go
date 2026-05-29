@@ -37,7 +37,7 @@ func getTestDss(t *testing.T, hasS3 bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWi
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.NoError(t, err)
 	dss1 := localfiles.MakeLocalFilesDssa()
-	dss2 := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
+	dss2 := grpcclient.MakeGrpcClient(common.GetNullLogger(), context.Background(), cli)
 	var dss3 s3msts.S3DssaWithMsts
 	if hasS3 {
 		s3msts.SkipIf(t)
@@ -50,7 +50,7 @@ func getTestDss(t *testing.T, hasS3 bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWi
 }
 
 func TestBasicDryrunSynczer(t *testing.T) {
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	dss1, dss2, _, cFunc := getTestDss(t, false)
 	defer cFunc()
 	for _, tDss := range []dssa.Dssa{dss1, dss2} {
@@ -77,7 +77,7 @@ func TestBasicActualSynczer(t *testing.T) {
 		sDss dssa.Dssa
 		tDss dssa.Dssa
 	}
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	lDss, rDss, _, cFunc := getTestDss(t, false)
 	defer cFunc()
 
@@ -145,7 +145,7 @@ func TestBasicActualSynczer(t *testing.T) {
 }
 
 func TestBaseAugmentedTestDataSynczer(t *testing.T) {
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	dss1, dss2, _, cFunc := getTestDss(t, false)
 	defer cFunc()
 
@@ -189,7 +189,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		doCheck bool
 		tDss    dssa.Dssa
 	}
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	dss1, dss2, _, cFunc := getTestDss(t, false)
 	defer cFunc()
 
@@ -275,7 +275,7 @@ func TestNoTarget(t *testing.T) {
 }
 
 func TestBasicS3DryrunSynczer(t *testing.T) {
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	dss1, _, dss3, cFunc := getTestDss(t, true)
 	defer cFunc()
 	for _, tDss := range []dssa.Dssa{dss3} {
@@ -301,7 +301,7 @@ func TestBasicS3ActualSynczer(t *testing.T) {
 		sDss dssa.Dssa
 		tDss dssa.Dssa
 	}
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	lDss, _, rDss, cFunc := getTestDss(t, true)
 	defer cFunc()
 
@@ -369,7 +369,7 @@ func TestBasicS3ActualSynczer(t *testing.T) {
 }
 
 func TestBaseAugmentedTestS3DataSynczer(t *testing.T) {
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	dss1, _, dss3, cFunc := getTestDss(t, true)
 	defer cFunc()
 
@@ -413,7 +413,7 @@ func TestModAugmentedTestS3DataSynczer(t *testing.T) {
 		doCheck bool
 		tDss    dssa.Dssa
 	}
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	dss1, _, dss3, cFunc := getTestDss(t, true)
 	defer cFunc()
 

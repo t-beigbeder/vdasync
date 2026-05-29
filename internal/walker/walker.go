@@ -101,7 +101,7 @@ func MakeWalker(
 
 func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	wi.lgr.Info("Run: starting", "ds", wi.ds, "args", wi.args)
-	wi.pq = make(chan *ProcessedEntry, wi.concurrency)
+	wi.pq = make(chan *ProcessedEntry, wi.concurrency+1) // leave room for next demand
 	wi.udm = &sync.Map{}
 
 	count := 0
@@ -110,8 +110,9 @@ func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	wi.lgr.Info("Run: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 
 	rootIsDone := make(chan bool)
+	tokens := make(chan bool, wi.concurrency+1)
 	done := func() {
-		wi.lgr.Debug("Run is done")
+		wi.lgr.Debug("Run root is done")
 		rootIsDone <- true
 	}
 	go func() {
@@ -136,7 +137,13 @@ LOOP:
 				runtime.ReadMemStats(&m)
 				wi.lgr.Info("Run: processed...", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 			}
-			go wi.process(pe)
+			tokens <- true
+			go func(pe *ProcessedEntry) {
+				wi.lgr.Debug("Concurrent run starting", "pe", pe.DataEntry.Path)
+				wi.process(pe)
+				wi.lgr.Debug("Concurrent run done", "pe", pe.DataEntry.Path)
+				<-tokens
+			}(pe)
 		}
 	}
 	wi.lgr.Info("Run: stopping")
@@ -164,17 +171,17 @@ func (wi *walkerImpl) process(pe *ProcessedEntry) {
 	} else {
 		wi.processNde(pe)
 	}
-	if wi.onDoneEntry != nil {
-		wi.onDoneEntry(pe)
-	}
-	wi.lgr.Info("walker process done", "entry", pe.DataEntry.Path, "isDir", isDir)
-	pe.done()
 }
 
 func (wi *walkerImpl) processNde(pe *ProcessedEntry) {
 	if wi.onStartNdirEntry != nil {
 		wi.onStartNdirEntry(pe)
 	}
+	if wi.onDoneEntry != nil {
+		wi.onDoneEntry(pe)
+	}
+	wi.lgr.Info("walker processNde done", "entry", pe.DataEntry.Path)
+	pe.done()
 }
 
 func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
@@ -184,43 +191,39 @@ func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 		pe.children = []*dssa.DataEntry{}
 	}
 	ddes, nddes := splitDndFrom(pe.children)
+	go wi.batchProcessDde(pe, ddes, nddes)
+}
 
+func (wi *walkerImpl) batchProcessDde(pe *ProcessedEntry, ddes, nddes []*dssa.DataEntry) {
 	var wg sync.WaitGroup
-	childrenPq := make(chan bool, wi.concurrency+1)
 
-	// processing as much subdirs in // as possible
 	wg.Add(len(ddes))
 	for _, dde := range ddes {
-		childrenPq <- true
-		go func() {
-			ddone := func() {
-				wg.Done()
-			}
-			wi.pq <- &ProcessedEntry{DataEntry: dde, parent: pe, wi: wi, done: ddone}
-			<-childrenPq
-		}()
+		wi.pq <- &ProcessedEntry{DataEntry: dde, parent: pe, wi: wi, done: func() {
+			wg.Done()
+		}}
 	}
 	wg.Wait()
 	if wi.onDoneDirs != nil {
 		wi.onDoneDirs(pe)
 	}
 
-	// processing as much files in // as possible
 	wg.Add(len(nddes))
 	for _, ndde := range nddes {
-		childrenPq <- true
-		go func() {
-			nddone := func() {
-				wg.Done()
-			}
-			wi.pq <- &ProcessedEntry{DataEntry: ndde, parent: pe, wi: wi, done: nddone}
-			<-childrenPq
-		}()
+		wi.pq <- &ProcessedEntry{DataEntry: ndde, parent: pe, wi: wi, done: func() {
+			wg.Done()
+		}}
 	}
 	wg.Wait()
 	if wi.onDoneFiles != nil {
 		wi.onDoneFiles(pe)
 	}
+
+	if wi.onDoneEntry != nil {
+		wi.onDoneEntry(pe)
+	}
+	wi.lgr.Info("walker batchProcessDde done", "entry", pe.DataEntry.Path)
+	pe.done()
 
 }
 
