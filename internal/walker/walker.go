@@ -101,7 +101,7 @@ func MakeWalker(
 
 func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	wi.lgr.Info("Run: starting", "ds", wi.ds, "args", wi.args)
-	wi.pq = make(chan *ProcessedEntry, wi.concurrency)
+	wi.pq = make(chan *ProcessedEntry, wi.concurrency+1) // leave room for next demand
 	wi.udm = &sync.Map{}
 
 	count := 0
@@ -110,8 +110,9 @@ func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	wi.lgr.Info("Run: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 
 	rootIsDone := make(chan bool)
+	tokens := make(chan bool, wi.concurrency+1)
 	done := func() {
-		wi.lgr.Debug("Run is done")
+		wi.lgr.Debug("Run root is done")
 		rootIsDone <- true
 	}
 	go func() {
@@ -136,7 +137,13 @@ LOOP:
 				runtime.ReadMemStats(&m)
 				wi.lgr.Info("Run: processed...", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 			}
-			wi.process(pe)
+			tokens <- true
+			go func(pe *ProcessedEntry) {
+				wi.lgr.Debug("Concurrent run starting", "pe", pe.DataEntry.Path)
+				wi.process(pe)
+				wi.lgr.Debug("Concurrent run done", "pe", pe.DataEntry.Path)
+				<-tokens
+			}(pe)
 		}
 	}
 	wi.lgr.Info("Run: stopping")
