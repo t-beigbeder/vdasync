@@ -9,26 +9,27 @@ The CLI main use is to synchronize data among different locations,
 for instance for data backup and restore or replication.
 Synchronization may be very fast as the implementation leverages concurrency.
 
-Remote access is implemented with gRPC that uses HTTP/2 transport.
+Remote access is provided through gRPC that requires a HTTP/2 transport between hosts.
 
-The API also enables an easy implementation of various data access means
-through the use of plugins. The tool provides the following plugins:
+Various data access means may be implemented through the use of plugins.
+The tool provides the following plugins:
 
 - object storage through an S3 API,
-synchronizing OS files and directories attributes if wanted
-- sftp client
+taking care of OS files attributes (type, permissions and modification time) if needed
+- sftp client to access remote files through SFTP
 - client-side encrypted storage over any kind of data access mean: files or plugin
 - access to local files, a plugin that simulates remote access locally for testing purpose
 
 ## Status
 
-Alpha status
+Beta status
 
 - go API and gRPC API complete with rather good test coverage,
-missing tests for I/O errors
+mainly missing tests for I/O errors
 - CLI for synchronization
-- local files testing plugin
 - gRPC server
+- S3 storage plugin with simple OS files attributes management
+- local files testing plugin
 
 ## Design
 

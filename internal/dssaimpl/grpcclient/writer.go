@@ -42,8 +42,8 @@ func (gw *grpcWriter) Write(p []byte) (int, error) {
 			break
 		}
 		end := len(p)
-		if end-start > 8192 {
-			end = start + 8192
+		if end-start > 32768 {
+			end = start + 32768
 		}
 		gw.lgr.Debug("grpcWriter.Write", "path", gw.path_, "end-start", end-start)
 		err = gw.stream.Send(&dssagrpc.PushedBlock{Path: pPath, Data: p[start:end]})
