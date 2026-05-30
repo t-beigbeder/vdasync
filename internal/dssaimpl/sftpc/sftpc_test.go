@@ -9,10 +9,13 @@ import (
 
 func TestSftpStuff(t *testing.T) {
 	ds := GetSftpDss(t)
-	fis, err := ds.List("/")
+	des, err := ds.List("/")
 	require.NoError(t, err)
-	require.Zero(t, len(fis))
+	require.Zero(t, len(des))
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
+	des, err = ds.List("/")
+	require.NoError(t, err)
+	require.Equal(t, 1, len(des))
 }
 
 func TestBasicDirsAndFiles(t *testing.T) {

@@ -110,3 +110,11 @@ func Rights2Mod(ugoRights [3]dssa.Rights) (mode os.FileMode) {
 	}
 	return
 }
+
+func Mod2Rights(perm os.FileMode) [3]dssa.Rights {
+	return [3]dssa.Rights{
+		{Read: perm&(1<<8) != 0, Write: perm&(1<<7) != 0, Execute: perm&(1<<6) != 0},
+		{Read: perm&(1<<5) != 0, Write: perm&(1<<4) != 0, Execute: perm&(1<<3) != 0},
+		{Read: perm&(1<<2) != 0, Write: perm&(1<<1) != 0, Execute: perm&(1) != 0},
+	}
+}

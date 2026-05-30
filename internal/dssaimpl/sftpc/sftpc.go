@@ -1,16 +1,18 @@
 package sftpc
 
 import (
+	"errors"
 	"io"
 	"path"
 
 	"github.com/pkg/sftp"
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 type sftpClient struct {
-	sfc *sftp.Client
-	root     string
+	sfc  *sftp.Client
+	root string
 }
 
 // EndSession implements [dssa.Dssa].
@@ -36,12 +38,22 @@ func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
 	}
 	des := []*dssa.DataEntry{}
 	for _, fi := range fis {
+		sfi, ok := fi.Sys().(*sftp.FileStat)
+		if !ok {
+			return nil, errors.New("sftpClient.List: not a sftp.FileStat")
+		}
+		rights := common.Mod2Rights(sfi.FileMode())
 		des = append(des, &dssa.DataEntry{
-			Path: fi.Name(),
-			IsDir: fi.IsDir(),
-			IsSymLink: false, // FIXME
-			Size: fi.Size(),
-			Mtime: fi.ModTime().Unix(),
+			Path:        fi.Name(),
+			IsDir:       fi.IsDir(),
+			IsSymLink:   false, // FIXME
+			Size:        fi.Size(),
+			Mtime:       fi.ModTime().Unix(),
+			User:        int(sfi.UID),
+			UserRights:  rights[0],
+			Group:       int(sfi.GID),
+			GroupRights: rights[1],
+			OtherRights: rights[2],
 		})
 	}
 	return des, nil
@@ -78,5 +90,5 @@ func (sf *sftpClient) Symlink(old string, new_ string) error {
 }
 
 func MakeSftpClientDssa(sfc *sftp.Client, root string) dssa.Dssa {
-	return &sftpClient{		sfc: sfc,root: root}
+	return &sftpClient{sfc: sfc, root: root}
 }

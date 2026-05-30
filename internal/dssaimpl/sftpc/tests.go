@@ -13,7 +13,6 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-
 func SkipIf(t *testing.T) bool {
 	if true { // dev mode
 		return false
@@ -103,5 +102,8 @@ func Cleanup(ds dssa.Dssa) error {
 	if sf.root == "" || sf.root == "/" {
 		return fmt.Errorf("Cleanup: remove %s is dangerous", sf.root)
 	}
-	return sf.sfc.RemoveAll(sf.root)
+	if err := sf.sfc.RemoveAll(sf.root); err != nil {
+		return fmt.Errorf("Cleanup: %s error", sf.root)
+	}
+	return sf.sfc.Mkdir(sf.root)
 }
