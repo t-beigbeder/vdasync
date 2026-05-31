@@ -166,7 +166,7 @@ func syncEntryStatusInit(pe *ProcessedEntry) {
 	pe.wi.SetUserData(pe.DataEntry, es)
 }
 
-func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
+func onStartDirEntrySync(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
 	var (
 		children []*dssa.DataEntry
 		err      error
@@ -179,7 +179,7 @@ func onStartDirEntrySync(pe *ProcessedEntry) []*dssa.DataEntry {
 	syncEntryStatusInit(pe)
 
 	dssInfoSync(pe, false, "List")
-	if children, err = pe.Dssa_().List(pe.DataEntry.Path); err != nil {
+	if children, err = DssList(pe.Dssa_(), pe.DataEntry.Path, pe.wi.noLstatOnList); err != nil {
 		setSyncError(pe, "onStartDirEntrySync: source List", false, err)
 		return nil
 	}

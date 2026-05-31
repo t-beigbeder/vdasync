@@ -29,6 +29,7 @@ func wtf(ds dssa.Dssa, path_ string) error {
 func TestSftpStuff(t *testing.T) {
 	SkipIf(t)
 	ds := GetSftpDss(t)
+	require.NoError(t, Cleanup(ds))
 	des, err := ds.List("/")
 	require.NoError(t, err)
 	require.Zero(t, len(des))
@@ -37,6 +38,7 @@ func TestSftpStuff(t *testing.T) {
 func TestBasicDirsAndFiles(t *testing.T) {
 	SkipIf(t)
 	ds := GetSftpDss(t)
+	require.NoError(t, Cleanup(ds))
 	des, err := ds.List("/")
 	require.NoError(t, err)
 	require.Zero(t, len(des))
@@ -87,6 +89,7 @@ func TestBasicDirsAndFiles(t *testing.T) {
 func TestConcurrency(t *testing.T) {
 	SkipIf(t)
 	ds := GetSftpDss(t)
+	require.NoError(t, Cleanup(ds))
 	var wg sync.WaitGroup
 	lgr := common.DbgLogger()
 	lgr.Debug("start")

@@ -50,7 +50,6 @@ func getTestDss(t *testing.T, hasS3 bool, hasSftp bool) (dssa.Dssa, dssa.Dssa, s
 	if hasSftp {
 		sftpc.SkipIf(t)
 		dss4 = sftpc.GetSftpDss(t)
-		require.NoError(t, sftpc.Cleanup(dss4))
 	}
 	require.NoError(t, err)
 	return dss1, dss2, dss3, dss4, cFunc
@@ -478,6 +477,8 @@ func TestBasicSftpDryrunSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
 	dss1, _, _, dss4, cFunc := getTestDss(t, false, true)
 	defer cFunc()
+	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
+	require.NoError(t, sftpc.Cleanup(dss4))
 	for _, tDss := range []dssa.Dssa{dss4} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
 		td1 := t.TempDir()
@@ -504,6 +505,8 @@ func TestBasicSftpActualSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
 	lDss, _, _, rDss, cFunc := getTestDss(t, false, true)
 	defer cFunc()
+	RecChmodRW(rLgr, 2, rDss, "/dau", "sftp")
+	require.NoError(t, sftpc.Cleanup(rDss))
 
 	for _, tsCfg := range []syncTestConfig{
 		{sDss: lDss, tDss: rDss},
@@ -561,5 +564,107 @@ func TestBasicSftpActualSynczer(t *testing.T) {
 		require.Equal(t, 0, sr[""].AggregatedCreated)
 		require.Equal(t, 0, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
+	}
+}
+
+func TestBaseAugmentedTestSftpDataSynczer(t *testing.T) {
+	rLgr := common.GetNullLogger()
+	dss1, _, _, dss4, cFunc := getTestDss(t, false, true)
+	defer cFunc()
+	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
+	require.NoError(t, sftpc.Cleanup(dss4))
+
+	for _, tDss := range []dssa.Dssa{dss4} {
+		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
+		td1 := t.TempDir()
+		sad, saf, err := PrepareAugmentedTestFilesTree(td1, 7, 100, 16, 6*1024)
+		defer SetTestDirRW(td1, "source")
+		require.Nil(t, err)
+		total := sad + saf + 1
+		sde, err := dss1.Stat(td1)
+		require.Nil(t, err)
+		lgr.Debug("TestBaseAugmentedTestDataSynczer", "td1", td1, "sad", sad, "saf", saf)
+
+		sr, err := runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true})
+		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
+		require.Equal(t, total-1, sr[""].AggregatedCreated)
+		require.Equal(t, 1, sr[""].AggregatedUpdated)
+		require.Equal(t, 0, sr[""].AggregatedError)
+
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{})
+		require.Nil(t, err)
+		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
+		require.Equal(t, total-1, sr[""].AggregatedCreated)
+		require.Equal(t, 1, sr[""].AggregatedUpdated)
+		require.Equal(t, 5, sr[""].AggregatedError) // SFTP specific
+
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true})
+		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
+		require.Equal(t, 0, sr[""].AggregatedCreated)
+		require.Equal(t, 3, sr[""].AggregatedUpdated) // SFTP specific
+		require.Equal(t, 0, sr[""].AggregatedError) // SFTP specific
+	}
+}
+
+func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
+	type syncTestConfig struct {
+		doRm    bool
+		doCheck bool
+		tDss    dssa.Dssa
+	}
+	rLgr := common.GetNullLogger()
+	dss1, _, _, dss4, cFunc := getTestDss(t, false, true)
+	defer cFunc()
+	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
+	require.NoError(t, sftpc.Cleanup(dss4))
+
+	for _, tsCfg := range []syncTestConfig{
+		{doRm: true, doCheck: true, tDss: dss4},
+	} {
+		doRm := tsCfg.doRm
+		doCheck := tsCfg.doCheck
+		tDss := tsCfg.tDss
+
+		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss)).With("doRm", doRm).With("doCheck", doCheck)
+		td1 := t.TempDir()
+		sad, saf, err := PrepareAugmentedTestFilesTree(td1, 7, 100, 16, 17*1024)
+		defer SetTestDirRW(td1, "source")
+		require.Nil(t, err)
+		total := sad + saf + 1
+		sde, err := dss1.Stat(td1)
+		require.Nil(t, err)
+		lgr.Debug("TestModAugmentedTestDataSynczer", "td1", td1, "sad", sad, "saf", saf)
+
+		sr, err := runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{})
+		require.Nil(t, err)
+		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
+		require.Equal(t, total-1, sr[""].AggregatedCreated)
+		require.Equal(t, 1, sr[""].AggregatedUpdated)
+		require.Equal(t, 5, sr[""].AggregatedError)  // SFTP specific
+
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true})
+		require.Nil(t, err)
+		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
+		require.Equal(t, 0, sr[""].AggregatedCreated)
+		require.Equal(t, 3, sr[""].AggregatedUpdated)  // SFTP specific
+		require.Equal(t, 0, sr[""].AggregatedError)
+
+		sad2, saf2, err := UpdateAugmentedTestFilesTree(td1, 5, 10, 3, 11*1024)
+		require.Nil(t, err)
+		_ = sad2 + saf2 + 1
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true, Rm: doRm, Check: doCheck})
+		require.Equal(t, 0, sr[""].AggregatedError)
+		require.NotEqual(t, 0, sr[""].AggregatedModChanged)
+
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: false, Rm: doRm, Check: doCheck})
+		require.Nil(t, err)
+		require.Equal(t, 4, sr[""].AggregatedError)  // SFTP specific
+		require.NotEqual(t, 0, sr[""].AggregatedModChanged)
+
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true, Rm: doRm, Check: doCheck})
+		require.Nil(t, err)
+		require.Equal(t, 0, sr[""].AggregatedError)
+		DisplaySyncResult(sr, os.Stderr, true, true)
+		require.LessOrEqual(t, sr[""].AggregatedModChanged, 1)
 	}
 }

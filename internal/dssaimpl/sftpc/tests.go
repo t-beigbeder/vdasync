@@ -89,7 +89,6 @@ func GetSftpDss(t *testing.T) dssa.Dssa {
 	user, address, identity, root := GetSftpEnv()
 	dss, err := MakeSftpClientDssa(user, address, identity, root, 4, GetSftpClient)
 	require.NoError(t, err)
-	require.NoError(t, Cleanup(dss))
 	return dss
 }
 

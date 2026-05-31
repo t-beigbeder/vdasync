@@ -95,7 +95,7 @@ func dssInfoRRm(pe *ProcessedEntry, function string) {
 	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "alias", rmData(pe).dssAlias, "de", rmPeRelPath(pe))
 }
 
-func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
+func onStartDirEntryRRm(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
 	if pe.parent == nil && rmData(pe).sourceRoot == "" {
 		sd := rmData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
@@ -104,7 +104,7 @@ func onStartDirEntryRRm(pe *ProcessedEntry) []*dssa.DataEntry {
 	rmEntryStatusInit(pe)
 
 	dssInfoRRm(pe, "List")
-	des, err := pe.Dssa_().List(pe.DataEntry.Path)
+	des, err := DssList(pe.Dssa_(), pe.DataEntry.Path, pe.wi.noLstatOnList)
 	if err != nil {
 		setRmError(pe, "onStartDirEntryRRm: List", err)
 		return nil

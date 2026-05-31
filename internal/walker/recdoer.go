@@ -91,7 +91,7 @@ func dssInfoRDoer(pe *ProcessedEntry, function string) {
 	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "alias", doerData(pe).dssAlias, "de", doerPeRelPath(pe))
 }
 
-func onStartDirEntryRDoer(pe *ProcessedEntry) []*dssa.DataEntry {
+func onStartDirEntryRDoer(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
 	if pe.parent == nil && doerData(pe).sourceRoot == "" {
 		sd := doerData(pe)
 		sd.sourceRoot = pe.DataEntry.Path
@@ -100,7 +100,7 @@ func onStartDirEntryRDoer(pe *ProcessedEntry) []*dssa.DataEntry {
 	doerEntryStatusInit(pe)
 
 	dssInfoRDoer(pe, "List")
-	des, err := pe.Dssa_().List(pe.DataEntry.Path)
+	des, err := DssList(pe.Dssa_(), pe.DataEntry.Path, pe.wi.noLstatOnList)
 	if err != nil {
 		setDoerError(pe, "onStartDirEntryRDoer: List", err)
 		return nil

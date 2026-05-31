@@ -47,15 +47,16 @@ func (pe *ProcessedEntry) Args_() []interface{} {
 	return pe.wi.args
 }
 
-type EntryLister func(*ProcessedEntry) []*dssa.DataEntry
+type EntryLister func(*ProcessedEntry, bool) []*dssa.DataEntry
 
 type EntryProcessor func(*ProcessedEntry)
 
 type walkerImpl struct {
-	lgr         *slog.Logger
-	implLgr     *slog.Logger
-	concurrency int
-	ds          dssa.Dssa
+	lgr           *slog.Logger
+	implLgr       *slog.Logger
+	concurrency   int
+	ds            dssa.Dssa
+	noLstatOnList bool
 
 	onStartDirEntry  EntryLister
 	onStartNdirEntry EntryProcessor
@@ -186,7 +187,7 @@ func (wi *walkerImpl) processNde(pe *ProcessedEntry) {
 
 func (wi *walkerImpl) processDde(pe *ProcessedEntry) {
 	if wi.onStartDirEntry != nil {
-		pe.children = wi.onStartDirEntry(pe)
+		pe.children = wi.onStartDirEntry(pe, wi.noLstatOnList)
 	} else {
 		pe.children = []*dssa.DataEntry{}
 	}
