@@ -50,6 +50,7 @@ func GrpcDte2DssDte(gdte *dssagrpc.DataEntry) *dssa.DataEntry {
 		Group:         int(gdte.Group),
 		GroupRights:   dssa.Rights{Read: gdte.GroupRights.Read, Write: gdte.GroupRights.Write, Execute: gdte.GroupRights.Execute},
 		OtherRights:   dssa.Rights{Read: gdte.OtherRights.Read, Write: gdte.OtherRights.Write, Execute: gdte.OtherRights.Execute},
+		NoLStat:       gdte.NoLstat,
 		IsSymLink:     gdte.IsSymLink,
 		SymLinkTarget: gdte.SymLinkTarget,
 		Error:         err,

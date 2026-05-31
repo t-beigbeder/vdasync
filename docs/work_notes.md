@@ -46,7 +46,7 @@ Random useful commands
 
     go clean -modcache
     go get github.com/goccy/go-yaml
-    go build -o bin/manager cmd/main.go
+    go get -u ./...
 
 ### code-server golang extension
 

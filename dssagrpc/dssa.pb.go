@@ -172,6 +172,7 @@ type DataEntry struct {
 	Group         int32                  `protobuf:"varint,7,opt,name=group,proto3" json:"group,omitempty"`
 	GroupRights   *Rights                `protobuf:"bytes,8,opt,name=group_rights,json=groupRights,proto3" json:"group_rights,omitempty"`
 	OtherRights   *Rights                `protobuf:"bytes,9,opt,name=other_rights,json=otherRights,proto3" json:"other_rights,omitempty"`
+	NoLstat       bool                   `protobuf:"varint,15,opt,name=no_lstat,json=noLstat,proto3" json:"no_lstat,omitempty"`
 	IsSymLink     bool                   `protobuf:"varint,10,opt,name=is_sym_link,json=isSymLink,proto3" json:"is_sym_link,omitempty"`
 	SymLinkTarget string                 `protobuf:"bytes,11,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
 	Error         string                 `protobuf:"bytes,12,opt,name=error,proto3" json:"error,omitempty"`
@@ -272,6 +273,13 @@ func (x *DataEntry) GetOtherRights() *Rights {
 		return x.OtherRights
 	}
 	return nil
+}
+
+func (x *DataEntry) GetNoLstat() bool {
+	if x != nil {
+		return x.NoLstat
+	}
+	return false
 }
 
 func (x *DataEntry) GetIsSymLink() bool {
@@ -712,7 +720,7 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x03old\x18\x01 \x01(\tR\x03old\x12\x11\n" +
 	"\x04new_\x18\x02 \x01(\tR\x03new\"8\n" +
 	"\vDataEntries\x12)\n" +
-	"\aentries\x18\x01 \x03(\v2\x0f.dssa.DataEntryR\aentries\"\xad\x03\n" +
+	"\aentries\x18\x01 \x03(\v2\x0f.dssa.DataEntryR\aentries\"\xc8\x03\n" +
 	"\tDataEntry\x12\x15\n" +
 	"\x06is_dir\x18\x01 \x01(\bR\x05isDir\x12\x12\n" +
 	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
@@ -723,7 +731,8 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"userRights\x12\x14\n" +
 	"\x05group\x18\a \x01(\x05R\x05group\x12/\n" +
 	"\fgroup_rights\x18\b \x01(\v2\f.dssa.RightsR\vgroupRights\x12/\n" +
-	"\fother_rights\x18\t \x01(\v2\f.dssa.RightsR\votherRights\x12\x1e\n" +
+	"\fother_rights\x18\t \x01(\v2\f.dssa.RightsR\votherRights\x12\x19\n" +
+	"\bno_lstat\x18\x0f \x01(\bR\anoLstat\x12\x1e\n" +
 	"\vis_sym_link\x18\n" +
 	" \x01(\bR\tisSymLink\x12&\n" +
 	"\x0fsym_link_target\x18\v \x01(\tR\rsymLinkTarget\x12\x14\n" +

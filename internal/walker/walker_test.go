@@ -30,7 +30,7 @@ func TestBasicWalker(t *testing.T) {
 	// _, err = dssa2.List(common.OsPath2DssPath(td2))
 	// require.Nil(t, err)
 
-	startDe := func(pe *ProcessedEntry) []*dssa.DataEntry {
+	startDe := func(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
 		des, _ := pe.wi.ds.List(pe.DataEntry.Path)
 		return des
 	}
