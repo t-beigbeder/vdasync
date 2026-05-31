@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net"
 	"os"
 	"path"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/pkg/sftp"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"golang.org/x/crypto/ssh"
 )
 
 type sftpClient struct {
@@ -184,4 +186,40 @@ func MakeSftpClientDssa(user, address, identity, root string, concurrency int, f
 		sfcs <- sfc
 	}
 	return &sftpClient{sfcs: sfcs, root: root}, nil
+}
+
+func GetSftpClient(user, address, identity string) (*sftp.Client, error) {
+	key, err := os.ReadFile(identity)
+	if err != nil {
+		return nil, err
+	}
+	signer, err := ssh.ParsePrivateKey(key)
+	if err != nil {
+		return nil, err
+	}
+	algorithms := ssh.SupportedAlgorithms()
+	config := &ssh.ClientConfig{
+		Config: ssh.Config{
+			KeyExchanges: algorithms.KeyExchanges,
+			Ciphers:      algorithms.Ciphers,
+			MACs:         algorithms.MACs,
+		},
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			return nil
+		},
+		HostKeyAlgorithms: algorithms.HostKeys,
+	}
+	sc, err := ssh.Dial("tcp", "t-sk3s-sv-ext:22", config)
+	if err != nil {
+		return nil, err
+	}
+	sfc, err := sftp.NewClient(sc)
+	if err != nil {
+		return nil, err
+	}
+	return sfc, nil
 }

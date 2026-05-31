@@ -326,7 +326,6 @@ func setEntryChanges(pe *ProcessedEntry) {
 	sde := pe.DataEntry
 	if !hasChanges && !syncData(pe).syncOptions.NoPerm {
 		hasChanges = tde.UserRights != sde.UserRights ||
-			tde.Group != sde.Group ||
 			tde.GroupRights != sde.GroupRights ||
 			tde.OtherRights != sde.OtherRights
 	}

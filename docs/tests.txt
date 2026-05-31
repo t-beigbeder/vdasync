@@ -80,3 +80,6 @@ bin/vdasync -conc 32 -rm -source s3+dss:/ -config testdata/cmd/s3Config.yaml -ta
 rsync -i --partial -rlptD --delete -c --dry-run ~/ /tmp/copy-of-home
 bin/vdasync -conc 32 -dryrun -rm -source ~ -target s3+dss:/ -config testdata/cmd/s3Config.yaml
 bin/vdasync -conc 32 -dryrun -rm -source s3+dss:/ -config testdata/cmd/s3Config.yaml -target /tmp/copy-of-home
+
+bin/vdasync -conc 4 -dryrun -rm -source bin -target sftp+dss:/ -config /local/tmp/sftpConfig.yaml -level INFO
+bin/vdasync -conc 4 -rm -source ~/locgit -target sftp+dss:/ -config /local/tmp/sftpConfig.yaml -level INFO

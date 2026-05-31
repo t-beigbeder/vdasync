@@ -39,6 +39,7 @@ build:	## go build commands
 	go build -o bin/testcerts cmd/testcerts/main.go
 	go build -o bin/vdaserver cmd/vdaserver/main.go
 	go build -o bin/vdas3 cmd/plugins/s3/main.go
+	go build -o bin/vdasftp cmd/plugins/sftp/main.go
 
 .PHONY: certs
 certs:	## generate test certificates
