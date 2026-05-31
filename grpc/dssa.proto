@@ -40,6 +40,7 @@ message DataEntry {
     int32 group = 7;
     Rights group_rights = 8;
     Rights other_rights = 9;
+    bool no_lstat = 15;
     bool is_sym_link = 10;
     string sym_link_target = 11;
     string error = 12;

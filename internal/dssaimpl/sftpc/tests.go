@@ -87,9 +87,8 @@ func GetSftpClient(user, address, identity string) (*sftp.Client, error) {
 
 func GetSftpDss(t *testing.T) dssa.Dssa {
 	user, address, identity, root := GetSftpEnv()
-	sfc, err := GetSftpClient(user, address, identity)
+	dss, err := MakeSftpClientDssa(user, address, identity, root, 4, GetSftpClient)
 	require.NoError(t, err)
-	dss := MakeSftpClientDssa(sfc, root, 4)
 	require.NoError(t, Cleanup(dss))
 	return dss
 }
@@ -102,8 +101,12 @@ func Cleanup(ds dssa.Dssa) error {
 	if sf.root == "" || sf.root == "/" {
 		return fmt.Errorf("Cleanup: remove %s is dangerous", sf.root)
 	}
-	if err := sf.sfc.RemoveAll(sf.root); err != nil {
+	sfc := <-sf.sfcs
+	defer func() {
+		sf.sfcs <- sfc
+	}()
+	if err := sfc.RemoveAll(sf.root); err != nil {
 		return fmt.Errorf("Cleanup: %s error", sf.root)
 	}
-	return sf.sfc.Mkdir(sf.root)
+	return sfc.Mkdir(sf.root)
 }

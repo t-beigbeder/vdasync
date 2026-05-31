@@ -2,6 +2,7 @@ package sftpc
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -14,9 +15,8 @@ import (
 )
 
 type sftpClient struct {
-	tokens chan bool
-	sfc    *sftp.Client
-	root   string
+	sfcs chan *sftp.Client
+	root string
 }
 
 // EndSession implements [dssa.Dssa].
@@ -26,31 +26,33 @@ func (sf *sftpClient) EndSession() error {
 
 // GetReadCloser implements [dssa.Dssa].
 func (sf *sftpClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
-	rr, err := sf.sfc.Open(path.Join(sf.root, path_))
+	sfc := <-sf.sfcs
+	rr, err := sfc.Open(path.Join(sf.root, path_))
 	if err != nil {
+		sf.sfcs <- sfc
 		return nil, err
 	}
-	sf.tokens <- true
-	return &sftpReader{reader: rr, cb: func() { <-sf.tokens }}, nil
+	return &sftpReader{reader: rr, cb: func() { sf.sfcs <- sfc }}, nil
 }
 
 // GetWriteCloser implements [dssa.Dssa].
 func (sf *sftpClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	wr, err := sf.sfc.Create(path.Join(sf.root, path_))
+	sfc := <-sf.sfcs
+	wr, err := sfc.Create(path.Join(sf.root, path_))
 	if err != nil {
+		sf.sfcs <- sfc
 		return nil, err
 	}
-	sf.tokens <- true
-	return &sftpWriter{writer: wr, cb: func() { <-sf.tokens }}, nil
+	return &sftpWriter{writer: wr, cb: func() { sf.sfcs <- sfc }}, nil
 }
 
 // List implements [dssa.Dssa].
 func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
-	sf.tokens <- true
+	sfc := <-sf.sfcs
 	defer func() {
-		<-sf.tokens
+		sf.sfcs <- sfc
 	}()
-	fis, err := sf.sfc.ReadDir(path.Join(sf.root, path_))
+	fis, err := sfc.ReadDir(path.Join(sf.root, path_))
 	if err != nil {
 		return nil, err
 	}
@@ -62,9 +64,9 @@ func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
 		}
 		rights := common.Perm2Rights(sfi.FileMode())
 		des = append(des, &dssa.DataEntry{
-			Path:        fi.Name(),
+			Path:        path.Join(path_, fi.Name()),
 			IsDir:       fi.IsDir(),
-			IsSymLink:   false, // FIXME
+			NoLStat:     true,
 			Size:        fi.Size(),
 			Mtime:       fi.ModTime().Unix(),
 			User:        int(sfi.UID),
@@ -79,11 +81,11 @@ func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // Mkdir implements [dssa.Dssa].
 func (sf *sftpClient) Mkdir(de *dssa.DataEntry) error {
-	sf.tokens <- true
+	sfc := <-sf.sfcs
 	defer func() {
-		<-sf.tokens
+		sf.sfcs <- sfc
 	}()
-	return sf.sfc.Mkdir(path.Join(sf.root, de.Path))
+	return sfc.Mkdir(path.Join(sf.root, de.Path))
 }
 
 // NewSession implements [dssa.Dssa].
@@ -93,29 +95,29 @@ func (sf *sftpClient) NewSession() error {
 
 // Rm implements [dssa.Dssa].
 func (sf *sftpClient) Rm(path_ string) error {
-	sf.tokens <- true
+	sfc := <-sf.sfcs
 	defer func() {
-		<-sf.tokens
+		sf.sfcs <- sfc
 	}()
-	return sf.sfc.Remove(path.Join(sf.root, path_))
+	return sfc.Remove(path.Join(sf.root, path_))
 }
 
 // SetStat implements [dssa.Dssa].
 func (sf *sftpClient) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
-	sf.tokens <- true
+	sfc := <-sf.sfcs
 	defer func() {
-		<-sf.tokens
+		sf.sfcs <- sfc
 	}()
 	fp := path.Join(sf.root, de.Path)
 	if !noPerm && !de.IsSymLink {
 		ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
-		if err := sf.sfc.Chmod(fp, common.Rights2Mod([3]dssa.Rights(ugor))); err != nil {
+		if err := sfc.Chmod(fp, common.Rights2Mod([3]dssa.Rights(ugor))); err != nil {
 			return err
 		}
 	}
 	if !noMtime {
 		t := time.Unix(de.Mtime, 0)
-		if err := sf.sfc.Chtimes(fp, t, t); err != nil {
+		if err := sfc.Chtimes(fp, t, t); err != nil {
 			return err
 		}
 	}
@@ -124,19 +126,19 @@ func (sf *sftpClient) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) err
 
 // Stat implements [dssa.Dssa].
 func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
-	sf.tokens <- true
+	sfc := <-sf.sfcs
 	defer func() {
-		<-sf.tokens
+		sf.sfcs <- sfc
 	}()
 	fp := path.Join(sf.root, path_)
-	fi, err := sf.sfc.Lstat(fp)
+	fi, err := sfc.Lstat(fp)
 	if err != nil {
 		return &dssa.DataEntry{Path: path_, Error: err, ErrNotExist: os.IsNotExist(err)}, err
 	}
 	isSymlink := fi.Mode().Type()&fs.ModeSymlink != 0
 	var linkTarget string
 	if isSymlink {
-		linkTarget, err = sf.sfc.ReadLink(fp)
+		linkTarget, err = sfc.ReadLink(fp)
 		if err != nil {
 			return nil, err
 		}
@@ -163,14 +165,23 @@ func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // Symlink implements [dssa.Dssa].
 func (sf *sftpClient) Symlink(old string, new_ string) error {
-	sf.tokens <- true
+	sfc := <-sf.sfcs
 	defer func() {
-		<-sf.tokens
+		sf.sfcs <- sfc
 	}()
-	return sf.sfc.Symlink(old, path.Join(sf.root, new_))
+	return sfc.Symlink(old, path.Join(sf.root, new_))
 }
 
-func MakeSftpClientDssa(sfc *sftp.Client, root string, concurrency int) dssa.Dssa {
-	tokens := make(chan bool, concurrency+1)
-	return &sftpClient{sfc: sfc, root: root, tokens: tokens}
+type SftpClientFactory func(user, address, identity string) (*sftp.Client, error)
+
+func MakeSftpClientDssa(user, address, identity, root string, concurrency int, factory SftpClientFactory) (dssa.Dssa, error) {
+	sfcs := make(chan *sftp.Client, concurrency+1)
+	for i := 0; i <= concurrency; i++ {
+		sfc, err := factory(user, address, identity)
+		if err != nil {
+			return nil, fmt.Errorf("MakeSftpClientDssa: factory error count #%d: %v", i, err)
+		}
+		sfcs <- sfc
+	}
+	return &sftpClient{sfcs: sfcs, root: root}, nil
 }

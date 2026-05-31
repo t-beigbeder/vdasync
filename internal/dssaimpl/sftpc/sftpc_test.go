@@ -1,11 +1,15 @@
 package sftpc
 
 import (
+	"fmt"
 	"io"
+	"log/slog"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 func wtf(ds dssa.Dssa, path_ string) error {
@@ -76,5 +80,30 @@ func TestBasicDirsAndFiles(t *testing.T) {
 	des, err = ds.List("/d3")
 	require.NoError(t, err)
 	require.Equal(t, 1, len(des))
-	// require.True(t, des[0].IsSymLink) // FIXME
+	require.True(t, des[0].NoLStat)
+	require.Equal(t, "/d3/f4.sl", des[0].Path)
+}
+
+func TestConcurrency(t *testing.T) {
+	SkipIf(t)
+	ds := GetSftpDss(t)
+	var wg sync.WaitGroup
+	lgr := common.DbgLogger()
+	lgr.Debug("start")
+	for i := 0; i < 8; i++ {
+		wg.Add(1)
+		go func(count int, lgr *slog.Logger) {
+			lgr.Debug("List")
+			ds.List("/")
+			lgr.Debug("Mkdir")
+			ds.Mkdir(&dssa.DataEntry{Path: fmt.Sprintf("/d%d", count)})
+			lgr.Debug("List again")
+			des, err := ds.List("/")
+			lgr.Debug("Done", "des", len(des), "err", err)
+			wg.Done()
+		}(i, lgr.With("concurrent", i))
+	}
+	lgr.Debug("wait")
+	wg.Wait()
+	lgr.Debug("done")
 }

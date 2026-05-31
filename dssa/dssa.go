@@ -18,6 +18,7 @@ type DataEntry struct {
 	Group         int
 	GroupRights   Rights
 	OtherRights   Rights
+	NoLStat       bool
 	IsSymLink     bool
 	SymLinkTarget string
 	Error         error
