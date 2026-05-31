@@ -71,24 +71,11 @@ https://docs.aws.amazon.com/sdk-for-go/v2/developer-guide/getting-started.html
 
 ### TODO
 
-- SFTP check authorized keys, cf https://pkg.go.dev/golang.org/x/crypto/ssh#example-ServerConfig
+- sync clean under root fails (prep parent check)
+- SFTP symlink issue to be investigated
+- SFTP check server host key or ignore option
 - parse FIXMEs
-- dssa/grpc List operation with only Size/Time options if more efficient
 - grpc ope version
-- secure plugin connection with
-  - https://github.com/filosottile/mkcert
-  - https://go.dev/src/crypto/tls/generate_cert.go
-  - https://github.com/grpc/grpc-go/tree/master/examples/features/encryption
-- defer shutdown server and wait plugin
-- ctrl/c signal for server
-- mTLS: test with simple auto-generated certs (without CA)
-
-generate certificates
-- gen test CA
-- gen server and or client cert/key
-
-server
-- internally gen server cert/key
 
 service
 - health-check client

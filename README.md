@@ -29,6 +29,7 @@ mainly missing tests for I/O errors
 - CLI for synchronization
 - gRPC server
 - S3 storage plugin with simple OS files attributes management
+- SFTP client
 - local files testing plugin
 
 ## Design
