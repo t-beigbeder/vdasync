@@ -1,5 +1,8 @@
 name: Build and release Go Project
 
+permissions:
+  contents: write
+  
 on:
   push:
     tags:
