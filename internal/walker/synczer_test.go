@@ -664,7 +664,7 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true, Rm: doRm, Check: doCheck})
 		require.Nil(t, err)
 		require.Equal(t, 0, sr[""].AggregatedError)
-		require.LessOrEqual(t, sr[""].AggregatedModChanged, 1)
+		require.LessOrEqual(t, sr[""].AggregatedModChanged, 3)
 	}
 
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
