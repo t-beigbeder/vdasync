@@ -126,7 +126,7 @@ func (s3m *s3MetaSts) Rm(path_ string) error {
 	if err != nil {
 		return err
 	}
-	if !de.IsDir || !de.IsSymLink {
+	if !de.IsDir && !de.IsSymLink {
 		if err = s3m.s3repo.DeleteObject(path.Join(s3m.rootPrefix, path_)); err != nil {
 			return err
 		}

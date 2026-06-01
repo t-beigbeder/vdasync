@@ -117,7 +117,8 @@ func (sf *sftpClient) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) err
 			return err
 		}
 	}
-	if !noMtime {
+	// No Lutime equivalent with sftp client
+	if !noMtime && !de.IsSymLink {
 		t := time.Unix(de.Mtime, 0)
 		if err := sfc.Chtimes(fp, t, t); err != nil {
 			return err
