@@ -2,7 +2,7 @@ name: Build and release Go Project
 
 permissions:
   contents: write
-  
+
 on:
   push:
     tags:
@@ -21,11 +21,10 @@ jobs:
           go-version-file: "go.mod"
 
       - name: Build project
-        run: make build
+        run: make release
 
       - name: Release
         uses: softprops/action-gh-release@v1
         with:
           files: |
-            bin/vdasync
-            bin/testcerts
+            tmp/vdasync-*.tgz

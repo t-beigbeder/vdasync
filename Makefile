@@ -41,6 +41,12 @@ build:	## go build commands
 	go build -o bin/vdas3 cmd/plugins/s3/main.go
 	go build -o bin/vdasftp cmd/plugins/sftp/main.go
 
+.PHONY: release
+release:	## go build and release tgz
+release: build
+	mkdir -p tmp
+	tar czf tmp/vdasync-linux-amd64-$(shell git describe --tags).tgz  --exclude .gitignore -C bin .
+
 .PHONY: certs
 certs:	## generate test certificates
 	@mkdir -p $(CERTS_PATH)
