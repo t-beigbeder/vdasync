@@ -1,0 +1,44 @@
+name: Build and upload binaries
+on:
+  release:
+    types: [published]
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  build:
+    name: Build binaries
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - {GOOS: linux, GOARCH: amd64}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Build binary
+        run: |
+          VERSION="$(git describe --tags)"
+          DIR="$(mktemp -d)"
+          mkdir "$DIR/vdasync"
+          go build -o "$DIR/vdasync/vdasync" cmd/vdasync/main.go
+          go build -o "$DIR/vdasync/testcerts" cmd/testcerts/main.go
+          tar -cvzf "vdasync-$VERSION-$GOOS-$GOARCH.tar.gz" -C "$DIR" vdasync
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: amd64
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: vdasync-artifacts-$GOOS-$GOARCH
+          path: vdasync-*
