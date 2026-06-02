@@ -2,6 +2,7 @@ package encrypted
 
 import (
 	"io"
+	"path"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -16,23 +17,27 @@ var _ metasts.MetaStorageSvc = &m2edsvc{}
 
 type m2edsStSvc struct {
 	dss           dssa.Dssa
-	metaPath      string
+	rootPath      string
 	ageIdentities []string
 	ageRecipients []string
 }
 
+func (m *m2edsStSvc) metaPath() string {
+	return path.Join(m.rootPath, ".vdasync.meta")
+}
+
 // Exists implements [metasts.StorageSvc].
 func (m *m2edsStSvc) Exists() (bool, error) {
-	de, err := m.dss.Stat(m.metaPath)
+	de, err := m.dss.Stat(m.metaPath())
 	if de.Error != nil && !de.ErrNotExist {
 		return false, err
 	}
-	return de != nil, nil
+	return !de.ErrNotExist, nil
 }
 
 // Get implements [metasts.StorageSvc].
 func (m *m2edsStSvc) Get() ([]byte, error) {
-	rr, err := m.dss.GetReadCloser(m.metaPath)
+	rr, err := m.dss.GetReadCloser(m.metaPath())
 	if err != nil {
 		return nil, err
 	}
@@ -46,11 +51,11 @@ func (m *m2edsStSvc) Get() ([]byte, error) {
 
 // Put implements [metasts.StorageSvc].
 func (m *m2edsStSvc) Put(bs []byte) error {
-	ebs, err := common.EncryptMsg(bs)
+	ebs, err := common.EncryptMsg(bs, m.ageRecipients...)
 	if err != nil {
 		return err
 	}
-	wr, err := m.dss.GetWriteCloser(m.metaPath)
+	wr, err := m.dss.GetWriteCloser(m.metaPath())
 	if err != nil {
 		return err
 	}

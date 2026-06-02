@@ -24,7 +24,7 @@ type EncryptedDssa interface {
 type encryptedDssaImpl struct {
 	lgr           *slog.Logger
 	underlying    dssa.Dssa
-	metaPath      string
+	rootPath      string
 	msts          metasts.MetaStorageSvc
 	ageRecipients []string
 	ageIdentities []string
@@ -200,20 +200,21 @@ func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
 var _ dssa.Dssa = &encryptedDssaImpl{}
 var _ EncryptedDssa = &encryptedDssaImpl{}
 
-func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, metaPath string, ageIdentities []string, ageRecipients []string) (dssa.Dssa, error) {
+func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIdentities []string, ageRecipients []string) (EncryptedDssa, error) {
 	dss := &encryptedDssaImpl{
 		lgr:        lgr,
 		underlying: underlying,
-		metaPath:   metaPath,
+		rootPath:   rootPath,
 		msts: &m2edsvc{
 			M2StSvc: metasts.M2StSvc{
 				Lgr: lgr,
 				StSvc: &m2edsStSvc{
 					dss:           underlying,
-					metaPath:      metaPath,
+					rootPath:      rootPath,
 					ageIdentities: ageIdentities,
 					ageRecipients: ageRecipients,
 				},
+				RootPrefix: rootPath,
 			},
 		},
 	}

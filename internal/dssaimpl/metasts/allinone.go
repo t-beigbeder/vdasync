@@ -24,6 +24,7 @@ type StorageSvc interface {
 type M2StSvc struct {
 	Lgr        *slog.Logger
 	StSvc      StorageSvc
+	RootPrefix string
 	mx         sync.Mutex
 	hasSession bool
 	entries    map[string]*dssa.DataEntry
@@ -127,6 +128,13 @@ func (msts *M2StSvc) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // NewSession implements [metasts.MetaStorageSvc].
 func (msts *M2StSvc) NewSession() error {
+	pp := "/.."
+	if msts.RootPrefix == "" {
+		msts.RootPrefix = "/"
+	} else {
+		pp = path.Dir(msts.RootPrefix)
+	}
+	rp := msts.RootPrefix
 	msts.Lgr.Info("m2s3svc: NewSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
@@ -141,12 +149,12 @@ func (msts *M2StSvc) NewSession() error {
 	msts.entries = map[string]*dssa.DataEntry{}
 	msts.dirs = map[string]map[string]bool{}
 	if !ok {
-		msts.dirs["/.."] = map[string]bool{}
-		msts.dirs["/.."]["/"] = true
-		msts.entries["/.."] = &dssa.DataEntry{}
-		msts.dirs["/"] = map[string]bool{}
-		msts.entries["/"] = &dssa.DataEntry{
-			Path:  "/",
+		msts.dirs[pp] = map[string]bool{}
+		msts.dirs[pp][rp] = true
+		msts.entries[pp] = &dssa.DataEntry{}
+		msts.dirs[rp] = map[string]bool{}
+		msts.entries[rp] = &dssa.DataEntry{
+			Path:  rp,
 			IsDir: true,
 			Mtime: time.Now().Unix(),
 		}
