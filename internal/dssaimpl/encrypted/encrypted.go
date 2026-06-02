@@ -24,6 +24,7 @@ type EncryptedDssa interface {
 type encryptedDssaImpl struct {
 	lgr           *slog.Logger
 	underlying    dssa.Dssa
+	metaPath      string
 	msts          metasts.MetaStorageSvc
 	ageRecipients []string
 	ageIdentities []string
@@ -61,7 +62,14 @@ func (ed *encryptedDssaImpl) EndSession() error {
 
 // GetReadCloser implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) GetReadCloser(path_ string) (io.ReadCloser, error) {
-	sr, err := ed.underlying.GetReadCloser(ed.actualPath(&dssa.DataEntry{Path: path_}))
+	de, err := ed.getDe(path_)
+	if err != nil {
+		return nil, err
+	}
+	if de == nil {
+		return nil, fs.ErrNotExist
+	}
+	sr, err := ed.underlying.GetReadCloser(ed.actualPath(de))
 	if err != nil {
 		return nil, err
 	}
@@ -70,11 +78,34 @@ func (ed *encryptedDssaImpl) GetReadCloser(path_ string) (io.ReadCloser, error) 
 
 // GetWriteCloser implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	tw, err := ed.underlying.GetWriteCloser(ed.actualPath(&dssa.DataEntry{Path: path_}))
+	de, err := ed.getDe(path_)
 	if err != nil {
 		return nil, err
 	}
-	return makeEWriter(tw, ed.ageRecipients...)
+	if de == nil {
+		de = &dssa.DataEntry{
+			Path:       path_,
+			Id:         common.Path2Id(path_),
+			User:       os.Getuid(),
+			UserRights: dssa.Rights{Read: true, Write: true},
+		}
+	}
+	tw, err := ed.underlying.GetWriteCloser(ed.actualPath(de))
+	if err != nil {
+		return nil, err
+	}
+	return makeEWriter(
+		tw,
+		func(nWritten int64, err error) {
+			if err != nil {
+				return
+			}
+			de.Size = nWritten
+			de.Mtime = time.Now().Unix()
+			ed.msts.Put(de)
+		},
+		ed.ageRecipients...,
+	)
 }
 
 // List implements [dssa.Dssa].
@@ -168,3 +199,23 @@ func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
 
 var _ dssa.Dssa = &encryptedDssaImpl{}
 var _ EncryptedDssa = &encryptedDssaImpl{}
+
+func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, metaPath string, ageIdentities []string, ageRecipients []string) (dssa.Dssa, error) {
+	dss := &encryptedDssaImpl{
+		lgr:        lgr,
+		underlying: underlying,
+		metaPath:   metaPath,
+		msts: &m2edsvc{
+			M2StSvc: metasts.M2StSvc{
+				Lgr: lgr,
+				StSvc: &m2edsStSvc{
+					dss:           underlying,
+					metaPath:      metaPath,
+					ageIdentities: ageIdentities,
+					ageRecipients: ageRecipients,
+				},
+			},
+		},
+	}
+	return dss, nil
+}

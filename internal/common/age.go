@@ -5,7 +5,6 @@ import (
 	"filippo.io/age"
 	"fmt"
 	"io"
-	"strings"
 )
 
 // NewKeyPair generates an age public/private key-pair.
@@ -18,9 +17,9 @@ func NewKeyPair() (string, string, error) {
 	return xi.Recipient().String(), xi.String(), nil
 }
 
-// EncryptMsg encrypts a string message for the corresponding recipients public keys,
+// EncryptMsg encrypts a bytes message for the corresponding recipients public keys,
 // returns the encoded byres or an error if any occurs.
-func EncryptMsg(msg string, srs ...string) ([]byte, error) {
+func EncryptMsg(msg []byte, srs ...string) ([]byte, error) {
 	bsa := bytes.Buffer{}
 	var rs []age.Recipient
 	for _, sr := range srs {
@@ -34,7 +33,7 @@ func EncryptMsg(msg string, srs ...string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("in EncryptMsg: %w", err)
 	}
-	_, err = io.Copy(wc, strings.NewReader(msg))
+	_, err = io.Copy(wc, bytes.NewReader(msg))
 	if err != nil {
 		return nil, fmt.Errorf("in EncryptMsg: %w", err)
 	}
@@ -47,26 +46,26 @@ func EncryptMsg(msg string, srs ...string) ([]byte, error) {
 
 // DecryptMsg decrypts an age encrypted message using
 // any of the provided ascii encoded private keys
-// and returns the resultibg string message or any error
+// and returns the resulting bytes message or any error
 // if one occurs.
-func DecryptMsg(bs []byte, sids ...string) (string, error) {
+func DecryptMsg(bs []byte, sids ...string) ([]byte, error) {
 	var ids []age.Identity
 	for _, sid := range sids {
 		id, err := age.ParseX25519Identity(sid)
 		if err != nil {
-			return "", fmt.Errorf("in DecryptMsg: %w", err)
+			return nil, fmt.Errorf("in DecryptMsg: %w", err)
 		}
 		ids = append(ids, id)
 	}
 	rd, err := age.Decrypt(bytes.NewReader(bs), ids...)
 	if err != nil {
-		return "", fmt.Errorf("in DecryptMsg: %w", err)
+		return nil, fmt.Errorf("in DecryptMsg: %w", err)
 	}
 	bss, err := io.ReadAll(rd)
 	if err != nil {
-		return "", fmt.Errorf("in DecryptMsg: %w", err)
+		return nil, fmt.Errorf("in DecryptMsg: %w", err)
 	}
-	return string(bss), nil
+	return bss, nil
 }
 
 // Encrypt encrypts a writer's content to one or more recipients ascii encoded public keys.

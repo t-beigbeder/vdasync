@@ -12,11 +12,11 @@ import (
 func TestAgeEncDec(t *testing.T) {
 	pub, pri, err := NewKeyPair()
 	require.NoError(t, err)
-	ebs, err := EncryptMsg("TestAgeEncDec", pub)
+	ebs, err := EncryptMsg([]byte("TestAgeEncDec"), pub)
 	require.NoError(t, err)
 	dbs, err := DecryptMsg(ebs, pri)
 	require.NoError(t, err)
-	require.Equal(t, "TestAgeEncDec", dbs)
+	require.Equal(t, "TestAgeEncDec", string(dbs))
 }
 
 func TestAgeEncDecBinaryStream(t *testing.T) {
