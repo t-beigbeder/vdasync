@@ -22,9 +22,11 @@ type EncryptedDssa interface {
 // encryptedDssaImpl implements dssa.Dssa to store data files encrypted
 // in underlying dssa
 type encryptedDssaImpl struct {
-	lgr        *slog.Logger
-	underlying dssa.Dssa
-	msts       metasts.MetaStorageSvc
+	lgr           *slog.Logger
+	underlying    dssa.Dssa
+	msts          metasts.MetaStorageSvc
+	ageRecipients []string
+	ageIdentities []string
 }
 
 // Msts implements [EncryptedDssa].
@@ -58,13 +60,21 @@ func (ed *encryptedDssaImpl) EndSession() error {
 }
 
 // GetReadCloser implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) GetReadCloser(string) (io.ReadCloser, error) {
-	panic("unimplemented")
+func (ed *encryptedDssaImpl) GetReadCloser(path_ string) (io.ReadCloser, error) {
+	sr, err := ed.underlying.GetReadCloser(ed.actualPath(&dssa.DataEntry{Path: path_}))
+	if err != nil {
+		return nil, err
+	}
+	return makeEReader(sr, ed.ageIdentities...)
 }
 
 // GetWriteCloser implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) GetWriteCloser(string) (io.WriteCloser, error) {
-	panic("unimplemented")
+func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	tw, err := ed.underlying.GetWriteCloser(ed.actualPath(&dssa.DataEntry{Path: path_}))
+	if err != nil {
+		return nil, err
+	}
+	return makeEWriter(tw, ed.ageRecipients...)
 }
 
 // List implements [dssa.Dssa].
