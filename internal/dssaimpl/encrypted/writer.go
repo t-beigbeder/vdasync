@@ -40,7 +40,7 @@ func (e *eWriterImpl) Write(p []byte) (int, error) {
 }
 
 func makeEWriter(tw io.WriteCloser, cb closeCbType, ageRecipients ...string) (io.WriteCloser, error) {
-	aw, err := common.Encrypt(tw, ageRecipients...)
+	aw, err := common.AgeEncrypt(tw, ageRecipients...)
 	if err != nil {
 		return nil, err
 	}

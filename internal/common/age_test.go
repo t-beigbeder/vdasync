@@ -10,17 +10,17 @@ import (
 )
 
 func TestAgeEncDec(t *testing.T) {
-	pub, pri, err := NewKeyPair()
+	pub, pri, err := AgeNewKeyPair()
 	require.NoError(t, err)
-	ebs, err := EncryptMsg([]byte("TestAgeEncDec"), pub)
+	ebs, err := AgeEncryptMsg([]byte("TestAgeEncDec"), pub)
 	require.NoError(t, err)
-	dbs, err := DecryptMsg(ebs, pri)
+	dbs, err := AgeDecryptMsg(ebs, pri)
 	require.NoError(t, err)
 	require.Equal(t, "TestAgeEncDec", string(dbs))
 }
 
 func TestAgeEncDecBinaryStream(t *testing.T) {
-	pub, pri, err := NewKeyPair()
+	pub, pri, err := AgeNewKeyPair()
 	require.NoError(t, err)
 	td := t.TempDir()
 	txtf := path.Join(td, "test.txt")
@@ -28,7 +28,7 @@ func TestAgeEncDecBinaryStream(t *testing.T) {
 	ef := path.Join(td, "test.txt.enc")
 	wr, err := os.Create(ef)
 	require.NoError(t, err)
-	ewr, err := Encrypt(wr, pub)
+	ewr, err := AgeEncrypt(wr, pub)
 	require.NoError(t, err)
 	in, err := os.Open(txtf)
 	require.NoError(t, err)
@@ -38,7 +38,7 @@ func TestAgeEncDecBinaryStream(t *testing.T) {
 
 	in, err = os.Open(ef)
 	require.NoError(t, err)
-	rr, err := Decrypt(in, pri)
+	rr, err := AgeDecrypt(in, pri)
 	require.NoError(t, err)
 	txtf2 := path.Join(td, "test-decoded.txt")
 	wr2, err := os.Create(txtf2)

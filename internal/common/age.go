@@ -2,14 +2,15 @@ package common
 
 import (
 	"bytes"
-	"filippo.io/age"
 	"fmt"
 	"io"
+
+	"filippo.io/age"
 )
 
-// NewKeyPair generates an age public/private key-pair.
+// AgeNewKeyPair generates an age public/private key-pair.
 // Returns the public and private key pair ascii encoded, or an error if any occurs.
-func NewKeyPair() (string, string, error) {
+func AgeNewKeyPair() (string, string, error) {
 	xi, err := age.GenerateX25519Identity()
 	if err != nil {
 		return "", "", err
@@ -17,9 +18,9 @@ func NewKeyPair() (string, string, error) {
 	return xi.Recipient().String(), xi.String(), nil
 }
 
-// EncryptMsg encrypts a bytes message for the corresponding recipients public keys,
+// AgeEncryptMsg encrypts a bytes message for the corresponding recipients public keys,
 // returns the encoded byres or an error if any occurs.
-func EncryptMsg(msg []byte, srs ...string) ([]byte, error) {
+func AgeEncryptMsg(msg []byte, srs ...string) ([]byte, error) {
 	bsa := bytes.Buffer{}
 	var rs []age.Recipient
 	for _, sr := range srs {
@@ -44,11 +45,11 @@ func EncryptMsg(msg []byte, srs ...string) ([]byte, error) {
 	return bsa.Bytes(), nil
 }
 
-// DecryptMsg decrypts an age encrypted message using
+// AgeDecryptMsg decrypts an age encrypted message using
 // any of the provided ascii encoded private keys
 // and returns the resulting bytes message or any error
 // if one occurs.
-func DecryptMsg(bs []byte, sids ...string) ([]byte, error) {
+func AgeDecryptMsg(bs []byte, sids ...string) ([]byte, error) {
 	var ids []age.Identity
 	for _, sid := range sids {
 		id, err := age.ParseX25519Identity(sid)
@@ -68,14 +69,14 @@ func DecryptMsg(bs []byte, sids ...string) ([]byte, error) {
 	return bss, nil
 }
 
-// Encrypt encrypts a writer's content to one or more recipients ascii encoded public keys.
+// AgeEncrypt encrypts a writer's content to one or more recipients ascii encoded public keys.
 //
 // Writes to the returned WriteCloser are encrypted and written to dst as an age file.
 // Every recipient will be able to decrypt the file.
 //
 // The caller must call Close on the WriteCloser when done for the last chunk to be encrypted
 // and flushed to dst.
-func Encrypt(dst io.Writer, srs ...string) (io.WriteCloser, error) {
+func AgeEncrypt(dst io.Writer, srs ...string) (io.WriteCloser, error) {
 	var rs []age.Recipient
 	for _, sr := range srs {
 		r, err := age.ParseX25519Recipient(sr)
@@ -87,11 +88,11 @@ func Encrypt(dst io.Writer, srs ...string) (io.WriteCloser, error) {
 	return age.Encrypt(dst, rs...)
 }
 
-// Decrypt decrypts a reader age-encrypted to one or more identities.
+// AgeDecrypt decrypts a reader age-encrypted to one or more identities.
 //
 // It returns a Reader reading the decrypted plaintext of the age file read from src.
 // All identities will be tried until one successfully decrypts the file.
-func Decrypt(src io.Reader, sids ...string) (io.Reader, error) {
+func AgeDecrypt(src io.Reader, sids ...string) (io.Reader, error) {
 	var ids []age.Identity
 	for _, sid := range sids {
 		id, err := age.ParseX25519Identity(sid)

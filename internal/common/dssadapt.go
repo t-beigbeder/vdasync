@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"path"
 	"strings"
 
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -64,4 +65,21 @@ func RelPath(fullPath, rootPath string) string {
 		return ""
 	}
 	return strings.Replace(fullPath, rootPath+"/", "", 1)
+}
+
+func MakeParents(dss dssa.Dssa, path_ string) error {
+	de, _ := dss.Stat(path_)
+	if de.Error != nil && !de.ErrNotExist {
+		return de.Error
+	}
+	if de.Error == nil {
+		return nil
+	}
+	if path_ == "/" {
+		return errors.New("cannot Mkdir \"/\"")
+	}
+	if err := MakeParents(dss, path.Dir(path_)); err != nil {
+		return err
+	}
+	return dss.Mkdir(&dssa.DataEntry{Path: path_, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
 }

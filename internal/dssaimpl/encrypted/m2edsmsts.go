@@ -46,12 +46,12 @@ func (m *m2edsStSvc) Get() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return common.DecryptMsg(ebs, m.ageIdentities...)
+	return common.AgeDecryptMsg(ebs, m.ageIdentities...)
 }
 
 // Put implements [metasts.StorageSvc].
 func (m *m2edsStSvc) Put(bs []byte) error {
-	ebs, err := common.EncryptMsg(bs, m.ageRecipients...)
+	ebs, err := common.AgeEncryptMsg(bs, m.ageRecipients...)
 	if err != nil {
 		return err
 	}

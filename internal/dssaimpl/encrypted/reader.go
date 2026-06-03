@@ -27,7 +27,7 @@ func (e *eReaderImpl) Read(p []byte) (int, error) {
 }
 
 func makeEReader(sr io.ReadCloser, ageIdentities ...string) (io.ReadCloser, error) {
-	ar, err := common.Decrypt(sr, ageIdentities...)
+	ar, err := common.AgeDecrypt(sr, ageIdentities...)
 	if err != nil {
 		return nil, err
 	}

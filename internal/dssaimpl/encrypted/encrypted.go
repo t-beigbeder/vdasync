@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"path"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -24,7 +25,7 @@ type EncryptedDssa interface {
 type encryptedDssaImpl struct {
 	lgr           *slog.Logger
 	underlying    dssa.Dssa
-	rootPath      string
+	rootPath string
 	msts          metasts.MetaStorageSvc
 	ageRecipients []string
 	ageIdentities []string
@@ -52,7 +53,7 @@ func (ed *encryptedDssaImpl) getDe(path_ string) (*dssa.DataEntry, error) {
 }
 
 func (ed *encryptedDssaImpl) actualPath(de *dssa.DataEntry) string {
-	return common.Id2Path(de.Id)
+	return path.Join(ed.rootPath, common.Id2Path(de.Id))
 }
 
 // EndSession implements [dssa.Dssa].
@@ -83,11 +84,20 @@ func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error
 		return nil, err
 	}
 	if de == nil {
+		id, err := common.GenId()
+		if err != nil {
+			return nil, err
+		}
 		de = &dssa.DataEntry{
 			Path:       path_,
-			Id:         common.Path2Id(path_),
+			Id:         id,
 			User:       os.Getuid(),
 			UserRights: dssa.Rights{Read: true, Write: true},
+		}
+		ap := ed.actualPath(de)
+		_ = ap
+		if err = common.MakeParents(ed.underlying, path.Dir(ed.actualPath(de))); err != nil {
+			return nil, err
 		}
 	}
 	tw, err := ed.underlying.GetWriteCloser(ed.actualPath(de))
@@ -204,7 +214,7 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, 
 	dss := &encryptedDssaImpl{
 		lgr:        lgr,
 		underlying: underlying,
-		rootPath:   rootPath,
+		rootPath: rootPath,
 		msts: &m2edsvc{
 			M2StSvc: metasts.M2StSvc{
 				Lgr: lgr,
@@ -214,9 +224,10 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, 
 					ageIdentities: ageIdentities,
 					ageRecipients: ageRecipients,
 				},
-				RootPrefix: rootPath,
 			},
 		},
+		ageIdentities: ageIdentities,
+		ageRecipients: ageRecipients,
 	}
 	return dss, nil
 }
