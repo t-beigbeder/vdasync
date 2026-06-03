@@ -25,7 +25,7 @@ type EncryptedDssa interface {
 type encryptedDssaImpl struct {
 	lgr           *slog.Logger
 	underlying    dssa.Dssa
-	rootPath string
+	rootPath      string
 	msts          metasts.MetaStorageSvc
 	ageRecipients []string
 	ageIdentities []string
@@ -214,7 +214,7 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, 
 	dss := &encryptedDssaImpl{
 		lgr:        lgr,
 		underlying: underlying,
-		rootPath: rootPath,
+		rootPath:   rootPath,
 		msts: &m2edsvc{
 			M2StSvc: metasts.M2StSvc{
 				Lgr: lgr,
