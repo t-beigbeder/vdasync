@@ -163,6 +163,7 @@ func (ed *encryptedDssaImpl) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bo
 	}
 	cde := *de
 	if ede != nil {
+		cde.Id = ede.Id
 		if noPerm {
 			cde.User, cde.UserRights = ede.User, ede.UserRights
 			cde.Group, cde.GroupRights = ede.Group, ede.GroupRights
