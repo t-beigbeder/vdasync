@@ -21,9 +21,9 @@ taking care of OS files attributes (type, permissions and modification time) whe
 
 There is also a test plugin that barely provides access to local files.
 
-Plugins are implemented as local gRPC servers, using the same API as for remote access.
+Plugins are implemented as local gRPC servers, using the same API as the remote access server.
 A plugin may therefore be implemented with any language supported by gRPC.
-It could even be run remotely if it made sense.
+It can also be run remotely if it makes sense.
 
 ## Features
 
