@@ -22,6 +22,9 @@ func parentUpdated(pe *ProcessedEntry) {
 }
 
 func prepareTargetDirForUpdate(pe *ProcessedEntry) error {
+	if pe.parent == nil {
+		return nil
+	}
 	pTde := syncUserData(pe.parent).targetDe
 	if !syncOptions(pe).Dryrun {
 		if !pTde.UserRights.Write {

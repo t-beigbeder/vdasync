@@ -1,0 +1,30 @@
+name: Build and release Go Project
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: "go.mod"
+
+      - name: Build project
+        run: make release
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            tmp/vdasync-*.tgz

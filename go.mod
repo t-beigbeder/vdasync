@@ -14,6 +14,7 @@ require (
 )
 
 require (
+	filippo.io/hpke v0.4.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.11 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.19 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.25 // indirect
@@ -38,6 +39,7 @@ require (
 )
 
 require (
+	filippo.io/age v1.3.1
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/crypto v0.52.0

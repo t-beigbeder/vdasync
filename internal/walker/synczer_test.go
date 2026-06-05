@@ -13,6 +13,7 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/encrypted"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/s3msts"
@@ -29,18 +30,19 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	if syncRes != nil {
 		_ = io.Discard
 		_ = os.Stderr
-		DisplaySyncResult(syncRes, io.Discard, true, false)
+		DisplaySyncResult(syncRes, os.Stderr, true, false)
 	}
 	return
 }
 
-func getTestDss(t *testing.T, hasS3 bool, hasSftp bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, context.CancelFunc) {
+func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, context.CancelFunc) {
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.NoError(t, err)
 	dss1 := localfiles.MakeLocalFilesDssa()
 	dss2 := grpcclient.MakeGrpcClient(common.GetNullLogger(), context.Background(), cli)
 	var dss3 s3msts.S3DssaWithMsts
 	var dss4 dssa.Dssa
+	var dss5 encrypted.EncryptedDssa
 	if hasS3 {
 		s3msts.SkipIf(t)
 		dss3 = s3msts.GetRepo(t)
@@ -52,14 +54,28 @@ func getTestDss(t *testing.T, hasS3 bool, hasSftp bool) (dssa.Dssa, dssa.Dssa, s
 		dss4 = sftpc.GetSftpDss(t)
 	}
 	require.NoError(t, err)
-	return dss1, dss2, dss3, dss4, cFunc
+	if hasEncrypt {
+		recs, ids, err := common.AgeNewKeyPair()
+		require.NoError(t, err)
+		td := t.TempDir()
+		dss5, _ = encrypted.MakeEncryptedDssa(
+			common.GetNullLogger(),
+			localfiles.MakeLocalFilesDssa(),
+			td,
+			[]string{ids},
+			[]string{recs},
+		)
+		require.NotNil(t, dss5)
+		require.NoError(t, dss5.NewSession())
+	}
+	return dss1, dss2, dss3, dss4, dss5, cFunc
 }
 
 func TestBasicDryrunSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, cFunc := getTestDss(t, false, false)
+	dss1, dss2, _, _, dss5, cFunc := getTestDss(t, false, false, true)
 	defer cFunc()
-	for _, tDss := range []dssa.Dssa{dss1, dss2} {
+	for _, tDss := range []dssa.Dssa{dss1, dss2, dss5} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
 		td1 := t.TempDir()
 		sad, saf, err := common.MakeTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
@@ -68,6 +84,9 @@ func TestBasicDryrunSynczer(t *testing.T) {
 		sde, err := dss1.Stat(td1)
 		require.Nil(t, err)
 		td2 := t.TempDir()
+		if tDss == dss5 {
+			td2 = "/"
+		}
 		lgr.Debug("TestBasicWalker", "td1", td1, "sad", sad, "saf", saf)
 
 		sr, err := runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
@@ -84,7 +103,7 @@ func TestBasicActualSynczer(t *testing.T) {
 		tDss dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	lDss, rDss, _, _, cFunc := getTestDss(t, false, false)
+	lDss, rDss, _, _, dss5, cFunc := getTestDss(t, false, false, true)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -92,6 +111,7 @@ func TestBasicActualSynczer(t *testing.T) {
 		{sDss: lDss, tDss: rDss},
 		{sDss: rDss, tDss: lDss},
 		{sDss: rDss, tDss: rDss},
+		{sDss: rDss, tDss: dss5},
 	} {
 		sDss := tsCfg.sDss
 		tDss := tsCfg.tDss
@@ -103,6 +123,9 @@ func TestBasicActualSynczer(t *testing.T) {
 		sde, err := sDss.Stat(td1)
 		require.Nil(t, err)
 		td2 := t.TempDir()
+		if tDss == dss5 {
+			td2 = "/"
+		}
 		lgr.Debug("TestBasicActualSynczer", "td1", td1, "sad", sad, "saf", saf)
 
 		sr, err := runSyncTest(lgr, sDss, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
@@ -152,10 +175,10 @@ func TestBasicActualSynczer(t *testing.T) {
 
 func TestBaseAugmentedTestDataSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, cFunc := getTestDss(t, false, false)
+	dss1, dss2, _, _, dss5, cFunc := getTestDss(t, false, false, true)
 	defer cFunc()
 
-	for _, tDss := range []dssa.Dssa{dss1, dss2} {
+	for _, tDss := range []dssa.Dssa{dss1, dss2, dss5} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
 		td1 := t.TempDir()
 		sad, saf, err := PrepareAugmentedTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
@@ -166,6 +189,9 @@ func TestBaseAugmentedTestDataSynczer(t *testing.T) {
 		require.Nil(t, err)
 		td2 := t.TempDir()
 		defer SetTestDirRW(td2, "target")
+		if tDss == dss5 {
+			td2 = "/"
+		}
 		lgr.Debug("TestBaseAugmentedTestDataSynczer", "td1", td1, "sad", sad, "saf", saf)
 
 		sr, err := runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
@@ -196,7 +222,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		tDss    dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, cFunc := getTestDss(t, false, false)
+	dss1, dss2, _, _, dss5, cFunc := getTestDss(t, false, false, true)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -206,6 +232,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		{doRm: true, doCheck: false, tDss: dss2},
 		{doRm: true, doCheck: true, tDss: dss1},
 		{doRm: true, doCheck: true, tDss: dss2},
+		{doRm: true, doCheck: true, tDss: dss5},
 	} {
 		doRm := tsCfg.doRm
 		doCheck := tsCfg.doCheck
@@ -221,6 +248,9 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		require.Nil(t, err)
 		td2 := t.TempDir()
 		defer SetTestDirRW(td2, "target")
+		if tDss == dss5 {
+			td2 = "/"
+		}
 		lgr.Debug("TestModAugmentedTestDataSynczer", "td1", td1, "sad", sad, "saf", saf)
 
 		sr, err := runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{})
@@ -282,7 +312,7 @@ func TestNoTarget(t *testing.T) {
 
 func TestBasicS3DryrunSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, dss3, _, cFunc := getTestDss(t, true, false)
+	dss1, _, dss3, _, _, cFunc := getTestDss(t, true, false, false)
 	defer cFunc()
 	for _, tDss := range []dssa.Dssa{dss3} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
@@ -308,7 +338,7 @@ func TestBasicS3ActualSynczer(t *testing.T) {
 		tDss dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	lDss, _, rDss, _, cFunc := getTestDss(t, true, false)
+	lDss, _, rDss, _, _, cFunc := getTestDss(t, true, false, false)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -376,7 +406,7 @@ func TestBasicS3ActualSynczer(t *testing.T) {
 
 func TestBaseAugmentedTestS3DataSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, dss3, _, cFunc := getTestDss(t, true, false)
+	dss1, _, dss3, _, _, cFunc := getTestDss(t, true, false, false)
 	defer cFunc()
 
 	for _, tDss := range []dssa.Dssa{dss3} {
@@ -420,7 +450,7 @@ func TestModAugmentedTestS3DataSynczer(t *testing.T) {
 		tDss    dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	dss1, _, dss3, _, cFunc := getTestDss(t, true, false)
+	dss1, _, dss3, _, _, cFunc := getTestDss(t, true, false, false)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -475,7 +505,7 @@ func TestModAugmentedTestS3DataSynczer(t *testing.T) {
 
 func TestBasicSftpDryrunSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, _, dss4, cFunc := getTestDss(t, false, true)
+	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(dss4))
@@ -503,7 +533,7 @@ func TestBasicSftpActualSynczer(t *testing.T) {
 		tDss dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	lDss, _, _, rDss, cFunc := getTestDss(t, false, true)
+	lDss, _, _, rDss, _, cFunc := getTestDss(t, false, true, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, rDss, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(rDss))
@@ -569,7 +599,7 @@ func TestBasicSftpActualSynczer(t *testing.T) {
 
 func TestBaseAugmentedTestSftpDataSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, _, dss4, cFunc := getTestDss(t, false, true)
+	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(dss4))
@@ -596,7 +626,7 @@ func TestBaseAugmentedTestSftpDataSynczer(t *testing.T) {
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, total-1, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
-		require.Equal(t, 5, sr[""].AggregatedError) // SFTP specific
+		require.Equal(t, 0, sr[""].AggregatedError) // SFTP specific
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true})
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
@@ -613,7 +643,7 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 		tDss    dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	dss1, _, _, dss4, cFunc := getTestDss(t, false, true)
+	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(dss4))
@@ -640,13 +670,13 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, total-1, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
-		require.Equal(t, 5, sr[""].AggregatedError) // SFTP specific
+		require.Equal(t, 0, sr[""].AggregatedError) // SFTP specific
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true})
 		require.Nil(t, err)
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, 0, sr[""].AggregatedCreated)
-		require.Equal(t, 3, sr[""].AggregatedUpdated) // SFTP specific
+		require.Equal(t, 3, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
 
 		sad2, saf2, err := UpdateAugmentedTestFilesTree(td1, 5, 10, 3, 11*1024)
@@ -658,14 +688,62 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: false, Rm: doRm, Check: doCheck})
 		require.Nil(t, err)
-		require.Equal(t, 4, sr[""].AggregatedError) // SFTP specific
+		require.Equal(t, 0, sr[""].AggregatedError)
 		require.NotEqual(t, 0, sr[""].AggregatedModChanged)
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true, Rm: doRm, Check: doCheck})
 		require.Nil(t, err)
 		require.Equal(t, 0, sr[""].AggregatedError)
-		require.LessOrEqual(t, sr[""].AggregatedModChanged, 1)
+		require.LessOrEqual(t, sr[""].AggregatedModChanged, 3)
 	}
 
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
+}
+
+func TestFix01Synczer(t *testing.T) {
+	rLgr := common.GetNullLogger()
+	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
+	defer cFunc()
+	for _, tDss := range []dssa.Dssa{dss2} {
+		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
+		td1 := t.TempDir()
+		sde, err := dss1.Stat(td1)
+		require.Nil(t, err)
+		td2 := t.TempDir()
+		require.NoError(t, os.Mkdir(path.Join(td1, "ds"), 0755))
+		require.NoError(t, os.Mkdir(path.Join(td2, "ds"), 0755))
+		require.NoError(t, os.Mkdir(path.Join(td2, "dd"), 0755))
+		common.MakeTestFile(path.Join(td1, "ds", "fileSource.dat"), 100)
+		common.MakeTestFile(path.Join(td2, "dd", "fileDestD.dat"), 100)
+		common.MakeTestFile(path.Join(td2, "ds", "fileDestS.dat"), 100)
+
+		sr, err := runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: true})
+		require.Equal(t, 0, sr[""].AggregatedError)
+		DisplaySyncResult(sr, os.Stderr, true, true)
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Rm: true})
+		DisplaySyncResult(sr, os.Stderr, true, true)
+		require.Equal(t, 0, sr[""].AggregatedError)
+	}
+}
+
+func TestFix02Synczer(t *testing.T) {
+	rLgr := common.GetNullLogger()
+	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
+	defer cFunc()
+	for _, tDss := range []dssa.Dssa{dss4} {
+		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
+		td1 := t.TempDir()
+		sde, err := dss1.Stat(td1)
+		require.Nil(t, err)
+		require.NoError(t, os.Mkdir(path.Join(td1, "ds"), 0755))
+		common.MakeTestFile(path.Join(td1, "ds", "fileSource.dat"), 100)
+		require.NoError(t, dss1.Symlink(path.Join(td1, "ds", "fileSource.dat"), path.Join(td1, "ds", "fileSource.sl")))
+		require.NoError(t, dss1.Symlink(path.Join(td1, "ds", "notThat.dat"), path.Join(td1, "ds", "notThat.sl")))
+		sr, err := runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true, Rm: true})
+		require.Equal(t, 0, sr[""].AggregatedError)
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Rm: true})
+		require.Equal(t, 0, sr[""].AggregatedError)
+		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true, Rm: true})
+		require.Equal(t, 0, sr[""].AggregatedError)
+	}
 }

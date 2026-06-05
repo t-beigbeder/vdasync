@@ -1,0 +1,18 @@
+pluginsOptions:
+  noTls: true
+pluginReadyRetries: 4
+pluginReadyTimeout: "100ms"
+plugins:
+- name: enc
+  type: vdaencrypt
+  addArgs:
+  - "-level"
+  - INFO
+  - "-log"
+  - stderr
+  - "-ageidf"
+  - testdata/cmd/age.ids
+  - "-agerecf"
+  - testdata/cmd/age.recs
+  - "-underlying"
+  - /local/tmp/dss_enc

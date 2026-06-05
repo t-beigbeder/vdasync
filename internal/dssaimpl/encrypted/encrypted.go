@@ -1,0 +1,234 @@
+package encrypted
+
+import (
+	"fmt"
+	"io"
+	"io/fs"
+	"log/slog"
+	"os"
+	"path"
+	"time"
+
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
+)
+
+type EncryptedDssa interface {
+	dssa.Dssa
+	Underlying() dssa.Dssa
+	Msts() metasts.MetaStorageSvc
+}
+
+// encryptedDssaImpl implements dssa.Dssa to store data files encrypted
+// in underlying dssa
+type encryptedDssaImpl struct {
+	lgr           *slog.Logger
+	underlying    dssa.Dssa
+	rootPath      string
+	msts          metasts.MetaStorageSvc
+	ageRecipients []string
+	ageIdentities []string
+}
+
+// Msts implements [EncryptedDssa].
+func (ed *encryptedDssaImpl) Msts() metasts.MetaStorageSvc {
+	return ed.msts
+}
+
+// Underlying implements [EncryptedDssa].
+func (ed *encryptedDssaImpl) Underlying() dssa.Dssa {
+	return ed.underlying
+}
+
+func (ed *encryptedDssaImpl) getDe(path_ string) (*dssa.DataEntry, error) {
+	ok, err := ed.msts.Exists(path_)
+	if err != nil {
+		return nil, err
+	}
+	if !ok {
+		return nil, nil
+	}
+	return ed.msts.Get(path_)
+}
+
+func (ed *encryptedDssaImpl) actualPath(de *dssa.DataEntry) string {
+	return path.Join(ed.rootPath, common.Id2Path(de.Id))
+}
+
+// EndSession implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) EndSession() error {
+	return ed.msts.EndSession()
+}
+
+// GetReadCloser implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) GetReadCloser(path_ string) (io.ReadCloser, error) {
+	de, err := ed.getDe(path_)
+	if err != nil {
+		return nil, err
+	}
+	if de == nil {
+		return nil, fs.ErrNotExist
+	}
+	sr, err := ed.underlying.GetReadCloser(ed.actualPath(de))
+	if err != nil {
+		return nil, err
+	}
+	return makeEReader(sr, ed.ageIdentities...)
+}
+
+// GetWriteCloser implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	de, err := ed.getDe(path_)
+	if err != nil {
+		return nil, err
+	}
+	if de == nil {
+		id, err := common.GenId()
+		if err != nil {
+			return nil, err
+		}
+		de = &dssa.DataEntry{
+			Path:       path_,
+			Id:         id,
+			User:       os.Getuid(),
+			UserRights: dssa.Rights{Read: true, Write: true},
+		}
+		ap := ed.actualPath(de)
+		_ = ap
+		if err = common.MakeParents(ed.underlying, path.Dir(ed.actualPath(de))); err != nil {
+			return nil, err
+		}
+	}
+	tw, err := ed.underlying.GetWriteCloser(ed.actualPath(de))
+	if err != nil {
+		return nil, err
+	}
+	return makeEWriter(
+		tw,
+		func(nWritten int64, err error) {
+			if err != nil {
+				return
+			}
+			de.Size = nWritten
+			de.Mtime = time.Now().Unix()
+			ed.msts.Put(de)
+		},
+		ed.ageRecipients...,
+	)
+}
+
+// List implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) List(path_ string) ([]*dssa.DataEntry, error) {
+	return ed.msts.List(path_)
+}
+
+// Mkdir implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Mkdir(de *dssa.DataEntry) error {
+	de.IsDir = true // implicit for localfiles
+	return ed.msts.Put(de)
+}
+
+// NewSession implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) NewSession() error {
+	return ed.msts.NewSession()
+}
+
+// Rm implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Rm(path_ string) error {
+	ok, err := ed.msts.Exists(path_)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("encryptedDssaImpl.Rm: %s: no such file or directory", path_)
+	}
+	de, err := ed.msts.Get(path_)
+	if err != nil {
+		return err
+	}
+	if !de.IsDir && !de.IsSymLink {
+		if err = ed.underlying.Rm(ed.actualPath(de)); err != nil { // FIXME
+			return err
+		}
+	}
+	return ed.msts.Del(path_)
+}
+
+// SetStat implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
+	ede, err := ed.getDe(de.Path)
+	if err != nil {
+		return err
+	}
+	cde := *de
+	if ede != nil {
+		cde.Id = ede.Id
+		if noPerm {
+			cde.User, cde.UserRights = ede.User, ede.UserRights
+			cde.Group, cde.GroupRights = ede.Group, ede.GroupRights
+			cde.OtherRights = ede.OtherRights
+		}
+		if noMtime {
+			cde.Mtime = ede.Mtime
+		}
+	}
+	return ed.msts.Put(&cde)
+}
+
+// Stat implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
+	de, err := ed.getDe(path_)
+	if err != nil {
+		return nil, err
+	}
+	if de == nil {
+		de = &dssa.DataEntry{Path: path_, Error: fs.ErrNotExist, ErrNotExist: true}
+	}
+	return de, de.Error
+}
+
+// Symlink implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
+	de, err := ed.getDe(new_)
+	if err != nil {
+		return err
+	}
+	if de != nil {
+		return fs.ErrExist
+	}
+	de = &dssa.DataEntry{
+		Path:          new_,
+		IsSymLink:     true,
+		SymLinkTarget: old,
+		Mtime:         time.Now().Unix(),
+		User:          os.Getuid(),
+		UserRights:    dssa.Rights{Read: true, Write: true, Execute: true},
+	}
+	return ed.msts.Put(de)
+}
+
+var _ dssa.Dssa = &encryptedDssaImpl{}
+var _ EncryptedDssa = &encryptedDssaImpl{}
+
+func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIdentities []string, ageRecipients []string) (EncryptedDssa, error) {
+	dss := &encryptedDssaImpl{
+		lgr:        lgr,
+		underlying: underlying,
+		rootPath:   rootPath,
+		msts: &m2edsvc{
+			M2StSvc: metasts.M2StSvc{
+				Lgr: lgr,
+				StSvc: &m2edsStSvc{
+					dss:           underlying,
+					rootPath:      rootPath,
+					ageIdentities: ageIdentities,
+					ageRecipients: ageRecipients,
+				},
+			},
+		},
+		ageIdentities: ageIdentities,
+		ageRecipients: ageRecipients,
+	}
+	return dss, nil
+}

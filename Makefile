@@ -34,12 +34,19 @@ test-again-verbose:	## go test the application again
 
 .PHONY: build
 build:	## go build commands
-	go build -o bin/localFiles cmd/plugins/localfiles/main.go
 	go build -o bin/vdasync cmd/vdasync/main.go
 	go build -o bin/testcerts cmd/testcerts/main.go
 	go build -o bin/vdaserver cmd/vdaserver/main.go
 	go build -o bin/vdas3 cmd/plugins/s3/main.go
+	go build -o bin/vdaencrypt cmd/plugins/encrypt/main.go
 	go build -o bin/vdasftp cmd/plugins/sftp/main.go
+	go build -o bin/localFiles cmd/plugins/localfiles/main.go
+
+.PHONY: release
+release:	## go build and release tgz
+release: build
+	mkdir -p tmp
+	tar czf tmp/vdasync-linux-amd64-$(shell git describe --tags).tgz  --exclude .gitignore -C bin .
 
 .PHONY: certs
 certs:	## generate test certificates
