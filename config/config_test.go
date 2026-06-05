@@ -38,6 +38,11 @@ dataStores:
   clientKeyPath: x509/client_key.pem
 `
 
+const CliConfigSample3Yaml string = `
+plugins:
+- executablePath: /usr/bin/echo
+`
+
 func TestLoadConfig(t *testing.T) {
 	config1, err := Load(CliConfigSample1Yaml)
 	if err != nil {
@@ -46,9 +51,14 @@ func TestLoadConfig(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "0.1", config1.Version)
 	require.Equal(t, 1, len(config1.Plugins))
-	require.Equal(t, "shouldBeSet", config1.Plugins[0].ToBeTested)
 
 	config2, err := Load(CliConfigSample2Yaml)
 	require.Nil(t, err)
 	require.Equal(t, 3, len(config2.DataStores))
+
+	config3, err := Load(CliConfigSample3Yaml)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(config3.Plugins))
+	require.Equal(t, "default", config3.Plugins[0].Name)
+	require.Equal(t, DefaultPluginType, config3.Plugins[0].Type)
 }
