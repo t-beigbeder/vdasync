@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"fmt"
 	"io"
@@ -68,6 +69,23 @@ func LoadFile(path string) ([]byte, error) {
 	}
 	defer file.Close()
 	return io.ReadAll(file)
+}
+
+func FileLines(path string) ([]string, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+    scanner := bufio.NewScanner(file)
+	lines := []string{}
+    for scanner.Scan() {
+        lines = append(lines, scanner.Text())
+    }
+
+    if err = scanner.Err(); err != nil {
+		return nil, err
+    }
+	return lines, nil
 }
 
 func GetFileStat(path string) (os.FileInfo, [2]int, [3]dssa.Rights, error) {

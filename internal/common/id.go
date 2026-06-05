@@ -21,14 +21,14 @@ func Id2Path(id string) string {
 	if len(id) != 64 {
 		return ""
 	}
-	return path.Join([]string{id[0:3], id[3:6], id[6:]}...)
+	return path.Join([]string{id[0:2], id[2:]}...)
 }
 
 func Path2Id(path_ string) string {
 	pe := strings.Split(path_, "/")
-	if len(pe) < 3 {
+	if len(pe) < 2 {
 		return ""
 	}
 	lp := len(pe)
-	return pe[lp-3] + pe[lp-2] + pe[lp-1]
+	return pe[lp-2] + pe[lp-1]
 }

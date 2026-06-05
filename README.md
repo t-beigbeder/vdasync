@@ -40,7 +40,9 @@ It can also be run remotely if it makes sense.
 
 Beta status
 
-- feature complete, except `vdasync` exclusion and inclusion lists
+- feature complete, except:
+  - `vdasync` exclusion and inclusion lists
+  - encryption with remote or plugin underlying DSS (only local files)
 - rather good test coverage, mainly missing tests for I/O errors
 
 ## Usage
@@ -82,10 +84,6 @@ For instance restoring local files from a remote backup:
 Using a plugin is enabled through a configuration file, for instance:
 
     # file /path/to/s3Config.yaml
-    pluginsOptions:
-      noTls: true  # for testing only!
-    pluginReadyRetries: 4
-    pluginReadyTimeout: "100ms"
     plugins:
     - name: s3
       type: vdas3
