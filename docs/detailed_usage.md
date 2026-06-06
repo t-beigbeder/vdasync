@@ -56,7 +56,7 @@ Plugins running on localhost will also use a certificate generated from the same
     -cert plugin-cert.pem -key plugin-key.pem
 
 
-Copying those files in the working directories of clients and servers, this will give for instance:
+Copying those files in the working directories of clients, plugins and servers, this will give for instance:
 
     vdaserver -host some-fqdn -port 9443 \
       -cert some-fqdn-cert.pem -key some-fqdn-key.pem \
@@ -78,7 +78,8 @@ for the testing plugin `localFiles`
       type: localFiles
 
 We can check the TLS configuration as following,
-this time the server CA for the plugin being provided in the configuration file
+this time the server CA is used to authenticate the plugin
+and it is provided in the configuration file
 
     vdasync [...] -target lfs+dss:/dir \
       -config tlsConfig.yaml \

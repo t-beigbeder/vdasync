@@ -102,3 +102,21 @@ func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConf
 	}
 	return
 }
+
+func GetGrpcClient(lgr *slog.Logger, cf *CommonFlagsType, host string, port int) (dssa.Dssa, error) {
+	dst := config.RemoteDataStore(&config.CliConfig{}, host, port)
+	copt, err := GetClientServerTls(cf, dst)
+	if err != nil {
+		return nil, err
+	}
+	address := fmt.Sprintf("%s:%d", host, port)
+	cli, err := remote.CheckServerReadiness(address, copt)
+	if err != nil {
+		return nil, err
+	}
+	dss := grpcclient.MakeGrpcClient(lgr, context.Background(), cli)
+	if err = dss.NewSession(); err != nil {
+		return nil, err
+	}
+	return dss, nil
+}

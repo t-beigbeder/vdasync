@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/encrypted"
@@ -18,13 +19,13 @@ import (
 
 func RunEncryptPlugin() {
 	var (
-		hostFlag      = flag.String("host", "localhost", "host/address to listen, defaults to localhost")
-		portFlag      = flag.Int("port", 0, "port to listen")
-		nameFlag      = flag.String("name", "", "plugin name")
-		typeFlag      = flag.String("type", "", "plugin type")
-		ageIdfFlag = flag.String("ageidf", "", "age identities (secrets) file name")
-		ageRecfFlag = flag.String("agerecf", "", "age recipients (public keys) file name")
-		underlyingFlag  = flag.String("underlying", "", "DSS URL for encrypted files storage")
+		hostFlag       = flag.String("host", "localhost", "host/address to listen, defaults to localhost")
+		portFlag       = flag.Int("port", 0, "port to listen")
+		nameFlag       = flag.String("name", "", "plugin name")
+		typeFlag       = flag.String("type", "", "plugin type")
+		ageIdfFlag     = flag.String("ageidf", "", "age identities (secrets) file name")
+		ageRecfFlag    = flag.String("agerecf", "", "age recipients (public keys) file name")
+		underlyingFlag = flag.String("underlying", "", "DSS URL for encrypted files storage")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -60,10 +61,19 @@ func RunEncryptPlugin() {
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("underlying DSS parsing: %s: %v", *underlyingFlag, err))
 	}
-	if pName != "" || host != "" || port != 0 {
-		common.Fatal(lgr, fmt.Errorf("underlying only supports local files at the moment (%s)", *underlyingFlag))
+	if pName != "" {
+		common.Fatal(lgr, fmt.Errorf("encrypt underlying does not support plugins at the moment (%s)", *underlyingFlag))
 	}
-	underlying := localfiles.MakeLocalFilesDssa()
+	var underlying dssa.Dssa
+	if host == "" && port == 0 {
+		underlying = localfiles.MakeLocalFilesDssa()
+	} else {
+		underlying, err = cli.GetGrpcClient(lgr, cf, host, port)
+		if err != nil {
+			common.Fatal(lgr, fmt.Errorf("cli.GetGrpcClient: %s: %v", *underlyingFlag, err))
+		}
+		defer underlying.EndSession()
+	}
 
 	dss, err := encrypted.MakeEncryptedDssa(lgr, underlying, rootPath, identities, recipients)
 	if err != nil {

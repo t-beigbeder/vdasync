@@ -76,15 +76,15 @@ func FileLines(path string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-    scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(file)
 	lines := []string{}
-    for scanner.Scan() {
-        lines = append(lines, scanner.Text())
-    }
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
 
-    if err = scanner.Err(); err != nil {
+	if err = scanner.Err(); err != nil {
 		return nil, err
-    }
+	}
 	return lines, nil
 }
 
