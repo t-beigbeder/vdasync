@@ -1,6 +1,6 @@
 # vdasync
 
-Vdasync stands for versatile data access and synchronization tool.
+Vdasync is a versatile data access and synchronization tool.
 
 Vdasync provides access to files or data, either local or remote,
 through a CLI and a simple API.
@@ -25,11 +25,11 @@ Plugins are implemented as local gRPC servers, using the same API as the remote 
 A plugin may therefore be implemented with any language supported by gRPC.
 It can also be run remotely if it makes sense.
 
-## Features
+## Vdasync's components
 
 - CLI for synchronization
 - gRPC server for remote access
-- go API and gRPC API
+- [go API](dssa/dssa.go) and [gRPC API](grpc/dssa.proto)
 - plugins
   - S3 storage plugin with simple OS files attributes management
   - SFTP client
@@ -45,7 +45,7 @@ Beta status
   - encryption with remote or plugin underlying DSS (only local files)
 - rather good test coverage, mainly missing tests for I/O errors
 
-## Usage
+## Basic usage
 
 Utilities arguments meaning can be retrieved with `<cli-command> -help`.
 
@@ -125,18 +125,16 @@ that is often shared between many users.
 - Client based encryption requires local compute resources,
 therefore concurrency will be tuned according to related capacity.
 
-### Plugins configurations and DSS naming
+### Detailed usage
 
+Detailed documentation for using vdasync's components is provided on this [page](docs/detailed_usage.md).
 
-### TLS configuration
-
-### Remote server
-
-### S3 storage simple plugin
-
-### SFTP plugin
-
-### Client-side encryption simple plugin
+- Plugins configurations and DSS naming
+- TLS configuration
+- Remote server
+- S3 storage simple plugin
+- SFTP plugin
+- Client-side encryption simple plugin
 
 ## Design
 
