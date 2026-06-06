@@ -41,8 +41,9 @@ It can also be run remotely if it makes sense.
 Beta status
 
 - feature complete, except:
-  - `vdasync` exclusion and inclusion lists
-  - encryption with remote or plugin underlying DSS (only local files)
+  - `vdasync` missing exclusion and inclusion lists
+  - encryption CLI missing remote or plugin underlying DSS, only local files are implemented
+  - detailed usage and development documentation to be completed
 - rather good test coverage, mainly missing tests for I/O errors
 
 ## Basic usage
@@ -60,6 +61,9 @@ Such settings are disabled by default and should only be used for testing purpos
 
 `vdasync` concurrency is disabled by default, but increasing it is generally recommended to gain better performance,
 see details below.
+
+`vdasync`, and its plugins if applicable, are logging information in `$TMPDIR` files by default.
+This may be configured as detailed in a specific section.
 
 Basic usage is
 
