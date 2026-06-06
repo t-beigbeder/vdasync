@@ -30,8 +30,10 @@ TLS client always authenticate server FQDN for an approved list of CAs, in that 
 mTLS server will in addition authenticate the client for an approved client CA.
 Because the CAs are self-signed and not official ones, their certificates must be provided to the vdasync components:
 
-- `-clientca` on the server or plugin side
-- `-ca` on the client side
+- `-clientca` on the server side to authenticate their clients
+- `-ca` on the client side to authenticate the server
+
+Plugins use the same CA t the client which activates them, provided in the CLI configuration file.
 
 CA files generation is achieved for instance with
 
@@ -47,6 +49,40 @@ Doing the same for a client (no hosts argument)
     testcerts -ca cca-cert.pem -cakey cca-key.pem -cn Client-CA
     testcerts -ca cca-cert.pem -cakey cca-key.pem \
       -cert some-client-cert.pem -key some-client-key.pem
+
+Plugins running on localhost will also use a certificate generated from the same client CA:
+
+	testcerts -ca cca-cert.pem -cakey cca-key.pem -hosts localhost \
+    -cert plugin-cert.pem -key plugin-key.pem
+
+
+Copying those files in the working directories of clients and servers, this will give for instance:
+
+    vdaserver -host some-fqdn -port 9443 \
+      -cert some-fqdn-cert.pem -key some-fqdn-key.pem \
+      -clientca cca-cert.pem
+    vdasync [...] -target dss://some-fqdn:9443/dir \
+      -clientcert some-client-cert.pem -clientkey some-client-key.pem \
+      -ca sca-cert.pem
+
+Concerning the plugins configuration, using a configuration file such as the following
+for the testing plugin `localFiles`
+
+    # file tlsConfig.yaml
+    pluginsOptions:
+      certPath: /path/to/plugin-cert.pem
+      keyPath: /path/to/plugin-key.pem
+      caCertPath: /path/to/cca-cert.pem
+    plugins:
+    - name: lfs
+      type: localFiles
+
+We can check the TLS configuration as following,
+this time the server CA for the plugin being provided in the configuration file
+
+    vdasync [...] -target lfs+dss:/dir \
+      -config tlsConfig.yaml \
+      -clientcert client-cert.pem -clientkey client-key.pem
 
 ### Remote server
 

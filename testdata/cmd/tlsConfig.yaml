@@ -1,0 +1,14 @@
+# file tlsConfig.yaml
+pluginsOptions:
+  certPath: /local/tmp/certs/plugin-cert.pem
+  keyPath: /local/tmp/certs/plugin-key.pem
+  caCertPath: /local/tmp/certs/cca-cert.pem
+plugins:
+- name: lfs
+  type: localFiles
+  # executablePath: echo
+  addArgs:
+  - "-log"
+  - stderr
+  - "-level"
+  - INFO
