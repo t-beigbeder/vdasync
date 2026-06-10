@@ -30,7 +30,7 @@ func TestRunOpeDssaServer(t *testing.T) {
 	require.True(t, rr.Value)
 	rv, err := cli.Version(context.Background(), &opegrpc.Empty{})
 	require.Nil(t, err)
-	require.Equal(t, "0.1", rv.Value)
+	require.Equal(t, "dev", rv.Value)
 
 	wd, err := os.Getwd()
 	require.Nil(t, err)
