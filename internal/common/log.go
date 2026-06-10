@@ -19,7 +19,7 @@ func CliLogger(cmd, sll, file string) (lgr *slog.Logger, err error) {
 	var wr io.Writer
 	if file != "stderr" {
 		if file == "" {
-			file = path.Join(os.TempDir(), fmt.Sprintf("%s-%5d.log", cmd, os.Getpid()))
+			file = path.Join(os.TempDir(), fmt.Sprintf("%s-%06d.log", cmd, os.Getpid()))
 		}
 		wr, err = os.Create(file)
 		if err != nil {

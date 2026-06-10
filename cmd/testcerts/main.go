@@ -2,8 +2,11 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"os"
 	"strings"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/tls"
@@ -21,6 +24,10 @@ func main() {
 	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
+	}
+	if *cf.VersionFlag {
+		fmt.Println(config.GetVersion())
+		os.Exit(0)
 	}
 	if *cf.CaCertFlag != "" && *cf.CertFlag == "" {
 		// bin/testcerts -ca /tmp/ca-cert.pem -cakey /tmp/ca-key.pem

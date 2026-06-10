@@ -1,8 +1,10 @@
 package encrypted
 
 import (
+	"fmt"
 	"io"
 	"path"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -51,6 +53,16 @@ func (m *m2edsStSvc) Get() ([]byte, error) {
 
 // Put implements [metasts.StorageSvc].
 func (m *m2edsStSvc) Put(bs []byte) error {
+	de, err := m.dss.Stat(m.metaPath())
+	if de.Error != nil && !de.ErrNotExist {
+		return err
+	}
+	if !de.ErrNotExist {
+		sf := time.Unix(de.Mtime, 0).Format(time.RFC3339)
+		if err = common.CopyEntry(m.dss, m.metaPath(), fmt.Sprintf("%s.%s", m.metaPath(), sf)); err != nil {
+			return err
+		}
+	}
 	ebs, err := common.AgeEncryptMsg(bs, m.ageRecipients...)
 	if err != nil {
 		return err

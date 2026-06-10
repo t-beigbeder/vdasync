@@ -30,7 +30,7 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	if syncRes != nil {
 		_ = io.Discard
 		_ = os.Stderr
-		DisplaySyncResult(syncRes, os.Stderr, true, false)
+		DisplaySyncResult(syncRes, io.Discard, true, false)
 	}
 	return
 }

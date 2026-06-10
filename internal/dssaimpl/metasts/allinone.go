@@ -26,6 +26,7 @@ type M2StSvc struct {
 	StSvc      StorageSvc
 	mx         sync.Mutex
 	hasSession bool
+	hasChanges bool
 	entries    map[string]*dssa.DataEntry
 	dirs       map[string]map[string]bool
 }
@@ -44,6 +45,7 @@ func (msts *M2StSvc) Del(path_ string) error {
 	if path_ == "/" {
 		return fmt.Errorf("m2s3svc.Del: removing %s is forbidden", path_)
 	}
+	msts.hasChanges = true
 	if de.IsDir {
 		delete(msts.dirs, path_)
 	}
@@ -62,6 +64,10 @@ func (msts *M2StSvc) EndSession() error {
 		return errors.New("m2s3svc.EndSession: no active session")
 	}
 	msts.hasSession = false
+	if !msts.hasChanges {
+		msts.Lgr.Debug("M2StSvc.EndSession: no changes")
+		return nil
+	}
 	var metaEntries dssagrpc.MetaEntries
 	entries := map[string]*dssagrpc.DataEntry{}
 	metaEntries.Entries = entries
@@ -168,6 +174,7 @@ func (msts *M2StSvc) NewSession() error {
 			msts.dirs[gp][gpc] = true
 		}
 	}
+	msts.hasChanges = false
 	return nil
 }
 
@@ -184,6 +191,7 @@ func (msts *M2StSvc) Put(de *dssa.DataEntry) error {
 	if !ok {
 		return fmt.Errorf("parent %s for entry %s to be created does not exist", pp, de.Path)
 	}
+	msts.hasChanges = true
 	pde.Mtime = time.Now().Unix()
 	msts.dirs[pp][de.Path] = true
 	ede, ok := msts.entries[de.Path]

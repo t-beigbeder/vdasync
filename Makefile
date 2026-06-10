@@ -7,6 +7,7 @@ help:	## show this help
 vPATH := $(shell echo ${PATH})
 CERTS_PATH := $(shell if [ -z "${CERTS_PATH}" ] ; then echo /local/tmp/certs ; else echo ${CERTS_PATH} ; fi)
 CERT_SERVER := $(shell if [ -z "${CERT_SERVER}" ] ; then hostname ; else echo ${CERT_SERVER} ; fi)
+VERSION := $(shell git describe --tags --always)
 
 .PHONY: test
 test: export GO_TEST_LOG_LEVEL = ERROR
@@ -34,13 +35,13 @@ test-again-verbose:	## go test the application again
 
 .PHONY: build
 build:	## go build commands
-	go build -o bin/vdasync cmd/vdasync/main.go
-	go build -o bin/testcerts cmd/testcerts/main.go
-	go build -o bin/vdaserver cmd/vdaserver/main.go
-	go build -o bin/vdas3 cmd/plugins/s3/main.go
-	go build -o bin/vdaencrypt cmd/plugins/encrypt/main.go
-	go build -o bin/vdasftp cmd/plugins/sftp/main.go
-	go build -o bin/localFiles cmd/plugins/localfiles/main.go
+	go build -o bin/vdasync -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasync/main.go
+	go build -o bin/testcerts -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/testcerts/main.go
+	go build -o bin/vdaserver -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/vdaserver/main.go
+	go build -o bin/vdas3 -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/s3/main.go
+	go build -o bin/vdaencrypt -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/encrypt/main.go
+	go build -o bin/vdasftp -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/sftp/main.go
+	go build -o bin/localFiles -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/localfiles/main.go
 
 .PHONY: release
 release:	## go build and release tgz

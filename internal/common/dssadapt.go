@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"io"
 	"path"
 	"strings"
 
@@ -79,7 +80,33 @@ func MakeParents(dss dssa.Dssa, path_ string) error {
 		return errors.New("cannot Mkdir \"/\"")
 	}
 	if err := MakeParents(dss, path.Dir(path_)); err != nil {
+		// someone else did it?
+		de, _ := dss.Stat(path_)
+		if de.Error != nil && !de.ErrNotExist {
+			return de.Error
+		}
+		if de.Error == nil {
+			return nil
+		}
 		return err
 	}
 	return dss.Mkdir(&dssa.DataEntry{Path: path_, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+}
+
+func CopyEntry(dss dssa.Dssa, old, new_ string) error {
+	rr, err := dss.GetReadCloser(old)
+	if err != nil {
+		return err
+	}
+	defer rr.Close()
+	wr, err := dss.GetWriteCloser(new_)
+	if err != nil {
+		return err
+	}
+	defer wr.Close()
+	_, err = io.Copy(wr, rr)
+	if err != nil {
+		return err
+	}
+	return wr.Close()
 }

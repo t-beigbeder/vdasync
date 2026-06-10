@@ -1,7 +1,7 @@
 pluginsOptions:
   noTls: true
 plugins:
-- name: enc
+- name: renc
   type: vdaencrypt
   addArgs:
   - "-level"
@@ -13,4 +13,4 @@ plugins:
   - "-agerecf"
   - testdata/cmd/age.recs
   - "-underlying"
-  - /local/tmp/dss_enc
+  - dss://localhost:9090/local/tmp/dss_enc

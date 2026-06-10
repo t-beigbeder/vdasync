@@ -20,7 +20,6 @@ type PluginType struct {
 	ExecutablePath string   `yaml:"executablePath"`
 	AddArgs        []string `yaml:"addArgs"`
 	Port           int      `yaml`
-	ToBeTested     string   `yaml:"toBeTested"`
 }
 
 type DataStoreType struct {
@@ -61,13 +60,14 @@ pluginsOptions:
   noTls: false
   insecure: false
 plugins:
-pluginReadyRetries: 3
-pluginReadyTimeout: "20ms"
+pluginReadyRetries: 4
+pluginReadyTimeout: "100ms"
 pluginAddress: "localhost"
 `
 
 const PluginTypeDefaultYaml string = `
-toBeTested: "shouldBeSet"
+name: "default"
+type: "localFiles"
 `
 
 var defaultPluginTypeValues = &PluginType{}
