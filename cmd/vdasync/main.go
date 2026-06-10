@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"time"
 
@@ -28,6 +29,10 @@ func main() {
 	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
+	}
+	if *cf.VersionFlag {
+		fmt.Println(config.GetVersion())
+		os.Exit(0)
 	}
 
 	var rps []*plugin.RunningPlugin

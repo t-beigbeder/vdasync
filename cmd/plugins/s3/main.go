@@ -9,6 +9,7 @@ import (
 	"path"
 	"strings"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/s3msts"
@@ -70,7 +71,7 @@ func RunS3Plugin() {
 		sops = []grpc.ServerOption{sop}
 	}
 
-	lgr.Info(fmt.Sprintf("%s.main starting", cmd), "name", *nameFlag, "type", *typeFlag, "host", *hostFlag, "port", *portFlag)
+	lgr.Info(fmt.Sprintf("%s.main starting", cmd), "version", config.GetVersion(), "name", *nameFlag, "type", *typeFlag, "host", *hostFlag, "port", *portFlag)
 	done := make(chan bool)
 	cb := func() {
 		lgr.Debug("shutdownCb called, closing done")

@@ -25,6 +25,7 @@ type CommonFlagsType struct {
 	CaCertFlag         *string
 	CertFlag           *string
 	KeyFlag            *string
+	VersionFlag        *bool
 }
 
 func CommonFlags() *CommonFlagsType {
@@ -46,6 +47,7 @@ func CommonFlags() *CommonFlagsType {
 		CaCertFlag:         flag.String("ca", "", "server or plugin TLS CA certificate"),
 		CertFlag:           flag.String("cert", "", "server or plugin TLS certificate"),
 		KeyFlag:            flag.String("key", "", "server or plugin TLS certificate key"),
+		VersionFlag:        flag.Bool("version", false, ""),
 	}
 }
 

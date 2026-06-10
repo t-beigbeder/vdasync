@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/remote"
@@ -45,9 +46,9 @@ func RunServerOrPlugin(isPlugin bool) {
 	}
 
 	if isPlugin {
-		lgr.Info(fmt.Sprintf("%s.main starting", cmd), "name", *nameFlag, "type", *typeFlag, "host", *hostFlag, "port", *portFlag)
+		lgr.Info(fmt.Sprintf("%s.main starting", cmd), "version", config.GetVersion(), "name", *nameFlag, "type", *typeFlag, "host", *hostFlag, "port", *portFlag)
 	} else {
-		lgr.Info(fmt.Sprintf("%s.main starting", cmd), "host", *hostFlag, "port", *portFlag)
+		lgr.Info(fmt.Sprintf("%s.main starting", cmd), "version", config.GetVersion(), "host", *hostFlag, "port", *portFlag)
 	}
 	done := make(chan bool)
 	cb := func() {

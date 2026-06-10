@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 )
@@ -19,7 +20,7 @@ func (s *opeServer) Ready(context.Context, *opegrpc.Empty) (*opegrpc.Bool, error
 }
 
 func (s *opeServer) Version(context.Context, *opegrpc.Empty) (*opegrpc.Value, error) {
-	return &opegrpc.Value{Value: "0.1"}, nil
+	return &opegrpc.Value{Value: config.GetVersion()}, nil
 }
 
 func (s *opeServer) Shutdown(ctx context.Context, v *opegrpc.Value) (*opegrpc.Bool, error) {
