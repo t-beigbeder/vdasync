@@ -2,7 +2,7 @@
 
 ## Detailed usage
 
-To be completed
+This page details `vdasync` tool and components launch-time arguments or configuration.
 
 ### Plugins configurations and DSS naming
 
@@ -12,21 +12,23 @@ gRPC communications with remote servers and even with the plugins on localhost n
 gRPC authentication may be customized in many ways but basically provides standard TLS authentication using client-side certificates:
 [mTLS](https://en.wikipedia.org/wiki/Mutual_authentication#mTLS).
 
-The is the model applied by default for securing communications between vdasync's components: CLI clients towards remote vdaserver, or towards different plugins on localhost.
+The is the model applied by default for securing communications between vdasync's components: CLI clients towards remote `vdaserver`,
+or towards different plugins on localhost.
 
-While not recommended, using self-signed certificates (no client authentication) and even disabling TLS may be explicitely activated.
+While not recommended, using self-signed certificates can be requested and it disables client authentication,
+and even disabling TLS completely may be explicitely requested.
 
 A testing certificates generator is provided: `testcerts`. It generates private keys and certificates for:
 
 - self-signed certificates
 - CA, always self-signed
-- servers  certificates for their FQDNs from a given CA
-- client certificates from a given CA
+- servers certificates for their FQDNs signed by a given CA
+- client certificates signed by a given CA
 
 While testing certificates are not recommended for production use,
-the following samples leverage `testcerts` for providing explicit explanations.
+the following samples leverage `testcerts` as a mean to provide explicit and simple explanations.
 
-TLS client always authenticate server FQDN for an approved list of CAs, in that case the server CA.
+A TLS client always authenticate the server requested FQDN for an approved list of CAs, in that case the server CA.
 mTLS server will in addition authenticate the client for an approved client CA.
 Because the CAs are self-signed and not official ones, their certificates must be provided to the vdasync components:
 
