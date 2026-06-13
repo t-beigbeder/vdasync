@@ -42,15 +42,15 @@ CLI tools access data through DSS, DSS stands for data storage system:
 this can refer either simply to local files, to remote files accessed on the `vdaserver`,
 or else to a plugin configured through a file as explained later.
 
-Communications with remote servers or plugins use TLS and may be lowered or disabled using self-generated certificates or HTTP without TLS.
-Such settings are disabled by default and should only be used for testing purposes and with good understanding of the risks induced.
+Communications with remote servers or plugins use TLS, security may be lowered or disabled using self-generated certificates or HTTP without TLS.
+Such settings are disabled by default and should only be used with good understanding of the risks induced.
 
 ### `vdasync` utility
 
-`vdasync` concurrency is disabled by default, but increasing it is generally recommended to gain better performance,
+`vdasync` **concurrency** is disabled by default, but increasing it is generally recommended to gain better performance,
 as explained in a section below.
 
-`vdasync`, and its plugins if applicable, are logging information in `$TMPDIR` files by default.
+`vdasync`, and its plugins if applicable, are **logging** information in `$TMPDIR` files by default.
 This may be configured as detailed in a specific section.
 
 Basic usage is
@@ -65,7 +65,7 @@ For instance
     vdasync -rm -source /path/to/dev -target /path/to/backup/for/dev
     vdasync -dryrun -check -source /path/to/dev -target /path/to/backup/for/dev
 
-Remote access to a `vdaserver` (see below) would be enabled with the following DSS syntax:
+Remote access to a `vdaserver` (see other section) would be enabled with the following DSS syntax:
 
     dss://<server>:<port>/path/to/remote
 
@@ -108,12 +108,10 @@ Its setting depends on the infrastructure and the plugins involved.
 - As a default, the number of available CPU cores can be provided in many cases.
 - Writing to slow devices should reduce it or even disable it (USB stick),
 as parallel writes may even become counterproductive.
-- Using S3 and other HTTP-based services could require increasing it because related requests involve network latency
-but may be run safely in parallel; nevertheless this impacts network resources
-and should be balanced with such concern.
+- Access to remote resources must take care of the target service capacity that is often shared between many users.
+- Using S3 and other HTTP-based services often benefits increasing it because related requests involve network latency
+but may be run safely in parallel; nevertheless this must be balanced with shared resources usage.
 - Same remark applies in the case of network based storage like NFS or NAS.
-- Access to remote resources must also take care of the target service capacity
-that is often shared between many users.
 - Client based encryption requires local compute resources,
 therefore concurrency will be tuned according to related capacity.
 
@@ -121,7 +119,9 @@ therefore concurrency will be tuned according to related capacity.
 
 Detailed documentation for using vdasync's components is provided on this [page](docs/detailed_usage.md).
 
-- Plugins configurations and DSS naming
+- DSS naming
+- Configuration files
+- The localFiles test plugin
 - TLS configuration
 - Remote server
 - S3 storage simple plugin
@@ -156,5 +156,5 @@ The synchronization tooling leverages Golang concurrency features,
 enabling fast data access through parallelization of I/O and data processing,
 as soon as the infrastructure allows it.
 
-Concurrency may be tuned or even switched off rgrough the API or CLI argument
+Concurrency may be tuned or even switched off through the API or CLI argument
 to keep resource usage as efficient as wanted.
