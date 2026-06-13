@@ -138,4 +138,15 @@ The second point is generally not a big concern as synchronization can be run as
 However, such errors can leave unreferenced data files that require periodic clean-up.
 Corrupted metadata files may require manual clean-up.
 
+Plugin is `vdaencrypt` and arguments can be found with `vdaencrypt -help`. Main arguments are:
+
+- `-ageidf` a file providing the list of `age` identities for encrypting data
+- `-agerecf` a file providing the list of `age` recipients for decrypting data
+- `-underlying` the DSS URL providing the local or remote files root directory for encrypted files storage
+
+TLS arguments for the communication with the plugin apply as usual.
+When using `vdaserver` for remote encrypted files storage, the plugin also acts as a DSS client and related TLS options apply:
+`-ca` for the server CA, `-clientkey` and `-clientcert` for the client identity, provided here as flags
+but more likely as corresponding entries in the plugin configuration file.
+
 ### Logging information
