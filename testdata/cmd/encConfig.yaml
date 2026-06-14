@@ -1,16 +1,16 @@
 pluginsOptions:
-  noTls: true
+  clientCertPath: /local/tmp/certs/client-cert.pem
+  clientKeyPath: /local/tmp/certs/client-key.pem
+  certPath: /local/tmp/certs/plugin-cert.pem
+  keyPath: /local/tmp/certs/plugin-key.pem
+  caCertPath: /local/tmp/certs/cca-cert.pem
 plugins:
 - name: enc
   type: vdaencrypt
   addArgs:
-  - "-level"
-  - INFO
-  - "-log"
-  - stderr
   - "-ageidf"
   - testdata/cmd/age.ids
   - "-agerecf"
   - testdata/cmd/age.recs
   - "-underlying"
-  - /local/tmp/dss_enc
+  - /tmp/dss_enc

@@ -105,7 +105,7 @@ func Cleanup(ds dssa.Dssa) error {
 		sf.sfcs <- sfc
 	}()
 	if err := sfc.RemoveAll(sf.root); err != nil {
-		return fmt.Errorf("Cleanup: %s error", sf.root)
+		return fmt.Errorf("Cleanup: %s error %v", sf.root, err)
 	}
 	return sfc.Mkdir(sf.root)
 }

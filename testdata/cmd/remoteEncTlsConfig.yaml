@@ -1,0 +1,28 @@
+pluginsOptions:
+  clientCertPath: /local/tmp/certs/client-cert.pem
+  clientKeyPath: /local/tmp/certs/client-key.pem
+  certPath: /local/tmp/certs/plugin-cert.pem
+  keyPath: /local/tmp/certs/plugin-key.pem
+  caCertPath: /local/tmp/certs/cca-cert.pem
+plugins:
+- name: renctls
+  type: vdaencrypt
+  addArgs:
+  - "-ageidf"
+  - testdata/cmd/age.ids
+  - "-agerecf"
+  - testdata/cmd/age.recs
+  - "-underlying"
+  - dss://t-cs-dv-5d6c665f55-nghnj:9443/tmp/bin_renctls
+  - "-ca"
+  - /local/tmp/certs/sca-cert.pem
+  - "-clientcert"
+  - /local/tmp/certs/client-cert.pem
+  - "-clientkey"
+  - /local/tmp/certs/client-key.pem
+dataStores:
+- host: ""
+  port: 9443
+  clientCertPath: /local/tmp/certs/client-cert.pem
+  clientKeyPath: /local/tmp/certs/client-key.pem
+  caCertPath: /local/tmp/certs/sca-cert.pem

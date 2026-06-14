@@ -126,6 +126,7 @@ func RunConfData(lgr *slog.Logger, yamlConf string, tab TlsArgsBuilder) ([]*Runn
 			rps = append(rps, &crp)
 			continue
 		}
+		lgr.Debug("plugin.RunConfData", "plugin", plugin, "args", args)
 		plugin.ExecutablePath = pExe
 		cmd := exec.Command(plugin.ExecutablePath, args...)
 		cmd.Stderr = os.Stderr
