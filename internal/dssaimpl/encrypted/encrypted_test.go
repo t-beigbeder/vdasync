@@ -250,3 +250,34 @@ func TestBasicFilesRW(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, sh1, sh2)
 }
+
+func TestRepairIndex(t *testing.T) {
+	recs, ids, err := common.AgeNewKeyPair()
+	require.NoError(t, err)
+	td := t.TempDir()
+	ds, _ := MakeEncryptedDssa(
+		common.GetNullLogger(),
+		localfiles.MakeLocalFilesDssa(),
+		td,
+		[]string{ids},
+		[]string{recs},
+	)
+	require.NotNil(t, ds)
+	require.NoError(t, ds.NewSession())
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1"}))
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d2"}))
+	require.NoError(t, wtf(ds, "/d1/f1.txt"))
+	require.NoError(t, wtf(ds, "/d2/f2.txt"))
+	require.NoError(t, wtf(ds, "/d2/f3.txt"))
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d2/d3"}))
+	require.NoError(t, wtf(ds, "/d2/d3/f4.txt"))
+	require.NoError(t, wtf(ds, "/f0.txt"))
+
+	require.NoError(t, ds.EndSession())
+	require.NoError(t, ds.NewSession())
+	require.NoError(t,
+		CheckIndex(
+			common.GetNullLogger(), localfiles.MakeLocalFilesDssa(), td,
+			[]string{ids}, false),
+	)
+}
