@@ -33,11 +33,13 @@ type DataStoreType struct {
 }
 
 type SyncOptionsType struct {
-	Dryrun  bool `yaml`
-	Check   bool `yaml`
-	NoPerm  bool `yaml:"noPerm"`
-	NoMtime bool `yaml:"noMtime"`
-	Rm      bool `yaml`
+	Dryrun       bool   `yaml`
+	Check        bool   `yaml`
+	NoPerm       bool   `yaml:"noPerm"`
+	NoMtime      bool   `yaml:"noMtime"`
+	Rm           bool   `yaml`
+	ExclListPath string `yaml:"exclListPath"`
+	InclListPath string `yaml:"inclListPath"`
 }
 
 type CliConfig struct {

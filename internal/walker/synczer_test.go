@@ -22,7 +22,7 @@ import (
 )
 
 func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tRoot string, so *config.SyncOptionsType) (syncRes map[string]*SyncEntryStatus, err error) {
-	walker := NewSynchronizer(lgr, 4, so, sDss, tDss, tRoot)
+	walker := NewSynchronizer(lgr, 4, so, sDss, tDss, tRoot, nil, nil)
 	if err = walker.Run(sde); err != nil {
 		return
 	}
@@ -295,14 +295,14 @@ func TestNoTarget(t *testing.T) {
 	sde, err := dss.Stat(td1)
 	require.Nil(t, err)
 	so := &config.SyncOptionsType{Dryrun: true}
-	walker := NewSynchronizer(lgr, 0, so, dss, dss, tRoot)
+	walker := NewSynchronizer(lgr, 0, so, dss, dss, tRoot, nil, nil)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	syncRes := SyncResult(walker)
 	require.NotNil(t, syncRes[""].Error)
 
 	so = &config.SyncOptionsType{Dryrun: false}
-	walker = NewSynchronizer(lgr, 0, so, dss, dss, tRoot)
+	walker = NewSynchronizer(lgr, 0, so, dss, dss, tRoot, nil, nil)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	syncRes = SyncResult(walker)

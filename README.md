@@ -149,12 +149,3 @@ A gRPC API providing the same kind of interface as the Golang one is provided.
 
 Both remote access and plugin access use the same gRPC API.
 A plugin may therefore be implemented with any language supported by gRPC.
-
-### Concurrency
-
-The synchronization tooling leverages Golang concurrency features,
-enabling fast data access through parallelization of I/O and data processing,
-as soon as the infrastructure allows it.
-
-Concurrency may be tuned or even switched off through the API or CLI argument
-to keep resource usage as efficient as wanted.

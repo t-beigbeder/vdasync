@@ -2,13 +2,24 @@
 
 ## Detailed usage
 
-This page details `vdasync` tool and components launch-time arguments and configuration.
+This page details `vdasync` tool and components command-line arguments and configuration.
 
 ### DSS naming
 
+DSS names are URL formatted as following:
+
+- `relativePath`: access local files relative to working directory
+- `/absolute/to/path`: access local files with absolute path
+- `pluginName+dss:/`: access data through _pluginName_, plugins define their root directory (or equivalent) as arguments, so DSS names use an empty path
+- `dss://host[:port]/remote/path`: access remote files under /remote/path
+
 ### Configuration files
 
+to be completed
+
 ### The `localFiles` test plugin
+
+to be completed
 
 ### TLS configuration
 
@@ -114,7 +125,11 @@ TLS is disabled by using the `-notls` flag.
 
 ### S3 storage simple plugin
 
+to be completed
+
 ### SFTP plugin
+
+to be completed
 
 ### Client-side encryption simple plugin
 
@@ -150,3 +165,5 @@ When using `vdaserver` for remote encrypted files storage, the plugin also acts 
 but more likely as corresponding entries in the plugin configuration file.
 
 ### Logging information
+
+to be completed

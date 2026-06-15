@@ -13,7 +13,7 @@ plugins:
   - "-agerecf"
   - testdata/cmd/age.recs
   - "-underlying"
-  - dss://t-cs-dv-5d6c665f55-nghnj:9443/tmp/bin_renctls
+  - dss://localhost:9443/tmp/bin_renctls
   - "-ca"
   - /local/tmp/certs/sca-cert.pem
   - "-clientcert"

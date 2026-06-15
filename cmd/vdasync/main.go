@@ -23,6 +23,8 @@ func main() {
 		checkFlag   = flag.Bool("check", false, "compute checksums")
 		noPermFlag  = flag.Bool("noperm", false, "neither check nor set permissions")
 		noMtimeFlag = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
+		exclFlag    = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
+		inclFlag    = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -33,6 +35,13 @@ func main() {
 	if *cf.VersionFlag {
 		fmt.Println(config.GetVersion())
 		os.Exit(0)
+	}
+
+	if *exclFlag != "" && !common.FileExists(*exclFlag) {
+		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *exclFlag))
+	}
+	if *inclFlag != "" && !common.FileExists(*inclFlag) {
+		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *inclFlag))
 	}
 
 	var rps []*plugin.RunningPlugin
@@ -79,6 +88,7 @@ func main() {
 		&config.SyncOptionsType{
 			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag,
 			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag,
+			ExclListPath: *exclFlag, InclListPath: *inclFlag,
 		},
 		sDss, sourceRoot,
 		tDss, targetRoot,
