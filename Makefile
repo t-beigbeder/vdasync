@@ -33,21 +33,37 @@ test-again-verbose:	export OTVL_TEST_FULL = 1
 test-again-verbose:	## go test the application again
 	go test -v -count=1 ./...
 
+.PHONY: xbuild
+xbuild:
+	go build -o $(BDIR)/vdasync$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasync/main.go
+	go build -o $(BDIR)/testcerts$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/testcerts/main.go
+	go build -o $(BDIR)/vdaserver$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdaserver/main.go
+	go build -o $(BDIR)/vdas3$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/s3/main.go
+	go build -o $(BDIR)/vdaencrypt$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/encrypt/main.go
+	go build -o $(BDIR)/vdasftp$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/sftp/main.go
+	go build -o $(BDIR)/localFiles$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/localfiles/main.go
+
 .PHONY: build
-build:	## go build commands
-	go build -o bin/vdasync -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasync/main.go
-	go build -o bin/testcerts -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/testcerts/main.go
-	go build -o bin/vdaserver -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/vdaserver/main.go
-	go build -o bin/vdas3 -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/s3/main.go
-	go build -o bin/vdaencrypt -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/encrypt/main.go
-	go build -o bin/vdasftp -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/sftp/main.go
-	go build -o bin/localFiles -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(shell git describe --tags --always)" cmd/plugins/localfiles/main.go
+build: export GOOS = linux
+build: export GOARCH = amd64
+build: export BDIR = bin/lamd64
+build: export BEXT =
+build: xbuild
+
+.PHONY: wbuild
+wbuild: export GOOS = windows
+wbuild: export GOARCH = amd64
+wbuild: export BDIR = bin/wamd64
+wbuild: export BEXT = .exe
+wbuild: xbuild
 
 .PHONY: release
 release:	## go build and release tgz
 release: build
+release: wbuild
 	mkdir -p tmp
-	tar czf tmp/vdasync-linux-amd64-$(shell git describe --tags).tgz  --exclude .gitignore -C bin .
+	tar czf tmp/vdasync-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 .
+	tar czf tmp/vdasync-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
 
 .PHONY: certs
 certs:	## generate test certificates
