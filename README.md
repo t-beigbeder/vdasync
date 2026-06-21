@@ -1,68 +1,47 @@
 # vdasync
 
-Vdasync is a versatile data access and synchronization tool.
+Vdasync is a versatile data access and synchronization tool. Synchronization leverages concurrency and may be very fast.
 
-Vdasync provides access to files or data, either local or remote,
-through a CLI and a simple API.
+It provides access to files or data, either local or remote, through a CLI and a simple API.
 
-The CLI main use is to synchronize data among different locations,
-for instance for data backup and restore or replication.
-Synchronization may be very fast as the implementation leverages concurrency.
-
-Remote access is provided through [gRPC](https://grpc.io/) that requires a HTTP/2 transport between hosts.
+The CLI main use is to synchronize data among different locations, for instance for data backup and restore or replication.
 
 Beyond local and remote files access, various data access means may be implemented through the use of plugins.
 The tool provides the following plugins:
 
 - object storage through an S3 API,
-taking care of OS files attributes (type, permissions and modification time) when synchronizing if needed
-- remote files access over SFTP through a sftp client
-- client-side encrypted storage over any kind of data access mean: files or plugin
-
-There is also a test plugin that barely provides access to local files.
-
-Plugins are implemented as local gRPC servers, using the same API as the remote access server.
-A plugin may therefore be implemented with any language supported by gRPC.
-It can also be run remotely if it makes sense.
+taking care of OS files attributes (type, permissions and modification time)
+- remote files access over SFTP
+- client-side encrypted storage over local or remote storage
 
 ## Vdasync's components
 
-- CLI for synchronization
-- gRPC server for remote access
+- `vdasync` CLI for synchronization
+- `vdaserver` gRPC server for remote access
 - [go API](dssa/dssa.go) and [gRPC API](grpc/dssa.proto)
 - plugins
-  - S3 storage plugin with simple OS files attributes management
-  - SFTP client
-  - client-side encryption
+  - `vdas3` S3 storage plugin with simple OS files attributes management
+  - `vdasftp` SFTP client
+  - `vdaencrypt` client-side encryption
 - Utility to generate testing TLS certificates for CAs, clients and servers
-
-## Status
-
-Beta status
-
-- feature complete, except:
-  - `vdasync` missing exclusion and inclusion lists
-  - encryption CLI missing remote or plugin underlying DSS, only local files are implemented
-  - detailed usage and development documentation to be completed
-- rather good test coverage, mainly missing tests for I/O errors
 
 ## Basic usage
 
-Utilities arguments meaning can be retrieved with `<cli-command> -help`.
+Utilities arguments meaning can be accessed using `<cli-command> -help`.
 
-CLI tools access to data through DSS, DSS stands for data storage system:
-this refers either simply to local or remote files,
-or else to a specific configuration of a plugin provided through a configuration file as explained below.
+CLI tools access data through DSS, DSS stands for data storage system:
+this can refer either simply to local files, to remote files accessed on the `vdaserver`,
+or else to a plugin configured through a file as explained in sub-section.
 
-Security of the communications may be lowered or disabled using self-generated certificates or HTTP without TLS.
-Such settings are disabled by default and should only be used for testing purposes and with good understanding of the risks induced.
+Communications with remote servers or plugins use TLS, security may be lowered or disabled using self-generated certificates or HTTP without TLS.
+Such settings are disabled by default and should only be used with good understanding of the risks induced.
 
 ### `vdasync` utility
 
-`vdasync` concurrency is disabled by default, but increasing it is generally recommended to gain better performance,
-see details below.
+`vdasync` **concurrency** is disabled by default, but increasing it is generally recommended to gain better performance,
+as explained in a section below.
 
-`vdasync`, and its plugins if applicable, are logging information in `$TMPDIR` files by default.
+`vdasync`, and its plugins if applicable, are **logging** information in `$TMPDIR` files by default.
 This may be configured as detailed in a specific section.
 
 Basic usage is
@@ -77,7 +56,7 @@ For instance
     vdasync -rm -source /path/to/dev -target /path/to/backup/for/dev
     vdasync -dryrun -check -source /path/to/dev -target /path/to/backup/for/dev
 
-Remote access to a `vdaserver` (see below) would be enabled with the following DSS syntax:
+Remote access to a `vdaserver` (see other section) would be enabled with the following DSS syntax:
 
     dss://<server>:<port>/path/to/remote
 
@@ -103,14 +82,14 @@ The data served by the plugin is accessed through its name, for instance making 
 
     vdasync -conc 16 -rm -source /path/to/dev -target s3+dss:/ -config /path/to/s3Config.yaml
 
-This will automatically run the `vdas3` executable plugin (its type above) with the "-s3*" arguments provided in the configuration file above,
+This will automatically run the `vdas3` executable plugin (its plugin type above) with the "-s3*" arguments provided in the configuration file above,
 here enabling up to 16 concurrent I/O requests.
 
 It should be noted that omitting the `//<server>:<port>` part in the DSS URL means accessing `localhost`
 on a dynamically allocated TCP port, which is generally what is wanted for a plugin.
-Concerning the `path`part in the URL, it is set to "/" in the case of S3,
+Concerning the `path` part in the URL, it is set to "/" in the case of S3,
 as the prefix to use in the bucket is rather provided with the "-s3prefix" argument.
-Further details about the `vdas3` plugin are provided below.
+Further details about the `vdas3` plugin are provided in a specific section.
 
 ### Use of concurrency
 
@@ -120,12 +99,10 @@ Its setting depends on the infrastructure and the plugins involved.
 - As a default, the number of available CPU cores can be provided in many cases.
 - Writing to slow devices should reduce it or even disable it (USB stick),
 as parallel writes may even become counterproductive.
-- Using S3 and other HTTP-based services could require increasing it because related requests involve network latency
-but may be run safely in parallel; nevertheless this impacts network resources
-and should be balanced with such concern.
+- Access to remote resources must take care of the target service capacity that is often shared between many users.
+- Using S3 and other HTTP-based services often benefits increasing it because related requests involve network latency
+but may be run safely in parallel; nevertheless this must be balanced with shared resources usage.
 - Same remark applies in the case of network based storage like NFS or NAS.
-- Access to remote resources must also take care of the target service capacity
-that is often shared between many users.
 - Client based encryption requires local compute resources,
 therefore concurrency will be tuned according to related capacity.
 
@@ -133,7 +110,9 @@ therefore concurrency will be tuned according to related capacity.
 
 Detailed documentation for using vdasync's components is provided on this [page](docs/detailed_usage.md).
 
-- Plugins configurations and DSS naming
+- DSS naming
+- Configuration files
+- The localFiles test plugin
 - TLS configuration
 - Remote server
 - S3 storage simple plugin
@@ -161,12 +140,3 @@ A gRPC API providing the same kind of interface as the Golang one is provided.
 
 Both remote access and plugin access use the same gRPC API.
 A plugin may therefore be implemented with any language supported by gRPC.
-
-### Concurrency
-
-The synchronization tooling leverages Golang concurrency features,
-enabling fast data access through parallelization of I/O and data processing,
-as soon as the infrastructure allows it.
-
-Concurrency may be tuned or even switched off to keep resource usage
-as efficient as wanted.

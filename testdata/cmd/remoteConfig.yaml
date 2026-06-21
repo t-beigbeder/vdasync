@@ -1,0 +1,6 @@
+dataStores:
+- host: ""
+  port: 9443
+  clientCertPath: /local/tmp/certs/client-cert.pem
+  clientKeyPath: /local/tmp/certs/client-key.pem
+  caCertPath: /local/tmp/certs/sca-cert.pem

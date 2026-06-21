@@ -26,6 +26,8 @@ func RunEncryptPlugin() {
 		ageIdfFlag     = flag.String("ageidf", "", "age identities (secrets) file name")
 		ageRecfFlag    = flag.String("agerecf", "", "age recipients (public keys) file name")
 		underlyingFlag = flag.String("underlying", "", "DSS URL for encrypted files storage")
+		repairFlag     = flag.Bool("repair", false, "check and repair the metadata index")
+		crepairFlag    = flag.Bool("crepair", false, "confirm repair")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -75,6 +77,12 @@ func RunEncryptPlugin() {
 		defer underlying.EndSession()
 	}
 
+	if *repairFlag {
+		if err = encrypted.CheckIndex(lgr, underlying, rootPath, identities, recipients, !*crepairFlag); err != nil {
+			common.Fatal(lgr, fmt.Errorf("repair failed: %v", err))
+		}
+		os.Exit(0)
+	}
 	dss, err := encrypted.MakeEncryptedDssa(lgr, underlying, rootPath, identities, recipients)
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("encrypted.MakeEncryptedDssa: %s: %v", exe, err))

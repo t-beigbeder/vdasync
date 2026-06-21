@@ -40,10 +40,10 @@ func (msts *M2StSvc) Del(path_ string) error {
 		return fs.ErrNotExist
 	}
 	if de.IsDir && len(msts.dirs[de.Path]) > 0 {
-		return fmt.Errorf("m2s3svc.Del: dir %s is not empty", path_)
+		return fmt.Errorf("M2StSvc.Del: dir %s is not empty", path_)
 	}
 	if path_ == "/" {
-		return fmt.Errorf("m2s3svc.Del: removing %s is forbidden", path_)
+		return fmt.Errorf("M2StSvc.Del: removing %s is forbidden", path_)
 	}
 	msts.hasChanges = true
 	if de.IsDir {
@@ -57,11 +57,11 @@ func (msts *M2StSvc) Del(path_ string) error {
 
 // EndSession implements [metasts.MetaStorageSvc].
 func (msts *M2StSvc) EndSession() error {
-	msts.Lgr.Info("m2s3svc: EndSession")
+	msts.Lgr.Info("M2StSvc: EndSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	if !msts.hasSession {
-		return errors.New("m2s3svc.EndSession: no active session")
+		return errors.New("M2StSvc.EndSession: no active session")
 	}
 	msts.hasSession = false
 	if !msts.hasChanges {
@@ -133,11 +133,11 @@ func (msts *M2StSvc) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // NewSession implements [metasts.MetaStorageSvc].
 func (msts *M2StSvc) NewSession() error {
-	msts.Lgr.Info("m2s3svc: NewSession")
+	msts.Lgr.Info("M2StSvc: NewSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	if msts.hasSession {
-		return errors.New("m2s3svc.NewSession: there is already an active session")
+		return errors.New("M2StSvc.NewSession: there is already an active session")
 	}
 	msts.hasSession = true
 	ok, err := msts.StSvc.Exists()
@@ -182,7 +182,7 @@ func (msts *M2StSvc) NewSession() error {
 func (msts *M2StSvc) Put(de *dssa.DataEntry) error {
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
-	msts.Lgr.Debug("m2s3svc.Put", "de", de.Path)
+	msts.Lgr.Debug("M2StSvc.Put", "de", de.Path)
 	pp := path.Dir(de.Path)
 	if de.Path == "/" {
 		pp = "/.."

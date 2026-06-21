@@ -23,9 +23,6 @@ type PluginType struct {
 }
 
 type DataStoreType struct {
-	Name           string `yaml`
-	Type           string `yaml`
-	PluginName     string `yaml:"pluginName"`
 	Host           string `yaml`
 	Port           int    `yaml`
 	Insecure       bool   `yaml`
@@ -36,11 +33,13 @@ type DataStoreType struct {
 }
 
 type SyncOptionsType struct {
-	Dryrun  bool `yaml`
-	Check   bool `yaml`
-	NoPerm  bool `yaml:"noPerm"`
-	NoMtime bool `yaml:"noMtime"`
-	Rm      bool `yaml`
+	Dryrun       bool   `yaml`
+	Check        bool   `yaml`
+	NoPerm       bool   `yaml:"noPerm"`
+	NoMtime      bool   `yaml:"noMtime"`
+	Rm           bool   `yaml`
+	ExclListPath string `yaml:"exclListPath"`
+	InclListPath string `yaml:"inclListPath"`
 }
 
 type CliConfig struct {
@@ -104,7 +103,7 @@ func RemoteDataStore(cfg *CliConfig, host string, port int) *DataStoreType {
 		cfg = &CliConfig{}
 	}
 	for _, ds := range cfg.DataStores {
-		if ds.Host == host && ds.Port == port {
+		if (ds.Host == "" || ds.Host == host) && ds.Port == port {
 			return ds
 		}
 	}
