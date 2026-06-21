@@ -6,17 +6,18 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 )
 
-func FileExists(path string) bool {
-	_, err := os.Stat(path)
+func FileExists(path_ string) bool {
+	_, err := os.Stat(path_)
 	return err == nil
 }
 
-func FileSize(path string) (int64, error) {
-	fi, err := os.Stat(path)
+func FileSize(path_ string) (int64, error) {
+	fi, err := os.Stat(path_)
 	if err != nil {
 		return 0, err
 	}
@@ -32,16 +33,16 @@ func ReaderSha256(rdr io.Reader) (string, error) {
 	return fmt.Sprintf("%064x", h.Sum(nil)), nil
 }
 
-func FileSha256(path string) (string, error) {
-	f, err := os.Open(path)
+func FileSha256(path_ string) (string, error) {
+	f, err := os.Open(path_)
 	if err != nil {
 		return "", err
 	}
 	return ReaderSha256(f)
 }
 
-func WriteFile(path string, data []byte) error {
-	file, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+func WriteFile(path_ string, data []byte) error {
+	file, err := os.OpenFile(path_, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -55,15 +56,15 @@ func WriteFile(path string, data []byte) error {
 
 const MaxLoadFileSize = 65536
 
-func LoadFile(path string) ([]byte, error) {
-	sz, err := FileSize(path)
+func LoadFile(path_ string) ([]byte, error) {
+	sz, err := FileSize(path_)
 	if err != nil {
 		return nil, err
 	}
 	if sz > MaxLoadFileSize {
 		return nil, fmt.Errorf("file size is %d bytes > %d", sz, MaxLoadFileSize)
 	}
-	file, err := os.Open(path)
+	file, err := os.Open(path_)
 	if err != nil {
 		return nil, err
 	}
@@ -71,8 +72,8 @@ func LoadFile(path string) ([]byte, error) {
 	return io.ReadAll(file)
 }
 
-func FileLines(path string) ([]string, error) {
-	file, err := os.Open(path)
+func FileLines(path_ string) ([]string, error) {
+	file, err := os.Open(path_)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +89,12 @@ func FileLines(path string) ([]string, error) {
 	return lines, nil
 }
 
-func GetFileStat(path string) (os.FileInfo, [2]int, [3]dssa.Rights, error) {
-	fi, err := os.Lstat(path)
+func Lines2file(lines []string, path_ string) error {
+	return WriteFile(path_, []byte(strings.Join(lines, "\n")))
+}
+
+func GetFileStat(path_ string) (os.FileInfo, [2]int, [3]dssa.Rights, error) {
+	fi, err := os.Lstat(path_)
 	if err != nil {
 		return nil, [2]int{}, [3]dssa.Rights{}, err
 	}

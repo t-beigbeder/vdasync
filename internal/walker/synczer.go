@@ -44,13 +44,43 @@ type syncDataType struct {
 	incls       []*regexp.Regexp
 }
 
+func compileRe(ss []string) ([]*regexp.Regexp, error) {
+	rs := []*regexp.Regexp{}
+	for _, s := range ss {
+		r, err := regexp.Compile(s)
+		if err != nil {
+			return nil, err
+		}
+		rs = append(rs, r)
+	}
+	return rs, nil
+}
+
+func reFromFile(path_ string, label string) ([]*regexp.Regexp, error) {
+	if path_ == "" {
+		return nil, nil
+	}
+	res, err := common.FileLines(path_)
+	if err != nil {
+		return nil, fmt.Errorf("RunSynchronizer: %s %v", label, err)
+	}
+	return compileRe(res)
+}
+
 func NewSynchronizer(
 	lgr *slog.Logger, concurrency int,
 	syncOptions *config.SyncOptionsType,
 	sourceDs dssa.Dssa,
 	targetDs dssa.Dssa, targetRoot string,
-	excls, incls []*regexp.Regexp,
-) Walker {
+) (Walker, error) {
+	excls, err := reFromFile(syncOptions.ExclListPath, "exclusion file")
+	if err != nil {
+		return nil, fmt.Errorf("RunSynchronizer: exclusion file regexps: %v", err)
+	}
+	incls, err := reFromFile(syncOptions.InclListPath, "inclusion file")
+	if err != nil {
+		return nil, fmt.Errorf("RunSynchronizer: inclusion file regexps: %v", err)
+	}
 	return MakeWalker(
 		lgr,
 		concurrency,
@@ -65,19 +95,7 @@ func NewSynchronizer(
 			excls: excls, incls: incls,
 			BaseDoerData: BaseDoerData{DoerLabel: "sync"},
 		},
-	)
-}
-
-func compileRe(ss []string) ([]*regexp.Regexp, error) {
-	rs := []*regexp.Regexp{}
-	for _, s := range ss {
-		r, err := regexp.Compile(s)
-		if err != nil {
-			return nil, err
-		}
-		rs = append(rs, r)
-	}
-	return rs, nil
+	), nil
 }
 
 func RunSynchronizer(
@@ -100,23 +118,10 @@ func RunSynchronizer(
 	if !tde.IsDir {
 		return nil, fmt.Errorf("RunSynchronizer: target %s is not a dir", targetRoot)
 	}
-	exclSs, err := common.FileLines(syncOptions.ExclListPath)
+	wk, err := NewSynchronizer(lgr, concurrency, syncOptions, sourceDs, targetDs, targetRoot)
 	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: exclusion file %v", err)
+		return nil, err
 	}
-	excls, err := compileRe(exclSs)
-	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: exclusion file regexps: %v", err)
-	}
-	inclSs, err := common.FileLines(syncOptions.InclListPath)
-	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: inclusion file %v", err)
-	}
-	incls, err := compileRe(inclSs)
-	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: inclusion file regexps: %v", err)
-	}
-	wk := NewSynchronizer(lgr, concurrency, syncOptions, sourceDs, targetDs, targetRoot, excls, incls)
 	wk.GetUserData(nil)
 	lgr.Info("RunSynchronizer", "concurrency", concurrency, "source", sourceRoot, "target", targetRoot)
 	return wk, wk.Run(sde)
@@ -203,25 +208,35 @@ func syncEntryStatusInit(pe *ProcessedEntry) {
 	pe.wi.SetUserData(pe.DataEntry, es)
 }
 
-func isExcluded(pe *ProcessedEntry) bool {
+func isIncluded(pe *ProcessedEntry) bool {
 	sd := syncData(pe)
 	rp := syncRelPath(pe)
-	for _, ere := range sd.excls {
-		if ere.MatchString(rp) {
-			pe.Lgr_().Debug("isExcluded: excluded", "ere", ere, "pe", pe, "rp", rp)
-			return true
-		}
-	}
 	if len(sd.incls) == 0 {
 		return false
 	}
 	for _, ire := range sd.incls {
 		if ire.MatchString(rp) {
-			pe.Lgr_().Debug("isExcluded: explicit inclusion", "ire", ire, "pe", pe, "rp", rp)
-			return false
+			return true
 		}
 	}
-	return true
+	return false
+}
+
+func isExcluded(pe *ProcessedEntry) bool {
+	sd := syncData(pe)
+	rp := syncRelPath(pe)
+	for _, ere := range sd.excls {
+		if ere.MatchString(rp) {
+			ise := !isIncluded(pe)
+			if ise {
+				pe.Lgr_().Debug("isExcluded: excluded", "ere", ere, "pe", pe.DataEntry.Path, "rp", rp)
+				return true
+			} else {
+				pe.Lgr_().Debug("isExcluded: excluded -> included", "ere", ere, "pe", pe.DataEntry.Path, "rp", rp)
+			}
+		}
+	}
+	return false
 }
 
 func onStartDirEntrySync(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
@@ -245,11 +260,19 @@ func onStartDirEntrySync(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEnt
 		return nil
 	}
 
-	if err = prepareTargetDirCreate(pe, children); err != nil {
+	inclChildren := []*dssa.DataEntry{}
+	for _, de := range children {
+		if isExcluded(&ProcessedEntry{DataEntry: de, parent: pe, wi: pe.wi}) {
+			continue
+		}
+		inclChildren = append(inclChildren, de)
+	}
+
+	if err = prepareTargetDirCreate(pe, inclChildren); err != nil {
 		return nil
 	}
 
-	return children
+	return inclChildren
 }
 
 func onStartNdirEntrySync(pe *ProcessedEntry) {

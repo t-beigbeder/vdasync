@@ -20,19 +20,10 @@ taking care of OS files attributes (type, permissions and modification time)
 - `vdaserver` gRPC server for remote access
 - [go API](dssa/dssa.go) and [gRPC API](grpc/dssa.proto)
 - plugins
-  - S3 storage plugin with simple OS files attributes management
-  - SFTP client
-  - client-side encryption
+  - `vdas3` S3 storage plugin with simple OS files attributes management
+  - `vdasftp` SFTP client
+  - `vdaencrypt` client-side encryption
 - Utility to generate testing TLS certificates for CAs, clients and servers
-
-## Status
-
-Beta status
-
-- feature complete, except:
-  - `vdasync` missing exclusion and inclusion lists
-  - detailed usage and development documentation to be completed
-- rather good test coverage, mainly missing tests for I/O errors
 
 ## Basic usage
 
@@ -40,7 +31,7 @@ Utilities arguments meaning can be accessed using `<cli-command> -help`.
 
 CLI tools access data through DSS, DSS stands for data storage system:
 this can refer either simply to local files, to remote files accessed on the `vdaserver`,
-or else to a plugin configured through a file as explained later.
+or else to a plugin configured through a file as explained in sub-section.
 
 Communications with remote servers or plugins use TLS, security may be lowered or disabled using self-generated certificates or HTTP without TLS.
 Such settings are disabled by default and should only be used with good understanding of the risks induced.

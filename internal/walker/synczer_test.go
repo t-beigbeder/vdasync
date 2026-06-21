@@ -22,7 +22,10 @@ import (
 )
 
 func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tRoot string, so *config.SyncOptionsType) (syncRes map[string]*SyncEntryStatus, err error) {
-	walker := NewSynchronizer(lgr, 4, so, sDss, tDss, tRoot, nil, nil)
+	var walker Walker
+	if walker, err = NewSynchronizer(lgr, 4, so, sDss, tDss, tRoot); err != nil {
+		return
+	}
 	if err = walker.Run(sde); err != nil {
 		return
 	}
@@ -295,14 +298,16 @@ func TestNoTarget(t *testing.T) {
 	sde, err := dss.Stat(td1)
 	require.Nil(t, err)
 	so := &config.SyncOptionsType{Dryrun: true}
-	walker := NewSynchronizer(lgr, 0, so, dss, dss, tRoot, nil, nil)
+	walker, err := NewSynchronizer(lgr, 0, so, dss, dss, tRoot)
+	require.NoError(t, err)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	syncRes := SyncResult(walker)
 	require.NotNil(t, syncRes[""].Error)
 
 	so = &config.SyncOptionsType{Dryrun: false}
-	walker = NewSynchronizer(lgr, 0, so, dss, dss, tRoot, nil, nil)
+	walker, err = NewSynchronizer(lgr, 0, so, dss, dss, tRoot)
+	require.NoError(t, err)
 	err = walker.Run(sde)
 	require.Nil(t, err)
 	syncRes = SyncResult(walker)
@@ -746,4 +751,70 @@ func TestFix02Synczer(t *testing.T) {
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true, Rm: true})
 		require.Equal(t, 0, sr[""].AggregatedError)
 	}
+}
+
+func TestExclSynczer(t *testing.T) {
+	rLgr := common.DbgLogger()
+	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
+	defer cFunc()
+	lgr := rLgr.With("tDss", fmt.Sprintf("%T", dss2))
+	td1 := t.TempDir()
+	sad, saf, err := common.MakeTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
+	require.Nil(t, err)
+	total := sad + saf + 1
+	sde, err := dss1.Stat(td1)
+	require.Nil(t, err)
+	td2 := t.TempDir()
+	lgr.Debug("TestBasicWalker", "td1", td1, "sad", sad, "saf", saf)
+
+	elp := path.Join(td1, "el.txt")
+	common.Lines2file(
+		[]string{
+			"^d00/d00/d00/f1.$",
+			"^d00/d00/d01$",
+		},
+		elp)
+	sr, err := runSyncTest(lgr, dss1, dss2, sde, td2, &config.SyncOptionsType{ExclListPath: elp})
+	require.Greater(t, total, sr[""].AggregatedChildrenNumber)
+	require.Greater(t, total, sr[""].AggregatedCreated)
+	require.Equal(t, 1, sr[""].AggregatedUpdated)
+	require.Equal(t, 0, sr[""].AggregatedError)
+
+}
+
+func TestInclSynczer(t *testing.T) {
+	rLgr := common.DbgLogger()
+	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
+	defer cFunc()
+	lgr := rLgr.With("tDss", fmt.Sprintf("%T", dss2))
+	td1 := t.TempDir()
+	sad, saf, err := common.MakeTestFilesTree(td1, 7, 100, 16, 6*1024*1024)
+	require.Nil(t, err)
+	total := sad + saf + 1
+	sde, err := dss1.Stat(td1)
+	require.Nil(t, err)
+	td2 := t.TempDir()
+	lgr.Debug("TestBasicWalker", "td1", td1, "sad", sad, "saf", saf)
+
+	elp := path.Join(td1, "el.txt")
+	common.Lines2file(
+		[]string{
+			"^d00/d00/d00/f1.$",
+			"^d00/d00/d01/",
+		},
+		elp)
+	ilp := path.Join(td1, "il.txt")
+	common.Lines2file(
+		[]string{
+			"^d00/d00/d00/f12",
+			"^d00/d00/d01/f0.$",
+		},
+		ilp)
+
+	sr, err := runSyncTest(lgr, dss1, dss2, sde, td2, &config.SyncOptionsType{ExclListPath: elp, InclListPath: ilp})
+	require.Greater(t, total+1, sr[""].AggregatedChildrenNumber)
+	require.Greater(t, total+1, sr[""].AggregatedCreated)
+	require.Equal(t, 1, sr[""].AggregatedUpdated)
+	require.Equal(t, 0, sr[""].AggregatedError)
+
 }
