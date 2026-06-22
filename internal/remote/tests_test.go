@@ -121,7 +121,7 @@ func TestRunGrpcTestServerMTls(t *testing.T) {
 	td := t.TempDir()
 	cfs, err := tls.NewTestCerts(td, []string{"0.0.0.0", "localhost"}, true)
 	require.Nil(t, err)
-	copt, err := GetMutualTlsCopt(cfs["cac"], cfs["c1c"], cfs["c1k"])
+	copt, err := GetMutualTlsCOpt(cfs["cac"], cfs["c1c"], cfs["c1k"])
 	require.Nil(t, err)
 	sopt, err := GetMutualTlsSOpt(cfs["cac"], cfs["svc"], cfs["svk"])
 

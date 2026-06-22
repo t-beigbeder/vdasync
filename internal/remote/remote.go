@@ -58,7 +58,7 @@ func GetMutualTlsSOpt(caCertFile, certFile, keyFile string) (grpc.ServerOption, 
 	return grpc.Creds(credentials.NewTLS(tc)), nil
 }
 
-func GetMutualTlsCopt(caCertFile, certFile, keyFile string) (grpc.DialOption, error) {
+func GetMutualTlsCOpt(caCertFile, certFile, keyFile string) (grpc.DialOption, error) {
 	tc, err := tls.GetMTlsClientConfig(caCertFile, certFile, keyFile)
 	if err != nil {
 		return nil, err
