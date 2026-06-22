@@ -19,7 +19,7 @@ func testDir() string {
 }
 
 func setExecutable(conf string) string {
-	exep := path.Clean(testDir() + "/../../bin/localFiles")
+	exep := path.Clean(testDir() + "/../../bin/lamd64/localFiles")
 	return strings.Replace(conf, "${exe}", exep, -1)
 }
 

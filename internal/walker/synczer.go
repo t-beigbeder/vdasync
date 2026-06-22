@@ -122,7 +122,6 @@ func RunSynchronizer(
 	if err != nil {
 		return nil, err
 	}
-	wk.GetUserData(nil)
 	lgr.Info("RunSynchronizer", "concurrency", concurrency, "source", sourceRoot, "target", targetRoot)
 	return wk, wk.Run(sde)
 }

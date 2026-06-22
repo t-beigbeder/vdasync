@@ -754,7 +754,7 @@ func TestFix02Synczer(t *testing.T) {
 }
 
 func TestExclSynczer(t *testing.T) {
-	rLgr := common.DbgLogger()
+	rLgr := common.GetNullLogger()
 	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
 	defer cFunc()
 	lgr := rLgr.With("tDss", fmt.Sprintf("%T", dss2))
@@ -783,7 +783,7 @@ func TestExclSynczer(t *testing.T) {
 }
 
 func TestInclSynczer(t *testing.T) {
-	rLgr := common.DbgLogger()
+	rLgr := common.GetNullLogger()
 	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
 	defer cFunc()
 	lgr := rLgr.With("tDss", fmt.Sprintf("%T", dss2))
