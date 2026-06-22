@@ -59,8 +59,8 @@ wbuild: xbuild
 
 .PHONY: release
 release:	## go build and release tgz
-release: build
-release: wbuild
+	make build
+	make wbuild
 	mkdir -p tmp
 	tar czf tmp/vdasync-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 .
 	tar czf tmp/vdasync-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
