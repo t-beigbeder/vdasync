@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 )
@@ -43,5 +44,5 @@ func SetAccessRights(path string, ugIds [2]int, ugoRights [3]dssa.Rights) error 
 }
 
 func Lutimes(path string, mtime int64) error {
-	return nil
+	return os.Chtimes(path, time.Now(), time.Unix(mtime, 0))
 }
