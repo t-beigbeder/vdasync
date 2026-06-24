@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-func RunPlugins(lgr *slog.Logger, confData string, cf *CommonFlagsType) ([]*plugin.RunningPlugin, error) {
+func RunPlugins(lgr *slog.Logger, cliCfg *config.CliConfig, cf *CommonFlagsType) ([]*plugin.RunningPlugin, error) {
 	tab := func(cfg *config.PluginsOptionsType) ([]string, grpc.DialOption, error) {
 		dop, err := GetClientPluginTls(cf, cfg)
 		if err != nil {
@@ -25,7 +25,7 @@ func RunPlugins(lgr *slog.Logger, confData string, cf *CommonFlagsType) ([]*plug
 		}
 		return GetPluginTlsOpts(cf, cfg), dop, err
 	}
-	rps, err := plugin.RunConfData(lgr, confData, tab)
+	rps, err := plugin.RunCliConfig(lgr, cliCfg, tab)
 	if err != nil {
 		return nil, err
 	}

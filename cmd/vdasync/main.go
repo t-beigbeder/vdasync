@@ -45,13 +45,12 @@ func main() {
 	}
 
 	var rps []*plugin.RunningPlugin
-	var cfg *config.CliConfig
-	if *cf.ConfigFlag != "" {
-		confData, err := common.LoadFile(*cf.ConfigFlag)
-		if err != nil {
-			common.Fatal(lgr, err)
-		}
-		if rps, err = cli.RunPlugins(lgr, string(confData), cf); err != nil {
+	cfg, err := cli.LoadConfig(cf)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
+	if cfg != nil {
+		if rps, err = cli.RunPlugins(lgr, cfg, cf); err != nil {
 			common.Fatal(lgr, err)
 		}
 		if len(plugin.Errors(rps)) > 0 {
@@ -60,9 +59,6 @@ func main() {
 			common.Fatal(lgr, errors.New("plugins error(s)"))
 		}
 		defer cli.CleanUp(lgr, rps)
-		if cfg, err = config.Load(string(confData)); err != nil {
-			common.Fatal(lgr, err)
-		}
 	}
 	if rps != nil {
 		cli.SetSignalHandler(lgr, rps)

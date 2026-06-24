@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
@@ -18,9 +19,10 @@ func testDir() string {
 	return path.Dir(filename)
 }
 
-func setExecutable(conf string) string {
+func setExecutable(ymlConf string) *config.CliConfig {
 	exep := path.Clean(testDir() + "/../../bin/lamd64/localFiles")
-	return strings.Replace(conf, "${exe}", exep, -1)
+	cf, _ := config.Load(strings.Replace(ymlConf, "${exe}", exep, -1))
+	return cf
 }
 
 func TestRunPluginOk(t *testing.T) {
@@ -33,7 +35,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
+	rps, err := RunCliConfig(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -57,7 +59,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
+	rps, err := RunCliConfig(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Zero(t, len(Errors(rps)))
@@ -81,7 +83,7 @@ plugins:
   executablePath: ${exe}doesnotexist
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
+	rps, err := RunCliConfig(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -105,7 +107,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO, -badoption]
 `
-	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
+	rps, err := RunCliConfig(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 2, len(rps))
 	require.Equal(t, 1, len(Errors(rps)))
@@ -125,7 +127,7 @@ plugins:
   executablePath: ${exe}
   addArgs: [-notls, -log, stderr, -level, INFO]
 `
-	rps, err := RunConfData(common.GetLogger(), setExecutable(conf), nil)
+	rps, err := RunCliConfig(common.GetLogger(), setExecutable(conf), nil)
 	require.Nil(t, err)
 	require.Equal(t, 1, len(rps))
 	require.Zero(t, len(Errors(rps)))
