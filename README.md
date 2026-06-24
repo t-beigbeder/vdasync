@@ -27,22 +27,23 @@ taking care of OS files attributes (type, permissions and modification time)
 
 ## Basic usage
 
-Utilities arguments meaning can be accessed using `<cli-command> -help`.
+Utilities arguments meaning are displayed using `<cli-command> -help`.
 
 CLI tools access data through DSS, DSS stands for data storage system:
-this can refer either simply to local files, to remote files accessed on the `vdaserver`,
-or else to a plugin configured through a file as explained in sub-section.
+this can refer either simply to local files, to remote files accessed on a host running `vdaserver`,
+or else to a plugin configured through a file as explained in [details page](docs/detailed_usage.md).
 
-Communications with remote servers or plugins use TLS, security may be lowered or disabled using self-generated certificates or HTTP without TLS.
-Such settings are disabled by default and should only be used with good understanding of the risks induced.
+Communications with remote servers or plugins use mTLS, security may be lowered or disabled,
+using self-generated certificates or HTTP without TLS.
+Such settings are disabled by default and should only be used when understanding the risks.
 
 ### `vdasync` utility
 
-`vdasync` **concurrency** is disabled by default, but increasing it is generally recommended to gain better performance,
-as explained in a section below.
+`vdasync` **concurrency** is disabled by default, but increasing it is generally recommended
+to gain better performance, as explained later.
 
 `vdasync`, and its plugins if applicable, are **logging** information in `$TMPDIR` files by default.
-This may be configured as detailed in a specific section.
+This may be configured as detailed on [this page](docs/detailed_usage.md).
 
 Basic usage is
 
@@ -56,7 +57,8 @@ For instance
     vdasync -rm -source /path/to/dev -target /path/to/backup/for/dev
     vdasync -dryrun -check -source /path/to/dev -target /path/to/backup/for/dev
 
-Remote access to a `vdaserver` (see other section) would be enabled with the following DSS syntax:
+Remote access to a `vdaserver` (see [details](docs/detailed_usage.md) page)
+would be enabled with the following DSS syntax:
 
     dss://<server>:<port>/path/to/remote
 
@@ -68,7 +70,7 @@ Using a plugin is enabled through a configuration file, for instance:
 
     # file /path/to/s3Config.yaml
     plugins:
-    - name: s3
+    - name: s3-test
       type: vdas3
       addArgs:
       - "-s3profile"
@@ -80,16 +82,17 @@ Using a plugin is enabled through a configuration file, for instance:
 
 The data served by the plugin is accessed through its name, for instance making a backup to S3 object storage:
 
-    vdasync -conc 16 -rm -source /path/to/dev -target s3+dss:/ -config /path/to/s3Config.yaml
+    vdasync -conc 16 -rm -source /path/to/dev -target s3-test+dss:/ -config /path/to/s3Config.yaml
 
-This will automatically run the `vdas3` executable plugin (its plugin type above) with the "-s3*" arguments provided in the configuration file above,
-here enabling up to 16 concurrent I/O requests.
+This will automatically run the `vdas3` executable plugin, provided as the plugin type above,
+with the "-s3*" arguments provided in the same file,
+here enabling up to 16 concurrent I/O requests to reduce the effect of S3 service and network latency.
 
 It should be noted that omitting the `//<server>:<port>` part in the DSS URL means accessing `localhost`
 on a dynamically allocated TCP port, which is generally what is wanted for a plugin.
 Concerning the `path` part in the URL, it is set to "/" in the case of S3,
-as the prefix to use in the bucket is rather provided with the "-s3prefix" argument.
-Further details about the `vdas3` plugin are provided in a specific section.
+as the prefix to use in the bucket is provided with the "-s3prefix" argument given in the configuration.
+Further details about the `vdas3` plugin are provided on the [details](docs/detailed_usage.md) page.
 
 ### Use of concurrency
 
@@ -99,9 +102,11 @@ Its setting depends on the infrastructure and the plugins involved.
 - As a default, the number of available CPU cores can be provided in many cases.
 - Writing to slow devices should reduce it or even disable it (USB stick),
 as parallel writes may even become counterproductive.
-- Access to remote resources must take care of the target service capacity that is often shared between many users.
-- Using S3 and other HTTP-based services often benefits increasing it because related requests involve network latency
-but may be run safely in parallel; nevertheless this must be balanced with shared resources usage.
+- Access to remote resources must take care of the target service capacity
+that is often shared between many users.
+- Using S3 and other HTTP-based services often benefits increasing it because related requests
+involve network latency but may be run safely in parallel;
+nevertheless this must be balanced with shared resources usage.
 - Same remark applies in the case of network based storage like NFS or NAS.
 - Client based encryption requires local compute resources,
 therefore concurrency will be tuned according to related capacity.
@@ -123,7 +128,7 @@ Detailed documentation for using vdasync's components is provided on this [page]
 
 ### Golang API
 
-The Golang API sees any data store through the following simple interface:
+The [go API](dssa/dssa.go) sees any data store through the following simple interface:
 
 - List to retrieve directory entries
 - Stat to retrieve entry status like size, permissions and modification time
@@ -136,7 +141,7 @@ The Golang API sees any data store through the following simple interface:
 
 ### gRPC API
 
-A gRPC API providing the same kind of interface as the Golang one is provided.
+A [gRPC API](grpc/dssa.proto) providing the same kind of interface as the Golang one is provided.
 
 Both remote access and plugin access use the same gRPC API.
 A plugin may therefore be implemented with any language supported by gRPC.

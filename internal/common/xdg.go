@@ -6,7 +6,7 @@ import (
 )
 
 func XdgConfigDir() string {
-	xcd := os.Getenv("XDG_CONFIG_DIR")
+	xcd := os.Getenv("XDG_CONFIG_HOME")
 	if xcd != "" {
 		return xcd
 	}

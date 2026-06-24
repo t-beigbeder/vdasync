@@ -3,6 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"os"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -122,6 +123,9 @@ func NormalizeRoot(rootPath string) (string, error) {
 
 func LoadConfig(cf *CommonFlagsType) (*config.CliConfig, error) {
 	cnfFile := *cf.ConfigFlag
+	if cnfFile == "" {
+		cnfFile = os.Getenv("VDASYNC_CONFIG")
+	}
 	if cnfFile == "" {
 		cnfFile = path.Join(common.XdgConfigDir(), "vdasync", "config.yml")
 		if !common.FileExists(cnfFile) {

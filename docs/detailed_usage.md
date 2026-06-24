@@ -15,7 +15,12 @@ DSS names are URL formatted as following:
 
 ### Configuration files
 
-to be completed
+The `vdasync` arguments are numerous and verbose but may be provided in a configuration file:
+
+- arguments are taken in priority to their respective entry in the configuration file
+- default configuration file is
+[`$XDG_CONFIG_HOME/vdasync/config.yml`](https://wiki.archlinux.org/title/XDG_Base_Directory)
+- it can be overriden with `$VDASYNC_CONFIG`
 
 ### The `localFiles` test plugin
 
