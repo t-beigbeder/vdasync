@@ -2,7 +2,8 @@
 
 ## Detailed usage
 
-This page details `vdasync` tool and components command-line arguments and configuration.
+This page details how the `vdasync` tool and related components work,
+and how to control them with command-line arguments and configuration.
 
 ### DSS naming
 
@@ -10,8 +11,33 @@ DSS names are URL formatted as following:
 
 - `relativePath`: access local files relative to working directory
 - `/absolute/to/path`: access local files with absolute path
-- `pluginName+dss:/`: access data through _pluginName_, plugins define their root directory (or equivalent) as arguments, so DSS names use an empty path
+- `pluginName+dss:/`: access data through _pluginName_, plugins define their root directory (or equivalent) as arguments,
+so DSS names use an empty path (with the exception of the `localFiles` test plugin)
 - `dss://host[:port]/remote/path`: access remote files under /remote/path
+
+### The `localFiles` test plugin
+
+Configuring TLS may require some tests.
+As far as the communication from `vdasync` to its plugins is concerned, the configuration can be tested using
+the `localFiles` test plugin: indeed this TLS configuration is shared by all plugins.
+This plugin simply exposes the local filesystem DSS through the gRPC plugin API.
+
+To use it, just set up the default configuration
+`$XDG_CONFIG_HOME/vdasync/config.yml`
+with such a content
+
+    pluginsOptions:
+      # set TLS as wanted here
+    plugins:
+    - name: lfs
+      type: localFiles
+      addArgs: ["-level", "INFO", "-log", "stderr"]
+
+and run a test command:
+
+    vdasync -dryrun -source /path/to/source -target lfs+dss:/path/to/target
+
+Be sure to install the `localFiles` executable in the same path as `vdasync`.
 
 ### Configuration files
 
@@ -19,13 +45,38 @@ The `vdasync` arguments are numerous and verbose but may generally be provided i
 
 - arguments are taken in priority to their respective entry in the configuration file
 - default configuration file is
-[`$XDG_CONFIG_HOME/vdasync/config.yml`](https://wiki.archlinux.org/title/XDG_Base_Directory)
-- it can be overriden with `$VDASYNC_CONFIG`
-- it can be overriden with `-config /path/to/configFile.yaml`
+[`$XDG_CONFIG_HOME`](https://wiki.archlinux.org/title/XDG_Base_Directory)`/vdasync/config.yml`
+- it can be overriden with the environment `$VDASYNC_CONFIG` providing another path
+- it can be overriden with `-config /path/to/configFile.yml`
 
-### The `localFiles` test plugin
+The yaml configuration format is explained based on an example,
+you can consult its format in the [source](../config/config.go).
 
-to be completed
+    pluginsOptions:
+      clientCertPath: /local/tmp/certs/client-cert.pem
+      clientKeyPath: /local/tmp/certs/client-key.pem
+      certPath: /local/tmp/certs/plugin-cert.pem
+      keyPath: /local/tmp/certs/plugin-key.pem
+      caCertPath: /local/tmp/certs/cca-cert.pem
+    plugins:
+    - name: lfs
+      type: localFiles
+    - name: s3
+      type: vdas3
+      addArgs:
+      - "-s3profile"
+      - otvl-tests
+      - "-s3bucket"
+      - otvl-tests
+      - "-s3prefix"
+      - vdasync/tests/default
+
+This configuration starts two plugins along with the `vdasync` tool.
+The plugins use the TLS certificate provided with certPath/keyPath
+and authenticate the client's certificate using the CA certificate provided with caCertPath.
+The vdasync client authenticate the plugins as servers using the same CA certificate, thus a client CA.
+Each plugin receives its own set of additional arguments based on its type,
+this is explained in the plugins specific sections.
 
 ### TLS configuration
 
