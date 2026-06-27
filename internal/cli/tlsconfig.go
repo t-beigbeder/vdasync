@@ -44,7 +44,6 @@ func getClientMTls(caf, ccf, ckf string) (grpc.DialOption, error) {
 	return remote.GetMutualTlsCOpt(caf, ccf, ckf)
 }
 
-
 func GetClientServerTls(cf *CommonFlagsType, cfg *config.DataStoreType) (grpc.DialOption, error) {
 	if cfg == nil {
 		cfg = &config.DataStoreType{}
