@@ -18,7 +18,7 @@ so DSS names use an empty path (with the exception of the `localFiles` test plug
 ### The `localFiles` test plugin
 
 Configuring TLS may require some tests.
-As far as the communication from `vdasync` to its plugins is concerned, the configuration can be tested using
+Concerning the communication from `vdasync` to its plugins, the configuration can be tested using
 the `localFiles` test plugin: indeed this TLS configuration is shared by all plugins.
 This plugin simply exposes the local filesystem DSS through the gRPC plugin API.
 
@@ -37,7 +37,7 @@ and run a test command:
 
     vdasync -dryrun -source /path/to/source -target lfs+dss:/path/to/target
 
-Be sure to install the `localFiles` executable in the same path as `vdasync`.
+Be sure to install the `localFiles` executable in the same directory as `vdasync`.
 
 ### Configuration files
 
@@ -74,18 +74,19 @@ you can consult its format in the [source](../config/config.go).
 This configuration starts two plugins along with the `vdasync` tool.
 The plugins use the TLS certificate provided with certPath/keyPath
 and authenticate the client's certificate using the CA certificate provided with caCertPath.
-The vdasync client authenticate the plugins as servers using the same CA certificate, thus a client CA.
+The vdasync client authenticates the plugins as TLS servers using the same CA certificate, thus a client CA.
 Each plugin receives its own set of additional arguments based on its type,
 this is explained in the plugins specific sections.
 
 ### TLS configuration
 
-gRPC communications with remote servers and even with the plugins on localhost need to be encrypted and authenticated to enforce security.
-gRPC authentication may be customized in many ways but basically provides standard TLS authentication using client-side certificates:
+gRPC communications with remote servers and with the plugins on localhost
+need to be encrypted and authenticated to ensure security.
+gRPC authentication basically provides standard TLS authentication using client-side certificates:
 [mTLS](https://en.wikipedia.org/wiki/Mutual_authentication#mTLS).
 
-The is the model applied by default for securing communications between vdasync's components: CLI clients towards remote `vdaserver`,
-or towards different plugins on localhost.
+The is the model applied for securing communications between vdasync's CLI clients and remote `vdaserver`,
+or the different plugins on localhost.
 
 While not recommended, using self-signed certificates can be requested, it disables client authentication.
 Disabling TLS completely may also be explicitely requested.
