@@ -3,6 +3,7 @@ package encrypted
 import (
 	"errors"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
@@ -10,6 +11,8 @@ import (
 type closeCbType func(int64, error)
 
 type eWriterImpl struct {
+	lgr *slog.Logger
+	tw       io.WriteCloser
 	aw       io.WriteCloser
 	nWritten int64
 	closeCb  closeCbType
@@ -19,6 +22,7 @@ type eWriterImpl struct {
 // Close implements [io.WriteCloser].
 func (e *eWriterImpl) Close() error {
 	if e.closed {
+		e.lgr.Debug("eWriterImpl.Close: already closed")
 		return errors.New("eWriterImpl.Close: already closed")
 	}
 	e.closed = true
@@ -26,6 +30,12 @@ func (e *eWriterImpl) Close() error {
 	if e.closeCb != nil {
 		e.closeCb(e.nWritten, err)
 	}
+	e.aw = nil
+	tcErr := e.tw.Close()
+	if tcErr != nil {
+		e.lgr.Debug("eWriterImpl.Close", "err", tcErr)
+	}
+	e.closeCb = nil
 	return err
 }
 
@@ -39,10 +49,10 @@ func (e *eWriterImpl) Write(p []byte) (int, error) {
 	return n, nil
 }
 
-func makeEWriter(tw io.WriteCloser, cb closeCbType, ageRecipients ...string) (io.WriteCloser, error) {
+func makeEWriter(lgr *slog.Logger, tw io.WriteCloser, cb closeCbType, ageRecipients ...string) (io.WriteCloser, error) {
 	aw, err := common.AgeEncrypt(tw, ageRecipients...)
 	if err != nil {
 		return nil, err
 	}
-	return &eWriterImpl{aw: aw, closeCb: cb}, nil
+	return &eWriterImpl{lgr: lgr, tw: tw, aw: aw, closeCb: cb}, nil
 }
