@@ -108,7 +108,7 @@ func (wi *walkerImpl) Run(root *dssa.DataEntry) error {
 	count := 0
 	m := runtime.MemStats{}
 	runtime.ReadMemStats(&m)
-	wi.lgr.Info("Run: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+	wi.lgr.Info("Run: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024, "Sys", m.Sys/1024)
 
 	rootIsDone := make(chan bool)
 	tokens := make(chan bool, wi.concurrency+1)
@@ -129,14 +129,14 @@ LOOP:
 		select {
 		case <-rootIsDone:
 			runtime.ReadMemStats(&m)
-			wi.lgr.Info("Run: root is done", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+			wi.lgr.Info("Run: root is done", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024, "Sys", m.Sys/1024)
 			break LOOP
 		case pe := <-wi.pq:
 			wi.lgr.Info("Run: pulling", "path", pe.DataEntry.Path, "isDir", pe.DataEntry.IsDir)
 			count++
 			if count%1000 == 0 {
 				runtime.ReadMemStats(&m)
-				wi.lgr.Info("Run: processed...", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+				wi.lgr.Info("Run: processed...", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024, "Sys", m.Sys/1024)
 			}
 			tokens <- true
 			go func(pe *ProcessedEntry) {

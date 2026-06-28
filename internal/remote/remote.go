@@ -95,20 +95,20 @@ func getStat(lgr *slog.Logger, callStat chan string) {
 	count := 0
 	m := runtime.MemStats{}
 	runtime.ReadMemStats(&m)
-	lgr.Info("RunOpeDssaServer: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
+	lgr.Info("RunOpeDssaServer: starting", "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024, "Sys", m.Sys/1024)
 	statMap := make(map[string]int)
 	for stat := range callStat {
 		count++
 		statMap[stat]++
 		if count%1000 == 0 {
 			lgr.Info("RunOpeDssaServer: processed...", "count", count,
-				"HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024,
+				"HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024, "Sys", m.Sys/1024,
 				"statMap", statMap)
 		}
 		_ = stat
 	}
 	lgr.Info("RunOpeDssaServer: done", "count", count,
-		"HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024,
+		"HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024, "Sys", m.Sys/1024,
 		"statMap", statMap)
 }
 
