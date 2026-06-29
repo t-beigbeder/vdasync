@@ -833,11 +833,6 @@ type simpleStepsDesc struct {
 	simpleSteps map[string]simpleStepFunc
 }
 
-func stepMakeTestFilesTree(lgr *slog.Logger, ssd *simpleStepsDesc) error {
-	_, _, err := common.MakeTestFilesTree(ssd.sourceRoot, 7, 100, 16, 6*1024)
-	return err
-}
-
 func runSyncAndCheck(
 	lgr *slog.Logger, ssd *simpleStepsDesc,
 	syncOptions *config.SyncOptionsType,
@@ -854,6 +849,7 @@ func runSyncAndCheck(
 	}
 	if sr[""].AggregatedError != 0 {
 		DisplaySyncResult(sr, os.Stderr, true, false)
+		return nil, fmt.Errorf("runSyncAndCheck: AggregatedError is %d", sr[""].AggregatedError)
 	}
 	return sr[""], nil
 }
@@ -930,6 +926,28 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc, td string) e
 	return nil
 }
 
+
+func stepMakeTestFilesTree(lgr *slog.Logger, ssd *simpleStepsDesc) error {
+	_, _, err := common.MakeTestFilesTree(ssd.sourceRoot, 7, 100, 16, 6*1024)
+	return err
+}
+
+func stepUtilMkdir(ssd *simpleStepsDesc, dp string) error {
+	de := dssa.DataEntry{
+		Path: path.Join(ssd.sourceRoot, dp),
+		UserRights: dssa.Rights{Read: true, Write: true, Execute: true},
+	}
+	return ssd.sDss.Mkdir(&de)
+}
+
+func stepMakeTest1Base(lgr *slog.Logger, ssd *simpleStepsDesc) error {
+	if err := stepUtilMkdir(ssd, "d1"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func TestSimpleSteps(t *testing.T) {
 	nullLgr := common.GetNullLogger()
 	dbgLgr := common.DbgLogger()
@@ -941,7 +959,8 @@ func TestSimpleSteps(t *testing.T) {
 	td2 := t.TempDir()
 	_, _ = td1, td2
 	testSet := []simpleStepsDesc{
-		{infoLgr, 0, &config.SyncOptionsType{Rm: true}, lDss, td1, lDss, td2, map[string]simpleStepFunc{"stepMakeTestFilesTree": stepMakeTestFilesTree}},
+		{nullLgr, 0, &config.SyncOptionsType{Rm: true}, lDss, td1, lDss, td2, map[string]simpleStepFunc{"stepMakeTestFilesTree": stepMakeTestFilesTree}},
+		{infoLgr, 0, &config.SyncOptionsType{Rm: true}, lDss, td1, lDss, td2, map[string]simpleStepFunc{"stepMakeTest1Base": stepMakeTest1Base}},
 	}
 	for _, test := range testSet {
 		for sn, step := range test.simpleSteps {
