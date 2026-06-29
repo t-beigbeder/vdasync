@@ -102,7 +102,7 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			}
 		} else {
 			rp := syncRelTargetPath(pe, tde)
-			pe.Lgr_().Info("running dss Rm", "dss", "target", "de", rp)
+			pe.Lgr_().Debug("running dss Rm", "dss", "target", "de", rp)
 			if err := targetDs(pe).Rm(tde.Path); err != nil {
 				pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", rp, "err", err)
 				hasErrors = true

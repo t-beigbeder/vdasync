@@ -26,6 +26,10 @@ func DbgLogger() *slog.Logger {
 	return doGetLogger("DEBUG")
 }
 
+func InfoLogger() *slog.Logger {
+	return doGetLogger("INFO")
+}
+
 func GetNullLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 }

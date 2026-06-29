@@ -11,7 +11,7 @@ import (
 type closeCbType func(int64, error)
 
 type eWriterImpl struct {
-	lgr *slog.Logger
+	lgr      *slog.Logger
 	tw       io.WriteCloser
 	aw       io.WriteCloser
 	nWritten int64

@@ -195,7 +195,7 @@ func dssInfoSync(pe *ProcessedEntry, isTarget bool, function string) {
 	if isTarget {
 		sot = "target"
 	}
-	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "dss", sot, "de", syncRelPath(pe))
+	pe.Lgr_().Debug(fmt.Sprintf("running dss %s", function), "dss", sot, "de", syncRelPath(pe))
 }
 
 func syncEntryStatusInit(pe *ProcessedEntry) {
