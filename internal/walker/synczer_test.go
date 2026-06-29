@@ -829,6 +829,7 @@ type simpleStep struct {
 
 type simpleStepsDesc struct {
 	omit                bool
+	dispRes             bool
 	rLgr                *slog.Logger
 	concurrency         int
 	syncOptions         *config.SyncOptionsType
@@ -840,6 +841,7 @@ type simpleStepsDesc struct {
 	simpleSteps         []simpleStep
 	cLgr                *slog.Logger
 	gotSr, gotTr, gotTd string
+	lastWk              Walker
 }
 
 func runSyncAndCheck(
@@ -860,6 +862,7 @@ func runSyncAndCheck(
 		DisplaySyncResult(sr, os.Stderr, true, false)
 		return nil, fmt.Errorf("runSyncAndCheck: AggregatedError is %d", sr[""].AggregatedError)
 	}
+	ssd.lastWk = wk
 	return sr[""], nil
 }
 
@@ -956,6 +959,9 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
 	if err := checkSrRef(dr3Sr, &SyncEntryStatus{}); err != nil {
 		return err
 	}
+	if ssd.dispRes {
+		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
+	}
 	return nil
 }
 
@@ -1038,7 +1044,6 @@ func TestSimpleSteps(t *testing.T) {
 	_, _, _ = nullLgr, dbgLgr, infoLgr
 	_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
 	defer cFunc()
-	_ = eDss
 
 	testSet := []simpleStepsDesc{
 		{
@@ -1071,8 +1076,9 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
-			omit: false,
-			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			omit:    false,
+			dispRes: true,
+			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
