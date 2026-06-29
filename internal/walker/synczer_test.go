@@ -843,30 +843,88 @@ func runSyncAndCheck(
 	syncOptions *config.SyncOptionsType,
 	sourceDs dssa.Dssa, sourceRoot string,
 	targetDs dssa.Dssa, targetRoot string,
-) error {
+) (*SyncEntryStatus, error) {
 	wk, err := RunSynchronizer(lgr, ssd.concurrency, syncOptions, sourceDs, sourceRoot, targetDs, targetRoot)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	sr := SyncResult(wk)
 	if sr == nil {
-		return errors.New("SyncResult is nil")
+		return nil, errors.New("SyncResult is nil")
 	}
 	if sr[""].AggregatedError != 0 {
 		DisplaySyncResult(sr, os.Stderr, true, false)
 	}
+	return sr[""], nil
+}
+
+func checkSrRef(chkSr, refSr *SyncEntryStatus) error {
+	chkSrv := SyncEntryStatus{
+		AggregatedSize: chkSr.AggregatedSize,
+		AggregatedChildrenNumber: chkSr.AggregatedChildrenNumber,
+		AggregatedCreated: chkSr.AggregatedCreated,
+		AggregatedUpdated: chkSr.AggregatedUpdated,
+		AggregatedRemoved: chkSr.AggregatedRemoved,
+		AggregatedModChanged: chkSr.AggregatedModChanged,
+		AggregatedError: chkSr.AggregatedError,
+	}
+	refSrv := SyncEntryStatus{
+		AggregatedSize: refSr.AggregatedSize,
+		AggregatedChildrenNumber: refSr.AggregatedChildrenNumber,
+		AggregatedCreated: refSr.AggregatedCreated,
+		AggregatedUpdated: refSr.AggregatedUpdated,
+		AggregatedRemoved: refSr.AggregatedRemoved,
+		AggregatedModChanged: refSr.AggregatedModChanged,
+		AggregatedError: refSr.AggregatedError,
+	}
+	if chkSrv != refSrv {
+		return fmt.Errorf("checkSr: checked %+v reference %+v", chkSrv, refSrv)
+	}
 	return nil
 }
 
-func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
+func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc, td string) error {
 	lgr := ssd.rLgr.With("tDss", fmt.Sprintf("%T", ssd.tDss), "step", sn)
 	lgr.Info("checkStep")
 	if err := ssf(lgr, ssd); err != nil {
 		return err
 	}
-	so := *ssd.syncOptions
-	so.Dryrun = true
-	if err := runSyncAndCheck(lgr.With("subStep", "dryrun1"), ssd, &so, ssd.sDss, ssd.sourceRoot, ssd.tDss, ssd.targetRoot); err != nil {
+	drSo := *ssd.syncOptions
+	drSo.Dryrun = true
+	drSr, err := runSyncAndCheck(lgr.With("subStep", "dryrun1"), ssd, &drSo, ssd.sDss, ssd.sourceRoot, ssd.tDss, ssd.targetRoot)
+	if err != nil {
+		return err
+	}
+	acSr, err := runSyncAndCheck(lgr.With("subStep", "actual"), ssd, ssd.syncOptions, ssd.sDss, ssd.sourceRoot, ssd.tDss, ssd.targetRoot)
+	if err != nil {
+		return err
+	}
+	if err := checkSrRef(acSr, drSr); err != nil {
+		return err
+	}
+	dr2Sr, err := runSyncAndCheck(lgr.With("subStep", "dryrun2"), ssd, &drSo, ssd.sDss, ssd.sourceRoot, ssd.tDss, ssd.targetRoot)
+	if err != nil {
+		return err
+	}
+	dr2Sr.AggregatedSize = 0
+	dr2Sr.AggregatedChildrenNumber = 0
+	if err := checkSrRef(dr2Sr, &SyncEntryStatus{}); err != nil {
+		return err
+	}
+	bckSr, err := runSyncAndCheck(lgr.With("subStep", "backward"), ssd, ssd.syncOptions, ssd.tDss, ssd.targetRoot, ssd.sDss, td)
+	if err != nil {
+		return err
+	}
+	if err := checkSrRef(bckSr, acSr); err != nil {
+		return err
+	}
+	dr3Sr, err := runSyncAndCheck(lgr.With("subStep", "dryrun3"), ssd, &drSo, ssd.sDss, ssd.sourceRoot, ssd.sDss, td)
+	if err != nil {
+		return err
+	}
+	dr3Sr.AggregatedSize = 0
+	dr3Sr.AggregatedChildrenNumber = 0
+	if err := checkSrRef(dr3Sr, &SyncEntryStatus{}); err != nil {
 		return err
 	}
 	return nil
@@ -881,14 +939,13 @@ func TestSimpleSteps(t *testing.T) {
 	defer cFunc()
 	td1 := t.TempDir()
 	td2 := t.TempDir()
-	td3 := t.TempDir()
-	_, _, _ = td1, td2, td3
+	_, _ = td1, td2
 	testSet := []simpleStepsDesc{
 		{infoLgr, 0, &config.SyncOptionsType{Rm: true}, lDss, td1, lDss, td2, map[string]simpleStepFunc{"stepMakeTestFilesTree": stepMakeTestFilesTree}},
 	}
 	for _, test := range testSet {
 		for sn, step := range test.simpleSteps {
-			require.NoError(t, checkStep(sn, step, &test))
+			require.NoError(t, checkStep(sn, step, &test, t.TempDir()))
 		}
 	}
 }
