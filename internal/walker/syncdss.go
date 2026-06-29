@@ -1,9 +1,11 @@
 package walker
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -100,7 +102,7 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			}
 		} else {
 			rp := syncRelTargetPath(pe, tde)
-			pe.Lgr_().Info("running dss Rm", "dss", "target", "de", rp)
+			pe.Lgr_().Debug("running dss Rm", "dss", "target", "de", rp)
 			if err := targetDs(pe).Rm(tde.Path); err != nil {
 				pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", rp, "err", err)
 				hasErrors = true
@@ -156,51 +158,70 @@ func prepareTargetDirCreate(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 	return nil
 }
 
-func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) bool {
+func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) (hasChanges bool) {
+	defer func() {
+		if !hasChanges {
+			return
+		}
+		if pe.Lgr_().Enabled(context.TODO(), slog.LevelDebug) {
+			pe.Lgr_().Debug("fileHasChanges", "sde", pe.DataEntry, "tde", tde, "sud", syncUserData(pe))
+		}
+	}()
+
 	if pe.DataEntry.IsSymLink != tde.IsSymLink {
-		return true
+		hasChanges = true
+		return
 	}
 	if pe.DataEntry.Size != tde.Size {
-		return true
+		hasChanges = true
+		return
 	}
 	if !syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime != tde.Mtime {
-		return true
+		hasChanges = true
+		return
 	}
 	if syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime > tde.Mtime {
-		return true
+		hasChanges = true
+		return
 	}
 	if pe.DataEntry.SymLinkTarget != tde.SymLinkTarget {
-		return true
+		hasChanges = true
+		return
 	}
 	if !syncData(pe).syncOptions.Check || pe.DataEntry.IsSymLink {
-		return false
+		return
 	}
 
 	srdr, err := pe.wi.ds.GetReadCloser(pe.DataEntry.Path)
 	if err != nil {
 		setSyncError(pe, "fileHasChanges: GetReadCloser", false, err)
-		return true
+		hasChanges = true
+		return
 	}
 	defer srdr.Close()
 	syncUserData(pe).sChecksum, err = common.ReaderSha256(srdr)
 	if err != nil {
 		setSyncError(pe, "fileHasChanges: ReaderSha256", false, err)
-		return true
+		hasChanges = true
+		return
 	}
 
 	trdr, err := targetDs(pe).GetReadCloser(targetPath(pe))
 	if err != nil {
 		setSyncError(pe, "fileHasChanges: GetReadCloser", true, err)
-		return true
+		hasChanges = true
+		return
 	}
 	defer trdr.Close()
 	syncUserData(pe).tChecksum, err = common.ReaderSha256(trdr)
 	if err != nil {
 		setSyncError(pe, "fileHasChanges: ReaderSha256", true, err)
-		return true
+		hasChanges = true
+		return
 	}
 
-	return syncUserData(pe).sChecksum != syncUserData(pe).tChecksum
+	hasChanges = syncUserData(pe).sChecksum != syncUserData(pe).tChecksum
+	return
 }
 
 func prepareTargetFile(pe *ProcessedEntry, tde *dssa.DataEntry) error {
@@ -266,6 +287,7 @@ func runSetStatEntrySync(pe *ProcessedEntry) error {
 	var tde = &dssa.DataEntry{}
 	*tde = *pe.DataEntry
 	tde.Path = targetPath(pe)
+	pe.Lgr_().Debug("runSetStatEntrySync", "sde", pe.DataEntry, "tde", tde)
 	dssInfoSync(pe, true, "SetStat")
 	if err := targetDs(pe).SetStat(tde, syncData(pe).syncOptions.NoPerm, syncData(pe).syncOptions.NoMtime); err != nil {
 		return setSyncError(pe, "runSetStatEntrySync: SetStat", true, err)
@@ -321,6 +343,14 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 
 func setEntryChanges(pe *ProcessedEntry) {
 	es := syncUserData(pe)
+	defer func() {
+		if !es.ModChanged {
+			return
+		}
+		if pe.Lgr_().Enabled(context.TODO(), slog.LevelDebug) {
+			pe.Lgr_().Debug("setEntryChanges", "sde", pe.DataEntry, "tde", es.targetDe, "sud", syncUserData(pe))
+		}
+	}()
 	if es.Error != nil || es.Created || es.Updated || es.ModChanged {
 		return
 	}

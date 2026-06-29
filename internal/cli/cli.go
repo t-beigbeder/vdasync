@@ -3,9 +3,14 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"os"
+	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 type CommonFlagsType struct {
@@ -114,4 +119,22 @@ func ParseUrl(url string) (pluginName, host string, port int, rootPath string, e
 
 func NormalizeRoot(rootPath string) (string, error) {
 	return filepath.Abs(rootPath)
+}
+
+func LoadConfig(cf *CommonFlagsType) (*config.CliConfig, error) {
+	cnfFile := *cf.ConfigFlag
+	if cnfFile == "" {
+		cnfFile = os.Getenv("VDASYNC_CONFIG")
+	}
+	if cnfFile == "" {
+		cnfFile = path.Join(common.XdgConfigDir(), "vdasync", "config.yml")
+		if !common.FileExists(cnfFile) {
+			return nil, nil
+		}
+	}
+	confData, err := common.LoadFile(cnfFile)
+	if err != nil {
+		return nil, err
+	}
+	return config.Load(string(confData))
 }

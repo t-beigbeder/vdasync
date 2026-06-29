@@ -2,6 +2,7 @@ package walker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -38,7 +39,7 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	return
 }
 
-func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, context.CancelFunc) {
+func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, encrypted.EncryptedDssa, context.CancelFunc) {
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.NoError(t, err)
 	dss1 := localfiles.MakeLocalFilesDssa()
@@ -71,12 +72,12 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt bool) (dssa.Dssa, dssa.
 		require.NotNil(t, dss5)
 		require.NoError(t, dss5.NewSession())
 	}
-	return dss1, dss2, dss3, dss4, dss5, cFunc
+	return dss1, dss2, dss3, dss4, dss5, nil, cFunc
 }
 
 func TestBasicDryrunSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, dss5, cFunc := getTestDss(t, false, false, true)
+	dss1, dss2, _, _, dss5, _, cFunc := getTestDss(t, false, false, true, false)
 	defer cFunc()
 	for _, tDss := range []dssa.Dssa{dss1, dss2, dss5} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
@@ -106,7 +107,7 @@ func TestBasicActualSynczer(t *testing.T) {
 		tDss dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	lDss, rDss, _, _, dss5, cFunc := getTestDss(t, false, false, true)
+	lDss, rDss, _, _, dss5, _, cFunc := getTestDss(t, false, false, true, false)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -178,7 +179,7 @@ func TestBasicActualSynczer(t *testing.T) {
 
 func TestBaseAugmentedTestDataSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, dss5, cFunc := getTestDss(t, false, false, true)
+	dss1, dss2, _, _, dss5, _, cFunc := getTestDss(t, false, false, true, false)
 	defer cFunc()
 
 	for _, tDss := range []dssa.Dssa{dss1, dss2, dss5} {
@@ -225,7 +226,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		tDss    dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, dss5, cFunc := getTestDss(t, false, false, true)
+	dss1, dss2, _, _, dss5, _, cFunc := getTestDss(t, false, false, true, false)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -317,7 +318,7 @@ func TestNoTarget(t *testing.T) {
 
 func TestBasicS3DryrunSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, dss3, _, _, cFunc := getTestDss(t, true, false, false)
+	dss1, _, dss3, _, _, _, cFunc := getTestDss(t, true, false, false, false)
 	defer cFunc()
 	for _, tDss := range []dssa.Dssa{dss3} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
@@ -343,7 +344,7 @@ func TestBasicS3ActualSynczer(t *testing.T) {
 		tDss dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	lDss, _, rDss, _, _, cFunc := getTestDss(t, true, false, false)
+	lDss, _, rDss, _, _, _, cFunc := getTestDss(t, true, false, false, false)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -411,7 +412,7 @@ func TestBasicS3ActualSynczer(t *testing.T) {
 
 func TestBaseAugmentedTestS3DataSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, dss3, _, _, cFunc := getTestDss(t, true, false, false)
+	dss1, _, dss3, _, _, _, cFunc := getTestDss(t, true, false, false, false)
 	defer cFunc()
 
 	for _, tDss := range []dssa.Dssa{dss3} {
@@ -455,7 +456,7 @@ func TestModAugmentedTestS3DataSynczer(t *testing.T) {
 		tDss    dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	dss1, _, dss3, _, _, cFunc := getTestDss(t, true, false, false)
+	dss1, _, dss3, _, _, _, cFunc := getTestDss(t, true, false, false, false)
 	defer cFunc()
 
 	for _, tsCfg := range []syncTestConfig{
@@ -510,7 +511,7 @@ func TestModAugmentedTestS3DataSynczer(t *testing.T) {
 
 func TestBasicSftpDryrunSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
+	dss1, _, _, dss4, _, _, cFunc := getTestDss(t, false, true, false, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(dss4))
@@ -538,7 +539,7 @@ func TestBasicSftpActualSynczer(t *testing.T) {
 		tDss dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	lDss, _, _, rDss, _, cFunc := getTestDss(t, false, true, false)
+	lDss, _, _, rDss, _, _, cFunc := getTestDss(t, false, true, false, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, rDss, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(rDss))
@@ -604,7 +605,7 @@ func TestBasicSftpActualSynczer(t *testing.T) {
 
 func TestBaseAugmentedTestSftpDataSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
+	dss1, _, _, dss4, _, _, cFunc := getTestDss(t, false, true, false, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(dss4))
@@ -648,7 +649,7 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 		tDss    dssa.Dssa
 	}
 	rLgr := common.GetNullLogger()
-	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
+	dss1, _, _, dss4, _, _, cFunc := getTestDss(t, false, true, false, false)
 	defer cFunc()
 	RecChmodRW(rLgr, 2, dss4, "/dau", "sftp")
 	require.NoError(t, sftpc.Cleanup(dss4))
@@ -707,7 +708,7 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 
 func TestFix01Synczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
+	dss1, dss2, _, _, _, _, cFunc := getTestDss(t, false, false, false, false)
 	defer cFunc()
 	for _, tDss := range []dssa.Dssa{dss2} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
@@ -733,7 +734,7 @@ func TestFix01Synczer(t *testing.T) {
 
 func TestFix02Synczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, _, _, dss4, _, cFunc := getTestDss(t, false, true, false)
+	dss1, _, _, dss4, _, _, cFunc := getTestDss(t, false, true, false, false)
 	defer cFunc()
 	for _, tDss := range []dssa.Dssa{dss4} {
 		lgr := rLgr.With("tDss", fmt.Sprintf("%T", tDss))
@@ -755,7 +756,7 @@ func TestFix02Synczer(t *testing.T) {
 
 func TestExclSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
+	dss1, dss2, _, _, _, _, cFunc := getTestDss(t, false, false, false, false)
 	defer cFunc()
 	lgr := rLgr.With("tDss", fmt.Sprintf("%T", dss2))
 	td1 := t.TempDir()
@@ -784,7 +785,7 @@ func TestExclSynczer(t *testing.T) {
 
 func TestInclSynczer(t *testing.T) {
 	rLgr := common.GetNullLogger()
-	dss1, dss2, _, _, _, cFunc := getTestDss(t, false, false, false)
+	dss1, dss2, _, _, _, _, cFunc := getTestDss(t, false, false, false, false)
 	defer cFunc()
 	lgr := rLgr.With("tDss", fmt.Sprintf("%T", dss2))
 	td1 := t.TempDir()
@@ -817,4 +818,277 @@ func TestInclSynczer(t *testing.T) {
 	require.Equal(t, 1, sr[""].AggregatedUpdated)
 	require.Equal(t, 0, sr[""].AggregatedError)
 
+}
+
+type simpleStepFunc func(string, *simpleStepsDesc, string, string) error
+
+type simpleStep struct {
+	ssn string
+	ssf simpleStepFunc
+}
+
+type simpleStepsDesc struct {
+	omit                bool
+	rLgr                *slog.Logger
+	concurrency         int
+	syncOptions         *config.SyncOptionsType
+	sDss                dssa.Dssa
+	srGet               func() string
+	tDss                dssa.Dssa
+	trGet               func() string
+	tdGet               func() string
+	simpleSteps         []simpleStep
+	cLgr                *slog.Logger
+	gotSr, gotTr, gotTd string
+}
+
+func runSyncAndCheck(
+	ssn string, ssd *simpleStepsDesc,
+	syncOptions *config.SyncOptionsType,
+	sourceDs dssa.Dssa, sourceRoot string,
+	targetDs dssa.Dssa, targetRoot string,
+) (*SyncEntryStatus, error) {
+	wk, err := RunSynchronizer(ssd.cLgr.With("subStep", ssn), ssd.concurrency, syncOptions, sourceDs, sourceRoot, targetDs, targetRoot)
+	if err != nil {
+		return nil, err
+	}
+	sr := SyncResult(wk)
+	if sr == nil {
+		return nil, errors.New("SyncResult is nil")
+	}
+	if sr[""].AggregatedError != 0 {
+		DisplaySyncResult(sr, os.Stderr, true, false)
+		return nil, fmt.Errorf("runSyncAndCheck: AggregatedError is %d", sr[""].AggregatedError)
+	}
+	return sr[""], nil
+}
+
+func checkSrRef(chkSr, refSr *SyncEntryStatus) error {
+	chkSrv := SyncEntryStatus{
+		AggregatedSize:           chkSr.AggregatedSize,
+		AggregatedChildrenNumber: chkSr.AggregatedChildrenNumber,
+		AggregatedCreated:        chkSr.AggregatedCreated,
+		AggregatedUpdated:        chkSr.AggregatedUpdated,
+		AggregatedRemoved:        chkSr.AggregatedRemoved,
+		AggregatedModChanged:     chkSr.AggregatedModChanged,
+		AggregatedError:          chkSr.AggregatedError,
+	}
+	refSrv := SyncEntryStatus{
+		AggregatedSize:           refSr.AggregatedSize,
+		AggregatedChildrenNumber: refSr.AggregatedChildrenNumber,
+		AggregatedCreated:        refSr.AggregatedCreated,
+		AggregatedUpdated:        refSr.AggregatedUpdated,
+		AggregatedRemoved:        refSr.AggregatedRemoved,
+		AggregatedModChanged:     refSr.AggregatedModChanged,
+		AggregatedError:          refSr.AggregatedError,
+	}
+	if chkSrv != refSrv {
+		return fmt.Errorf("checkSr: checked %+v reference %+v", chkSrv, refSrv)
+	}
+	return nil
+}
+
+func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
+	ssd.cLgr = ssd.rLgr.With("tDss", fmt.Sprintf("%T", ssd.tDss), "step", sn)
+	if ssd.sDss == nil {
+		ssd.sDss = localfiles.MakeLocalFilesDssa()
+	}
+	if ssd.gotSr == "" {
+		if ssd.srGet != nil {
+			ssd.gotSr = ssd.srGet()
+		} else {
+			ssd.gotSr = "/"
+		}
+	}
+	if ssd.tDss == nil {
+		ssd.tDss = localfiles.MakeLocalFilesDssa()
+	}
+	if ssd.gotTr == "" {
+		if ssd.trGet != nil {
+			ssd.gotTr = ssd.trGet()
+		} else {
+			ssd.gotTr = "/"
+		}
+	}
+	if ssd.gotTd == "" {
+		ssd.gotTd = ssd.tdGet()
+	}
+	ssd.cLgr.Info("checkStep")
+	if err := ssf(sn, ssd, ssd.gotSr, ssd.gotTr); err != nil {
+		return err
+	}
+	drSo := *ssd.syncOptions
+	drSo.Dryrun = true
+	drSr, err := runSyncAndCheck("dryrun1", ssd, &drSo, ssd.sDss, ssd.gotSr, ssd.tDss, ssd.gotTr)
+	if err != nil {
+		return err
+	}
+	acSr, err := runSyncAndCheck("actual", ssd, ssd.syncOptions, ssd.sDss, ssd.gotSr, ssd.tDss, ssd.gotTr)
+	if err != nil {
+		return err
+	}
+	if err := checkSrRef(acSr, drSr); err != nil {
+		return err
+	}
+	dr2Sr, err := runSyncAndCheck("dryrun2", ssd, &drSo, ssd.sDss, ssd.gotSr, ssd.tDss, ssd.gotTr)
+	if err != nil {
+		return err
+	}
+	dr2Sr.AggregatedSize = 0
+	dr2Sr.AggregatedChildrenNumber = 0
+	if err := checkSrRef(dr2Sr, &SyncEntryStatus{}); err != nil {
+		return err
+	}
+	bckSr, err := runSyncAndCheck("backward", ssd, ssd.syncOptions, ssd.tDss, ssd.gotTr, ssd.sDss, ssd.gotTd)
+	if err != nil {
+		return err
+	}
+	// if err := checkSrRef(bckSr, acSr); err != nil {
+	// 	return err
+	// }
+	_ = bckSr
+	dr3Sr, err := runSyncAndCheck("dryrun3", ssd, &drSo, ssd.sDss, ssd.gotSr, ssd.sDss, ssd.gotTd)
+	if err != nil {
+		return err
+	}
+	dr3Sr.AggregatedSize = 0
+	dr3Sr.AggregatedChildrenNumber = 0
+	if err := checkSrRef(dr3Sr, &SyncEntryStatus{}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func stepMakeTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	_, _, err := common.MakeTestFilesTree(sr, 7, 100, 16, 6*1024)
+	return err
+}
+
+func stepUtilMkdir(ssd *simpleStepsDesc, root, dp string) error {
+	return common.MakeParents(ssd.sDss, path.Join(root, dp))
+}
+
+func stepUtilMkfile(ssd *simpleStepsDesc, root, fp string) error {
+	ffp := path.Join(root, fp)
+	if err := common.MakeParents(ssd.sDss, path.Dir(ffp)); err != nil {
+		return err
+	}
+	return common.MakeTestFile(ffp, 6*1024)
+}
+
+func stepUtilRmdir(lgr *slog.Logger, ssd *simpleStepsDesc, root, dp string) error {
+	_, err := RemoveAll(lgr, 2, ssd.sDss, path.Join(root, dp), "source", false)
+	return err
+}
+
+func stepMakeTest1Base(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/d11/f111.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d11/d111/f1111.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d12/f121.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d13/f131.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d13/f132.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkdir(ssd, sr, "d1/d13e"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d14/f141.dat"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func stepMakeTest1Step2(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/d11/f112.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d11/d111/f1112.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d11/d112/f1121.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d12/f122.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d14/f142.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilRmdir(ssd.cLgr.With("subStep", ssn), ssd, sr, "d1/d14"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func TestSimpleSteps(t *testing.T) {
+	getTd := func() string {
+		return t.TempDir()
+	}
+	nullLgr := common.GetNullLogger()
+	dbgLgr := common.DbgLogger()
+	infoLgr := common.InfoLogger()
+	_, _, _ = nullLgr, dbgLgr, infoLgr
+	_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
+	defer cFunc()
+	_ = eDss
+
+	testSet := []simpleStepsDesc{
+		{
+			omit: false,
+			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd, trGet: getTd, tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
+			},
+		},
+		{
+			omit: false,
+			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd, trGet: getTd, tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTest1Base", stepMakeTest1Base},
+				{"stepMakeTest1Step2", stepMakeTest1Step2},
+			},
+		},
+		{
+			omit: false,
+			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd,
+			tDss:  rDss,
+			trGet: getTd,
+			tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTest1Base", stepMakeTest1Base},
+				{"stepMakeTest1Step2", stepMakeTest1Step2},
+			},
+		},
+		{
+			omit: false,
+			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd,
+			tDss:  eDss,
+			tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTest1Base", stepMakeTest1Base},
+				{"stepMakeTest1Step2", stepMakeTest1Step2},
+			},
+		},
+	}
+	for _, test := range testSet {
+		if test.omit {
+			continue
+		}
+		for _, sst := range test.simpleSteps {
+			require.NoError(t, checkStep(sst.ssn, sst.ssf, &test))
+		}
+		require.True(t, true)
+	}
 }

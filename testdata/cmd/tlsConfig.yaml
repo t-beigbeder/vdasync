@@ -1,5 +1,7 @@
 # file tlsConfig.yaml
 pluginsOptions:
+  clientCertPath: /local/tmp/certs/client-cert.pem
+  clientKeyPath: /local/tmp/certs/client-key.pem
   certPath: /local/tmp/certs/plugin-cert.pem
   keyPath: /local/tmp/certs/plugin-key.pem
   caCertPath: /local/tmp/certs/cca-cert.pem

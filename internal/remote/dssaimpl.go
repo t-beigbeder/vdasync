@@ -89,13 +89,17 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 	s.callStats <- "Put"
 	for {
 		if gpb, err = stream.Recv(); err == io.EOF {
-			s.lgr.Debug("dssaImpl.Put", "path", path_, "Recv", "EOF")
+			s.lgr.Debug("dssaImpl.Put: EOF", "path", path_, "wc", wc != nil)
 			if wc != nil {
 				if err = wc.Close(); err != nil {
+					s.lgr.Debug("dssaImpl.Put: wc close err", "path", path_, "err", err)
 					return err
 				}
 			}
-			return stream.SendAndClose(&dssagrpc.Length{Length: written})
+			sErr := stream.SendAndClose(&dssagrpc.Length{Length: written})
+			s.lgr.Debug("dssaImpl.Put: exiting", "path", path_, "err", sErr)
+			wc = nil
+			return sErr
 		}
 		if err != nil {
 			return err
@@ -106,7 +110,13 @@ func (s *dssaImpl) Put(stream grpc.ClientStreamingServer[dssagrpc.PushedBlock, d
 			if wc, err = s.dssa_.GetWriteCloser(gpb.Path); err != nil {
 				return err
 			}
-			defer wc.Close()
+			defer func() {
+				if wc == nil {
+					return
+				}
+				clErr := wc.Close()
+				s.lgr.Debug("dssaImpl.Put: exiting, closing writer", "path", path_, "err", clErr)
+			}()
 		}
 		s.callStats <- "Put.Recv"
 		s.lgr.Debug("dssaImpl.Put", "path", path_, "Data", len(gpb.Data))

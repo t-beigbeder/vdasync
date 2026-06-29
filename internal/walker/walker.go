@@ -132,7 +132,7 @@ LOOP:
 			wi.lgr.Info("Run: root is done", "count", count, "HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024)
 			break LOOP
 		case pe := <-wi.pq:
-			wi.lgr.Info("Run: pulling", "path", pe.DataEntry.Path, "isDir", pe.DataEntry.IsDir)
+			wi.lgr.Debug("Run: pulling", "path", pe.DataEntry.Path, "isDir", pe.DataEntry.IsDir)
 			count++
 			if count%1000 == 0 {
 				runtime.ReadMemStats(&m)
@@ -166,7 +166,7 @@ func (wi *walkerImpl) UserDataMap() *sync.Map {
 
 func (wi *walkerImpl) process(pe *ProcessedEntry) {
 	isDir := pe.DataEntry.IsDir
-	wi.lgr.Info("walker process starting", "entry", pe.DataEntry.Path, "isDir", isDir)
+	wi.lgr.Debug("walker process starting", "entry", pe.DataEntry.Path, "isDir", isDir)
 	if isDir {
 		wi.processDde(pe)
 	} else {
@@ -181,7 +181,7 @@ func (wi *walkerImpl) processNde(pe *ProcessedEntry) {
 	if wi.onDoneEntry != nil {
 		wi.onDoneEntry(pe)
 	}
-	wi.lgr.Info("walker processNde done", "entry", pe.DataEntry.Path)
+	wi.lgr.Debug("walker processNde done", "entry", pe.DataEntry.Path)
 	pe.done()
 }
 
@@ -223,7 +223,7 @@ func (wi *walkerImpl) batchProcessDde(pe *ProcessedEntry, ddes, nddes []*dssa.Da
 	if wi.onDoneEntry != nil {
 		wi.onDoneEntry(pe)
 	}
-	wi.lgr.Info("walker batchProcessDde done", "entry", pe.DataEntry.Path)
+	wi.lgr.Debug("walker batchProcessDde done", "entry", pe.DataEntry.Path)
 	pe.done()
 
 }

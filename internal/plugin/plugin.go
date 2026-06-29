@@ -81,12 +81,8 @@ func getExecutablePath(plugin *config.PluginType) (string, error) {
 	return path.Join(path.Dir(exe), fmt.Sprintf("%s%s", plugin.Type, path.Ext(exe))), nil
 }
 
-func RunConfData(lgr *slog.Logger, yamlConf string, tab TlsArgsBuilder) ([]*RunningPlugin, error) {
+func RunCliConfig(lgr *slog.Logger, config *config.CliConfig, tab TlsArgsBuilder) ([]*RunningPlugin, error) {
 	lgr.Info("RunConfData: starting")
-	config, err := config.Load(yamlConf)
-	if err != nil {
-		return nil, err
-	}
 	rps := []*RunningPlugin{}
 	for _, plugin := range config.Plugins {
 		lgr.Info("RunConfData: starting plugin", "plugin", plugin)
@@ -140,14 +136,6 @@ func RunConfData(lgr *slog.Logger, yamlConf string, tab TlsArgsBuilder) ([]*Runn
 	}
 	applyIfOK(rps, checkReadiness)
 	return rps, nil
-}
-
-func RunConfFile(lgr *slog.Logger, confPath string) ([]*RunningPlugin, error) {
-	bs, err := common.LoadFile(confPath)
-	if err != nil {
-		return nil, err
-	}
-	return RunConfData(lgr, string(bs), nil)
 }
 
 func Shutdown(rps []*RunningPlugin) {

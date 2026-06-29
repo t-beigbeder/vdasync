@@ -58,6 +58,7 @@ func (ed *encryptedDssaImpl) actualPath(de *dssa.DataEntry) string {
 
 // EndSession implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) EndSession() error {
+	ed.lgr.Debug("encryptedDssaImpl.EndSession")
 	return ed.msts.EndSession()
 }
 
@@ -104,9 +105,11 @@ func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error
 	if err != nil {
 		return nil, err
 	}
-	return makeEWriter(
+	ewc, err := makeEWriter(
+		ed.lgr,
 		tw,
 		func(nWritten int64, err error) {
+			ed.lgr.Debug("encryptedDssaImpl.GetWriteCloser.closeCb", "path", path_, "err", err)
 			if err != nil {
 				return
 			}
@@ -116,6 +119,8 @@ func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error
 		},
 		ed.ageRecipients...,
 	)
+	ed.lgr.Debug("encryptedDssaImpl.GetWriteCloser", "path", path_, "err", err)
+	return ewc, err
 }
 
 // List implements [dssa.Dssa].
@@ -131,6 +136,7 @@ func (ed *encryptedDssaImpl) Mkdir(de *dssa.DataEntry) error {
 
 // NewSession implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) NewSession() error {
+	ed.lgr.Debug("encryptedDssaImpl.NewSession")
 	return ed.msts.NewSession()
 }
 
