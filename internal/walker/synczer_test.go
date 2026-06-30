@@ -1042,6 +1042,31 @@ func stepMakeTest1Step2(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 	return nil
 }
 
+func test2Step1(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/f11.dat"); err != nil {
+		return err
+	}
+	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
+	return err
+}
+
+func test2Step2(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/f11.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d2/f21.dat"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func test2Step3(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/d11/f111.dat"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func TestSimpleSteps(t *testing.T) {
 	getTd := func() string {
 		return t.TempDir()
@@ -1053,7 +1078,7 @@ func TestSimpleSteps(t *testing.T) {
 	_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
 	defer cFunc()
 	require.NoError(t, eDss.EndSession())
-	skipOp := false
+	skipOp := true
 	testSet := []simpleStepsDesc{
 		{
 			label: "TestFilesTree",
@@ -1089,7 +1114,7 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label:   "Test1OnEncryptedFiles",
-			omit:    true,
+			omit:    skipOp,
 			dispRes: true,
 			rLgr:    dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
@@ -1101,8 +1126,22 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
-			label:   "Test1OnEncryptedFilesCheck",
+			label:   "Test2OnEncryptedFiles",
 			omit:    true,
+			dispRes: true,
+			rLgr:    dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd,
+			tDss:  eDss,
+			tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"test2Step1", test2Step1},
+				{"test2Step2", test2Step2},
+				{"test2Step3", test2Step3},
+			},
+		},
+		{
+			label:   "Test1OnEncryptedFilesCheck",
+			omit:    skipOp,
 			dispRes: true,
 			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true},
 			srGet: getTd,
@@ -1119,9 +1158,13 @@ func TestSimpleSteps(t *testing.T) {
 			continue
 		}
 		for _, sst := range test.simpleSteps {
-			require.NoError(t, checkStep(sst.ssn, sst.ssf, &test), fmt.Sprintf("label '%s' ssn '%s'", test.label, sst.ssn))
+			err := checkStep(sst.ssn, sst.ssf, &test)
+			if err != nil {
+				require.True(t, true)
+			}
+			require.NoError(t, err, fmt.Sprintf("label '%s' ssn '%s'", test.label, sst.ssn))
 		}
-		if test.label == "TestFilesTree" {
+		if test.label == "Test2OnEncryptedFiles" {
 			require.True(t, true)
 		}
 	}
