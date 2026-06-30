@@ -45,12 +45,17 @@ func (msts *M2StSvc) Del(path_ string) error {
 	if path_ == "/" {
 		return fmt.Errorf("M2StSvc.Del: removing %s is forbidden", path_)
 	}
+	pp := path.Dir(de.Path)
+	pde, ok := msts.entries[pp]
+	if !ok {
+		return fmt.Errorf("parent %s for entry %s to be deleted does not exist", pp, de.Path)
+	}
 	msts.hasChanges = true
 	if de.IsDir {
 		delete(msts.dirs, path_)
 	}
+	pde.Mtime = time.Now().Unix()
 	delete(msts.entries, path_)
-	pp := path.Dir(de.Path)
 	delete(msts.dirs[pp], path_)
 	return nil
 }
@@ -191,9 +196,6 @@ func (msts *M2StSvc) Put(de *dssa.DataEntry) error {
 	if !ok {
 		return fmt.Errorf("parent %s for entry %s to be created does not exist", pp, de.Path)
 	}
-	msts.hasChanges = true
-	pde.Mtime = time.Now().Unix()
-	msts.dirs[pp][de.Path] = true
 	ede, ok := msts.entries[de.Path]
 	if ok {
 		if ede.IsDir {
@@ -206,6 +208,9 @@ func (msts *M2StSvc) Put(de *dssa.DataEntry) error {
 	} else if de.IsDir {
 		msts.dirs[de.Path] = map[string]bool{}
 	}
+	msts.hasChanges = true
+	pde.Mtime = time.Now().Unix()
+	msts.dirs[pp][de.Path] = true
 	msts.entries[de.Path] = de
 	return nil
 }

@@ -26,6 +26,7 @@ test-this:	## go test the application
 test-again:	export OTVL_TEST_FULL = 1
 test-again: export GO_TEST_LOG_LEVEL = ERROR
 test-again:	## go test the application again
+	go test -v -count=1 -run '^TestBasicSftpDryrunSynczer' ./internal/walker
 	go test -v -count=1 ./...
 
 .PHONY: test-again-verbose
