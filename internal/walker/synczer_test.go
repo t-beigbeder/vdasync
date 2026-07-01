@@ -1087,7 +1087,7 @@ func TestSimpleSteps(t *testing.T) {
 	_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
 	defer cFunc()
 	require.NoError(t, eDss.EndSession())
-	skipOp := true
+	skipOp := false
 	testSet := []simpleStepsDesc{
 		{
 			label: "TestFilesTree",
@@ -1125,7 +1125,7 @@ func TestSimpleSteps(t *testing.T) {
 			label:   "Test1OnEncryptedFiles",
 			omit:    true,
 			dispRes: true,
-			rLgr:    dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:    infoLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
@@ -1149,9 +1149,9 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label:   "Test2OnEncryptedFiles",
-			omit:    false,
+			omit:    skipOp,
 			dispRes: true,
-			rLgr:    infoLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
