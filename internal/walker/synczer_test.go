@@ -867,6 +867,10 @@ func runSyncAndCheck(
 	if err := targetDs.EndSession(); err != nil {
 		return nil, err
 	}
+	if (ssd.dispRes) {
+		ssd.cLgr.With("subStep", ssn).Info("DisplaySyncResult")
+		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
+	}
 	return sr[""], nil
 }
 
@@ -935,6 +939,7 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
 		return err
 	}
 	if err := checkSrRef(acSr, drSr, "actual"); err != nil {
+		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
 		return err
 	}
 	dr2Sr, err := runSyncAndCheck("dryrun2", ssd, &drSo, ssd.sDss, ssd.gotSr, ssd.tDss, ssd.gotTr)
@@ -962,9 +967,6 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
 	dr3Sr.AggregatedChildrenNumber = 0
 	if err := checkSrRef(dr3Sr, &SyncEntryStatus{}, "dryrun3"); err != nil {
 		return err
-	}
-	if ssd.dispRes {
-		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, false)
 	}
 	return nil
 }
@@ -1067,6 +1069,13 @@ func test2Step3(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 	return nil
 }
 
+func test2Step4(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilRmdir(ssd.cLgr.With("subStep", ssn), ssd, sr, "d2"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func TestSimpleSteps(t *testing.T) {
 	getTd := func() string {
 		return t.TempDir()
@@ -1078,7 +1087,7 @@ func TestSimpleSteps(t *testing.T) {
 	_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
 	defer cFunc()
 	require.NoError(t, eDss.EndSession())
-	skipOp := false
+	skipOp := true
 	testSet := []simpleStepsDesc{
 		{
 			label: "TestFilesTree",
@@ -1114,13 +1123,12 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label:   "Test1OnEncryptedFiles",
-			omit:    false,
+			omit:    true,
 			dispRes: true,
 			rLgr:    dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
-			simpleSteps: []simpleStep{
 			simpleSteps: []simpleStep{
 				{"stepMakeTest1Base", stepMakeTest1Base},
 				{"stepMakeTest1Step2", stepMakeTest1Step2},
@@ -1141,9 +1149,9 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label:   "Test2OnEncryptedFiles",
-			omit:    skipOp,
+			omit:    false,
 			dispRes: true,
-			rLgr:    dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:    infoLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
@@ -1151,6 +1159,7 @@ func TestSimpleSteps(t *testing.T) {
 				{"test2Step1", test2Step1},
 				{"test2Step2", test2Step2},
 				{"test2Step3", test2Step3},
+				{"test2Step4", test2Step4},
 			},
 		},
 	}

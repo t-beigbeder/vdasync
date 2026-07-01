@@ -110,7 +110,19 @@ func (s3m *s3MetaSts) List(path_ string) ([]*dssa.DataEntry, error) {
 // Mkdir implements [dssa.Dssa].
 func (s3m *s3MetaSts) Mkdir(de *dssa.DataEntry) error {
 	de.IsDir = true // implicit for localfiles
-	return s3m.msts.Put(de)
+	if err := s3m.msts.Put(de); err != nil {
+		return err
+	}
+	pp := path.Dir(de.Path)
+	if de.Path == "/" {
+		pp = "/.."
+	}
+	pde, err := s3m.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
 }
 
 // Rm implements [dssa.Dssa].
@@ -131,7 +143,17 @@ func (s3m *s3MetaSts) Rm(path_ string) error {
 			return err
 		}
 	}
-	return s3m.msts.Del(path_)
+	err = s3m.msts.Del(path_)
+	if err != nil {
+		return err
+	}
+	pp := path.Dir(path_)
+	pde, err := s3m.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
 }
 
 // SetStat implements [dssa.Dssa].
@@ -183,7 +205,16 @@ func (s3m *s3MetaSts) Symlink(old string, new_ string) error {
 		User:          os.Getuid(),
 		UserRights:    dssa.Rights{Read: true, Write: true, Execute: true},
 	}
-	return s3m.msts.Put(de)
+	if err = s3m.msts.Put(de); err != nil {
+		return err
+	}
+	pp := path.Dir(new_)
+	pde, err := s3m.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
 }
 
 const (
