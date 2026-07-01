@@ -25,6 +25,11 @@ taking care of OS files attributes (type, permissions and modification time)
   - `vdaencrypt` client-side encryption
 - Utility to generate testing TLS certificates for CAs, clients and servers
 
+The schema below explains how vdasync's components in blue interact
+and integrate with infrastructure in green. Source may be either on left (A - flows) or on right (B - flows).
+
+![Vdasync's components](docs/images/vdasync.drawio.png "Vdasync's components schema")
+
 ## Basic usage
 
 Utilities arguments meaning are displayed using `<cli-command> -help`.

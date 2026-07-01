@@ -131,7 +131,19 @@ func (ed *encryptedDssaImpl) List(path_ string) ([]*dssa.DataEntry, error) {
 // Mkdir implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Mkdir(de *dssa.DataEntry) error {
 	de.IsDir = true // implicit for localfiles
-	return ed.msts.Put(de)
+	if err := ed.msts.Put(de); err != nil {
+		return err
+	}
+	pp := path.Dir(de.Path)
+	if de.Path == "/" {
+		pp = "/.."
+	}
+	pde, err := ed.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
 }
 
 // NewSession implements [dssa.Dssa].
@@ -158,7 +170,17 @@ func (ed *encryptedDssaImpl) Rm(path_ string) error {
 			return err
 		}
 	}
-	return ed.msts.Del(path_)
+	err = ed.msts.Del(path_)
+	if err != nil {
+		return err
+	}
+	pp := path.Dir(path_)
+	pde, err := ed.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
 }
 
 // SetStat implements [dssa.Dssa].
@@ -211,7 +233,16 @@ func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
 		User:          os.Getuid(),
 		UserRights:    dssa.Rights{Read: true, Write: true, Execute: true},
 	}
-	return ed.msts.Put(de)
+	if err = ed.msts.Put(de); err != nil {
+		return err
+	}
+	pp := path.Dir(new_)
+	pde, err := ed.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
 }
 
 var _ dssa.Dssa = &encryptedDssaImpl{}

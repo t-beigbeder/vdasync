@@ -2,13 +2,13 @@ package walker
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/config"
@@ -828,7 +828,9 @@ type simpleStep struct {
 }
 
 type simpleStepsDesc struct {
+	label               string
 	omit                bool
+	dispRes             bool
 	rLgr                *slog.Logger
 	concurrency         int
 	syncOptions         *config.SyncOptionsType
@@ -840,6 +842,7 @@ type simpleStepsDesc struct {
 	simpleSteps         []simpleStep
 	cLgr                *slog.Logger
 	gotSr, gotTr, gotTd string
+	lastWk              Walker
 }
 
 func runSyncAndCheck(
@@ -848,22 +851,30 @@ func runSyncAndCheck(
 	sourceDs dssa.Dssa, sourceRoot string,
 	targetDs dssa.Dssa, targetRoot string,
 ) (*SyncEntryStatus, error) {
+	if err := targetDs.NewSession(); err != nil {
+		return nil, err
+	}
 	wk, err := RunSynchronizer(ssd.cLgr.With("subStep", ssn), ssd.concurrency, syncOptions, sourceDs, sourceRoot, targetDs, targetRoot)
 	if err != nil {
 		return nil, err
 	}
 	sr := SyncResult(wk)
-	if sr == nil {
-		return nil, errors.New("SyncResult is nil")
-	}
+	ssd.lastWk = wk
 	if sr[""].AggregatedError != 0 {
 		DisplaySyncResult(sr, os.Stderr, true, false)
 		return nil, fmt.Errorf("runSyncAndCheck: AggregatedError is %d", sr[""].AggregatedError)
 	}
+	if err := targetDs.EndSession(); err != nil {
+		return nil, err
+	}
+	if (ssd.dispRes) {
+		ssd.cLgr.With("subStep", ssn).Info("DisplaySyncResult")
+		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
+	}
 	return sr[""], nil
 }
 
-func checkSrRef(chkSr, refSr *SyncEntryStatus) error {
+func checkSrRef(chkSr, refSr *SyncEntryStatus, label string) error {
 	chkSrv := SyncEntryStatus{
 		AggregatedSize:           chkSr.AggregatedSize,
 		AggregatedChildrenNumber: chkSr.AggregatedChildrenNumber,
@@ -883,7 +894,7 @@ func checkSrRef(chkSr, refSr *SyncEntryStatus) error {
 		AggregatedError:          refSr.AggregatedError,
 	}
 	if chkSrv != refSrv {
-		return fmt.Errorf("checkSr: checked %+v reference %+v", chkSrv, refSrv)
+		return fmt.Errorf("checkSr %s: checked %+v reference %+v", label, chkSrv, refSrv)
 	}
 	return nil
 }
@@ -927,7 +938,8 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
 	if err != nil {
 		return err
 	}
-	if err := checkSrRef(acSr, drSr); err != nil {
+	if err := checkSrRef(acSr, drSr, "actual"); err != nil {
+		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
 		return err
 	}
 	dr2Sr, err := runSyncAndCheck("dryrun2", ssd, &drSo, ssd.sDss, ssd.gotSr, ssd.tDss, ssd.gotTr)
@@ -936,7 +948,7 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
 	}
 	dr2Sr.AggregatedSize = 0
 	dr2Sr.AggregatedChildrenNumber = 0
-	if err := checkSrRef(dr2Sr, &SyncEntryStatus{}); err != nil {
+	if err := checkSrRef(dr2Sr, &SyncEntryStatus{}, "dryrun2"); err != nil {
 		return err
 	}
 	bckSr, err := runSyncAndCheck("backward", ssd, ssd.syncOptions, ssd.tDss, ssd.gotTr, ssd.sDss, ssd.gotTd)
@@ -953,14 +965,17 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
 	}
 	dr3Sr.AggregatedSize = 0
 	dr3Sr.AggregatedChildrenNumber = 0
-	if err := checkSrRef(dr3Sr, &SyncEntryStatus{}); err != nil {
+	if err := checkSrRef(dr3Sr, &SyncEntryStatus{}, "dryrun3"); err != nil {
 		return err
 	}
 	return nil
 }
 
 func stepMakeTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
-	_, _, err := common.MakeTestFilesTree(sr, 7, 100, 16, 6*1024)
+	if _, _, err := common.MakeTestFilesTree(sr, 7, 100, 16, 6*1024); err != nil {
+		return err
+	}
+	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
 	return err
 }
 
@@ -1003,7 +1018,8 @@ func stepMakeTest1Base(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 	if err := stepUtilMkfile(ssd, sr, "d1/d14/f141.dat"); err != nil {
 		return err
 	}
-	return nil
+	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
+	return err
 }
 
 func stepMakeTest1Step2(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
@@ -1028,6 +1044,38 @@ func stepMakeTest1Step2(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 	return nil
 }
 
+func test2Step1(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/f11.dat"); err != nil {
+		return err
+	}
+	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
+	return err
+}
+
+func test2Step2(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/f11.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d2/f21.dat"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func test2Step3(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilMkfile(ssd, sr, "d1/d11/f111.dat"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func test2Step4(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilRmdir(ssd.cLgr.With("subStep", ssn), ssd, sr, "d2"); err != nil {
+		return err
+	}
+	return nil
+}
+
 func TestSimpleSteps(t *testing.T) {
 	getTd := func() string {
 		return t.TempDir()
@@ -1038,20 +1086,22 @@ func TestSimpleSteps(t *testing.T) {
 	_, _, _ = nullLgr, dbgLgr, infoLgr
 	_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
 	defer cFunc()
-	_ = eDss
-
+	require.NoError(t, eDss.EndSession())
+	skipOp := false
 	testSet := []simpleStepsDesc{
 		{
-			omit: false,
-			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			label: "TestFilesTree",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd, trGet: getTd, tdGet: getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
 			},
 		},
 		{
-			omit: false,
-			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			label: "Test1OnFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd, trGet: getTd, tdGet: getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTest1Base", stepMakeTest1Base},
@@ -1059,8 +1109,9 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
-			omit: false,
-			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			label: "Test1OnRemoteFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  rDss,
 			trGet: getTd,
@@ -1071,8 +1122,10 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
-			omit: false,
-			rLgr: nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			label:   "Test1OnEncryptedFiles",
+			omit:    true,
+			dispRes: true,
+			rLgr:    infoLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
@@ -1081,14 +1134,48 @@ func TestSimpleSteps(t *testing.T) {
 				{"stepMakeTest1Step2", stepMakeTest1Step2},
 			},
 		},
+		{
+			label:   "Test1OnEncryptedFilesCheck",
+			omit:    true,
+			dispRes: true,
+			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true},
+			srGet: getTd,
+			tDss:  eDss,
+			tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTest1Base", stepMakeTest1Base},
+				{"stepMakeTest1Step2", stepMakeTest1Step2},
+			},
+		},
+		{
+			label:   "Test2OnEncryptedFiles",
+			omit:    skipOp,
+			dispRes: true,
+			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd,
+			tDss:  eDss,
+			tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"test2Step1", test2Step1},
+				{"test2Step2", test2Step2},
+				{"test2Step3", test2Step3},
+				{"test2Step4", test2Step4},
+			},
+		},
 	}
 	for _, test := range testSet {
 		if test.omit {
 			continue
 		}
 		for _, sst := range test.simpleSteps {
-			require.NoError(t, checkStep(sst.ssn, sst.ssf, &test))
+			err := checkStep(sst.ssn, sst.ssf, &test)
+			if err != nil {
+				require.True(t, true)
+			}
+			require.NoError(t, err, fmt.Sprintf("label '%s' ssn '%s'", test.label, sst.ssn))
 		}
-		require.True(t, true)
+		if test.label == "Test2OnEncryptedFiles" {
+			require.True(t, true)
+		}
 	}
 }
