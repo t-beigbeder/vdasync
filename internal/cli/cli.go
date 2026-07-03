@@ -41,7 +41,7 @@ func CommonFlags() *CommonFlagsType {
 		LogLevelFlag:    flag.String("level", "", "log level, defaults to ERROR"),
 		LogFlag: flag.String("log", "",
 			"log file, defaults to vdasync-<pid>.log in temp dir, \"std[out|err]\" are known keywords"),
-		OutFlag: flag.String("out", "",
+		OutFlag: flag.String("out", "stdout",
 			"file for output, defaults to stdout, \"std[out|err]\" are known keywords"),
 		SilentFlag:         flag.Bool("silent", false, "no output, or simple summary in case also verbose"),
 		VerboseFlag:        flag.Bool("verbose", false, "detailed output"),

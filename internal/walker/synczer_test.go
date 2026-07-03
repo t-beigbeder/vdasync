@@ -867,7 +867,7 @@ func runSyncAndCheck(
 	if err := targetDs.EndSession(); err != nil {
 		return nil, err
 	}
-	if (ssd.dispRes) {
+	if ssd.dispRes {
 		ssd.cLgr.With("subStep", ssn).Info("DisplaySyncResult")
 		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
 	}

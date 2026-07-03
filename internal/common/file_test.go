@@ -65,7 +65,7 @@ func TestStdWriter(t *testing.T) {
 	ftp := path.Join(t.TempDir(), "TestStdWriter.txt")
 	fd0, err := StdWriter(ftp)
 	require.NoError(t, err)
-	fd0.Write([]byte(ftp+"\n"))
+	fd0.Write([]byte(ftp + "\n"))
 	require.NoError(t, fd0.Close())
 	flns, err := FileLines(ftp)
 	require.NoError(t, err)
