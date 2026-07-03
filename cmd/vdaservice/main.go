@@ -11,18 +11,14 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
-	"github.com/t-beigbeder/vdasync/internal/walker"
 )
 
 func main() {
 	var (
-		sourceFlag  = flag.String("source", "", "source of the command")
-		targetFlag  = flag.String("target", "", "target of the command")
-		dryRunFlag  = flag.Bool("dryrun", false, "don't run operation, just report actions")
-		rmFlag      = flag.Bool("rm", false, "remove files in sync target")
-		checkFlag   = flag.Bool("check", false, "compute checksums")
-		noPermFlag  = flag.Bool("noperm", false, "neither check nor set permissions")
-		noMtimeFlag = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
+		cmdFlag  = flag.String("cmd", "", "a command to apply: list")
+		dssFlag  = flag.String("dss", "", "dss on which the command applies")
+		checkFlag   = flag.Bool("check", false, "compute/display checksums")
+		recurFlag   = flag.Bool("recur", false, "apply recursively to sub-directories")
 		exclFlag    = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
 		inclFlag    = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
 	)
@@ -69,39 +65,19 @@ func main() {
 		cli.SetSignalHandler(lgr, rps)
 	}
 
-	if *sourceFlag == "" || *targetFlag == "" {
-		common.Fatal(lgr, errors.New("source and target must be provided"))
+	if *dssFlag == "" {
+		common.Fatal(lgr, errors.New("dss must be provided"))
 	}
 
-	sDss, sourceRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps)
+	dss, root, err := cli.GetDssAndRootFor(lgr, cf, cfg, false, *dssFlag, rps)
+	_ = root
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	defer sDss.EndSession()
-	tDss, targetRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps)
-	if err != nil {
-		common.Fatal(lgr, err)
-	}
-	defer tDss.EndSession()
+	defer dss.EndSession()
 
-	swk, err := walker.RunSynchronizer(
-		lgr, *cf.ConcurrencyFlag,
-		&config.SyncOptionsType{
-			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag,
-			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag,
-			ExclListPath: *exclFlag, InclListPath: *inclFlag,
-		},
-		sDss, sourceRoot,
-		tDss, targetRoot,
-	)
 	if err != nil {
 		common.Fatal(lgr, err)
-	}
-	syncRes := walker.SyncResult(swk)
-	if !*cf.SilentFlag {
-		walker.DisplaySyncResult(syncRes, outFile, true, *cf.VerboseFlag)
-	} else if !*cf.VerboseFlag {
-		walker.DisplaySyncResult(syncRes, outFile, true, false)
 	}
 	time.Sleep(10 * time.Millisecond)
 }

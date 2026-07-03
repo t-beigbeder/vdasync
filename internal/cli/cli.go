@@ -18,6 +18,7 @@ type CommonFlagsType struct {
 	ConcurrencyFlag    *int
 	LogLevelFlag       *string
 	LogFlag            *string
+	OutFlag            *string
 	SilentFlag         *bool
 	VerboseFlag        *bool
 	NoTlsFlag          *bool
@@ -39,8 +40,10 @@ func CommonFlags() *CommonFlagsType {
 		ConcurrencyFlag: flag.Int("conc", 0, "number of concurrent activities"),
 		LogLevelFlag:    flag.String("level", "", "log level, defaults to ERROR"),
 		LogFlag: flag.String("log", "",
-			"log file, defaults to vdasync-<pid>.log in temp dir, \"stderr\" is a known keyword"),
-		SilentFlag:         flag.Bool("silent", false, "no output"),
+			"log file, defaults to vdasync-<pid>.log in temp dir, \"std[out|err]\" are known keywords"),
+		OutFlag: flag.String("out", "",
+			"file for output, defaults to stdout, \"std[out|err]\" are known keywords"),
+		SilentFlag:         flag.Bool("silent", false, "no output, or simple summary in case also verbose"),
 		VerboseFlag:        flag.Bool("verbose", false, "detailed output"),
 		NoTlsFlag:          flag.Bool("notls", false, "insecure communication with servers over http"),
 		NoTlsPluginFlag:    flag.Bool("notlsplugin", false, "insecure communication with plugins over http"),
