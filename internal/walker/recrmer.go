@@ -20,9 +20,9 @@ type RmEntryStatus struct {
 
 type rmDataType struct {
 	BaseDoerData
-	dssAlias   string
-	dryRun     bool
-	root string
+	dssAlias string
+	dryRun   bool
+	root     string
 }
 
 func NewRecursiveRemover(

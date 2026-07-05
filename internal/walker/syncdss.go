@@ -72,6 +72,9 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 		if isTargetSameKindInSource(pe, sChildren, tde) {
 			continue
 		}
+
+		syncUserData(pe).Updated = true
+
 		// TODO: 1st pass with dryrun if removal limits set in options
 		if syncData(pe).syncOptions.Dryrun {
 			continue
@@ -297,7 +300,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 	dssInfoSync(pe, true, "Stat")
 	tde, err := targetDs(pe).Stat(tp)
 	if err != nil && !tde.ErrNotExist {
-		setSyncError(pe, "prepareTargetDirCreate: Stat", true, err)
+		setSyncError(pe, "runNdirEntrySync: Stat", true, err)
 		return
 	}
 	if tde.IsDir {

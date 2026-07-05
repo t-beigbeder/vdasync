@@ -23,8 +23,8 @@ import (
 )
 
 func getTestOutWriter() io.Writer {
-	// return io.Discard
-	return os.Stderr
+	return io.Discard
+	// return os.Stderr
 }
 func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tRoot string, so *config.SyncOptionsType) (syncRes map[string]*SyncEntryStatus, err error) {
 	var walker Walker
@@ -644,8 +644,8 @@ func TestBaseAugmentedTestSftpDataSynczer(t *testing.T) {
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, "/", &config.SyncOptionsType{Dryrun: true})
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, 0, sr[""].AggregatedCreated)
-		require.Equal(t, 3, sr[""].AggregatedUpdated) // SFTP specific
-		require.Equal(t, 0, sr[""].AggregatedError)   // SFTP specific
+		require.Equal(t, 8, sr[""].AggregatedUpdated)
+		require.Equal(t, 0, sr[""].AggregatedError)
 	}
 }
 
@@ -689,7 +689,7 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, 0, sr[""].AggregatedCreated)
-		require.Equal(t, 3, sr[""].AggregatedUpdated)
+		require.Equal(t, 8, sr[""].AggregatedUpdated)
 		require.Equal(t, 0, sr[""].AggregatedError)
 
 		sad2, saf2, err := UpdateAugmentedTestFilesTree(td1, 5, 10, 3, 11*1024)
@@ -1130,9 +1130,9 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label:   "Test1OnEncryptedFiles",
-			omit:    false,
+			omit:    skipOp,
 			dispRes: true,
-			rLgr:    infoLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
@@ -1143,7 +1143,7 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label:   "Test1OnEncryptedFilesCheck",
-			omit:    true,
+			omit:    skipOp,
 			dispRes: true,
 			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true},
 			srGet: getTd,
@@ -1155,9 +1155,9 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
-			label:   "Test2OnEncryptedFiles",
-			omit:    skipOp,
-			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			label: "Test2OnEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
 			tdGet: getTd,
