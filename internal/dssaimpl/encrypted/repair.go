@@ -34,7 +34,7 @@ func CheckIndex(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIden
 			StSvc: &m2edsStSvc{
 				dss:           underlying,
 				rootPath:      rootPath,
-				ageIdentities: ageIdentities,
+				ageIdentitiesGetter: func() []string {return ageIdentities},
 				ageRecipients: ageRecipients,
 			},
 		},
