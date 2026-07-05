@@ -158,6 +158,10 @@ func targetDs(pe *ProcessedEntry) dssa.Dssa {
 	return syncData(pe).targetDs
 }
 
+func targetRoot(pe *ProcessedEntry) string {
+	return syncData(pe).targetRoot
+}
+
 func syncRelPath(pe *ProcessedEntry) string {
 	return common.RelPath(pe.DataEntry.Path, syncData(pe).sourceRoot)
 }

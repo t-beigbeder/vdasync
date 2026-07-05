@@ -14,7 +14,7 @@ func TestActualRecRmer(t *testing.T) {
 	_, _, err := common.MakeTestFilesTree(td1, 7, 100, 16, 6*256)
 	require.Nil(t, err)
 	ds := localfiles.MakeLocalFilesDssa()
-	walker, err := RemoveAll(lgr, 4, ds, td1, "lf4tests", false)
+	walker, err := RemoveAll(lgr, 4, ds, td1, "", "lf4tests", false)
 	require.Nil(t, err)
 	de, err := ds.Stat(td1)
 	require.NotNil(t, err)
@@ -32,7 +32,7 @@ func TestDryrunRecRmer(t *testing.T) {
 	require.Nil(t, err)
 	ds := localfiles.MakeLocalFilesDssa()
 
-	walker := NewRecursiveRemover(lgr, 4, ds, "lfs", true)
+	walker := NewRecursiveRemover(lgr, 4, ds, "lfs", td1, true)
 	de, err := ds.Stat(td1)
 	require.Nil(t, err)
 	err = walker.Run(de)

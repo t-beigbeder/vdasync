@@ -87,12 +87,9 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			continue
 		}
 		if tde.IsDir {
-			walker, err := RemoveAll(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), tde.Path, "target", syncData(pe).syncOptions.Dryrun)
+			walker, err := RemoveAll(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), targetRoot(pe), syncRelTargetPath(pe, tde), "target", syncData(pe).syncOptions.Dryrun)
 			if err != nil {
 				hasErrors = true
-				continue
-			}
-			if walker == nil {
 				continue
 			}
 			ses := syncUserData(pe)

@@ -22,6 +22,10 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/remote"
 )
 
+func getTestOutWriter() io.Writer {
+	// return io.Discard
+	return os.Stderr
+}
 func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tRoot string, so *config.SyncOptionsType) (syncRes map[string]*SyncEntryStatus, err error) {
 	var walker Walker
 	if walker, err = NewSynchronizer(lgr, 4, so, sDss, tDss, tRoot); err != nil {
@@ -225,7 +229,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		doCheck bool
 		tDss    dssa.Dssa
 	}
-	rLgr := common.GetNullLogger()
+	rLgr := common.GetLogger()
 	dss1, dss2, _, _, dss5, _, cFunc := getTestDss(t, false, false, true, false)
 	defer cFunc()
 
@@ -262,6 +266,9 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, total-1, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
+		if sr[""].AggregatedError != 0 {
+			lgr.Error("TestModAugmentedTestDataSynczer", "err", err)
+		}
 		require.Equal(t, 0, sr[""].AggregatedError)
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
@@ -725,9 +732,9 @@ func TestFix01Synczer(t *testing.T) {
 
 		sr, err := runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: true})
 		require.Equal(t, 0, sr[""].AggregatedError)
-		DisplaySyncResult(sr, os.Stderr, true, true)
+		DisplaySyncResult(sr, getTestOutWriter(), true, true)
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Rm: true})
-		DisplaySyncResult(sr, os.Stderr, true, true)
+		DisplaySyncResult(sr, getTestOutWriter(), true, true)
 		require.Equal(t, 0, sr[""].AggregatedError)
 	}
 }
@@ -861,7 +868,7 @@ func runSyncAndCheck(
 	sr := SyncResult(wk)
 	ssd.lastWk = wk
 	if sr[""].AggregatedError != 0 {
-		DisplaySyncResult(sr, os.Stderr, true, false)
+		DisplaySyncResult(sr, getTestOutWriter(), true, false)
 		return nil, fmt.Errorf("runSyncAndCheck: AggregatedError is %d", sr[""].AggregatedError)
 	}
 	if err := targetDs.EndSession(); err != nil {
@@ -869,7 +876,7 @@ func runSyncAndCheck(
 	}
 	if ssd.dispRes {
 		ssd.cLgr.With("subStep", ssn).Info("DisplaySyncResult")
-		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
+		DisplaySyncResult(SyncResult(ssd.lastWk), getTestOutWriter(), true, true)
 	}
 	return sr[""], nil
 }
@@ -939,7 +946,7 @@ func checkStep(sn string, ssf simpleStepFunc, ssd *simpleStepsDesc) error {
 		return err
 	}
 	if err := checkSrRef(acSr, drSr, "actual"); err != nil {
-		DisplaySyncResult(SyncResult(ssd.lastWk), os.Stderr, true, true)
+		DisplaySyncResult(SyncResult(ssd.lastWk), getTestOutWriter(), true, true)
 		return err
 	}
 	dr2Sr, err := runSyncAndCheck("dryrun2", ssd, &drSo, ssd.sDss, ssd.gotSr, ssd.tDss, ssd.gotTr)
@@ -992,7 +999,7 @@ func stepUtilMkfile(ssd *simpleStepsDesc, root, fp string) error {
 }
 
 func stepUtilRmdir(lgr *slog.Logger, ssd *simpleStepsDesc, root, dp string) error {
-	_, err := RemoveAll(lgr, 2, ssd.sDss, path.Join(root, dp), "source", false)
+	_, err := RemoveAll(lgr, 2, ssd.sDss, root, dp, "source", false)
 	return err
 }
 
@@ -1123,7 +1130,7 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label:   "Test1OnEncryptedFiles",
-			omit:    true,
+			omit:    false,
 			dispRes: true,
 			rLgr:    infoLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
@@ -1150,7 +1157,6 @@ func TestSimpleSteps(t *testing.T) {
 		{
 			label:   "Test2OnEncryptedFiles",
 			omit:    skipOp,
-			dispRes: true,
 			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd,
 			tDss:  eDss,
