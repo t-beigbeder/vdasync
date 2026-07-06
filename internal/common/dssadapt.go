@@ -80,6 +80,9 @@ func MakeParents(dss dssa.Dssa, path_ string) error {
 		return errors.New("cannot Mkdir \"/\"")
 	}
 	if err := MakeParents(dss, path.Dir(path_)); err != nil {
+		return err
+	}
+	if err := dss.Mkdir(&dssa.DataEntry{Path: path_, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}}); err != nil {
 		// someone else did it?
 		de, _ := dss.Stat(path_)
 		if de.Error != nil && !de.ErrNotExist {
@@ -90,7 +93,7 @@ func MakeParents(dss dssa.Dssa, path_ string) error {
 		}
 		return err
 	}
-	return dss.Mkdir(&dssa.DataEntry{Path: path_, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+	return nil
 }
 
 func CopyEntry(dss dssa.Dssa, old, new_ string) error {

@@ -75,10 +75,6 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 
 		syncUserData(pe).Updated = true
 
-		// TODO: 1st pass with dryrun if removal limits set in options
-		if syncData(pe).syncOptions.Dryrun {
-			continue
-		}
 		if !syncData(pe).syncOptions.Rm {
 			rp := syncRelTargetPath(pe, tde)
 			pe.Lgr_().Error("purgeTargetDirChildren: needed rm forbidden", "dss", "target", "de", rp, "err", err)

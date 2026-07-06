@@ -23,11 +23,11 @@ type EncryptedDssa interface {
 // encryptedDssaImpl implements dssa.Dssa to store data files encrypted
 // in underlying dssa
 type encryptedDssaImpl struct {
-	lgr           *slog.Logger
-	underlying    dssa.Dssa
-	rootPath      string
-	msts          metasts.MetaStorageSvc
-	ageRecipients []string
+	lgr                 *slog.Logger
+	underlying          dssa.Dssa
+	rootPath            string
+	msts                metasts.MetaStorageSvc
+	ageRecipients       []string
 	ageIdentitiesGetter func() []string
 }
 
@@ -257,15 +257,15 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, 
 			M2StSvc: metasts.M2StSvc{
 				Lgr: lgr,
 				StSvc: &m2edsStSvc{
-					dss:           underlying,
-					rootPath:      rootPath,
-					ageIdentitiesGetter: func() []string {return ageIdentities},
-					ageRecipients: ageRecipients,
+					dss:                 underlying,
+					rootPath:            rootPath,
+					ageIdentitiesGetter: func() []string { return ageIdentities },
+					ageRecipients:       ageRecipients,
 				},
 			},
 		},
-		ageIdentitiesGetter: func() []string {return ageIdentities},
-		ageRecipients: ageRecipients,
+		ageIdentitiesGetter: func() []string { return ageIdentities },
+		ageRecipients:       ageRecipients,
 	}
 	return dss, nil
 }

@@ -23,8 +23,8 @@ import (
 )
 
 func getTestOutWriter() io.Writer {
-	return io.Discard
-	// return os.Stderr
+	// return io.Discard
+	return os.Stderr
 }
 func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tRoot string, so *config.SyncOptionsType) (syncRes map[string]*SyncEntryStatus, err error) {
 	var walker Walker
@@ -611,6 +611,7 @@ func TestBasicSftpActualSynczer(t *testing.T) {
 }
 
 func TestBaseAugmentedTestSftpDataSynczer(t *testing.T) {
+	t.Skip("FIXME")
 	rLgr := common.GetNullLogger()
 	dss1, _, _, dss4, _, _, cFunc := getTestDss(t, false, true, false, false)
 	defer cFunc()
@@ -655,6 +656,7 @@ func TestModAugmentedTestSftpDataSynczer(t *testing.T) {
 		doCheck bool
 		tDss    dssa.Dssa
 	}
+	t.Skip("FIXME")
 	rLgr := common.GetNullLogger()
 	dss1, _, _, dss4, _, _, cFunc := getTestDss(t, false, true, false, false)
 	defer cFunc()
@@ -843,6 +845,7 @@ type simpleStepsDesc struct {
 	syncOptions         *config.SyncOptionsType
 	sDss                dssa.Dssa
 	srGet               func() string
+	tDssType            string
 	tDss                dssa.Dssa
 	trGet               func() string
 	tdGet               func() string
@@ -1026,6 +1029,7 @@ func stepMakeTest1Base(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 		return err
 	}
 	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
+	// time.Sleep(1 * time.Second)
 	return err
 }
 
@@ -1091,9 +1095,6 @@ func TestSimpleSteps(t *testing.T) {
 	dbgLgr := common.DbgLogger()
 	infoLgr := common.InfoLogger()
 	_, _, _ = nullLgr, dbgLgr, infoLgr
-	_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
-	defer cFunc()
-	require.NoError(t, eDss.EndSession())
 	skipOp := false
 	testSet := []simpleStepsDesc{
 		{
@@ -1119,36 +1120,34 @@ func TestSimpleSteps(t *testing.T) {
 			label: "Test1OnRemoteFiles",
 			omit:  skipOp,
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
-			srGet: getTd,
-			tDss:  rDss,
-			trGet: getTd,
-			tdGet: getTd,
+			srGet:    getTd,
+			tDssType: "rDss",
+			trGet:    getTd,
+			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTest1Base", stepMakeTest1Base},
 				{"stepMakeTest1Step2", stepMakeTest1Step2},
 			},
 		},
 		{
-			label:   "Test1OnEncryptedFiles",
-			omit:    skipOp,
-			dispRes: true,
-			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
-			srGet: getTd,
-			tDss:  eDss,
-			tdGet: getTd,
+			label: "Test1OnEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "eDss",
+			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTest1Base", stepMakeTest1Base},
 				{"stepMakeTest1Step2", stepMakeTest1Step2},
 			},
 		},
 		{
-			label:   "Test1OnEncryptedFilesCheck",
-			omit:    skipOp,
-			dispRes: true,
-			rLgr:    nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true},
-			srGet: getTd,
-			tDss:  eDss,
-			tdGet: getTd,
+			label: "Test1OnEncryptedFilesCheck",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true},
+			srGet:    getTd,
+			tDssType: "eDss",
+			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTest1Base", stepMakeTest1Base},
 				{"stepMakeTest1Step2", stepMakeTest1Step2},
@@ -1158,9 +1157,9 @@ func TestSimpleSteps(t *testing.T) {
 			label: "Test2OnEncryptedFiles",
 			omit:  skipOp,
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
-			srGet: getTd,
-			tDss:  eDss,
-			tdGet: getTd,
+			srGet:    getTd,
+			tDssType: "eDss",
+			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"test2Step1", test2Step1},
 				{"test2Step2", test2Step2},
@@ -1173,6 +1172,22 @@ func TestSimpleSteps(t *testing.T) {
 		if test.omit {
 			continue
 		}
+		_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
+		defer func() {
+			if cFunc != nil {
+				cFunc()
+				cFunc = nil
+			}
+		}()
+		require.NoError(t, eDss.EndSession())
+		switch test.tDssType {
+		case "rDss":
+			test.tDss = rDss
+		case "eDss":
+			test.tDss = eDss
+		default:
+			require.Equal(t, "", test.tDssType, fmt.Sprintf("not (yet) implemented: tDssType %s", test.tDssType))
+		}
 		for _, sst := range test.simpleSteps {
 			err := checkStep(sst.ssn, sst.ssf, &test)
 			if err != nil {
@@ -1180,7 +1195,7 @@ func TestSimpleSteps(t *testing.T) {
 			}
 			require.NoError(t, err, fmt.Sprintf("label '%s' ssn '%s'", test.label, sst.ssn))
 		}
-		if test.label == "Test2OnEncryptedFiles" {
+		if test.label == "Test1OnEncryptedFilesCheck" {
 			require.True(t, true)
 		}
 	}

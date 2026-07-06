@@ -18,10 +18,10 @@ type m2edsvc struct {
 var _ metasts.MetaStorageSvc = &m2edsvc{}
 
 type m2edsStSvc struct {
-	dss           dssa.Dssa
-	rootPath      string
+	dss                 dssa.Dssa
+	rootPath            string
 	ageIdentitiesGetter func() []string
-	ageRecipients []string
+	ageRecipients       []string
 }
 
 func (m *m2edsStSvc) metaPath() string {
