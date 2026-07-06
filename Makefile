@@ -18,6 +18,10 @@ test:	## go test the application
 test-verbose:	## go test the application
 	go test -v ./...
 
+.PHONY: test-cleansftp
+test-cleansftp:	## go test clean sftp
+	go test -v -count=1 -run '^TestBasicSftpDryrunSynczer' ./internal/walker
+
 .PHONY: test-this
 test-this:	## go test the application
 	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/vdasync/internal/common

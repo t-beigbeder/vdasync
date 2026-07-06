@@ -1029,7 +1029,6 @@ func stepMakeTest1Base(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 		return err
 	}
 	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
-	// time.Sleep(1 * time.Second)
 	return err
 }
 
@@ -1098,10 +1097,44 @@ func TestSimpleSteps(t *testing.T) {
 	skipOp := false
 	testSet := []simpleStepsDesc{
 		{
-			label: "TestFilesTree",
+			label: "TestFilesTreeOnFiles",
 			omit:  skipOp,
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd, trGet: getTd, tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
+			},
+		},
+		{
+			label: "TestFilesTreeOnRemoteFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "rDss",
+			trGet:    getTd,
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
+			},
+		},
+		{
+			label: "TestFilesTreeOnSftp",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "sftpDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
+			},
+		},
+		{
+			label: "TestFilesTreeEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "eDss",
+			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
 			},
@@ -1123,6 +1156,18 @@ func TestSimpleSteps(t *testing.T) {
 			srGet:    getTd,
 			tDssType: "rDss",
 			trGet:    getTd,
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTest1Base", stepMakeTest1Base},
+				{"stepMakeTest1Step2", stepMakeTest1Step2},
+			},
+		},
+		{
+			label: "Test1OnSftp",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "sftpDss",
 			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTest1Base", stepMakeTest1Base},
@@ -1154,6 +1199,20 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
+			label: "Test2OnSftp",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "sftpDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"test2Step1", test2Step1},
+				{"test2Step2", test2Step2},
+				{"test2Step3", test2Step3},
+				{"test2Step4", test2Step4},
+			},
+		},
+		{
 			label: "Test2OnEncryptedFiles",
 			omit:  skipOp,
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
@@ -1172,7 +1231,7 @@ func TestSimpleSteps(t *testing.T) {
 		if test.omit {
 			continue
 		}
-		_, rDss, _, _, eDss, _, cFunc := getTestDss(t, false, true, true, false)
+		_, rDss, _, sftpDss, eDss, _, cFunc := getTestDss(t, false, true, true, false)
 		defer func() {
 			if cFunc != nil {
 				cFunc()
@@ -1183,6 +1242,9 @@ func TestSimpleSteps(t *testing.T) {
 		switch test.tDssType {
 		case "rDss":
 			test.tDss = rDss
+		case "sftpDss":
+			test.tDss = sftpDss
+			require.NoError(t, sftpc.Cleanup(sftpDss))
 		case "eDss":
 			test.tDss = eDss
 		default:

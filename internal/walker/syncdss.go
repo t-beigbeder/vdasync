@@ -97,12 +97,14 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 				ses.RemovedChildrenNumber += rmEs.AggregatedChildrenNumber
 			}
 		} else {
-			rp := syncRelTargetPath(pe, tde)
-			pe.Lgr_().Debug("running dss Rm", "dss", "target", "de", rp)
-			if err := targetDs(pe).Rm(tde.Path); err != nil {
-				pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", rp, "err", err)
-				hasErrors = true
-				continue
+			if !syncData(pe).syncOptions.Dryrun {
+				rp := syncRelTargetPath(pe, tde)
+				pe.Lgr_().Debug("running dss Rm", "dss", "target", "de", rp)
+				if err := targetDs(pe).Rm(tde.Path); err != nil {
+					pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", rp, "err", err)
+					hasErrors = true
+					continue
+				}
 			}
 			ses := syncUserData(pe)
 			ses.RemovedSize += tde.Size
