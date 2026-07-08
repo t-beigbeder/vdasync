@@ -22,14 +22,14 @@ type SyncEntryStatus struct {
 	AggregatedChildrenNumber int
 	Created                  bool
 	Updated                  bool
-	Removed                  bool
 	ModChanged               bool
 	Error                    error
 	AggregatedCreated        int
 	AggregatedUpdated        int
-	AggregatedRemoved        int
 	AggregatedModChanged     int
 	AggregatedError          int
+	rmResult                 any
+	Removed                  bool
 	RemovedSize              int64
 	RemovedChildrenNumber    int
 }
@@ -131,10 +131,54 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 	walker.UserDataMap().Range(func(_, value any) bool {
 		es, _ := value.(*SyncEntryStatus)
 		if es != nil {
-			result[es.relPath] = es
+			esCopy := *es
+			result[es.relPath] = &esCopy
 		}
 		return true
 	})
+	for rp, es := range result {
+		if es.rmResult == nil {
+			continue
+		}
+		rmR, ok := es.rmResult.(map[string]*RmEntryStatus)
+		if !ok {
+			panic("logic")
+		}
+		for rrp, rmEs := range rmR {
+			childEs, ok := result[rrp]
+			if !ok {
+				childEs = &SyncEntryStatus{
+					relPath:               rrp,
+					IsDir:                 rmEs.IsDir,
+					Size:                  rmEs.Size,
+					RemovedChildrenNumber: rmEs.AggregatedChildrenNumber,
+					RemovedSize:           rmEs.AggregatedSize,
+				}
+				result[rrp] = childEs
+			}
+			childEs.Removed = true
+			if rmEs.IsDir {
+				es.RemovedSize += rmEs.AggregatedSize
+				es.RemovedChildrenNumber += rmEs.AggregatedChildrenNumber
+			} else {
+				es.RemovedSize += rmEs.Size
+				es.RemovedChildrenNumber += 1
+			}
+		}
+		parentRp := path.Dir(rp)
+		if parentRp == "." {
+			parentRp = ""
+		}
+		if parentRp == "/" {
+			parentRp = ""
+		}
+		parentEs, ok := result[parentRp]
+		if !ok {
+			panic("logic")
+		}
+		parentEs.RemovedChildrenNumber += es.RemovedChildrenNumber
+		parentEs.RemovedSize += es.RemovedSize
+	}
 	return result
 }
 
@@ -304,7 +348,6 @@ func computeDdeAggregates(pe *ProcessedEntry) {
 		agCN += dud.AggregatedChildrenNumber + 1
 		agC += dud.AggregatedCreated
 		agU += dud.AggregatedUpdated
-		agR += dud.AggregatedRemoved
 		agM += dud.AggregatedModChanged
 		agE += dud.AggregatedError
 	}
@@ -348,7 +391,6 @@ func computeDdeAggregates(pe *ProcessedEntry) {
 	}
 	es.AggregatedCreated = agC
 	es.AggregatedUpdated = agU
-	es.AggregatedRemoved = agR
 	es.AggregatedModChanged = agM
 	es.AggregatedError = agE
 }

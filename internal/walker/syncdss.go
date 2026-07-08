@@ -92,13 +92,10 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 				continue
 			}
 			ses := syncUserData(pe)
-			for _, rmEs := range RmResult(walker) {
-				ses.RemovedSize += rmEs.AggregatedSize
-				ses.RemovedChildrenNumber += rmEs.AggregatedChildrenNumber
-			}
+			ses.rmResult = RmResult(walker)
 		} else {
+			rp := syncRelTargetPath(pe, tde)
 			if !syncData(pe).syncOptions.Dryrun {
-				rp := syncRelTargetPath(pe, tde)
 				pe.Lgr_().Debug("running dss Rm", "dss", "target", "de", rp)
 				if err := targetDs(pe).Rm(tde.Path); err != nil {
 					pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", rp, "err", err)
@@ -107,8 +104,12 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 				}
 			}
 			ses := syncUserData(pe)
-			ses.RemovedSize += tde.Size
-			ses.RemovedChildrenNumber += 1
+			ses.rmResult = map[string]*RmEntryStatus{
+				rp: {
+					relPath: rp,
+					Size:    tde.Size,
+				},
+			}
 		}
 	}
 	if hasErrors {

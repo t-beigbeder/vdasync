@@ -890,18 +890,18 @@ func checkSrRef(chkSr, refSr *SyncEntryStatus, label string) error {
 		AggregatedChildrenNumber: chkSr.AggregatedChildrenNumber,
 		AggregatedCreated:        chkSr.AggregatedCreated,
 		AggregatedUpdated:        chkSr.AggregatedUpdated,
-		AggregatedRemoved:        chkSr.AggregatedRemoved,
 		AggregatedModChanged:     chkSr.AggregatedModChanged,
 		AggregatedError:          chkSr.AggregatedError,
+		RemovedChildrenNumber:    chkSr.RemovedChildrenNumber,
 	}
 	refSrv := SyncEntryStatus{
 		AggregatedSize:           refSr.AggregatedSize,
 		AggregatedChildrenNumber: refSr.AggregatedChildrenNumber,
 		AggregatedCreated:        refSr.AggregatedCreated,
 		AggregatedUpdated:        refSr.AggregatedUpdated,
-		AggregatedRemoved:        refSr.AggregatedRemoved,
 		AggregatedModChanged:     refSr.AggregatedModChanged,
 		AggregatedError:          refSr.AggregatedError,
+		RemovedChildrenNumber:    refSr.RemovedChildrenNumber,
 	}
 	if chkSrv != refSrv {
 		return fmt.Errorf("checkSr %s: checked %+v reference %+v", label, chkSrv, refSrv)

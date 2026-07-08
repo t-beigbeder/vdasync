@@ -64,7 +64,7 @@ func DisplaySyncResult(sr map[string]*SyncEntryStatus, wr io.Writer, agg, all bo
 			"total: %d errors: %d size: %d created: %d updated: %d removed: %d mod changed: %d\n",
 			res.AggregatedChildrenNumber, res.AggregatedError, res.AggregatedSize,
 			res.AggregatedCreated, res.AggregatedUpdated,
-			res.AggregatedRemoved, res.AggregatedModChanged,
+			res.RemovedChildrenNumber, res.AggregatedModChanged,
 		)))
 	}
 }
