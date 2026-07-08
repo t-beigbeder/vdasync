@@ -169,9 +169,6 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 		if parentRp == "." {
 			parentRp = ""
 		}
-		if parentRp == "/" {
-			parentRp = ""
-		}
 		parentEs, ok := result[parentRp]
 		if !ok {
 			panic("logic")

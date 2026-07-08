@@ -65,7 +65,10 @@ func RelPath(fullPath, rootPath string) string {
 	if fullPath == rootPath {
 		return ""
 	}
-	return strings.Replace(fullPath, rootPath+"/", "", 1)
+	if rootPath != "/" {
+		rootPath += "/"
+	}
+	return strings.Replace(fullPath, rootPath, "", 1)
 }
 
 func MakeParents(dss dssa.Dssa, path_ string) error {
