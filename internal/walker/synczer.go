@@ -127,6 +127,9 @@ func RunSynchronizer(
 }
 
 func SyncResult(walker Walker) map[string]*SyncEntryStatus {
+	if rs := walker.GetResult(); rs != nil {
+		return rs.(map[string]*SyncEntryStatus)
+	}
 	result := map[string]*SyncEntryStatus{}
 	walker.UserDataMap().Range(func(_, value any) bool {
 		es, _ := value.(*SyncEntryStatus)
@@ -176,6 +179,7 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 		parentEs.RemovedChildrenNumber += es.RemovedChildrenNumber
 		parentEs.RemovedSize += es.RemovedSize
 	}
+	walker.SetResult(result)
 	return result
 }
 
