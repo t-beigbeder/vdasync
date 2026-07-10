@@ -154,19 +154,20 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 			childEs, ok := result[rrp]
 			if !ok {
 				childEs = &SyncEntryStatus{
-					relPath:               rrp,
-					IsDir:                 rmEs.IsDir,
-					Size:                  rmEs.Size,
+					relPath: rrp,
+					IsDir:   rmEs.IsDir,
+					Size:    rmEs.Size,
 				}
 				result[rrp] = childEs
+				rps = append(rps, rrp)
 			}
 			childEs.Removed = true
-			childEs.RemovedChildrenNumber = rmEs.AggregatedChildrenNumber
+			childEs.RemovedChildrenNumber = rmEs.AggregatedChildrenNumber + 1
 			childEs.RemovedSize = rmEs.AggregatedSize
 		}
 	}
 	slices.Sort(rps)
-	for rpx := len(rps)-1; rpx > 0; rpx-- {
+	for rpx := len(rps) - 1; rpx > 0; rpx-- {
 		rp := rps[rpx]
 		es := result[rp]
 		if !es.Removed && es.RemovedChildrenNumber == 0 {

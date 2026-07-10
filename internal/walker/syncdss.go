@@ -106,8 +106,9 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			ses := syncUserData(pe)
 			ses.rmResult = map[string]*RmEntryStatus{
 				rp: {
-					relPath: rp,
-					Size:    tde.Size,
+					relPath:        rp,
+					Size:           tde.Size,
+					AggregatedSize: tde.Size,
 				},
 			}
 		}
