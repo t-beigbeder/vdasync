@@ -59,7 +59,7 @@ func UpdateAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, 
 	}
 	sumAddedDirs += 1
 
-	RemoveAll(lgr, 2, dss, path.Join(td, "dau/dAddFiles/dRemoved"), "source", false)
+	RemoveAll(lgr, 2, dss, path.Join(td, "dau/dAddFiles/dRemoved"), "source", td, false)
 	if err = os.Remove(path.Join(td, "dau/dAddFiles/fRemoved.dat")); err != nil {
 		return
 	}

@@ -18,6 +18,10 @@ test:	## go test the application
 test-verbose:	## go test the application
 	go test -v ./...
 
+.PHONY: test-cleansftp
+test-cleansftp:	## go test clean sftp
+	go test -v -count=1 -run '^TestBasicSftpDryrunSynczer' ./internal/walker
+
 .PHONY: test-this
 test-this:	## go test the application
 	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/vdasync/internal/common
@@ -37,6 +41,7 @@ test-again-verbose:	## go test the application again
 .PHONY: xbuild
 xbuild:
 	go build -o $(BDIR)/vdasync$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasync/main.go
+	go build -o $(BDIR)/vdaservice$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdaservice/main.go
 	go build -o $(BDIR)/testcerts$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/testcerts/main.go
 	go build -o $(BDIR)/vdaserver$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdaserver/main.go
 	go build -o $(BDIR)/vdas3$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/s3/main.go

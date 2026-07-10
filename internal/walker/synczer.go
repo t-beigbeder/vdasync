@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"path"
 	"regexp"
+	"slices"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -22,14 +23,14 @@ type SyncEntryStatus struct {
 	AggregatedChildrenNumber int
 	Created                  bool
 	Updated                  bool
-	Removed                  bool
 	ModChanged               bool
 	Error                    error
 	AggregatedCreated        int
 	AggregatedUpdated        int
-	AggregatedRemoved        int
 	AggregatedModChanged     int
 	AggregatedError          int
+	rmResult                 any
+	Removed                  bool
 	RemovedSize              int64
 	RemovedChildrenNumber    int
 }
@@ -127,14 +128,72 @@ func RunSynchronizer(
 }
 
 func SyncResult(walker Walker) map[string]*SyncEntryStatus {
+	if rs := walker.GetResult(); rs != nil {
+		return rs.(map[string]*SyncEntryStatus)
+	}
 	result := map[string]*SyncEntryStatus{}
 	walker.UserDataMap().Range(func(_, value any) bool {
 		es, _ := value.(*SyncEntryStatus)
 		if es != nil {
-			result[es.relPath] = es
+			esCopy := *es
+			result[es.relPath] = &esCopy
 		}
 		return true
 	})
+	curRps := make([]string, 0, len(result))
+	for k := range result {
+		curRps = append(curRps, k)
+	}
+
+	rps := []string{}
+	for _, rp := range curRps {
+		es := result[rp]
+		rps = append(rps, rp)
+		if es.rmResult == nil {
+			continue
+		}
+		rmR, ok := es.rmResult.(map[string]*RmEntryStatus)
+		if !ok {
+			panic("logic")
+		}
+		for rrp, rmEs := range rmR {
+			childEs, ok := result[rrp]
+			if !ok {
+				childEs = &SyncEntryStatus{
+					relPath: rrp,
+					IsDir:   rmEs.IsDir,
+					Size:    rmEs.Size,
+				}
+				result[rrp] = childEs
+				rps = append(rps, rrp)
+			}
+			childEs.Removed = true
+			childEs.RemovedChildrenNumber = rmEs.AggregatedChildrenNumber + 1
+			childEs.RemovedSize = rmEs.AggregatedSize
+		}
+	}
+	slices.Sort(rps)
+	for rpx := len(rps) - 1; rpx > 0; rpx-- {
+		rp := rps[rpx]
+		es := result[rp]
+		if !es.Removed && es.RemovedChildrenNumber == 0 {
+			continue
+		}
+		parentRp := path.Dir(rp)
+		if parentRp == "." {
+			parentRp = ""
+		}
+		parentEs, ok := result[parentRp]
+		if !ok {
+			panic("logic")
+		}
+		if parentEs.Removed {
+			continue
+		}
+		parentEs.RemovedChildrenNumber += es.RemovedChildrenNumber
+		parentEs.RemovedSize += es.RemovedSize
+	}
+	walker.SetResult(result)
 	return result
 }
 
@@ -156,6 +215,10 @@ func syncOptions(pe *ProcessedEntry) *config.SyncOptionsType {
 
 func targetDs(pe *ProcessedEntry) dssa.Dssa {
 	return syncData(pe).targetDs
+}
+
+func targetRoot(pe *ProcessedEntry) string {
+	return syncData(pe).targetRoot
 }
 
 func syncRelPath(pe *ProcessedEntry) string {
@@ -300,7 +363,6 @@ func computeDdeAggregates(pe *ProcessedEntry) {
 		agCN += dud.AggregatedChildrenNumber + 1
 		agC += dud.AggregatedCreated
 		agU += dud.AggregatedUpdated
-		agR += dud.AggregatedRemoved
 		agM += dud.AggregatedModChanged
 		agE += dud.AggregatedError
 	}
@@ -344,7 +406,6 @@ func computeDdeAggregates(pe *ProcessedEntry) {
 	}
 	es.AggregatedCreated = agC
 	es.AggregatedUpdated = agU
-	es.AggregatedRemoved = agR
 	es.AggregatedModChanged = agM
 	es.AggregatedError = agE
 }

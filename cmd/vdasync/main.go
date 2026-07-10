@@ -16,7 +16,7 @@ import (
 
 func main() {
 	var (
-		sourceFlag  = flag.String("source", "", "source of the command if sync")
+		sourceFlag  = flag.String("source", "", "source of the command")
 		targetFlag  = flag.String("target", "", "target of the command")
 		dryRunFlag  = flag.Bool("dryrun", false, "don't run operation, just report actions")
 		rmFlag      = flag.Bool("rm", false, "remove files in sync target")
@@ -36,6 +36,11 @@ func main() {
 		fmt.Println(config.GetVersion())
 		os.Exit(0)
 	}
+	outFile, err := common.StdWriter(*cf.OutFlag)
+	if err != nil {
+		common.Fatal(lgr, fmt.Errorf("output file %s: %v", *cf.OutFlag, err))
+	}
+	defer outFile.Close()
 
 	if *exclFlag != "" && !common.FileExists(*exclFlag) {
 		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *exclFlag))
@@ -92,9 +97,11 @@ func main() {
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	syncRes := walker.SyncResult(swk)
 	if !*cf.SilentFlag {
-		syncRes := walker.SyncResult(swk)
-		walker.DisplaySyncResult(syncRes, os.Stdout, true, *cf.VerboseFlag)
+		walker.DisplaySyncResult(syncRes, outFile, true, *cf.VerboseFlag)
+	} else if !*cf.VerboseFlag {
+		walker.DisplaySyncResult(syncRes, outFile, true, false)
 	}
 	time.Sleep(10 * time.Millisecond)
 }

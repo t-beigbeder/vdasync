@@ -29,5 +29,8 @@ func TestCliLog(t *testing.T) {
 	lgr, err = CliLogger("TestCliLog", "", "stderr")
 	require.Nil(t, err)
 	lgr.Error("5")
+	lgr, err = CliLogger("TestCliLog", "", "stdout")
+	require.Nil(t, err)
+	lgr.Error("6")
 	fmt.Fprintf(os.Stderr, "the end\n")
 }

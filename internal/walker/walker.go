@@ -23,6 +23,8 @@ type Walker interface {
 	SetUserData(*dssa.DataEntry, interface{})
 	GetUserData(*dssa.DataEntry) interface{}
 	UserDataMap() *sync.Map
+	SetResult(interface{})
+	GetResult() interface{}
 }
 
 type ProcessedEntry struct {
@@ -68,6 +70,8 @@ type walkerImpl struct {
 
 	pq  chan *ProcessedEntry
 	udm *sync.Map
+
+	result interface{}
 }
 
 var _ Walker = &walkerImpl{}
@@ -163,6 +167,10 @@ func (wi *walkerImpl) GetUserData(de *dssa.DataEntry) interface{} {
 func (wi *walkerImpl) UserDataMap() *sync.Map {
 	return wi.udm
 }
+
+func (wi *walkerImpl) SetResult(result interface{}) { wi.result = result }
+
+func (wi *walkerImpl) GetResult() interface{} { return wi.result }
 
 func (wi *walkerImpl) process(pe *ProcessedEntry) {
 	isDir := pe.DataEntry.IsDir

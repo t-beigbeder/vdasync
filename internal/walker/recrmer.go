@@ -3,6 +3,7 @@ package walker
 import (
 	"fmt"
 	"log/slog"
+	"path"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -19,14 +20,15 @@ type RmEntryStatus struct {
 
 type rmDataType struct {
 	BaseDoerData
-	dssAlias   string
-	dryRun     bool
-	sourceRoot string
+	dssAlias string
+	dryRun   bool
+	root     string
 }
 
 func NewRecursiveRemover(
 	lgr *slog.Logger, concurrency int,
 	dss dssa.Dssa,
+	root string,
 	dssAlias string,
 	dryRun bool,
 ) Walker {
@@ -39,7 +41,7 @@ func NewRecursiveRemover(
 		nil,
 		onDoneFilesRRm,
 		onDoneEntryRRm,
-		&rmDataType{dssAlias: dssAlias, dryRun: dryRun, BaseDoerData: BaseDoerData{DoerLabel: "rRm"}},
+		&rmDataType{dssAlias: dssAlias, dryRun: dryRun, root: root, BaseDoerData: BaseDoerData{DoerLabel: "rRm"}},
 	)
 }
 
@@ -68,7 +70,7 @@ func rmData(pe *ProcessedEntry) *rmDataType {
 }
 
 func rmPeRelPath(pe *ProcessedEntry) string {
-	return common.RelPath(pe.DataEntry.Path, rmData(pe).sourceRoot)
+	return common.RelPath(pe.DataEntry.Path, rmData(pe).root)
 }
 
 func rmUserData(pe *ProcessedEntry) *RmEntryStatus {
@@ -96,11 +98,6 @@ func dssInfoRRm(pe *ProcessedEntry, function string) {
 }
 
 func onStartDirEntryRRm(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
-	if pe.parent == nil && rmData(pe).sourceRoot == "" {
-		sd := rmData(pe)
-		sd.sourceRoot = pe.DataEntry.Path
-	}
-
 	rmEntryStatusInit(pe)
 
 	dssInfoRRm(pe, "List")
@@ -148,9 +145,9 @@ func onDoneEntryRRm(pe *ProcessedEntry) {
 	}
 }
 
-func RemoveAll(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, dssAlias string, dryRun bool) (Walker, error) {
-	walker := NewRecursiveRemover(lgr, concurrency, dss, dssAlias, dryRun)
-	de, err := dss.Stat(path_)
+func RemoveAll(lgr *slog.Logger, concurrency int, dss dssa.Dssa, root string, relPath string, dssAlias string, dryRun bool) (Walker, error) {
+	walker := NewRecursiveRemover(lgr, concurrency, dss, root, dssAlias, dryRun)
+	de, err := dss.Stat(path.Join(root, relPath))
 	if err != nil {
 		return nil, err
 	}

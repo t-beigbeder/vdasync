@@ -72,10 +72,9 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 		if isTargetSameKindInSource(pe, sChildren, tde) {
 			continue
 		}
-		// TODO: 1st pass with dryrun if removal limits set in options
-		if syncData(pe).syncOptions.Dryrun {
-			continue
-		}
+
+		syncUserData(pe).Updated = true
+
 		if !syncData(pe).syncOptions.Rm {
 			rp := syncRelTargetPath(pe, tde)
 			pe.Lgr_().Error("purgeTargetDirChildren: needed rm forbidden", "dss", "target", "de", rp, "err", err)
@@ -87,30 +86,31 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			continue
 		}
 		if tde.IsDir {
-			walker, err := RemoveAll(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), tde.Path, "target", syncData(pe).syncOptions.Dryrun)
+			walker, err := RemoveAll(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), targetRoot(pe), syncRelTargetPath(pe, tde), "target", syncData(pe).syncOptions.Dryrun)
 			if err != nil {
 				hasErrors = true
 				continue
 			}
-			if walker == nil {
-				continue
-			}
 			ses := syncUserData(pe)
-			for _, rmEs := range RmResult(walker) {
-				ses.RemovedSize += rmEs.AggregatedSize
-				ses.RemovedChildrenNumber += rmEs.AggregatedChildrenNumber
-			}
+			ses.rmResult = RmResult(walker)
 		} else {
 			rp := syncRelTargetPath(pe, tde)
-			pe.Lgr_().Debug("running dss Rm", "dss", "target", "de", rp)
-			if err := targetDs(pe).Rm(tde.Path); err != nil {
-				pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", rp, "err", err)
-				hasErrors = true
-				continue
+			if !syncData(pe).syncOptions.Dryrun {
+				pe.Lgr_().Debug("running dss Rm", "dss", "target", "de", rp)
+				if err := targetDs(pe).Rm(tde.Path); err != nil {
+					pe.Lgr_().Error("purgeTargetDirChildren: Rm error", "dss", "target", "de", rp, "err", err)
+					hasErrors = true
+					continue
+				}
 			}
 			ses := syncUserData(pe)
-			ses.RemovedSize += tde.Size
-			ses.RemovedChildrenNumber += 1
+			ses.rmResult = map[string]*RmEntryStatus{
+				rp: {
+					relPath:        rp,
+					Size:           tde.Size,
+					AggregatedSize: tde.Size,
+				},
+			}
 		}
 	}
 	if hasErrors {
@@ -300,7 +300,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 	dssInfoSync(pe, true, "Stat")
 	tde, err := targetDs(pe).Stat(tp)
 	if err != nil && !tde.ErrNotExist {
-		setSyncError(pe, "prepareTargetDirCreate: Stat", true, err)
+		setSyncError(pe, "runNdirEntrySync: Stat", true, err)
 		return
 	}
 	if tde.IsDir {

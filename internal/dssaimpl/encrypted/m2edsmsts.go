@@ -18,10 +18,10 @@ type m2edsvc struct {
 var _ metasts.MetaStorageSvc = &m2edsvc{}
 
 type m2edsStSvc struct {
-	dss           dssa.Dssa
-	rootPath      string
-	ageIdentities []string
-	ageRecipients []string
+	dss                 dssa.Dssa
+	rootPath            string
+	ageIdentitiesGetter func() []string
+	ageRecipients       []string
 }
 
 func (m *m2edsStSvc) metaPath() string {
@@ -48,7 +48,7 @@ func (m *m2edsStSvc) Get() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return common.AgeDecryptMsg(ebs, m.ageIdentities...)
+	return common.AgeDecryptMsg(ebs, m.ageIdentitiesGetter()...)
 }
 
 // Put implements [metasts.StorageSvc].

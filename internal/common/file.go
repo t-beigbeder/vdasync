@@ -24,6 +24,16 @@ func FileSize(path_ string) (int64, error) {
 	return fi.Size(), nil
 }
 
+func StdWriter(pathOrKw string) (io.WriteCloser, error) {
+	switch pathOrKw {
+	case "stdout":
+		return os.Stdout, nil
+	case "stderr":
+		return os.Stderr, nil
+	}
+	return os.Create(pathOrKw)
+}
+
 func ReaderSha256(rdr io.Reader) (string, error) {
 	h := sha256.New()
 	if _, err := io.Copy(h, rdr); err != nil {

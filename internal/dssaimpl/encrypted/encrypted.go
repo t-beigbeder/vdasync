@@ -23,12 +23,12 @@ type EncryptedDssa interface {
 // encryptedDssaImpl implements dssa.Dssa to store data files encrypted
 // in underlying dssa
 type encryptedDssaImpl struct {
-	lgr           *slog.Logger
-	underlying    dssa.Dssa
-	rootPath      string
-	msts          metasts.MetaStorageSvc
-	ageRecipients []string
-	ageIdentities []string
+	lgr                 *slog.Logger
+	underlying          dssa.Dssa
+	rootPath            string
+	msts                metasts.MetaStorageSvc
+	ageRecipients       []string
+	ageIdentitiesGetter func() []string
 }
 
 // Msts implements [EncryptedDssa].
@@ -75,7 +75,7 @@ func (ed *encryptedDssaImpl) GetReadCloser(path_ string) (io.ReadCloser, error) 
 	if err != nil {
 		return nil, err
 	}
-	return makeEReader(sr, ed.ageIdentities...)
+	return makeEReader(sr, ed.ageIdentitiesGetter()...)
 }
 
 // GetWriteCloser implements [dssa.Dssa].
@@ -257,15 +257,15 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, 
 			M2StSvc: metasts.M2StSvc{
 				Lgr: lgr,
 				StSvc: &m2edsStSvc{
-					dss:           underlying,
-					rootPath:      rootPath,
-					ageIdentities: ageIdentities,
-					ageRecipients: ageRecipients,
+					dss:                 underlying,
+					rootPath:            rootPath,
+					ageIdentitiesGetter: func() []string { return ageIdentities },
+					ageRecipients:       ageRecipients,
 				},
 			},
 		},
-		ageIdentities: ageIdentities,
-		ageRecipients: ageRecipients,
+		ageIdentitiesGetter: func() []string { return ageIdentities },
+		ageRecipients:       ageRecipients,
 	}
 	return dss, nil
 }
