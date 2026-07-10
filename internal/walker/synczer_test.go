@@ -1094,7 +1094,7 @@ func TestSimpleSteps(t *testing.T) {
 	dbgLgr := common.DbgLogger()
 	infoLgr := common.InfoLogger()
 	_, _, _ = nullLgr, dbgLgr, infoLgr
-	skipOp := true
+	skipOp := false
 	testSet := []simpleStepsDesc{
 		{
 			label: "TestFilesTreeOnFiles",
@@ -1163,10 +1163,9 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
-			label:   "Test1OnSftp",
-			omit:    false,
-			dispRes: true,
-			rLgr:    infoLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			label: "Test1OnSftp",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet:    getTd,
 			tDssType: "sftpDss",
 			tdGet:    getTd,

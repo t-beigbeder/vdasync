@@ -140,8 +140,14 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 		}
 		return true
 	})
+	curRps := make([]string, 0, len(result))
+	for k := range result {
+		curRps = append(curRps, k)
+	}
+
 	rps := []string{}
-	for rp, es := range result {
+	for _, rp := range curRps {
+		es := result[rp]
 		rps = append(rps, rp)
 		if es.rmResult == nil {
 			continue
