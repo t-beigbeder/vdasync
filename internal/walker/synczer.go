@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"path"
 	"regexp"
+	"slices"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -139,7 +140,9 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 		}
 		return true
 	})
+	rps := []string{}
 	for rp, es := range result {
+		rps = append(rps, rp)
 		if es.rmResult == nil {
 			continue
 		}
@@ -154,19 +157,20 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 					relPath:               rrp,
 					IsDir:                 rmEs.IsDir,
 					Size:                  rmEs.Size,
-					RemovedChildrenNumber: rmEs.AggregatedChildrenNumber,
-					RemovedSize:           rmEs.AggregatedSize,
 				}
 				result[rrp] = childEs
 			}
 			childEs.Removed = true
-			if rmEs.IsDir {
-				es.RemovedSize += rmEs.AggregatedSize
-				es.RemovedChildrenNumber += rmEs.AggregatedChildrenNumber
-			} else {
-				es.RemovedSize += rmEs.Size
-				es.RemovedChildrenNumber += 1
-			}
+			childEs.RemovedChildrenNumber = rmEs.AggregatedChildrenNumber
+			childEs.RemovedSize = rmEs.AggregatedSize
+		}
+	}
+	slices.Sort(rps)
+	for rpx := len(rps)-1; rpx > 0; rpx-- {
+		rp := rps[rpx]
+		es := result[rp]
+		if !es.Removed && es.RemovedChildrenNumber == 0 {
+			continue
 		}
 		parentRp := path.Dir(rp)
 		if parentRp == "." {
@@ -175,6 +179,9 @@ func SyncResult(walker Walker) map[string]*SyncEntryStatus {
 		parentEs, ok := result[parentRp]
 		if !ok {
 			panic("logic")
+		}
+		if parentEs.Removed {
+			continue
 		}
 		parentEs.RemovedChildrenNumber += es.RemovedChildrenNumber
 		parentEs.RemovedSize += es.RemovedSize
