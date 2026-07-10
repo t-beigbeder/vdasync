@@ -19,7 +19,11 @@ func doGetLogger(sll string) *slog.Logger {
 }
 
 func GetLogger() *slog.Logger {
-	return doGetLogger(os.Getenv("GO_TEST_LOG_LEVEL"))
+	gtll := os.Getenv("GO_TEST_LOG_LEVEL")
+	if gtll == "" {
+		return GetNullLogger()
+	}
+	return doGetLogger(gtll)
 }
 
 func DbgLogger() *slog.Logger {

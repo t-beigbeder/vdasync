@@ -989,6 +989,20 @@ func stepMakeTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) erro
 	return err
 }
 
+func stepMakeAugmentedTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if _, _, err := PrepareAugmentedTestFilesTree(sr, 7, 100, 16, 17*1024); err != nil {
+		return err
+	}
+	return nil
+}
+
+func stepUpdateAugmentedTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if _, _, err := UpdateAugmentedTestFilesTree(sr, 7, 100, 16, 6*1024); err != nil {
+		return err
+	}
+	return nil
+}
+
 func stepUtilMkdir(ssd *simpleStepsDesc, root, dp string) error {
 	return common.MakeParents(ssd.sDss, path.Join(root, dp))
 }
@@ -1087,8 +1101,11 @@ func test2Step4(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 }
 
 func TestSimpleSteps(t *testing.T) {
+	createdDirs := []string{}
 	getTd := func() string {
-		return t.TempDir()
+		td := t.TempDir()
+		createdDirs = append(createdDirs, td)
+		return td
 	}
 	nullLgr := common.GetNullLogger()
 	dbgLgr := common.DbgLogger()
@@ -1137,6 +1154,53 @@ func TestSimpleSteps(t *testing.T) {
 			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd, trGet: getTd, tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnRemoteFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "rDss",
+			trGet:    getTd,
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnSftp",
+			omit:  true, // FIXME: lnk fail with SFTP
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "sftpDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "eDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
 			},
 		},
 		{
@@ -1227,6 +1291,12 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 	}
+	defer func() {
+		for _, td := range createdDirs {
+			SetTestDirRW(td, "source")
+		}
+
+	}()
 	for _, test := range testSet {
 		if test.omit {
 			continue
