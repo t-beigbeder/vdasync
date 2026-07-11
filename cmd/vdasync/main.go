@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -26,12 +27,24 @@ func main() {
 		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
 		exclFlag     = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
 		inclFlag     = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
+		cProfFlag    = flag.String("cprof", "", "cpu.prof file")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
 	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
+	}
+	if *cProfFlag != "" {
+		cpuPf, err := os.Create(*cProfFlag)
+		if err != nil {
+			common.Fatal(lgr, fmt.Errorf("cprof %s: %v", *cpuPf, err))
+		}
+		defer cpuPf.Close()
+		if err := pprof.StartCPUProfile(cpuPf); err != nil {
+			common.Fatal(lgr, fmt.Errorf("StartCPUProfile: %v", err))
+		}
+		defer pprof.StopCPUProfile()
 	}
 	if *cf.VersionFlag {
 		fmt.Println(config.GetVersion())
