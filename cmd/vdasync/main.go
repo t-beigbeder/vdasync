@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -16,21 +17,34 @@ import (
 
 func main() {
 	var (
-		sourceFlag  = flag.String("source", "", "source of the command")
-		targetFlag  = flag.String("target", "", "target of the command")
-		dryRunFlag  = flag.Bool("dryrun", false, "don't run operation, just report actions")
-		rmFlag      = flag.Bool("rm", false, "remove files in sync target")
-		checkFlag   = flag.Bool("check", false, "compute checksums")
-		noPermFlag  = flag.Bool("noperm", false, "neither check nor set permissions")
-		noMtimeFlag = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
-		exclFlag    = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
-		inclFlag    = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
+		sourceFlag   = flag.String("source", "", "source of the command")
+		targetFlag   = flag.String("target", "", "target of the command")
+		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
+		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
+		checkFlag    = flag.Bool("check", false, "compute checksums")
+		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
+		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
+		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
+		exclFlag     = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
+		inclFlag     = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
+		cProfFlag    = flag.String("cprof", "", "cpu.prof file")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
 	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
+	}
+	if *cProfFlag != "" {
+		cpuPf, err := os.Create(*cProfFlag)
+		if err != nil {
+			common.Fatal(lgr, fmt.Errorf("cprof %s: %v", *cpuPf, err))
+		}
+		defer cpuPf.Close()
+		if err := pprof.StartCPUProfile(cpuPf); err != nil {
+			common.Fatal(lgr, fmt.Errorf("StartCPUProfile: %v", err))
+		}
+		defer pprof.StopCPUProfile()
 	}
 	if *cf.VersionFlag {
 		fmt.Println(config.GetVersion())
@@ -88,7 +102,7 @@ func main() {
 		lgr, *cf.ConcurrencyFlag,
 		&config.SyncOptionsType{
 			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag,
-			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag,
+			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
 			ExclListPath: *exclFlag, InclListPath: *inclFlag,
 		},
 		sDss, sourceRoot,

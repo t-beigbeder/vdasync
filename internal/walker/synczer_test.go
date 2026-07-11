@@ -989,6 +989,20 @@ func stepMakeTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) erro
 	return err
 }
 
+func stepMakeAugmentedTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if _, _, err := PrepareAugmentedTestFilesTree(sr, 7, 100, 16, 17*1024); err != nil {
+		return err
+	}
+	return nil
+}
+
+func stepUpdateAugmentedTestFilesTree(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if _, _, err := UpdateAugmentedTestFilesTree(sr, 7, 100, 16, 6*1024); err != nil {
+		return err
+	}
+	return nil
+}
+
 func stepUtilMkdir(ssd *simpleStepsDesc, root, dp string) error {
 	return common.MakeParents(ssd.sDss, path.Join(root, dp))
 }
@@ -1026,6 +1040,12 @@ func stepMakeTest1Base(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 		return err
 	}
 	if err := stepUtilMkfile(ssd, sr, "d1/d14/f141.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d15/f151.dat"); err != nil {
+		return err
+	}
+	if err := ssd.sDss.Symlink(path.Join("f151.dat"), path.Join(sr, "d1/d15/f152.lnk")); err != nil {
 		return err
 	}
 	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
@@ -1087,8 +1107,11 @@ func test2Step4(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 }
 
 func TestSimpleSteps(t *testing.T) {
+	createdDirs := []string{}
 	getTd := func() string {
-		return t.TempDir()
+		td := t.TempDir()
+		createdDirs = append(createdDirs, td)
+		return td
 	}
 	nullLgr := common.GetNullLogger()
 	dbgLgr := common.DbgLogger()
@@ -1140,6 +1163,53 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
+			label: "TestAugmentedOnFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet: getTd, trGet: getTd, tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnRemoteFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "rDss",
+			trGet:    getTd,
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnSftp",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, NoMtLink: true},
+			srGet:    getTd,
+			tDssType: "sftpDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "eDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
 			label: "Test1OnFiles",
 			omit:  skipOp,
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
@@ -1165,7 +1235,7 @@ func TestSimpleSteps(t *testing.T) {
 		{
 			label: "Test1OnSftp",
 			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, NoMtLink: true},
 			srGet:    getTd,
 			tDssType: "sftpDss",
 			tdGet:    getTd,
@@ -1227,6 +1297,12 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 	}
+	defer func() {
+		for _, td := range createdDirs {
+			SetTestDirRW(td, "source")
+		}
+
+	}()
 	for _, test := range testSet {
 		if test.omit {
 			continue
@@ -1244,6 +1320,7 @@ func TestSimpleSteps(t *testing.T) {
 			test.tDss = rDss
 		case "sftpDss":
 			test.tDss = sftpDss
+			_, _ = RecChmodRW(nullLgr, 0, sftpDss, "/dau", "sftp")
 			require.NoError(t, sftpc.Cleanup(sftpDss))
 		case "eDss":
 			test.tDss = eDss
