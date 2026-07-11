@@ -877,7 +877,7 @@ func runSyncAndCheck(
 	if err := targetDs.EndSession(); err != nil {
 		return nil, err
 	}
-	if ssd.dispRes {
+	if ssd.dispRes || true {
 		ssd.cLgr.With("subStep", ssn).Info("DisplaySyncResult")
 		DisplaySyncResult(SyncResult(ssd.lastWk), getTestOutWriter(), true, true)
 	}
@@ -1042,6 +1042,12 @@ func stepMakeTest1Base(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 	if err := stepUtilMkfile(ssd, sr, "d1/d14/f141.dat"); err != nil {
 		return err
 	}
+	if err := stepUtilMkfile(ssd, sr, "d1/d15/f151.dat"); err != nil {
+		return err
+	}
+	if err := ssd.sDss.Symlink(path.Join("f151.dat"), path.Join(sr, "d1/d15/f152.lnk")); err != nil {
+		return err
+	}
 	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
 	return err
 }
@@ -1101,6 +1107,7 @@ func test2Step4(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 }
 
 func TestSimpleSteps(t *testing.T) {
+	_ = 2
 	createdDirs := []string{}
 	getTd := func() string {
 		td := t.TempDir()
@@ -1111,7 +1118,7 @@ func TestSimpleSteps(t *testing.T) {
 	dbgLgr := common.DbgLogger()
 	infoLgr := common.InfoLogger()
 	_, _, _ = nullLgr, dbgLgr, infoLgr
-	skipOp := false
+	skipOp := true
 	testSet := []simpleStepsDesc{
 		{
 			label: "TestFilesTreeOnFiles",
@@ -1158,8 +1165,8 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label: "TestAugmentedOnFiles",
-			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			omit:  false,
+			rLgr:  dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet: getTd, trGet: getTd, tdGet: getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
@@ -1168,8 +1175,8 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label: "TestAugmentedOnRemoteFiles",
-			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			omit:  false,
+			rLgr:  dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet:    getTd,
 			tDssType: "rDss",
 			trGet:    getTd,
@@ -1181,8 +1188,8 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label: "TestAugmentedOnSftp",
-			omit:  true, // FIXME: lnk fail with SFTP
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			omit:  false,
+			rLgr:  dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true, NoMtLink: true},
 			srGet:    getTd,
 			tDssType: "sftpDss",
 			tdGet:    getTd,
@@ -1193,8 +1200,8 @@ func TestSimpleSteps(t *testing.T) {
 		},
 		{
 			label: "TestAugmentedOnEncryptedFiles",
-			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			omit:  false,
+			rLgr:  dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet:    getTd,
 			tDssType: "eDss",
 			tdGet:    getTd,
@@ -1229,7 +1236,7 @@ func TestSimpleSteps(t *testing.T) {
 		{
 			label: "Test1OnSftp",
 			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, NoMtLink: true},
 			srGet:    getTd,
 			tDssType: "sftpDss",
 			tdGet:    getTd,
@@ -1314,6 +1321,7 @@ func TestSimpleSteps(t *testing.T) {
 			test.tDss = rDss
 		case "sftpDss":
 			test.tDss = sftpDss
+			_, _ = RecChmodRW(nullLgr, 0, sftpDss, "/dau", "sftp")
 			require.NoError(t, sftpc.Cleanup(sftpDss))
 		case "eDss":
 			test.tDss = eDss

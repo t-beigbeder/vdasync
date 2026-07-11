@@ -63,7 +63,7 @@ func isTargetSameKindInSource(pe *ProcessedEntry, sChildren []*dssa.DataEntry, t
 func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) error {
 	tp := targetPath(pe)
 	dssInfoSync(pe, true, "List")
-	tdes, err := targetDs(pe).List(tp)
+	tdes, err := DssList(targetDs(pe), tp, pe.wi.noLstatOnList)
 	hasErrors := false
 	if err != nil {
 		return setSyncError(pe, "purgeTargetDirChildren: List", true, err)
@@ -176,13 +176,24 @@ func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) (hasChanges bool) {
 		hasChanges = true
 		return
 	}
-	if !syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime != tde.Mtime {
-		hasChanges = true
-		return
-	}
-	if syncData(pe).syncOptions.NoMtime && pe.DataEntry.Mtime > tde.Mtime {
-		hasChanges = true
-		return
+	if pe.DataEntry.Mtime != tde.Mtime {
+		if pe.DataEntry.IsSymLink {
+			if !syncData(pe).syncOptions.NoMtime && !syncData(pe).syncOptions.NoMtLink {
+				hasChanges = true
+				return
+			} else if pe.DataEntry.Mtime > tde.Mtime {
+				hasChanges = true
+				return
+			}
+		} else {
+			if !syncData(pe).syncOptions.NoMtime {
+				hasChanges = true
+				return
+			} else if pe.DataEntry.Mtime > tde.Mtime {
+				hasChanges = true
+				return
+			}
+		}
 	}
 	if pe.DataEntry.SymLinkTarget != tde.SymLinkTarget {
 		hasChanges = true
@@ -363,7 +374,19 @@ func setEntryChanges(pe *ProcessedEntry) {
 			tde.OtherRights != sde.OtherRights
 	}
 	if !hasChanges && !syncData(pe).syncOptions.NoMtime && tde.Mtime != sde.Mtime {
-		hasChanges = true
+		if pe.DataEntry.IsSymLink {
+			if !syncData(pe).syncOptions.NoMtime && !syncData(pe).syncOptions.NoMtLink {
+				hasChanges = true
+			} else if pe.DataEntry.Mtime > tde.Mtime {
+				hasChanges = true
+			}
+		} else {
+			if !syncData(pe).syncOptions.NoMtime {
+				hasChanges = true
+			} else if pe.DataEntry.Mtime > tde.Mtime {
+				hasChanges = true
+			}
+		}
 	}
 	es.ModChanged = hasChanges
 }
