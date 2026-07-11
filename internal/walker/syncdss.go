@@ -325,6 +325,7 @@ func runNdirEntrySync(pe *ProcessedEntry) {
 	}
 
 	if tde.ErrNotExist {
+		parentUpdated(pe)
 		syncUserData(pe).Created = true
 	} else {
 		syncUserData(pe).targetDe = tde

@@ -89,7 +89,7 @@ func main() {
 		lgr, *cf.ConcurrencyFlag,
 		&config.SyncOptionsType{
 			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag,
-			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag,
+			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
 			ExclListPath: *exclFlag, InclListPath: *inclFlag,
 		},
 		sDss, sourceRoot,
