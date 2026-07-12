@@ -30,7 +30,43 @@ It comes with the following components:
 
 ## Deployment overview
 
+The schema below illustrates how `vdasync` synchronizes
+local or remote files in a standalone or client-server deployment.
+
+![Vdasync's local and remote deployments](docs/images/vdasync-deployment.png "Vdasync's local and remote deployments schema")
+
+Using cloud or network storage services such as S3 object storage or SFTP
+is enabled with plugins as shown below:
+
+![Vdasync's plugins deployments](docs/images/vdasync-plugins.png "Vdasync's plugins deployments schema")
+
 ## Basic usage
+
+Basic usage is
+
+    vdasync [-dryrun] [-rm] [-check] -source <source DSS> -target <target DSS>
+
+DSS stands for data storage system:
+this can refer either simply to local files, to remote files accessed on a host running `vdaserver`,
+or else to a plugin configured through a file.
+Use `vdasync -help` to display the flags and their meanings.
+See the dedicated [page](docs/vdasync.md) for detailed information.
+
+Source and target directories must exist in the case of files, their respective sub-trees will be synchronized.
+
+For instance
+
+    vdasync -dryrun -rm -source /path/to/dev -target /path/to/backup/for/dev
+    vdasync -rm -source /path/to/dev -target /path/to/backup/for/dev
+    vdasync -dryrun -check -source /path/to/dev -target /path/to/backup/for/dev
+
+Remote access to a `vdaserver` would be enabled with the following DSS syntax:
+
+    dss://<server>:<port>/path/to/remote
+
+For instance restoring local files from a remote backup:
+
+    vdasync -rm -source dss://backup-server:9443/path/to/backup -target /path/to/dev
 
 ## Status
 
