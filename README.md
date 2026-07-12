@@ -35,10 +35,16 @@ local or remote files in a standalone or client-server deployment.
 
 ![Vdasync's local and remote deployments](docs/images/vdasync-deployment.png "Vdasync's local and remote deployments schema")
 
+Even if not illustrated, nothing forbids `vdasync` to synchronize remote files among themselves,
+at the cost of related data transfers on the network.
+
 Using cloud or network storage services such as S3 object storage or SFTP
 is enabled with plugins as shown below:
 
 ![Vdasync's plugins deployments](docs/images/vdasync-plugins.png "Vdasync's plugins deployments schema")
+
+Again, while not illustrated, data synchronization between plugins and remote files is also possible,
+as well as between plugins.
 
 ## Basic usage
 
