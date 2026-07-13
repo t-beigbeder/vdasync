@@ -38,7 +38,7 @@ func main() {
 	if *cProfFlag != "" {
 		cpuPf, err := os.Create(*cProfFlag)
 		if err != nil {
-			common.Fatal(lgr, fmt.Errorf("cprof %s: %v", *cpuPf, err))
+			common.Fatal(lgr, fmt.Errorf("cprof %s: %v", *cProfFlag, err))
 		}
 		defer cpuPf.Close()
 		if err := pprof.StartCPUProfile(cpuPf); err != nil {
