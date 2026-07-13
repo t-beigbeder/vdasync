@@ -11,7 +11,7 @@ running on Go [supported platforms](https://go.dev/wiki/MinimumRequirements).
 As [rsync](https://linux.die.net/man/1/rsync),
 `vdasync` is intended to be used for backups and mirroring and as an improved copy command for everyday use.
 Beyond local and remote files access, synchronization may leverage other data access means through plugins.
-`vdasync` also adds the capability to track long-running synchronization operations on large datasets,
+`vdasync` also adds the capability to track long-running synchronization operations on large datasets
 through the use of operations logs.
 
 It leverages Go [concurrency features](https://go.dev/wiki/LearnConcurrency)
@@ -43,6 +43,10 @@ is enabled with plugins as shown below:
 
 ![Vdasync's plugins deployments](docs/images/vdasync-plugins.png "Vdasync's plugins deployments schema")
 
+Plugins are gRPC servers running on the same host as the `vdasync` command that automatically start and stop them.
+They use the same API as `vdaserver` which makes the latter identical to a plugin implementing access to local files
+and running on a remote host.
+
 Again, while not illustrated, data synchronization between plugins and remote files is also possible,
 as well as between plugins.
 
@@ -53,7 +57,7 @@ Basic usage is
     vdasync [-dryrun] [-rm] [-check] -source <source DSS> -target <target DSS>
 
 DSS stands for data storage system:
-this can refer either simply to local files, to remote files accessed on a host running `vdaserver`,
+this can refer either to local files, to remote files accessed on a host running `vdaserver`,
 or else to a plugin configured through a file.
 Use `vdasync -help` to display the flags and their meanings.
 See the dedicated [page](docs/vdasync.md) for detailed information.
@@ -66,13 +70,32 @@ For instance
     vdasync -rm -source /path/to/dev -target /path/to/backup/for/dev
     vdasync -dryrun -check -source /path/to/dev -target /path/to/backup/for/dev
 
-Remote access to a `vdaserver` would be enabled with the following DSS syntax:
+Remote access to a `vdaserver` would be enabled with the following [DSS syntax](docs/dssurl.md):
 
     dss://<server>:<port>/path/to/remote
 
 For instance restoring local files from a remote backup:
 
     vdasync -rm -source dss://backup-server:9443/path/to/backup -target /path/to/dev
+
+## Detailed information
+
+Vdasync commands and their arguments are detailed here:
+
+- [vdasync](docs/vdasync.md)
+- [vdaserver](docs/vdaserver.md)
+- [vdaservice](docs/vdaservice.md)
+
+Vdasync plugins are detailed here:
+
+- [vdas3](docs/vdas3.md), storing data as S3 storage objects,
+- [vdasftp](docs/vdasftp.md), accessing files available from on a SFTP server,
+- [vdaencrypt](docs/vdaencrypt.md), storing encrypted data on local or remote files,
+
+Vdasync technical details are following:
+
+- [DSS syntax](docs/dssurl.md)
+- [Development](docs/dev.md)
 
 ## Status
 
