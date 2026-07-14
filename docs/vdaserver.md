@@ -1,1 +1,1 @@
-# vdaserver component
+# vdaserver, gRPC server for remote files access

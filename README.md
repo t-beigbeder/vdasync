@@ -8,8 +8,7 @@ to remote files and to various data access means through the use of plugins.
 Vdasync synchronization tool is a [CLI](https://en.wikipedia.org/wiki/Command-line_interface)
 running on Go [supported platforms](https://go.dev/wiki/MinimumRequirements).
 
-As [rsync](https://linux.die.net/man/1/rsync),
-`vdasync` is intended to be used for backups and mirroring and as an improved copy command for everyday use.
+`vdasync` is intended to be used for backups and data replication.
 Beyond local and remote files access, synchronization may leverage other data access means through plugins.
 `vdasync` also adds the capability to track long-running synchronization operations on large datasets
 through the use of operations logs.
@@ -21,7 +20,7 @@ It comes with the following components:
 
 - [vdasync](docs/vdasync.md), the synchronization CLI,
 - [vdaserver](docs/vdaserver.md), a [gRPC](https://grpc.io/) server providing remote access to files,
-- [vdaservice](docs/vdaservice.md), a CLI mainly used for administration and testing purposes,
+- [vdaservice](docs/vdaservice.md), a CLI mainly used for operations, administration and testing purposes,
 - a gRPC plugin API to add other data access means, among which the following are provided:
 
   - [vdas3](docs/vdas3.md), storing data as S3 storage objects,
@@ -95,6 +94,8 @@ Vdasync plugins are detailed here:
 Vdasync technical details are following:
 
 - [DSS syntax](docs/dssurl.md)
+- [vdasync's configuration](docs/conf.md)
+- [TLS configuration](docs/tls.md)
 - [Development](docs/dev.md)
 
 ## Status
