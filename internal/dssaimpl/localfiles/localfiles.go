@@ -95,6 +95,11 @@ func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
 	return nil
 }
 
+// Checksum implements [dssa.Dssa].
+func (d *localFiles) Checksum(algos string, path_ string) (string, error) {
+	return common.FileChecksum(path_, algos)
+}
+
 // GetReader implements [dssa.Dssa].
 func (d *localFiles) GetReadCloser(path_ string) (io.ReadCloser, error) {
 	return os.Open(path_)

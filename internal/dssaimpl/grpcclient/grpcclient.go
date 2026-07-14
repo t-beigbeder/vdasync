@@ -75,6 +75,16 @@ func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error 
 	return err
 }
 
+// Checksum implements [dssa.Dssa].
+func (gc *grpcClient) Checksum(algos string, path_ string) (string, error) {
+	gc.lgr.Debug("grpcClient.Checksum", "algos", algos, "path", path_)
+	gcs, err := gc.client.Checksum(gc.ctx, &dssagrpc.AlgosAndPath{Algos: algos, Path: path_})
+	if err != nil {
+		return "", err
+	}
+	return gcs.Checksums, nil
+}
+
 // GetReader implements [dssa.Dssa].
 func (gc *grpcClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
 	gc.lgr.Debug("grpcClient.GetReadCloser", "path", path_)

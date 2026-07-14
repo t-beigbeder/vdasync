@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -59,6 +60,40 @@ func TestSha256(t *testing.T) {
 	h, err := FileSha256(ft)
 	require.Nil(t, err)
 	require.Equal(t, "f2a2e3a8f52eccf22084cf440466ca4d00b2203df70fd57b11a408567e5a03ff", h)
+	h, err = FileChecksum(ft, "sha256")
+	require.Nil(t, err)
+	require.Equal(t, "sha256:f2a2e3a8f52eccf22084cf440466ca4d00b2203df70fd57b11a408567e5a03ff", h)
+}
+
+func TestChecksum(t *testing.T) {
+	ft := path.Join(t.TempDir(), "TestChecksum.dat")
+	require.Nil(t, WriteFile(ft, []byte(t.Name())))
+	h1, err := FileChecksum(ft, "sha256")
+	require.Nil(t, err)
+	require.Equal(t, "sha256:4b86be7f5fe5776cd535cdf1e81fdd77c204df48c751f61c121b3e72f6767e1e", h1)
+	h2, err := FileChecksum(ft, "sha512")
+	require.Nil(t, err)
+	require.Equal(t, "sha512:109f30d7354f330b30368e861919725ef6affdbafc5854e52ab827ed3469aed866c3365022193477e52d4dabdc957146af22bd2e4f064e656675a659a2e9bb21", h2)
+	h3, err := FileChecksum(ft, "sha512,sha256")
+	require.Nil(t, err)
+	require.Equal(t, h2+","+h1, h3)
+	rs := []string{}
+	for i := 0; i < 32; i++ {
+		require.Nil(t, WriteFile(ft, []byte(fmt.Sprintf("TestChecksum-%02d", i))))
+		hl1, err := FileChecksum(ft, "sha256")
+		require.Nil(t, err)
+		rs = append(rs, hl1)
+		require.Equal(t, 64+7, len(hl1))
+		hl2, err := FileChecksum(ft, "sha512")
+		require.Nil(t, err)
+		rs = append(rs, hl2)
+		require.Equal(t, 128+7, len(hl2))
+		hl3, err := FileChecksum(ft, "sha256,sha512")
+		require.Nil(t, err)
+		rs = append(rs, hl3)
+		require.Equal(t, 64+7+1+128+7, len(hl3))
+	}
+	require.Equal(t, 3*32, len(rs))
 }
 
 func TestStdWriter(t *testing.T) {

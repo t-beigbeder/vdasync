@@ -3,7 +3,10 @@ package common
 import (
 	"bufio"
 	"crypto/sha256"
+	"crypto/sha3"
+	"crypto/sha512"
 	"fmt"
+	"hash"
 	"io"
 	"os"
 	"strings"
@@ -48,7 +51,66 @@ func FileSha256(path_ string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer f.Close()
 	return ReaderSha256(f)
+}
+
+func HashFactory(hName string) (hash.Hash, error) {
+	switch hName {
+	case "sha256":
+		return sha256.New(), nil
+	case "sha512":
+		return sha512.New(), nil
+	case "sha3_256":
+		return sha3.New256(), nil
+	case "sha3_512":
+		return sha3.New512(), nil
+	default:
+		return nil, fmt.Errorf("HashFactory: not implemented: %s", hName)
+	}
+}
+
+func ReaderChecksum(rdr io.Reader, algos string) (string, error) {
+	hs := []hash.Hash{}
+	algoss := strings.Split(algos, ",")
+	for _, algo := range algoss {
+		h, err := HashFactory(algo)
+		if err != nil {
+			return "", err
+		}
+		hs = append(hs, h)
+	}
+	buffer := make([]byte, 32768)
+	for {
+		n, err := rdr.Read(buffer)
+		if err != nil && err != io.EOF {
+			return "", err
+		}
+		for _, h := range hs {
+			_, err := h.Write(buffer[0:n])
+			if err != nil {
+				return "", err
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+	}
+	cs := []string{}
+	for ix, h := range hs {
+		fmt_ := fmt.Sprintf("%%0%dx", h.Size())
+		cs = append(cs, fmt.Sprintf("%s:%s", algoss[ix], fmt.Sprintf(fmt_, h.Sum(nil))))
+	}
+	return strings.Join(cs, ","), nil
+}
+
+func FileChecksum(path_ string, algos string) (string, error) {
+	f, err := os.Open(path_)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	return ReaderChecksum(f, algos)
 }
 
 func WriteFile(path_ string, data []byte) error {

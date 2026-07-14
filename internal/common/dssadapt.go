@@ -119,6 +119,15 @@ func CopyEntry(dss dssa.Dssa, old, new_ string) error {
 	return wr.Close()
 }
 
+func DssaEntryChecksum(dss dssa.Dssa, path_ string, algos string) (string, error) {
+	rc, err := dss.GetReadCloser(path_)
+	if err != nil {
+		return "", err
+	}
+	defer rc.Close()
+	return ReaderChecksum(rc, algos)
+}
+
 func rightsList(rights dssa.Rights) string {
 	rs := "-"
 	if rights.Read {

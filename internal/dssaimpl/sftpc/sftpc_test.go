@@ -84,6 +84,11 @@ func TestBasicDirsAndFiles(t *testing.T) {
 	require.Equal(t, 1, len(des))
 	require.True(t, des[0].NoLStat)
 	require.Equal(t, "/d3/f4.sl", des[0].Path)
+
+	require.NoError(t, wtf(ds, "/d3/fcs.txt"))
+	h1, err := ds.Checksum("sha256", "/d3/fcs.txt")
+	require.Nil(t, err)
+	require.Equal(t, "sha256:95eed58d811932a8cbdd75262f1ba8a79ed90b011f78ac8ffaddc83aca28528b", h1)
 }
 
 func TestConcurrency(t *testing.T) {

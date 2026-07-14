@@ -23,6 +23,7 @@ const (
 	DataStorageSystem_EndSession_FullMethodName = "/dssa.DataStorageSystem/EndSession"
 	DataStorageSystem_List_FullMethodName       = "/dssa.DataStorageSystem/List"
 	DataStorageSystem_Stat_FullMethodName       = "/dssa.DataStorageSystem/Stat"
+	DataStorageSystem_Checksum_FullMethodName   = "/dssa.DataStorageSystem/Checksum"
 	DataStorageSystem_Mkdir_FullMethodName      = "/dssa.DataStorageSystem/Mkdir"
 	DataStorageSystem_SetStat_FullMethodName    = "/dssa.DataStorageSystem/SetStat"
 	DataStorageSystem_Put_FullMethodName        = "/dssa.DataStorageSystem/Put"
@@ -39,6 +40,7 @@ type DataStorageSystemClient interface {
 	EndSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
+	Checksum(ctx context.Context, in *AlgosAndPath, opts ...grpc.CallOption) (*Checksums, error)
 	Mkdir(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
 	SetStat(ctx context.Context, in *SetStatDataEntry, opts ...grpc.CallOption) (*Empty, error)
 	Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error)
@@ -89,6 +91,16 @@ func (c *dataStorageSystemClient) Stat(ctx context.Context, in *Path, opts ...gr
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(DataEntry)
 	err := c.cc.Invoke(ctx, DataStorageSystem_Stat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataStorageSystemClient) Checksum(ctx context.Context, in *AlgosAndPath, opts ...grpc.CallOption) (*Checksums, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Checksums)
+	err := c.cc.Invoke(ctx, DataStorageSystem_Checksum_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -175,6 +187,7 @@ type DataStorageSystemServer interface {
 	EndSession(context.Context, *Empty) (*Empty, error)
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
+	Checksum(context.Context, *AlgosAndPath) (*Checksums, error)
 	Mkdir(context.Context, *DataEntry) (*Empty, error)
 	SetStat(context.Context, *SetStatDataEntry) (*Empty, error)
 	Put(grpc.ClientStreamingServer[PushedBlock, Length]) error
@@ -202,6 +215,9 @@ func (UnimplementedDataStorageSystemServer) List(context.Context, *Path) (*DataE
 }
 func (UnimplementedDataStorageSystemServer) Stat(context.Context, *Path) (*DataEntry, error) {
 	return nil, status.Error(codes.Unimplemented, "method Stat not implemented")
+}
+func (UnimplementedDataStorageSystemServer) Checksum(context.Context, *AlgosAndPath) (*Checksums, error) {
+	return nil, status.Error(codes.Unimplemented, "method Checksum not implemented")
 }
 func (UnimplementedDataStorageSystemServer) Mkdir(context.Context, *DataEntry) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Mkdir not implemented")
@@ -310,6 +326,24 @@ func _DataStorageSystem_Stat_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DataStorageSystemServer).Stat(ctx, req.(*Path))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataStorageSystem_Checksum_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AlgosAndPath)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).Checksum(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_Checksum_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).Checksum(ctx, req.(*AlgosAndPath))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -426,6 +460,10 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Stat",
 			Handler:    _DataStorageSystem_Stat_Handler,
+		},
+		{
+			MethodName: "Checksum",
+			Handler:    _DataStorageSystem_Checksum_Handler,
 		},
 		{
 			MethodName: "Mkdir",
