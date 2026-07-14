@@ -35,6 +35,7 @@ type DataStoreType struct {
 type SyncOptionsType struct {
 	Dryrun       bool   `yaml`
 	Check        bool   `yaml`
+	CsAlgos      string `yaml:"csAlgos"`
 	NoPerm       bool   `yaml:"noPerm"`
 	NoMtime      bool   `yaml:"noMtime"`
 	NoMtLink     bool   `yaml:"noMtLink"`

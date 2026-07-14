@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -10,10 +11,12 @@ import (
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/remote"
+	"github.com/t-beigbeder/vdasync/internal/walker"
 	"google.golang.org/grpc"
 )
 
@@ -119,4 +122,46 @@ func GetGrpcClient(lgr *slog.Logger, cf *CommonFlagsType, host string, port int)
 		return nil, err
 	}
 	return dss, nil
+}
+
+type ServiceCtx struct {
+	Cmd         string
+	Dss         dssa.Dssa
+	Root        string
+	IsRecur     bool
+	IsCheck     bool
+	CsAlgos     string
+	Concurrency int
+	Lgr         *slog.Logger
+	OutFile     io.WriteCloser
+}
+
+func DoService(sc *ServiceCtx) error {
+	if sc.Cmd == "list" {
+		return doList(sc)
+	}
+	return fmt.Errorf("unknown command: %s", sc.Cmd)
+}
+
+func doList(sc *ServiceCtx) error {
+	if !sc.IsRecur {
+		des, err := sc.Dss.List(sc.Root)
+		if err != nil {
+			return err
+		}
+		for _, de := range des {
+			sc.OutFile.Write([]byte(common.DataEntryList(de) + "\n"))
+		}
+		return nil
+	} else {
+		wk, err := walker.RecDoAll(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", "list", nil)
+		if err != nil {
+			return err
+		}
+		rs := walker.DoerResult(wk)
+		for _, doerEs := range rs {
+			sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry) + "\n"))
+		}
+		return nil
+	}
 }

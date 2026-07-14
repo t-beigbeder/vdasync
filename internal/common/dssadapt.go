@@ -2,9 +2,11 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -115,4 +117,48 @@ func CopyEntry(dss dssa.Dssa, old, new_ string) error {
 		return err
 	}
 	return wr.Close()
+}
+
+func DssaEntryChecksum(dss dssa.Dssa, path_ string, algos string) (string, error) {
+	rc, err := dss.GetReadCloser(path_)
+	if err != nil {
+		return "", err
+	}
+	defer rc.Close()
+	return ReaderChecksum(rc, algos)
+}
+
+func rightsList(rights dssa.Rights) string {
+	rs := "-"
+	if rights.Read {
+		rs = "r"
+	}
+	ws := "-"
+	if rights.Write {
+		ws = "w"
+	}
+	xs := "-"
+	if rights.Execute {
+		xs = "x"
+	}
+	return rs + ws + xs
+}
+
+func DataEntryList(de *dssa.DataEntry) string {
+	tp := "-"
+	if de.IsDir {
+		tp = "d"
+	} else if de.IsSymLink {
+		tp = "l"
+	}
+	lt := ""
+	if de.IsSymLink {
+		lt = fmt.Sprintf(" -> %s", de.SymLinkTarget)
+	}
+	return fmt.Sprintf("%s%s%s%s %6d %6d %10d %21s %32s%s", tp,
+		rightsList(de.UserRights), rightsList(de.GroupRights), rightsList(de.OtherRights),
+		de.User, de.Group,
+		de.Size, time.Unix(de.Mtime, 0).Format(time.RFC3339), de.Path,
+		lt,
+	)
 }

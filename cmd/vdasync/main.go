@@ -22,6 +22,7 @@ func main() {
 		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
 		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
 		checkFlag    = flag.Bool("check", false, "compute checksums")
+		csalFlag     = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksum")
 		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
 		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
@@ -38,7 +39,7 @@ func main() {
 	if *cProfFlag != "" {
 		cpuPf, err := os.Create(*cProfFlag)
 		if err != nil {
-			common.Fatal(lgr, fmt.Errorf("cprof %s: %v", *cpuPf, err))
+			common.Fatal(lgr, fmt.Errorf("cprof %s: %v", *cProfFlag, err))
 		}
 		defer cpuPf.Close()
 		if err := pprof.StartCPUProfile(cpuPf); err != nil {
@@ -101,7 +102,7 @@ func main() {
 	swk, err := walker.RunSynchronizer(
 		lgr, *cf.ConcurrencyFlag,
 		&config.SyncOptionsType{
-			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag,
+			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag, CsAlgos: *csalFlag,
 			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
 			ExclListPath: *exclFlag, InclListPath: *inclFlag,
 		},

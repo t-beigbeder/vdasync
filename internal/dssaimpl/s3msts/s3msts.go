@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
 	"github.com/t-beigbeder/vdasync/internal/s3common"
 )
@@ -186,6 +187,11 @@ func (s3m *s3MetaSts) Stat(path_ string) (*dssa.DataEntry, error) {
 		de = &dssa.DataEntry{Path: path_, Error: fs.ErrNotExist, ErrNotExist: true}
 	}
 	return de, de.Error
+}
+
+// Checksum implements [dssa.Dssa].
+func (s3m *s3MetaSts) Checksum(algos string, path_ string) (string, error) {
+	return common.DssaEntryChecksum(s3m, path_, algos)
 }
 
 // Symlink implements [dssa.Dssa].

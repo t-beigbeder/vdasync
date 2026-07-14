@@ -216,6 +216,11 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 	return de, de.Error
 }
 
+// Checksum implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Checksum(algos string, path_ string) (string, error) {
+	return common.DssaEntryChecksum(ed, path_, algos)
+}
+
 // Symlink implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
 	de, err := ed.getDe(new_)

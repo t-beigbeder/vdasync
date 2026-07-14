@@ -4,55 +4,21 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io"
-	"log/slog"
 	"os"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
-	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 )
-
-type serviceCtx struct {
-	cmd     string
-	dss     dssa.Dssa
-	root    string
-	isRecur bool
-	isCheck bool
-	cf      *cli.CommonFlagsType
-	lgr     *slog.Logger
-	outFile io.WriteCloser
-}
-
-func doService(sc *serviceCtx) error {
-	if sc.cmd == "list" {
-		return doList(sc)
-	}
-	return fmt.Errorf("unknown command: %s", sc.cmd)
-}
-
-func doList(sc *serviceCtx) error {
-	if !sc.isRecur {
-		des, err := sc.dss.List(sc.root)
-		if err != nil {
-			return err
-		}
-		for _, de := range des {
-			sc.outFile.Write([]byte(fmt.Sprintf("%+v\n", de)))
-		}
-		return nil
-	}
-	return fmt.Errorf("not implemented %+v", sc)
-}
 
 func main() {
 	var (
 		cmdFlag   = flag.String("cmd", "", "a command to apply: list")
 		dssFlag   = flag.String("dss", "", "dss on which the command applies")
 		checkFlag = flag.Bool("check", false, "compute/display checksums")
+		csalFlag  = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksum")
 		recurFlag = flag.Bool("recur", false, "apply recursively to sub-directories")
 		exclFlag  = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
 		inclFlag  = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
@@ -114,15 +80,16 @@ func main() {
 	if *cmdFlag == "" {
 		common.Fatal(lgr, errors.New("cmd must be provided"))
 	}
-	err = doService(&serviceCtx{
-		cmd:     *cmdFlag,
-		dss:     dss,
-		root:    root,
-		isRecur: *recurFlag,
-		isCheck: *checkFlag,
-		cf:      cf,
-		lgr:     lgr,
-		outFile: outFile,
+	err = cli.DoService(&cli.ServiceCtx{
+		Cmd:         *cmdFlag,
+		Dss:         dss,
+		Root:        root,
+		IsRecur:     *recurFlag,
+		IsCheck:     *checkFlag,
+		CsAlgos:     *csalFlag,
+		Concurrency: *cf.ConcurrencyFlag,
+		Lgr:         lgr,
+		OutFile:     outFile,
 	})
 	if err != nil {
 		common.Fatal(lgr, err)

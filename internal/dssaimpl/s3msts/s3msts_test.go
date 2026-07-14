@@ -52,6 +52,11 @@ func TestBasicDirsAndFiles(t *testing.T) {
 	ls, err = ds.List("/d2")
 	require.NoError(t, err)
 	require.Equal(t, 2, len(ls))
+
+	require.NoError(t, wtf(ds, "/d1/fcs.txt"))
+	h1, err := ds.Checksum("sha256", "/d1/fcs.txt")
+	require.Nil(t, err)
+	require.Equal(t, "sha256:480211e45ddf70f77bb5add4f840f2e6e93f5225e371660b4da9bc89b3868d08", h1)
 }
 
 func TestBisBasicDirsAndFiles(t *testing.T) {

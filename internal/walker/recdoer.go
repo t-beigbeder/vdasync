@@ -9,9 +9,10 @@ import (
 )
 
 type DoerEntryStatus struct {
-	relPath string
-	IsDir   bool
-	Error   error
+	relPath   string
+	DataEntry *dssa.DataEntry
+	IsDir     bool
+	Error     error
 }
 
 type doerDataType struct {
@@ -82,6 +83,7 @@ func setDoerError(pe *ProcessedEntry, message string, err error) {
 func doerEntryStatusInit(pe *ProcessedEntry) {
 	es := &DoerEntryStatus{}
 	es.IsDir = pe.DataEntry.IsDir
+	es.DataEntry = pe.DataEntry
 	es.Error = pe.Error
 	es.relPath = doerPeRelPath(pe)
 	pe.wi.SetUserData(pe.DataEntry, es)

@@ -8,7 +8,6 @@ import (
 	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssa"
-	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 func parentUpdated(pe *ProcessedEntry) {
@@ -202,31 +201,17 @@ func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) (hasChanges bool) {
 	if !syncData(pe).syncOptions.Check || pe.DataEntry.IsSymLink {
 		return
 	}
-
-	srdr, err := pe.wi.ds.GetReadCloser(pe.DataEntry.Path)
+	algos := syncData(pe).syncOptions.CsAlgos
+	var err error
+	syncUserData(pe).sChecksum, err = pe.wi.ds.Checksum(algos, pe.DataEntry.Path)
 	if err != nil {
-		setSyncError(pe, "fileHasChanges: GetReadCloser", false, err)
+		setSyncError(pe, "fileHasChanges: Checksum", false, err)
 		hasChanges = true
 		return
 	}
-	defer srdr.Close()
-	syncUserData(pe).sChecksum, err = common.ReaderSha256(srdr)
+	syncUserData(pe).tChecksum, err = targetDs(pe).Checksum(algos, targetPath(pe))
 	if err != nil {
-		setSyncError(pe, "fileHasChanges: ReaderSha256", false, err)
-		hasChanges = true
-		return
-	}
-
-	trdr, err := targetDs(pe).GetReadCloser(targetPath(pe))
-	if err != nil {
-		setSyncError(pe, "fileHasChanges: GetReadCloser", true, err)
-		hasChanges = true
-		return
-	}
-	defer trdr.Close()
-	syncUserData(pe).tChecksum, err = common.ReaderSha256(trdr)
-	if err != nil {
-		setSyncError(pe, "fileHasChanges: ReaderSha256", true, err)
+		setSyncError(pe, "fileHasChanges: Checksum", true, err)
 		hasChanges = true
 		return
 	}

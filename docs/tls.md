@@ -1,0 +1,1 @@
+# Vdasync TLS configuration
