@@ -130,6 +130,7 @@ type ServiceCtx struct {
 	Root        string
 	IsRecur     bool
 	IsCheck     bool
+	CsAlgos     string
 	Concurrency int
 	Lgr         *slog.Logger
 	OutFile     io.WriteCloser

@@ -18,6 +18,7 @@ func main() {
 		cmdFlag   = flag.String("cmd", "", "a command to apply: list")
 		dssFlag   = flag.String("dss", "", "dss on which the command applies")
 		checkFlag = flag.Bool("check", false, "compute/display checksums")
+		csalFlag  = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksum")
 		recurFlag = flag.Bool("recur", false, "apply recursively to sub-directories")
 		exclFlag  = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
 		inclFlag  = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
@@ -85,6 +86,7 @@ func main() {
 		Root:        root,
 		IsRecur:     *recurFlag,
 		IsCheck:     *checkFlag,
+		CsAlgos:     *csalFlag,
 		Concurrency: *cf.ConcurrencyFlag,
 		Lgr:         lgr,
 		OutFile:     outFile,

@@ -72,6 +72,9 @@ func HashFactory(hName string) (hash.Hash, error) {
 
 func ReaderChecksum(rdr io.Reader, algos string) (string, error) {
 	hs := []hash.Hash{}
+	if algos == "" {
+		algos = "sha256"
+	}
 	algoss := strings.Split(algos, ",")
 	for _, algo := range algoss {
 		h, err := HashFactory(algo)
