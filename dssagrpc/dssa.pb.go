@@ -117,30 +117,32 @@ func (x *OldNewPaths) GetNew_() string {
 	return ""
 }
 
-type AlgosAndPath struct {
+type AlgosAndPathAndKey struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// comma-separated checksum algorithms
 	Algos string `protobuf:"bytes,1,opt,name=algos,proto3" json:"algos,omitempty"`
 	// DSS entry path of the data to be hashed
-	Path          string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	Path string `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	// Encryption secret to compute checksum on the server
+	Secret        string `protobuf:"bytes,3,opt,name=secret,proto3" json:"secret,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
-func (x *AlgosAndPath) Reset() {
-	*x = AlgosAndPath{}
+func (x *AlgosAndPathAndKey) Reset() {
+	*x = AlgosAndPathAndKey{}
 	mi := &file_grpc_dssa_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
 
-func (x *AlgosAndPath) String() string {
+func (x *AlgosAndPathAndKey) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*AlgosAndPath) ProtoMessage() {}
+func (*AlgosAndPathAndKey) ProtoMessage() {}
 
-func (x *AlgosAndPath) ProtoReflect() protoreflect.Message {
+func (x *AlgosAndPathAndKey) ProtoReflect() protoreflect.Message {
 	mi := &file_grpc_dssa_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
@@ -152,21 +154,28 @@ func (x *AlgosAndPath) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use AlgosAndPath.ProtoReflect.Descriptor instead.
-func (*AlgosAndPath) Descriptor() ([]byte, []int) {
+// Deprecated: Use AlgosAndPathAndKey.ProtoReflect.Descriptor instead.
+func (*AlgosAndPathAndKey) Descriptor() ([]byte, []int) {
 	return file_grpc_dssa_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *AlgosAndPath) GetAlgos() string {
+func (x *AlgosAndPathAndKey) GetAlgos() string {
 	if x != nil {
 		return x.Algos
 	}
 	return ""
 }
 
-func (x *AlgosAndPath) GetPath() string {
+func (x *AlgosAndPathAndKey) GetPath() string {
 	if x != nil {
 		return x.Path
+	}
+	return ""
+}
+
+func (x *AlgosAndPathAndKey) GetSecret() string {
+	if x != nil {
+		return x.Secret
 	}
 	return ""
 }
@@ -817,10 +826,11 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x04path\x18\x01 \x01(\tR\x04path\"2\n" +
 	"\vOldNewPaths\x12\x10\n" +
 	"\x03old\x18\x01 \x01(\tR\x03old\x12\x11\n" +
-	"\x04new_\x18\x02 \x01(\tR\x03new\"8\n" +
-	"\fAlgosAndPath\x12\x14\n" +
+	"\x04new_\x18\x02 \x01(\tR\x03new\"V\n" +
+	"\x12AlgosAndPathAndKey\x12\x14\n" +
 	"\x05algos\x18\x01 \x01(\tR\x05algos\x12\x12\n" +
-	"\x04path\x18\x02 \x01(\tR\x04path\")\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x16\n" +
+	"\x06secret\x18\x03 \x01(\tR\x06secret\")\n" +
 	"\tChecksums\x12\x1c\n" +
 	"\tchecksums\x18\x01 \x01(\tR\tchecksums\"8\n" +
 	"\vDataEntries\x12)\n" +
@@ -870,7 +880,7 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x0f.dssa.DataEntryR\x05value:\x028\x01\x1aD\n" +
 	"\tDirsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12!\n" +
-	"\x05value\x18\x02 \x01(\v2\v.dssa.PathsR\x05value:\x028\x012\xe9\x03\n" +
+	"\x05value\x18\x02 \x01(\v2\v.dssa.PathsR\x05value:\x028\x012\xef\x03\n" +
 	"\x11DataStorageSystem\x12(\n" +
 	"\n" +
 	"NewSession\x12\v.dssa.Empty\x1a\v.dssa.Empty\"\x00\x12(\n" +
@@ -879,8 +889,8 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x04List\x12\n" +
 	".dssa.Path\x1a\x11.dssa.DataEntries\"\x00\x12%\n" +
 	"\x04Stat\x12\n" +
-	".dssa.Path\x1a\x0f.dssa.DataEntry\"\x00\x121\n" +
-	"\bChecksum\x12\x12.dssa.AlgosAndPath\x1a\x0f.dssa.Checksums\"\x00\x12'\n" +
+	".dssa.Path\x1a\x0f.dssa.DataEntry\"\x00\x127\n" +
+	"\bChecksum\x12\x18.dssa.AlgosAndPathAndKey\x1a\x0f.dssa.Checksums\"\x00\x12'\n" +
 	"\x05Mkdir\x12\x0f.dssa.DataEntry\x1a\v.dssa.Empty\"\x00\x120\n" +
 	"\aSetStat\x12\x16.dssa.SetStatDataEntry\x1a\v.dssa.Empty\"\x00\x12*\n" +
 	"\x03Put\x12\x11.dssa.PushedBlock\x1a\f.dssa.Length\"\x00(\x01\x12(\n" +
@@ -905,22 +915,22 @@ func file_grpc_dssa_proto_rawDescGZIP() []byte {
 
 var file_grpc_dssa_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_grpc_dssa_proto_goTypes = []any{
-	(*Path)(nil),             // 0: dssa.Path
-	(*OldNewPaths)(nil),      // 1: dssa.OldNewPaths
-	(*AlgosAndPath)(nil),     // 2: dssa.AlgosAndPath
-	(*Checksums)(nil),        // 3: dssa.Checksums
-	(*DataEntries)(nil),      // 4: dssa.DataEntries
-	(*DataEntry)(nil),        // 5: dssa.DataEntry
-	(*SetStatDataEntry)(nil), // 6: dssa.SetStatDataEntry
-	(*Rights)(nil),           // 7: dssa.Rights
-	(*PushedBlock)(nil),      // 8: dssa.PushedBlock
-	(*PulledBlock)(nil),      // 9: dssa.PulledBlock
-	(*Length)(nil),           // 10: dssa.Length
-	(*Empty)(nil),            // 11: dssa.Empty
-	(*Paths)(nil),            // 12: dssa.Paths
-	(*MetaEntries)(nil),      // 13: dssa.MetaEntries
-	nil,                      // 14: dssa.MetaEntries.EntriesEntry
-	nil,                      // 15: dssa.MetaEntries.DirsEntry
+	(*Path)(nil),               // 0: dssa.Path
+	(*OldNewPaths)(nil),        // 1: dssa.OldNewPaths
+	(*AlgosAndPathAndKey)(nil), // 2: dssa.AlgosAndPathAndKey
+	(*Checksums)(nil),          // 3: dssa.Checksums
+	(*DataEntries)(nil),        // 4: dssa.DataEntries
+	(*DataEntry)(nil),          // 5: dssa.DataEntry
+	(*SetStatDataEntry)(nil),   // 6: dssa.SetStatDataEntry
+	(*Rights)(nil),             // 7: dssa.Rights
+	(*PushedBlock)(nil),        // 8: dssa.PushedBlock
+	(*PulledBlock)(nil),        // 9: dssa.PulledBlock
+	(*Length)(nil),             // 10: dssa.Length
+	(*Empty)(nil),              // 11: dssa.Empty
+	(*Paths)(nil),              // 12: dssa.Paths
+	(*MetaEntries)(nil),        // 13: dssa.MetaEntries
+	nil,                        // 14: dssa.MetaEntries.EntriesEntry
+	nil,                        // 15: dssa.MetaEntries.DirsEntry
 }
 var file_grpc_dssa_proto_depIdxs = []int32{
 	5,  // 0: dssa.DataEntries.entries:type_name -> dssa.DataEntry
@@ -936,7 +946,7 @@ var file_grpc_dssa_proto_depIdxs = []int32{
 	11, // 10: dssa.DataStorageSystem.EndSession:input_type -> dssa.Empty
 	0,  // 11: dssa.DataStorageSystem.List:input_type -> dssa.Path
 	0,  // 12: dssa.DataStorageSystem.Stat:input_type -> dssa.Path
-	2,  // 13: dssa.DataStorageSystem.Checksum:input_type -> dssa.AlgosAndPath
+	2,  // 13: dssa.DataStorageSystem.Checksum:input_type -> dssa.AlgosAndPathAndKey
 	5,  // 14: dssa.DataStorageSystem.Mkdir:input_type -> dssa.DataEntry
 	6,  // 15: dssa.DataStorageSystem.SetStat:input_type -> dssa.SetStatDataEntry
 	8,  // 16: dssa.DataStorageSystem.Put:input_type -> dssa.PushedBlock

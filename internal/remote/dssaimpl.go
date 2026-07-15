@@ -73,7 +73,7 @@ func (s *dssaImpl) SetStat(ctx context.Context, gssde *dssagrpc.SetStatDataEntry
 	return &dssagrpc.Empty{}, nil
 }
 
-func (s *dssaImpl) Checksum(ctx context.Context, aap *dssagrpc.AlgosAndPath) (*dssagrpc.Checksums, error) {
+func (s *dssaImpl) Checksum(ctx context.Context, aap *dssagrpc.AlgosAndPathAndKey) (*dssagrpc.Checksums, error) {
 	s.lgr.Debug("dssaImpl.Checksum", "algos", aap.Algos, "path", aap.Path)
 	s.callStats <- "Checksum"
 	cs, err := s.dssa_.Checksum(aap.Algos, aap.Path)

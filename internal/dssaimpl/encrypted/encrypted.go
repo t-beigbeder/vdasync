@@ -29,6 +29,7 @@ type encryptedDssaImpl struct {
 	msts                metasts.MetaStorageSvc
 	ageRecipients       []string
 	ageIdentitiesGetter func() []string
+	underlyingCheck     bool
 }
 
 // Msts implements [EncryptedDssa].
@@ -218,6 +219,10 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // Checksum implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Checksum(algos string, path_ string) (string, error) {
+	if !ed.underlyingCheck {
+		return common.DssaEntryChecksum(ed, path_, algos)
+	}
+	// TODO
 	return common.DssaEntryChecksum(ed, path_, algos)
 }
 

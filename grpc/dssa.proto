@@ -9,7 +9,7 @@ service DataStorageSystem {
 	rpc EndSession(Empty) returns (Empty) {}
     rpc List(Path) returns (DataEntries) {}
     rpc Stat(Path) returns (DataEntry) {}
-    rpc Checksum(AlgosAndPath) returns (Checksums) {}
+    rpc Checksum(AlgosAndPathAndKey) returns (Checksums) {}
     rpc Mkdir(DataEntry) returns (Empty) {}
     rpc SetStat(SetStatDataEntry) returns (Empty) {}
     rpc Put(stream PushedBlock) returns (Length) {}
@@ -27,11 +27,13 @@ message OldNewPaths {
     string new_ = 2;
 }
 
-message AlgosAndPath {
+message AlgosAndPathAndKey {
     // comma-separated checksum algorithms
     string algos = 1;
     // DSS entry path of the data to be hashed
     string path = 2;
+    // Encryption secret to compute checksum on the server
+    string secret = 3;
 }
 
 message Checksums {

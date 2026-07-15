@@ -40,7 +40,7 @@ type DataStorageSystemClient interface {
 	EndSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
-	Checksum(ctx context.Context, in *AlgosAndPath, opts ...grpc.CallOption) (*Checksums, error)
+	Checksum(ctx context.Context, in *AlgosAndPathAndKey, opts ...grpc.CallOption) (*Checksums, error)
 	Mkdir(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
 	SetStat(ctx context.Context, in *SetStatDataEntry, opts ...grpc.CallOption) (*Empty, error)
 	Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error)
@@ -97,7 +97,7 @@ func (c *dataStorageSystemClient) Stat(ctx context.Context, in *Path, opts ...gr
 	return out, nil
 }
 
-func (c *dataStorageSystemClient) Checksum(ctx context.Context, in *AlgosAndPath, opts ...grpc.CallOption) (*Checksums, error) {
+func (c *dataStorageSystemClient) Checksum(ctx context.Context, in *AlgosAndPathAndKey, opts ...grpc.CallOption) (*Checksums, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Checksums)
 	err := c.cc.Invoke(ctx, DataStorageSystem_Checksum_FullMethodName, in, out, cOpts...)
@@ -187,7 +187,7 @@ type DataStorageSystemServer interface {
 	EndSession(context.Context, *Empty) (*Empty, error)
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
-	Checksum(context.Context, *AlgosAndPath) (*Checksums, error)
+	Checksum(context.Context, *AlgosAndPathAndKey) (*Checksums, error)
 	Mkdir(context.Context, *DataEntry) (*Empty, error)
 	SetStat(context.Context, *SetStatDataEntry) (*Empty, error)
 	Put(grpc.ClientStreamingServer[PushedBlock, Length]) error
@@ -216,7 +216,7 @@ func (UnimplementedDataStorageSystemServer) List(context.Context, *Path) (*DataE
 func (UnimplementedDataStorageSystemServer) Stat(context.Context, *Path) (*DataEntry, error) {
 	return nil, status.Error(codes.Unimplemented, "method Stat not implemented")
 }
-func (UnimplementedDataStorageSystemServer) Checksum(context.Context, *AlgosAndPath) (*Checksums, error) {
+func (UnimplementedDataStorageSystemServer) Checksum(context.Context, *AlgosAndPathAndKey) (*Checksums, error) {
 	return nil, status.Error(codes.Unimplemented, "method Checksum not implemented")
 }
 func (UnimplementedDataStorageSystemServer) Mkdir(context.Context, *DataEntry) (*Empty, error) {
@@ -331,7 +331,7 @@ func _DataStorageSystem_Stat_Handler(srv interface{}, ctx context.Context, dec f
 }
 
 func _DataStorageSystem_Checksum_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AlgosAndPath)
+	in := new(AlgosAndPathAndKey)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -343,7 +343,7 @@ func _DataStorageSystem_Checksum_Handler(srv interface{}, ctx context.Context, d
 		FullMethod: DataStorageSystem_Checksum_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataStorageSystemServer).Checksum(ctx, req.(*AlgosAndPath))
+		return srv.(DataStorageSystemServer).Checksum(ctx, req.(*AlgosAndPathAndKey))
 	}
 	return interceptor(ctx, in, info, handler)
 }
