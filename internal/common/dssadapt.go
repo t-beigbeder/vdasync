@@ -163,7 +163,7 @@ func DataEntryList(de *dssa.DataEntry, isNoOwn bool, cs string) string {
 	if cs != "" {
 		csd = " " + cs
 	}
-	return fmt.Sprintf("%s%s%s%s%s%10d %21s %32s%s%s", tp,
+	return fmt.Sprintf("%s%s%s%s%s%10d %21s %s%s%s", tp,
 		rightsList(de.UserRights), rightsList(de.GroupRights), rightsList(de.OtherRights),
 		ownDisp, de.Size, time.Unix(de.Mtime, 0).Format(time.RFC3339), de.Path,
 		lt, csd,
