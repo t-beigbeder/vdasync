@@ -35,6 +35,7 @@ func getDs(t *testing.T) (string, dssa.Dssa) {
 		localfiles.MakeLocalFilesDssa(),
 		td,
 		[]string{ids},
+		false,
 		[]string{recs},
 	)
 	require.NotNil(t, ds)
@@ -265,6 +266,7 @@ func TestRepairIndex(t *testing.T) {
 		localfiles.MakeLocalFilesDssa(),
 		td,
 		[]string{ids},
+		false,
 		[]string{recs},
 	)
 	require.NotNil(t, ds)

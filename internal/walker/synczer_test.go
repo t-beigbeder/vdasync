@@ -71,6 +71,7 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dss
 			localfiles.MakeLocalFilesDssa(),
 			td,
 			[]string{ids},
+			false,
 			[]string{recs},
 		)
 		require.NotNil(t, dss5)

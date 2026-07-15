@@ -258,7 +258,8 @@ func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
 var _ dssa.Dssa = &encryptedDssaImpl{}
 var _ EncryptedDssa = &encryptedDssaImpl{}
 
-func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIdentities []string, ageRecipients []string) (EncryptedDssa, error) {
+func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string,
+	ageIdentities []string, underlyingCheck bool, ageRecipients []string) (EncryptedDssa, error) {
 	dss := &encryptedDssaImpl{
 		lgr:        lgr,
 		underlying: underlying,
@@ -276,6 +277,7 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, 
 		},
 		ageIdentitiesGetter: func() []string { return ageIdentities },
 		ageRecipients:       ageRecipients,
+		underlyingCheck:     underlyingCheck,
 	}
 	return dss, nil
 }
