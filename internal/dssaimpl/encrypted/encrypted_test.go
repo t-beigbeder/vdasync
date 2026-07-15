@@ -26,7 +26,7 @@ func wtf(ds dssa.Dssa, path_ string) error {
 	return nil
 }
 
-func getDs(t *testing.T) (string, dssa.Dssa) {
+func getDs(t *testing.T, undCheck bool) (string, dssa.Dssa) {
 	recs, ids, err := common.AgeNewKeyPair()
 	require.NoError(t, err)
 	td := t.TempDir()
@@ -35,7 +35,7 @@ func getDs(t *testing.T) (string, dssa.Dssa) {
 		localfiles.MakeLocalFilesDssa(),
 		td,
 		[]string{ids},
-		false,
+		undCheck,
 		[]string{recs},
 	)
 	require.NotNil(t, ds)
@@ -43,7 +43,39 @@ func getDs(t *testing.T) (string, dssa.Dssa) {
 }
 
 func TestBasicDirsAndFiles(t *testing.T) {
-	_, ds := getDs(t)
+	_, ds := getDs(t, false)
+	require.NotNil(t, ds)
+	require.NoError(t, ds.NewSession())
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
+	require.NoError(t, ds.EndSession())
+	require.NoError(t, ds.NewSession())
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d2", IsDir: true}))
+	require.NoError(t, ds.EndSession())
+	require.NoError(t, ds.NewSession())
+	require.NoError(t, wtf(ds, "/d1/f1.txt"))
+	require.NoError(t, wtf(ds, "/d2/f2.txt"))
+	require.NoError(t, wtf(ds, "/d2/f3.txt"))
+	require.NoError(t, wtf(ds, "/f0.txt"))
+	ls, err := ds.List("/")
+	require.NoError(t, err)
+	require.Equal(t, 3, len(ls))
+	require.NoError(t, ds.EndSession())
+	require.NoError(t, ds.NewSession())
+	ls, err = ds.List("/")
+	require.NoError(t, err)
+	require.Equal(t, 3, len(ls))
+	ls, err = ds.List("/d2")
+	require.NoError(t, err)
+	require.Equal(t, 2, len(ls))
+
+	require.NoError(t, wtf(ds, "/d1/fcs.txt"))
+	h1, err := ds.Checksum("sha256", "/d1/fcs.txt")
+	require.Nil(t, err)
+	require.Equal(t, "sha256:480211e45ddf70f77bb5add4f840f2e6e93f5225e371660b4da9bc89b3868d08", h1)
+}
+
+func TestUndCheckBasicDirsAndFiles(t *testing.T) {
+	_, ds := getDs(t, true)
 	require.NotNil(t, ds)
 	require.NoError(t, ds.NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
@@ -75,7 +107,7 @@ func TestBasicDirsAndFiles(t *testing.T) {
 }
 
 func TestBisBasicDirsAndFiles(t *testing.T) {
-	_, ds := getDs(t)
+	_, ds := getDs(t, false)
 	require.NotNil(t, ds)
 	require.NoError(t, ds.NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
@@ -187,7 +219,7 @@ func TestBisBasicDirsAndFiles(t *testing.T) {
 }
 
 func TestBasicFilesRW(t *testing.T) {
-	_, ds := getDs(t)
+	_, ds := getDs(t, false)
 	require.NotNil(t, ds)
 	require.NoError(t, ds.NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d2", IsDir: true}))
