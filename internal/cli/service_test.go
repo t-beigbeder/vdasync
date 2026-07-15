@@ -19,7 +19,7 @@ func TestServiceList(t *testing.T) {
 	des, err := dss.List(path.Join(td))
 	require.NoError(t, err)
 	for _, de := range des {
-		lgr.Debug("TestDeList", "de", common.DataEntryList(de))
+		lgr.Debug("TestDeList", "de", common.DataEntryList(de, false, ""))
 	}
 	require.NoError(t,
 		DoService(&ServiceCtx{

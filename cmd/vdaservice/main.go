@@ -22,6 +22,9 @@ func main() {
 		recurFlag = flag.Bool("recur", false, "apply recursively to sub-directories")
 		exclFlag  = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
 		inclFlag  = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
+		sortFlag  = flag.Bool("sort", false, "sort output with entries paths")
+		tsortFlag = flag.Bool("tsort", false, "sort output with entries modification times")
+		noownFlag = flag.Bool("noown", false, "hide uid gid information")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -87,6 +90,9 @@ func main() {
 		IsRecur:     *recurFlag,
 		IsCheck:     *checkFlag,
 		CsAlgos:     *csalFlag,
+		IsSorted:    *sortFlag,
+		IsTSorted:   *tsortFlag,
+		IsNoOwn:     *noownFlag,
 		Concurrency: *cf.ConcurrencyFlag,
 		Lgr:         lgr,
 		OutFile:     outFile,

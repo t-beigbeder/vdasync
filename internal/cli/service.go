@@ -7,6 +7,8 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"slices"
+	"strings"
 	"syscall"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -131,6 +133,9 @@ type ServiceCtx struct {
 	IsRecur     bool
 	IsCheck     bool
 	CsAlgos     string
+	IsSorted    bool
+	IsTSorted   bool
+	IsNoOwn     bool
 	Concurrency int
 	Lgr         *slog.Logger
 	OutFile     io.WriteCloser
@@ -144,24 +149,54 @@ func DoService(sc *ServiceCtx) error {
 }
 
 func doList(sc *ServiceCtx) error {
+	rs := map[string]*walker.DoerEntryStatus{}
 	if !sc.IsRecur {
 		des, err := sc.Dss.List(sc.Root)
 		if err != nil {
 			return err
 		}
 		for _, de := range des {
-			sc.OutFile.Write([]byte(common.DataEntryList(de) + "\n"))
+			cs := ""
+			if sc.IsCheck && !de.IsDir && !de.IsSymLink {
+				cs, err = sc.Dss.Checksum(sc.CsAlgos, de.Path)
+				if err != nil {
+					return err
+				}
+			}
+			rs[de.Path] = &walker.DoerEntryStatus{DataEntry: de, Checksum: cs}
 		}
-		return nil
 	} else {
-		wk, err := walker.RecDoAll(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", "list", nil)
+		wk, err := walker.RecListCs(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", sc.IsCheck, sc.CsAlgos)
 		if err != nil {
 			return err
 		}
-		rs := walker.DoerResult(wk)
-		for _, doerEs := range rs {
-			sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry) + "\n"))
+		rs = walker.DoerResult(wk)
+	}
+	rss := []*walker.DoerEntryStatus{}
+	for _, doerEs := range rs {
+		if sc.IsSorted || sc.IsTSorted {
+			rss = append(rss, doerEs)
+		} else {
+			sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry, sc.IsNoOwn, doerEs.Checksum) + "\n"))
 		}
+	}
+	if sc.IsSorted {
+		slices.SortFunc(rss, func(a, b *walker.DoerEntryStatus) int {
+			return strings.Compare(a.DataEntry.Path, b.DataEntry.Path)
+		})
+	} else if sc.IsTSorted {
+		slices.SortFunc(rss, func(a, b *walker.DoerEntryStatus) int {
+			i := a.DataEntry.Mtime - b.DataEntry.Mtime
+			if i != 0 {
+				return int(i)
+			}
+			return strings.Compare(a.DataEntry.Path, b.DataEntry.Path)
+		})
+	} else {
 		return nil
 	}
+	for _, doerEs := range rss {
+		sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry, sc.IsNoOwn, doerEs.Checksum) + "\n"))
+	}
+	return nil
 }

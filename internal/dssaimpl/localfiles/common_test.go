@@ -17,16 +17,16 @@ func TestDeList(t *testing.T) {
 	des, err := dss.List(path.Join(td))
 	require.NoError(t, err)
 	for _, de := range des {
-		lgr.Debug("TestDeList", "de", common.DataEntryList(de))
+		lgr.Debug("TestDeList", "de", common.DataEntryList(de, true, ""))
 	}
 	des, err = dss.List(path.Join(td, "dLinks"))
 	require.NoError(t, err)
 	for _, de := range des {
-		lgr.Debug("TestDeList", "de", common.DataEntryList(de))
+		lgr.Debug("TestDeList", "de", common.DataEntryList(de, false, ""))
 	}
 	des, err = dss.List(path.Join(td, "dAddFiles"))
 	require.NoError(t, err)
 	for _, de := range des {
-		lgr.Debug("TestDeList", "de", common.DataEntryList(de))
+		lgr.Debug("TestDeList", "de", common.DataEntryList(de, false, ""))
 	}
 }

@@ -11,6 +11,7 @@ import (
 type DoerEntryStatus struct {
 	relPath   string
 	DataEntry *dssa.DataEntry
+	Checksum  string
 	IsDir     bool
 	Error     error
 }
@@ -186,6 +187,24 @@ func RecTouch(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, ds
 		lgr, concurrency, dss, path_, dssAlias, "Touch Mtime",
 		func(pe *ProcessedEntry) {
 			onDoneEntryMtime(pe, mtime)
+		},
+	)
+}
+
+func RecListCs(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, dssAlias string, isCheck bool, csAlgos string) (Walker, error) {
+	return RecDoAll(
+		lgr, concurrency, dss, path_, dssAlias, "ListCs",
+		func(pe *ProcessedEntry) {
+			if !isCheck || pe.DataEntry.IsDir || pe.DataEntry.IsSymLink {
+				return
+			}
+			dssInfoRDoer(pe, "Checksum")
+			cs, err := pe.Dssa_().Checksum(csAlgos, pe.DataEntry.Path)
+			if err != nil {
+				setDoerError(pe, "onDoneEntryListCs: Checksum", err)
+				return
+			}
+			doerUserData(pe).Checksum = cs
 		},
 	)
 }
