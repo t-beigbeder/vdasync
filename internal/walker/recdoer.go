@@ -199,7 +199,7 @@ func RecListCs(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, d
 				return
 			}
 			dssInfoRDoer(pe, "Checksum")
-			cs, err := pe.Dssa_().Checksum(csAlgos, pe.DataEntry.Path)
+			cs, err := pe.Dssa_().Checksum(csAlgos, pe.DataEntry.Path, "") // TODO
 			if err != nil {
 				setDoerError(pe, "onDoneEntryListCs: Checksum", err)
 				return

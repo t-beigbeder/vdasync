@@ -33,7 +33,7 @@ type Dssa interface {
 	Mkdir(*DataEntry) error
 	Stat(string) (*DataEntry, error)
 	SetStat(_ *DataEntry, noPerm, noMtime bool) error
-	Checksum(algos, path_ string) (string, error)
+	Checksum(algos, path_, secret string) (string, error)
 	GetReadCloser(string) (io.ReadCloser, error)
 	GetWriteCloser(string) (io.WriteCloser, error)
 	Rm(string) error

@@ -158,7 +158,7 @@ func doList(sc *ServiceCtx) error {
 		for _, de := range des {
 			cs := ""
 			if sc.IsCheck && !de.IsDir && !de.IsSymLink {
-				cs, err = sc.Dss.Checksum(sc.CsAlgos, de.Path)
+				cs, err = sc.Dss.Checksum(sc.CsAlgos, de.Path, "") // TODO
 				if err != nil {
 					return err
 				}

@@ -76,9 +76,9 @@ func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error 
 }
 
 // Checksum implements [dssa.Dssa].
-func (gc *grpcClient) Checksum(algos string, path_ string) (string, error) {
+func (gc *grpcClient) Checksum(algos, path_, secret string) (string, error) {
 	gc.lgr.Debug("grpcClient.Checksum", "algos", algos, "path", path_)
-	gcs, err := gc.client.Checksum(gc.ctx, &dssagrpc.AlgosAndPathAndKey{Algos: algos, Path: path_})
+	gcs, err := gc.client.Checksum(gc.ctx, &dssagrpc.AlgosAndPathAndKey{Algos: algos, Path: path_, Secret: secret})
 	if err != nil {
 		return "", err
 	}

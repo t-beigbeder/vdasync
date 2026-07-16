@@ -167,7 +167,7 @@ func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
 }
 
 // Checksum implements [dssa.Dssa].
-func (sf *sftpClient) Checksum(algos string, path_ string) (string, error) {
+func (sf *sftpClient) Checksum(algos, path_, secret string) (string, error) {
 	return common.DssaEntryChecksum(sf, path_, algos)
 }
 

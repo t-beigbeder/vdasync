@@ -76,7 +76,7 @@ func TestFunctions(t *testing.T) {
 
 	ft = path.Join(t.TempDir(), "TestFileFunctions.dat")
 	require.Nil(t, common.WriteFile(ft, []byte("TestChecksum")))
-	h1, err := dgc.Checksum("sha256", ft)
+	h1, err := dgc.Checksum("sha256", ft, "")
 	require.Nil(t, err)
 	require.Equal(t, "sha256:4b86be7f5fe5776cd535cdf1e81fdd77c204df48c751f61c121b3e72f6767e1e", h1)
 

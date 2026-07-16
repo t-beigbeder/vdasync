@@ -155,16 +155,12 @@ func (ed *encryptedDssaImpl) NewSession() error {
 
 // Rm implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Rm(path_ string) error {
-	ok, err := ed.msts.Exists(path_)
+	de, err := ed.getDe(path_)
 	if err != nil {
 		return err
 	}
-	if !ok {
+	if de == nil {
 		return fmt.Errorf("encryptedDssaImpl.Rm: %s: no such file or directory", path_)
-	}
-	de, err := ed.msts.Get(path_)
-	if err != nil {
-		return err
 	}
 	if !de.IsDir && !de.IsSymLink {
 		if err = ed.underlying.Rm(ed.actualPath(de)); err != nil { // FIXME
@@ -218,22 +214,18 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 }
 
 // Checksum implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) Checksum(algos string, path_ string) (string, error) {
+func (ed *encryptedDssaImpl) Checksum(algos, path_, secret string) (string, error) {
 	if !ed.underlyingCheck {
 		return common.DssaEntryChecksum(ed, path_, algos)
 	}
-	ok, err := ed.msts.Exists(path_)
+	de, err := ed.getDe(path_)
 	if err != nil {
 		return "", err
 	}
-	if !ok {
+	if de == nil {
 		return "", fmt.Errorf("encryptedDssaImpl.Checksum: %s: no such file or directory", path_)
 	}
-	de, err := ed.msts.Get(path_)
-	if err != nil {
-		return "", err
-	}
-	cs, err := ed.underlying.Checksum(algos, ed.actualPath(de))
+	cs, err := ed.underlying.Checksum(algos, ed.actualPath(de), secret)
 	if err != nil {
 		return "", err
 	}

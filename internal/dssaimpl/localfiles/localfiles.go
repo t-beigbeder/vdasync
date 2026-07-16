@@ -96,7 +96,7 @@ func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
 }
 
 // Checksum implements [dssa.Dssa].
-func (d *localFiles) Checksum(algos string, path_ string) (string, error) {
+func (d *localFiles) Checksum(algos, path_, secret string) (string, error) {
 	return common.FileChecksum(path_, algos)
 }
 
