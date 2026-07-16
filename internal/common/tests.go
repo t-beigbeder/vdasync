@@ -38,6 +38,13 @@ func GetNullLogger() *slog.Logger {
 	return slog.New(slog.NewTextHandler(io.Discard, &slog.HandlerOptions{}))
 }
 
+func GetTestOut() io.Writer {
+	so := os.Stdout
+	do := io.Discard
+	_, _ = so, do
+	return do
+}
+
 func MakeTestFile(tfPath string, size int) error {
 	buf := make([]byte, 32*1024)
 	fd, err := os.Create(tfPath)

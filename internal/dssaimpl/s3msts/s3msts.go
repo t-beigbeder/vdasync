@@ -190,7 +190,7 @@ func (s3m *s3MetaSts) Stat(path_ string) (*dssa.DataEntry, error) {
 }
 
 // Checksum implements [dssa.Dssa].
-func (s3m *s3MetaSts) Checksum(algos, path_, secret string) (string, error) {
+func (s3m *s3MetaSts) Checksum(algos, path_, _ string) (string, error) {
 	return common.DssaEntryChecksum(s3m, path_, algos)
 }
 

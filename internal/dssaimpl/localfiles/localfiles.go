@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -97,7 +98,19 @@ func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
 
 // Checksum implements [dssa.Dssa].
 func (d *localFiles) Checksum(algos, path_, secret string) (string, error) {
-	return common.FileChecksum(path_, algos)
+	if secret == "" {
+		return common.FileChecksum(path_, algos)
+	}
+	er, err := d.GetReadCloser(path_)
+	if err != nil {
+		return "", err
+	}
+	defer er.Close()
+	dr, err := common.AgeDecrypt(er, strings.Split(secret, ",")...)
+	if err != nil {
+		return "", err
+	}
+	return common.ReaderChecksum(dr, algos)
 }
 
 // GetReader implements [dssa.Dssa].

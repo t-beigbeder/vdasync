@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"os"
 	"path"
 	"testing"
 
@@ -13,7 +12,7 @@ import (
 func TestServiceList(t *testing.T) {
 	dss := localfiles.MakeLocalFilesDssa()
 	td := t.TempDir()
-	lgr := common.DbgLogger()
+	lgr := common.GetLogger()
 	_, _, err := common.AugmentTestFilesTree(td)
 	require.NoError(t, err)
 	des, err := dss.List(path.Join(td))
@@ -30,7 +29,7 @@ func TestServiceList(t *testing.T) {
 			IsCheck:     true,
 			Concurrency: 0,
 			Lgr:         lgr,
-			OutFile:     os.Stdout,
+			OutFile:     common.GetTestOut(),
 		}),
 	)
 	require.NoError(t,
@@ -42,7 +41,7 @@ func TestServiceList(t *testing.T) {
 			IsCheck:     true,
 			Concurrency: 0,
 			Lgr:         lgr,
-			OutFile:     os.Stdout,
+			OutFile:     common.GetTestOut(),
 		}),
 	)
 }

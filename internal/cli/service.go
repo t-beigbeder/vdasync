@@ -138,7 +138,7 @@ type ServiceCtx struct {
 	IsNoOwn     bool
 	Concurrency int
 	Lgr         *slog.Logger
-	OutFile     io.WriteCloser
+	OutFile     io.Writer
 }
 
 func DoService(sc *ServiceCtx) error {
