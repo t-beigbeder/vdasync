@@ -14,3 +14,4 @@ plugins:
   - testdata/cmd/age.recs
   - "-underlying"
   - dss://localhost:9090/local/tmp/dss_enc
+  - "-undcheck"

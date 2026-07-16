@@ -98,7 +98,7 @@ func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
 
 // Checksum implements [dssa.Dssa].
 func (d *localFiles) Checksum(algos, path_, secret string) (string, error) {
-	if secret == "" {
+	if !strings.HasPrefix(secret, "encryptedDssaImpl:") {
 		return common.FileChecksum(path_, algos)
 	}
 	er, err := d.GetReadCloser(path_)
@@ -106,7 +106,7 @@ func (d *localFiles) Checksum(algos, path_, secret string) (string, error) {
 		return "", err
 	}
 	defer er.Close()
-	dr, err := common.AgeDecrypt(er, strings.Split(secret, ",")...)
+	dr, err := common.AgeDecrypt(er, secret[len("encryptedDssaImpl:"):])
 	if err != nil {
 		return "", err
 	}

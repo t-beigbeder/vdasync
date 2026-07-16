@@ -25,6 +25,7 @@ type Walker interface {
 	UserDataMap() *sync.Map
 	SetResult(interface{})
 	GetResult() interface{}
+	Args_() []interface{}
 }
 
 type ProcessedEntry struct {
@@ -102,6 +103,10 @@ func MakeWalker(
 		args:             args,
 	}
 	return wi
+}
+
+func (wi *walkerImpl) Args_() []interface{} {
+	return wi.args
 }
 
 func (wi *walkerImpl) Run(root *dssa.DataEntry) error {

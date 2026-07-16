@@ -42,6 +42,7 @@ type SyncOptionsType struct {
 	Rm           bool   `yaml`
 	ExclListPath string `yaml:"exclListPath"`
 	InclListPath string `yaml:"inclListPath"`
+	GetSecret    func() string
 }
 
 type CliConfig struct {

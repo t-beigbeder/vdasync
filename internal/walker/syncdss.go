@@ -203,13 +203,14 @@ func fileHasChanges(pe *ProcessedEntry, tde *dssa.DataEntry) (hasChanges bool) {
 	}
 	algos := syncData(pe).syncOptions.CsAlgos
 	var err error
-	syncUserData(pe).sChecksum, err = pe.wi.ds.Checksum(algos, pe.DataEntry.Path, "") // TODO
+	syncUserData(pe).sChecksum, err = pe.wi.ds.Checksum(algos, pe.DataEntry.Path, syncData(pe).getSSecret())
 	if err != nil {
 		setSyncError(pe, "fileHasChanges: Checksum", false, err)
 		hasChanges = true
 		return
 	}
-	syncUserData(pe).tChecksum, err = targetDs(pe).Checksum(algos, targetPath(pe), "") // TODO
+
+	syncUserData(pe).tChecksum, err = targetDs(pe).Checksum(algos, targetPath(pe), syncData(pe).getTSecret())
 	if err != nil {
 		setSyncError(pe, "fileHasChanges: Checksum", true, err)
 		hasChanges = true

@@ -17,6 +17,14 @@ type grpcClient struct {
 	client remote.OpeDssaClient
 }
 
+type GrpcClient interface {
+	IsGrpcClient() bool
+}
+
+var _ GrpcClient = &grpcClient{}
+
+func (gc *grpcClient) IsGrpcClient() bool { return true }
+
 // EndSession implements [dssa.Dssa].
 func (gc *grpcClient) EndSession() error {
 	gc.lgr.Debug("grpcClient.EndSession")
@@ -77,7 +85,7 @@ func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error 
 
 // Checksum implements [dssa.Dssa].
 func (gc *grpcClient) Checksum(algos, path_, secret string) (string, error) {
-	gc.lgr.Debug("grpcClient.Checksum", "algos", algos, "path", path_)
+	gc.lgr.Debug("grpcClient.Checksum", "algos", algos, "path", path_, "secret", secret != "")
 	gcs, err := gc.client.Checksum(gc.ctx, &dssagrpc.AlgosAndPathAndKey{Algos: algos, Path: path_, Secret: secret})
 	if err != nil {
 		return "", err

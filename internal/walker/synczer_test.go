@@ -43,6 +43,8 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	return
 }
 
+var recs, ids string
+
 func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, encrypted.EncryptedDssa, context.CancelFunc) {
 	cli, cFunc, err := remote.GrpcGetTestClient(nil)
 	require.NoError(t, err)
@@ -63,7 +65,9 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dss
 	}
 	require.NoError(t, err)
 	if hasEncrypt {
-		recs, ids, err := common.AgeNewKeyPair()
+		if recs == "" {
+			recs, ids, err = common.AgeNewKeyPair()
+		}
 		require.NoError(t, err)
 		td := t.TempDir()
 		dss5, _ = encrypted.MakeEncryptedDssa(
@@ -71,7 +75,7 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dss
 			localfiles.MakeLocalFilesDssa(),
 			td,
 			[]string{ids},
-			false,
+			true,
 			[]string{recs},
 		)
 		require.NotNil(t, dss5)
@@ -1260,7 +1264,7 @@ func TestSimpleSteps(t *testing.T) {
 		{
 			label: "Test1OnEncryptedFilesCheck",
 			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true},
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true, GetSecret: func() string { return ids }},
 			srGet:    getTd,
 			tDssType: "eDss",
 			tdGet:    getTd,

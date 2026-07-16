@@ -10,6 +10,7 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 )
 
 type SyncEntryStatus struct {
@@ -43,6 +44,8 @@ type syncDataType struct {
 	targetRoot  string
 	excls       []*regexp.Regexp
 	incls       []*regexp.Regexp
+	getSSecret  func() string
+	getTSecret  func() string
 }
 
 func compileRe(ss []string) ([]*regexp.Regexp, error) {
@@ -82,6 +85,21 @@ func NewSynchronizer(
 	if err != nil {
 		return nil, fmt.Errorf("RunSynchronizer: inclusion file regexps: %v", err)
 	}
+	getSSecret := func() string { return "" }
+	getTSecret := func() string { return "" }
+	_, sdsIsGc := sourceDs.(grpcclient.GrpcClient)
+	_, tdsIsGc := targetDs.(grpcclient.GrpcClient)
+	if syncOptions.GetSecret != nil {
+		secret := syncOptions.GetSecret()
+		if secret != "" {
+			if sdsIsGc {
+				getSSecret = func() string { return secret }
+			}
+			if tdsIsGc {
+				getTSecret = func() string { return secret }
+			}
+		}
+	}
 	return MakeWalker(
 		lgr,
 		concurrency,
@@ -94,6 +112,8 @@ func NewSynchronizer(
 		&syncDataType{
 			syncOptions: syncOptions, targetDs: targetDs, targetRoot: targetRoot,
 			excls: excls, incls: incls,
+			getSSecret:   getSSecret,
+			getTSecret:   getTSecret,
 			BaseDoerData: BaseDoerData{DoerLabel: "sync"},
 		},
 	), nil
@@ -123,7 +143,8 @@ func RunSynchronizer(
 	if err != nil {
 		return nil, err
 	}
-	lgr.Info("RunSynchronizer", "concurrency", concurrency, "source", sourceRoot, "target", targetRoot)
+	sd, _ := wk.Args_()[0].(*syncDataType)
+	lgr.Info("RunSynchronizer", "concurrency", concurrency, "secret", syncOptions.GetSecret != nil && syncOptions.GetSecret() != "", "source", sourceRoot, "sSecret", sd.getSSecret() != "", "target", targetRoot, "tSecret", sd.getTSecret() != "")
 	return wk, wk.Run(sde)
 }
 

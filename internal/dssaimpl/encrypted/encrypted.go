@@ -215,7 +215,7 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // Checksum implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Checksum(algos, path_, secret string) (string, error) {
-	if !ed.underlyingCheck {
+	if !ed.underlyingCheck || secret == "" {
 		return common.DssaEntryChecksum(ed, path_, algos)
 	}
 	de, err := ed.getDe(path_)
@@ -225,7 +225,7 @@ func (ed *encryptedDssaImpl) Checksum(algos, path_, secret string) (string, erro
 	if de == nil {
 		return "", fmt.Errorf("encryptedDssaImpl.Checksum: %s: no such file or directory", path_)
 	}
-	cs, err := ed.underlying.Checksum(algos, ed.actualPath(de), secret)
+	cs, err := ed.underlying.Checksum(algos, ed.actualPath(de), "encryptedDssaImpl:"+secret)
 	if err != nil {
 		return "", err
 	}

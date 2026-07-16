@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -74,10 +75,13 @@ func (s *dssaImpl) SetStat(ctx context.Context, gssde *dssagrpc.SetStatDataEntry
 }
 
 func (s *dssaImpl) Checksum(ctx context.Context, aap *dssagrpc.AlgosAndPathAndKey) (*dssagrpc.Checksums, error) {
-	hasSecret := aap.Secret != ""
-	s.lgr.Debug("dssaImpl.Checksum", "algos", aap.Algos, "path", aap.Path, "secret", hasSecret)
+	secret := aap.Secret
+	if !strings.HasPrefix(secret, "encryptedDssaImpl:") {
+		secret = ""
+	}
+	s.lgr.Debug("dssaImpl.Checksum", "algos", aap.Algos, "path", aap.Path, "secret", secret != "")
 	s.callStats <- "Checksum"
-	cs, err := s.dssa_.Checksum(aap.Algos, aap.Path, aap.Secret)
+	cs, err := s.dssa_.Checksum(aap.Algos, aap.Path, secret)
 	if err != nil {
 		return nil, err
 	}

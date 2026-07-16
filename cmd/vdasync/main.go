@@ -22,7 +22,8 @@ func main() {
 		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
 		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
 		checkFlag    = flag.Bool("check", false, "compute checksums")
-		csalFlag     = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksum")
+		csalFlag     = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums")
+		ageIdfFlag   = flag.String("ageidf", "", "age identities (secrets) file name, for use to compute checksums on server")
 		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
 		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
@@ -56,6 +57,17 @@ func main() {
 		common.Fatal(lgr, fmt.Errorf("output file %s: %v", *cf.OutFlag, err))
 	}
 	defer outFile.Close()
+
+	secret := ""
+	if *ageIdfFlag != "" {
+		identities, err := common.FileLines(*ageIdfFlag)
+		if err != nil {
+			common.Fatal(lgr, fmt.Errorf("idf: %s: %v", *ageIdfFlag, err))
+		}
+		if len(identities) > 0 {
+			secret = identities[0]
+		}
+	}
 
 	if *exclFlag != "" && !common.FileExists(*exclFlag) {
 		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *exclFlag))
@@ -105,6 +117,7 @@ func main() {
 			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag, CsAlgos: *csalFlag,
 			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
 			ExclListPath: *exclFlag, InclListPath: *inclFlag,
+			GetSecret: func() string { return secret },
 		},
 		sDss, sourceRoot,
 		tDss, targetRoot,
