@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
 )
 
@@ -215,10 +217,22 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // Checksum implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Checksum(algos, path_ string) (string, error) {
-	if !ed.underlyingCheck {
+	gc, underIsGc := ed.underlying.(grpcclient.GrpcClient)
+	if !ed.underlyingCheck || !underIsGc {
 		return common.DssaEntryChecksum(ed, path_, algos)
 	}
-	return common.DssaEntryChecksum(ed, path_, algos) // TODO
+	de, err := ed.getDe(path_)
+	if err != nil {
+		return "", err
+	}
+	if de == nil {
+		return "", fmt.Errorf("encryptedDssaImpl.Checksum: %s: no such file or directory", path_)
+	}
+	cs, err := gc.EncryptedChecksum(algos, ed.actualPath(de), strings.Join(ed.ageIdentitiesGetter(), ","))
+	if err != nil {
+		return "", err
+	}
+	return cs, nil
 }
 
 // Symlink implements [dssa.Dssa].

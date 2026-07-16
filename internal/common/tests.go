@@ -92,9 +92,6 @@ func MakeTextTestFile(tfPath string, size int) error {
 				buf[i] = byte(0x0a)
 			}
 		}
-		if err != nil {
-			return err
-		}
 		nw, err := fd.Write(buf)
 		if err != nil {
 			return err
