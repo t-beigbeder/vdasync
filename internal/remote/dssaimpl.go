@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -77,6 +78,26 @@ func (s *dssaImpl) Checksum(ctx context.Context, aap *dssagrpc.AlgosAndPath) (*d
 	s.lgr.Debug("dssaImpl.Checksum", "algos", aap.Algos, "path", aap.Path)
 	s.callStats <- "Checksum"
 	cs, err := s.dssa_.Checksum(aap.Algos, aap.Path)
+	if err != nil {
+		return nil, err
+	}
+	return &dssagrpc.Checksums{Checksums: cs}, nil
+}
+
+func (s *dssaImpl) EncryptedChecksum(ctx context.Context, aps *dssagrpc.AlgosAndPathAndSecret) (*dssagrpc.Checksums, error) {
+	s.lgr.Debug("dssaImpl.EncryptedChecksum", "algos", aps.Algos, "path", aps.Path)
+	s.callStats <- "EncryptedChecksum"
+
+	er, err := s.dssa_.GetReadCloser(aps.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer er.Close()
+	dr, err := common.AgeDecrypt(er, strings.Split(aps.Secret, ",")...)
+	if err != nil {
+		return nil, err
+	}
+	cs, err := common.ReaderChecksum(dr, aps.Algos)
 	if err != nil {
 		return nil, err
 	}

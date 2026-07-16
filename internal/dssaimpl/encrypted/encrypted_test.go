@@ -26,7 +26,7 @@ func wtf(ds dssa.Dssa, path_ string) error {
 	return nil
 }
 
-func getDs(t *testing.T) (string, dssa.Dssa) {
+func getDs(t *testing.T, undCheck bool) (string, dssa.Dssa, string) {
 	recs, ids, err := common.AgeNewKeyPair()
 	require.NoError(t, err)
 	td := t.TempDir()
@@ -35,14 +35,15 @@ func getDs(t *testing.T) (string, dssa.Dssa) {
 		localfiles.MakeLocalFilesDssa(),
 		td,
 		[]string{ids},
+		undCheck,
 		[]string{recs},
 	)
 	require.NotNil(t, ds)
-	return td, ds
+	return td, ds, ids
 }
 
 func TestBasicDirsAndFiles(t *testing.T) {
-	_, ds := getDs(t)
+	_, ds, _ := getDs(t, false)
 	require.NotNil(t, ds)
 	require.NoError(t, ds.NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
@@ -73,8 +74,21 @@ func TestBasicDirsAndFiles(t *testing.T) {
 	require.Equal(t, "sha256:480211e45ddf70f77bb5add4f840f2e6e93f5225e371660b4da9bc89b3868d08", h1)
 }
 
+func TestUndCheckBasicDirsAndFiles(t *testing.T) {
+	_, ds, _ := getDs(t, true)
+	require.NotNil(t, ds)
+	require.NoError(t, ds.NewSession())
+	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
+	require.NoError(t, wtf(ds, "/d1/fcs.txt"))
+	require.NoError(t, ds.EndSession())
+	require.NoError(t, ds.NewSession())
+	h1, err := ds.Checksum("sha256", "/d1/fcs.txt") // TODO
+	require.Nil(t, err)
+	require.Equal(t, "sha256:480211e45ddf70f77bb5add4f840f2e6e93f5225e371660b4da9bc89b3868d08", h1)
+}
+
 func TestBisBasicDirsAndFiles(t *testing.T) {
-	_, ds := getDs(t)
+	_, ds, _ := getDs(t, false)
 	require.NotNil(t, ds)
 	require.NoError(t, ds.NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
@@ -186,7 +200,7 @@ func TestBisBasicDirsAndFiles(t *testing.T) {
 }
 
 func TestBasicFilesRW(t *testing.T) {
-	_, ds := getDs(t)
+	_, ds, _ := getDs(t, false)
 	require.NotNil(t, ds)
 	require.NoError(t, ds.NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d2", IsDir: true}))
@@ -261,10 +275,11 @@ func TestRepairIndex(t *testing.T) {
 	require.NoError(t, err)
 	td := t.TempDir()
 	ds, _ := MakeEncryptedDssa(
-		common.DbgLogger(),
+		common.GetLogger(),
 		localfiles.MakeLocalFilesDssa(),
 		td,
 		[]string{ids},
+		false,
 		[]string{recs},
 	)
 	require.NotNil(t, ds)
@@ -282,7 +297,7 @@ func TestRepairIndex(t *testing.T) {
 	require.NoError(t, ds.NewSession())
 	require.NoError(t,
 		CheckIndex(
-			common.DbgLogger(), localfiles.MakeLocalFilesDssa(), td,
+			common.GetLogger(), localfiles.MakeLocalFilesDssa(), td,
 			[]string{ids}, []string{recs}, false),
 	)
 }

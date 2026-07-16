@@ -96,7 +96,7 @@ func TestConcurrency(t *testing.T) {
 	ds := GetSftpDss(t)
 	require.NoError(t, Cleanup(ds))
 	var wg sync.WaitGroup
-	lgr := common.DbgLogger()
+	lgr := common.GetLogger()
 	lgr.Debug("start")
 	for i := 0; i < 8; i++ {
 		wg.Add(1)

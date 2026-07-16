@@ -7,10 +7,12 @@ import (
 	"log/slog"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
 )
 
@@ -29,6 +31,7 @@ type encryptedDssaImpl struct {
 	msts                metasts.MetaStorageSvc
 	ageRecipients       []string
 	ageIdentitiesGetter func() []string
+	underlyingCheck     bool
 }
 
 // Msts implements [EncryptedDssa].
@@ -154,16 +157,12 @@ func (ed *encryptedDssaImpl) NewSession() error {
 
 // Rm implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Rm(path_ string) error {
-	ok, err := ed.msts.Exists(path_)
+	de, err := ed.getDe(path_)
 	if err != nil {
 		return err
 	}
-	if !ok {
+	if de == nil {
 		return fmt.Errorf("encryptedDssaImpl.Rm: %s: no such file or directory", path_)
-	}
-	de, err := ed.msts.Get(path_)
-	if err != nil {
-		return err
 	}
 	if !de.IsDir && !de.IsSymLink {
 		if err = ed.underlying.Rm(ed.actualPath(de)); err != nil { // FIXME
@@ -217,8 +216,23 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 }
 
 // Checksum implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) Checksum(algos string, path_ string) (string, error) {
-	return common.DssaEntryChecksum(ed, path_, algos)
+func (ed *encryptedDssaImpl) Checksum(algos, path_ string) (string, error) {
+	gc, underIsGc := ed.underlying.(grpcclient.GrpcClient)
+	if !ed.underlyingCheck || !underIsGc {
+		return common.DssaEntryChecksum(ed, path_, algos)
+	}
+	de, err := ed.getDe(path_)
+	if err != nil {
+		return "", err
+	}
+	if de == nil {
+		return "", fmt.Errorf("encryptedDssaImpl.Checksum: %s: no such file or directory", path_)
+	}
+	cs, err := gc.EncryptedChecksum(algos, ed.actualPath(de), strings.Join(ed.ageIdentitiesGetter(), ","))
+	if err != nil {
+		return "", err
+	}
+	return cs, nil
 }
 
 // Symlink implements [dssa.Dssa].
@@ -253,7 +267,8 @@ func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
 var _ dssa.Dssa = &encryptedDssaImpl{}
 var _ EncryptedDssa = &encryptedDssaImpl{}
 
-func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIdentities []string, ageRecipients []string) (EncryptedDssa, error) {
+func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string,
+	ageIdentities []string, underlyingCheck bool, ageRecipients []string) (EncryptedDssa, error) {
 	dss := &encryptedDssaImpl{
 		lgr:        lgr,
 		underlying: underlying,
@@ -271,6 +286,7 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, 
 		},
 		ageIdentitiesGetter: func() []string { return ageIdentities },
 		ageRecipients:       ageRecipients,
+		underlyingCheck:     underlyingCheck,
 	}
 	return dss, nil
 }
