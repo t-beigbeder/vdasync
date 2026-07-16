@@ -11,22 +11,22 @@ import (
 func TestDeList(t *testing.T) {
 	dss := MakeLocalFilesDssa()
 	td := t.TempDir()
-	lgr := common.DbgLogger()
+	lgr := common.GetLogger()
 	_, _, err := common.AugmentTestFilesTree(td)
 	require.NoError(t, err)
 	des, err := dss.List(path.Join(td))
 	require.NoError(t, err)
 	for _, de := range des {
-		lgr.Debug("TestDeList", "de", common.DataEntryList(de))
+		lgr.Debug("TestDeList", "de", common.DataEntryList(de, true, ""))
 	}
 	des, err = dss.List(path.Join(td, "dLinks"))
 	require.NoError(t, err)
 	for _, de := range des {
-		lgr.Debug("TestDeList", "de", common.DataEntryList(de))
+		lgr.Debug("TestDeList", "de", common.DataEntryList(de, false, ""))
 	}
 	des, err = dss.List(path.Join(td, "dAddFiles"))
 	require.NoError(t, err)
 	for _, de := range des {
-		lgr.Debug("TestDeList", "de", common.DataEntryList(de))
+		lgr.Debug("TestDeList", "de", common.DataEntryList(de, false, ""))
 	}
 }

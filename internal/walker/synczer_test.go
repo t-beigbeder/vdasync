@@ -23,9 +23,9 @@ import (
 )
 
 func getTestOutWriter() io.Writer {
-	// return io.Discard
-	return os.Stderr
+	return common.GetTestOut()
 }
+
 func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tRoot string, so *config.SyncOptionsType) (syncRes map[string]*SyncEntryStatus, err error) {
 	var walker Walker
 	if walker, err = NewSynchronizer(lgr, 4, so, sDss, tDss, tRoot); err != nil {
@@ -71,6 +71,7 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dss
 			localfiles.MakeLocalFilesDssa(),
 			td,
 			[]string{ids},
+			false,
 			[]string{recs},
 		)
 		require.NotNil(t, dss5)

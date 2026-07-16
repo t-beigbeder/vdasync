@@ -22,7 +22,7 @@ func main() {
 		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
 		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
 		checkFlag    = flag.Bool("check", false, "compute checksums")
-		csalFlag     = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksum")
+		csalFlag     = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums")
 		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
 		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")

@@ -144,21 +144,28 @@ func rightsList(rights dssa.Rights) string {
 	return rs + ws + xs
 }
 
-func DataEntryList(de *dssa.DataEntry) string {
+func DataEntryList(de *dssa.DataEntry, isNoOwn bool, cs string) string {
 	tp := "-"
 	if de.IsDir {
 		tp = "d"
 	} else if de.IsSymLink {
 		tp = "l"
 	}
+	ownDisp := ""
+	if !isNoOwn {
+		ownDisp = fmt.Sprintf(" %6d %6d ", de.User, de.Group)
+	}
 	lt := ""
 	if de.IsSymLink {
 		lt = fmt.Sprintf(" -> %s", de.SymLinkTarget)
 	}
-	return fmt.Sprintf("%s%s%s%s %6d %6d %10d %21s %32s%s", tp,
+	csd := ""
+	if cs != "" {
+		csd = " " + cs
+	}
+	return fmt.Sprintf("%s%s%s%s%s%10d %21s %s%s%s", tp,
 		rightsList(de.UserRights), rightsList(de.GroupRights), rightsList(de.OtherRights),
-		de.User, de.Group,
-		de.Size, time.Unix(de.Mtime, 0).Format(time.RFC3339), de.Path,
-		lt,
+		ownDisp, de.Size, time.Unix(de.Mtime, 0).UTC().Format(time.RFC3339), de.Path,
+		lt, csd,
 	)
 }
