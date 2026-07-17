@@ -43,7 +43,7 @@ Example restoring local files from a remote backup server, see [vdaserver page](
     -check
         compute checksums
     -csal string
-        comma separated list of hash algoritms to compute checksums (default "sha256")
+        comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512 (default "sha256")
     -dryrun
         don't run operation, just report actions
     -excl string
