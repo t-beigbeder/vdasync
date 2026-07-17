@@ -1,5 +1,7 @@
 # vdasync command
 
+`vdasync` is the main CLI to synchronize target data from source data.
+
 ## Usage
 
 Notes:

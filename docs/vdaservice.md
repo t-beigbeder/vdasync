@@ -1,5 +1,7 @@
 # vdaservice command
 
+`vdaservice` is an auxiliary CLI used for operations, administration and testing purposes.
+
 ## Usage
 
 Notes:
