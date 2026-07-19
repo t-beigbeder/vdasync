@@ -154,7 +154,7 @@ const file_grpc_ope_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tR\x05value\"\x1c\n" +
 	"\x04Bool\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\bR\x05value\"\a\n" +
-	"\x05Empty2q\n" +
+	"\x05Empty2\x96\x01\n" +
 	"\x03Ope\x12 \n" +
 	"\x05Ready\x12\n" +
 	".ope.Empty\x1a\t.ope.Bool\"\x00\x12#\n" +
@@ -162,7 +162,10 @@ const file_grpc_ope_proto_rawDesc = "" +
 	".ope.Empty\x1a\n" +
 	".ope.Value\"\x00\x12#\n" +
 	"\bShutdown\x12\n" +
-	".ope.Value\x1a\t.ope.Bool\"\x00B\vZ\t./opegrpcb\x06proto3"
+	".ope.Value\x1a\t.ope.Bool\"\x00\x12#\n" +
+	"\aLatency\x12\n" +
+	".ope.Value\x1a\n" +
+	".ope.Empty\"\x00B\vZ\t./opegrpcb\x06proto3"
 
 var (
 	file_grpc_ope_proto_rawDescOnce sync.Once
@@ -186,11 +189,13 @@ var file_grpc_ope_proto_depIdxs = []int32{
 	2, // 0: ope.Ope.Ready:input_type -> ope.Empty
 	2, // 1: ope.Ope.Version:input_type -> ope.Empty
 	0, // 2: ope.Ope.Shutdown:input_type -> ope.Value
-	1, // 3: ope.Ope.Ready:output_type -> ope.Bool
-	0, // 4: ope.Ope.Version:output_type -> ope.Value
-	1, // 5: ope.Ope.Shutdown:output_type -> ope.Bool
-	3, // [3:6] is the sub-list for method output_type
-	0, // [0:3] is the sub-list for method input_type
+	0, // 3: ope.Ope.Latency:input_type -> ope.Value
+	1, // 4: ope.Ope.Ready:output_type -> ope.Bool
+	0, // 5: ope.Ope.Version:output_type -> ope.Value
+	1, // 6: ope.Ope.Shutdown:output_type -> ope.Bool
+	2, // 7: ope.Ope.Latency:output_type -> ope.Empty
+	4, // [4:8] is the sub-list for method output_type
+	0, // [0:4] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name

@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -19,6 +20,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/remote"
 	"github.com/t-beigbeder/vdasync/internal/walker"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 )
 
@@ -136,6 +138,8 @@ type ServiceCtx struct {
 	IsSorted    bool
 	IsTSorted   bool
 	IsNoOwn     bool
+	Latency string
+	Count int
 	Concurrency int
 	Lgr         *slog.Logger
 	OutFile     io.Writer
@@ -144,6 +148,9 @@ type ServiceCtx struct {
 func DoService(sc *ServiceCtx) error {
 	if sc.Cmd == "list" {
 		return doList(sc)
+	}
+	if sc.Cmd == "latency" {
+		return doLatency(sc)
 	}
 	return fmt.Errorf("unknown command: %s", sc.Cmd)
 }
@@ -198,5 +205,36 @@ func doList(sc *ServiceCtx) error {
 	for _, doerEs := range rss {
 		sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry, sc.IsNoOwn, doerEs.Checksum) + "\n"))
 	}
+	return nil
+}
+
+func doLatency(sc *ServiceCtx) error {
+	gc, underIsGc := sc.Dss.(grpcclient.GrpcClient)
+	if !underIsGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	var wg sync.WaitGroup
+	var limiter chan bool
+	if sc.Concurrency > 0 {
+		limiter = make(chan bool, sc.Concurrency)
+	}
+	for i := 0; i < sc.Count; i++ {
+		var err error
+		if sc.Concurrency <= 0 {
+			_, err = gc.GetClient().Latency(context.Background(), &opegrpc.Value{Value: sc.Latency})
+		} else {
+			limiter <- true
+			wg.Add(1)
+			go func ()  {
+				gc.GetClient().Latency(context.Background(), &opegrpc.Value{Value: sc.Latency})
+				_ = <- limiter
+				wg.Done()
+			}()
+		}
+		if err != nil {
+			return fmt.Errorf("doLatency: %v", err)
+		}
+	}
+	wg.Wait()
 	return nil
 }

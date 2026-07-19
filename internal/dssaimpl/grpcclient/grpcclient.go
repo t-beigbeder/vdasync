@@ -19,6 +19,7 @@ type grpcClient struct {
 
 type GrpcClient interface {
 	EncryptedChecksum(algos, path_, secret string) (string, error)
+	GetClient() remote.OpeDssaClient
 }
 
 var _ GrpcClient = &grpcClient{}
@@ -125,6 +126,11 @@ func (gc *grpcClient) Symlink(old string, new_ string) error {
 	gc.lgr.Debug("grpcClient.Symlink", "path", new_)
 	_, err := gc.client.Symlink(gc.ctx, &dssagrpc.OldNewPaths{Old: old, New_: new_})
 	return err
+}
+
+// GetClient implements [GrpcClient].
+func (gc *grpcClient) GetClient() remote.OpeDssaClient {
+	return gc.client
 }
 
 func MakeGrpcClient(lgr *slog.Logger, ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {

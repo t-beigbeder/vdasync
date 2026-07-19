@@ -15,12 +15,14 @@ import (
 
 func main() {
 	var (
-		cmdFlag   = flag.String("cmd", "", "a command to apply: list")
+		cmdFlag   = flag.String("cmd", "", "a command to apply: list latency")
 		dssFlag   = flag.String("dss", "", "dss on which the command applies")
 		recurFlag = flag.Bool("recur", false, "apply recursively to sub-directories")
 		sortFlag  = flag.Bool("sort", false, "sort output with entries paths")
 		tsortFlag = flag.Bool("tsort", false, "sort output with entries modification times")
 		noownFlag = flag.Bool("noown", false, "hide uid gid information")
+		latencyFlag   = flag.String("latency", "100us", "latency")
+		countFlag   = flag.Int("count", 100000, "test count")
 	)
 	cf := cli.CommonFlags()
 	svsf := cli.ServicesFlags()
@@ -90,6 +92,8 @@ func main() {
 		IsSorted:    *sortFlag,
 		IsTSorted:   *tsortFlag,
 		IsNoOwn:     *noownFlag,
+		Latency: *latencyFlag,
+		Count: *countFlag,
 		Concurrency: *cf.ConcurrencyFlag,
 		Lgr:         lgr,
 		OutFile:     outFile,
