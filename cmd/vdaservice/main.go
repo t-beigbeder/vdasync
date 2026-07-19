@@ -21,6 +21,7 @@ func main() {
 		sortFlag  = flag.Bool("sort", false, "sort output with entries paths")
 		tsortFlag = flag.Bool("tsort", false, "sort output with entries modification times")
 		noownFlag = flag.Bool("noown", false, "hide uid gid information")
+		statFlag = flag.Bool("stat", false, "with list cmd, perform additional stat on each entry (simulate I/O)")
 		latencyFlag   = flag.String("latency", "100us", "latency")
 		countFlag   = flag.Int("count", 100000, "test count")
 	)
@@ -88,6 +89,7 @@ func main() {
 		Root:        root,
 		IsRecur:     *recurFlag,
 		IsCheck:     *svsf.CheckFlag,
+		IsStat:     *statFlag,
 		CsAlgos:     *svsf.CsalFlag,
 		IsSorted:    *sortFlag,
 		IsTSorted:   *tsortFlag,

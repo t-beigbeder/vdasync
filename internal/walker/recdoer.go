@@ -3,6 +3,7 @@ package walker
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -191,10 +192,19 @@ func RecTouch(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, ds
 	)
 }
 
-func RecListCs(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, dssAlias string, isCheck bool, csAlgos string) (Walker, error) {
+func RecListCs(lgr *slog.Logger, concurrency int, dss dssa.Dssa, path_ string, dssAlias string, isCheck bool, csAlgos string, isStat bool, du time.Duration) (Walker, error) {
 	return RecDoAll(
 		lgr, concurrency, dss, path_, dssAlias, "ListCs",
 		func(pe *ProcessedEntry) {
+			if isStat && !pe.DataEntry.IsDir && !pe.DataEntry.IsSymLink {
+				_, err := pe.Dssa_().Stat(pe.DataEntry.Path)
+				if err != nil {
+					setDoerError(pe, "onDoneEntryListCs: Stat", err)
+					return
+				}
+				time.Sleep(du)
+				return
+			}
 			if !isCheck || pe.DataEntry.IsDir || pe.DataEntry.IsSymLink {
 				return
 			}

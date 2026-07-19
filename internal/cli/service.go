@@ -11,6 +11,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -134,6 +135,7 @@ type ServiceCtx struct {
 	Root        string
 	IsRecur     bool
 	IsCheck     bool
+	IsStat     bool
 	CsAlgos     string
 	IsSorted    bool
 	IsTSorted   bool
@@ -165,7 +167,7 @@ func doList(sc *ServiceCtx) error {
 		for _, de := range des {
 			cs := ""
 			if sc.IsCheck && !de.IsDir && !de.IsSymLink {
-				cs, err = sc.Dss.Checksum(sc.CsAlgos, de.Path) // TODO
+				cs, err = sc.Dss.Checksum(sc.CsAlgos, de.Path)
 				if err != nil {
 					return err
 				}
@@ -173,7 +175,11 @@ func doList(sc *ServiceCtx) error {
 			rs[de.Path] = &walker.DoerEntryStatus{DataEntry: de, Checksum: cs}
 		}
 	} else {
-		wk, err := walker.RecListCs(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", sc.IsCheck, sc.CsAlgos)
+		du, err := time.ParseDuration(sc.Latency)
+		if err != nil {
+			return err
+		}
+		wk, err := walker.RecListCs(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", sc.IsCheck, sc.CsAlgos, sc.IsStat, du)
 		if err != nil {
 			return err
 		}
