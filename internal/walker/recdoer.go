@@ -92,7 +92,7 @@ func doerEntryStatusInit(pe *ProcessedEntry) {
 }
 
 func dssInfoRDoer(pe *ProcessedEntry, function string) {
-	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "alias", doerData(pe).dssAlias, "de", doerPeRelPath(pe))
+	pe.Lgr_().Debug(fmt.Sprintf("running dss %s", function), "alias", doerData(pe).dssAlias, "de", doerPeRelPath(pe))
 }
 
 func onStartDirEntryRDoer(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {

@@ -135,13 +135,13 @@ type ServiceCtx struct {
 	Root        string
 	IsRecur     bool
 	IsCheck     bool
-	IsStat     bool
+	IsStat      bool
 	CsAlgos     string
 	IsSorted    bool
 	IsTSorted   bool
 	IsNoOwn     bool
-	Latency string
-	Count int
+	Latency     string
+	Count       int
 	Concurrency int
 	Lgr         *slog.Logger
 	OutFile     io.Writer
@@ -153,6 +153,12 @@ func DoService(sc *ServiceCtx) error {
 	}
 	if sc.Cmd == "latency" {
 		return doLatency(sc)
+	}
+	if sc.Cmd == "version" {
+		return doVersion(sc)
+	}
+	if sc.Cmd == "shutdown" {
+		return doShutdown(sc)
 	}
 	return fmt.Errorf("unknown command: %s", sc.Cmd)
 }
@@ -231,9 +237,9 @@ func doLatency(sc *ServiceCtx) error {
 		} else {
 			limiter <- true
 			wg.Add(1)
-			go func ()  {
+			go func() {
 				gc.GetClient().Latency(context.Background(), &opegrpc.Value{Value: sc.Latency})
-				_ = <- limiter
+				_ = <-limiter
 				wg.Done()
 			}()
 		}
@@ -242,5 +248,30 @@ func doLatency(sc *ServiceCtx) error {
 		}
 	}
 	wg.Wait()
+	return nil
+}
+
+func doVersion(sc *ServiceCtx) error {
+	gc, underIsGc := sc.Dss.(grpcclient.GrpcClient)
+	if !underIsGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	v, err := gc.GetClient().Version(context.Background(), &opegrpc.Empty{})
+	if err != nil {
+		return fmt.Errorf("doVersion: %v", err)
+	}
+	fmt.Println(v.Value)
+	return nil
+}
+
+func doShutdown(sc *ServiceCtx) error {
+	gc, underIsGc := sc.Dss.(grpcclient.GrpcClient)
+	if !underIsGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	_, err := gc.GetClient().Shutdown(context.Background(), &opegrpc.Value{Value: "100ms"})
+	if err != nil {
+		return fmt.Errorf("doShutdown: %v", err)
+	}
 	return nil
 }

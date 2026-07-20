@@ -94,7 +94,7 @@ func rmEntryStatusInit(pe *ProcessedEntry) {
 }
 
 func dssInfoRRm(pe *ProcessedEntry, function string) {
-	pe.Lgr_().Info(fmt.Sprintf("running dss %s", function), "alias", rmData(pe).dssAlias, "de", rmPeRelPath(pe))
+	pe.Lgr_().Debug(fmt.Sprintf("running dss %s", function), "alias", rmData(pe).dssAlias, "de", rmPeRelPath(pe))
 }
 
 func onStartDirEntryRRm(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {

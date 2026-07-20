@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"golang.org/x/crypto/ssh"
 )
 
 func wtf(ds dssa.Dssa, path_ string) error {
@@ -114,4 +115,15 @@ func TestConcurrency(t *testing.T) {
 	lgr.Debug("wait")
 	wg.Wait()
 	lgr.Debug("done")
+}
+
+func TestKnownHosts(t *testing.T) {
+	lns, err := common.FileLines("/local/tmp/known_hosts")
+	require.NoError(t, err)
+	_ = lns
+	for _, ln := range lns {
+		marker, hosts, pubKey, comment, rest, err := ssh.ParseKnownHosts([]byte(ln))
+		_, _, _, _, _, _ = marker, hosts, pubKey, comment, rest, err
+		require.NoError(t, err)
+	}
 }

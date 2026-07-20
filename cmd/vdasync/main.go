@@ -112,7 +112,7 @@ func main() {
 	syncRes := walker.SyncResult(swk)
 	if !*cf.SilentFlag {
 		walker.DisplaySyncResult(syncRes, outFile, true, *cf.VerboseFlag)
-	} else if !*cf.VerboseFlag {
+	} else if *cf.VerboseFlag {
 		walker.DisplaySyncResult(syncRes, outFile, true, false)
 	}
 	time.Sleep(10 * time.Millisecond)

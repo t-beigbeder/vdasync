@@ -43,6 +43,7 @@ func TestServiceList(t *testing.T) {
 			Root:        td,
 			IsRecur:     true,
 			IsCheck:     true,
+			Latency:     "1us",
 			Concurrency: 0,
 			Lgr:         lgr,
 			OutFile:     common.GetTestOut(),
@@ -61,10 +62,10 @@ func TestServiceLatencyRaw(t *testing.T) {
 	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
 	require.NoError(t,
 		DoService(&ServiceCtx{
-			Cmd: "latency",
-			Dss: dgc,
-			Latency: "1s",
-			Count: 5,
+			Cmd:         "latency",
+			Dss:         dgc,
+			Latency:     "1s",
+			Count:       5,
 			Concurrency: 0,
 		}),
 	)
@@ -81,10 +82,10 @@ func TestServiceLatencySimulNet(t *testing.T) {
 	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
 	require.NoError(t,
 		DoService(&ServiceCtx{
-			Cmd: "latency",
-			Dss: dgc,
-			Latency: "80ms",
-			Count: 20000,
+			Cmd:         "latency",
+			Dss:         dgc,
+			Latency:     "80ms",
+			Count:       20000,
 			Concurrency: 320,
 		}),
 	)
@@ -101,11 +102,30 @@ func TestServiceLatencySimulCompute(t *testing.T) {
 	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
 	require.NoError(t,
 		DoService(&ServiceCtx{
-			Cmd: "latency",
-			Dss: dgc,
-			Latency: "6400ms",
-			Count: 250,
+			Cmd:         "latency",
+			Dss:         dgc,
+			Latency:     "6400ms",
+			Count:       250,
 			Concurrency: 320,
+		}),
+	)
+}
+
+func TestOtherServices(t *testing.T) {
+	cli, cFunc, err := remote.GrpcGetTestClient(nil)
+	require.Nil(t, err)
+	defer cFunc()
+	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
+	require.NoError(t,
+		DoService(&ServiceCtx{
+			Cmd: "version",
+			Dss: dgc,
+		}),
+	)
+	require.NoError(t,
+		DoService(&ServiceCtx{
+			Cmd: "shutdown",
+			Dss: dgc,
 		}),
 	)
 }

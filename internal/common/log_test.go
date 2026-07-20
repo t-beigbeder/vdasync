@@ -1,7 +1,9 @@
 package common
 
 import (
+	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"testing"
 
@@ -12,6 +14,9 @@ func TestCliLog(t *testing.T) {
 	lgr, err := CliLogger("TestCliLog", "DEBUG", "")
 	require.Nil(t, err)
 	lgr.Debug("1")
+	lgr, err = CliLogger("TestCliLog", "DEBUG+2", "")
+	require.Nil(t, err)
+	lgr.Log(context.Background(), slog.LevelDebug+2, "DETAIL")
 	lgr, err = CliLogger("TestCliLog", "INFO", "")
 	require.Nil(t, err)
 	lgr.Debug("2")
