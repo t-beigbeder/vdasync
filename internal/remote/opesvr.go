@@ -41,6 +41,15 @@ func (s *opeServer) Shutdown(ctx context.Context, v *opegrpc.Value) (*opegrpc.Bo
 	return &opegrpc.Bool{Value: true}, nil
 }
 
+func (s *opeServer) Latency(ctx context.Context, v *opegrpc.Value) (*opegrpc.Empty, error) {
+	du, err := time.ParseDuration(v.Value)
+	if err != nil {
+		return nil, err
+	}
+	time.Sleep(du)
+	return &opegrpc.Empty{}, nil
+}
+
 func NewOpeServer(grpcServer *grpc.Server, shutdownCb func()) opegrpc.OpeServer {
 	return &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb}
 }

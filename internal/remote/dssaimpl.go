@@ -21,14 +21,14 @@ type dssaImpl struct {
 }
 
 func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
-	s.lgr.Info("dssaImpl.NewSession")
+	s.lgr.Debug("dssaImpl.NewSession")
 	if err := s.dssa_.NewSession(); err != nil {
 		return nil, err
 	}
 	return &dssagrpc.Empty{}, nil
 }
 func (s *dssaImpl) EndSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
-	s.lgr.Info("dssaImpl.EndSession")
+	s.lgr.Debug("dssaImpl.EndSession")
 	if err := s.dssa_.EndSession(); err != nil {
 		return nil, err
 	}

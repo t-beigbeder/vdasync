@@ -9,7 +9,9 @@ import (
 	"os/signal"
 	"slices"
 	"strings"
+	"sync"
 	"syscall"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -19,6 +21,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/remote"
 	"github.com/t-beigbeder/vdasync/internal/walker"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 	"google.golang.org/grpc"
 )
 
@@ -132,10 +135,13 @@ type ServiceCtx struct {
 	Root        string
 	IsRecur     bool
 	IsCheck     bool
+	IsStat      bool
 	CsAlgos     string
 	IsSorted    bool
 	IsTSorted   bool
 	IsNoOwn     bool
+	Latency     string
+	Count       int
 	Concurrency int
 	Lgr         *slog.Logger
 	OutFile     io.Writer
@@ -144,6 +150,15 @@ type ServiceCtx struct {
 func DoService(sc *ServiceCtx) error {
 	if sc.Cmd == "list" {
 		return doList(sc)
+	}
+	if sc.Cmd == "latency" {
+		return doLatency(sc)
+	}
+	if sc.Cmd == "version" {
+		return doVersion(sc)
+	}
+	if sc.Cmd == "shutdown" {
+		return doShutdown(sc)
 	}
 	return fmt.Errorf("unknown command: %s", sc.Cmd)
 }
@@ -158,7 +173,7 @@ func doList(sc *ServiceCtx) error {
 		for _, de := range des {
 			cs := ""
 			if sc.IsCheck && !de.IsDir && !de.IsSymLink {
-				cs, err = sc.Dss.Checksum(sc.CsAlgos, de.Path) // TODO
+				cs, err = sc.Dss.Checksum(sc.CsAlgos, de.Path)
 				if err != nil {
 					return err
 				}
@@ -166,7 +181,11 @@ func doList(sc *ServiceCtx) error {
 			rs[de.Path] = &walker.DoerEntryStatus{DataEntry: de, Checksum: cs}
 		}
 	} else {
-		wk, err := walker.RecListCs(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", sc.IsCheck, sc.CsAlgos)
+		du, err := time.ParseDuration(sc.Latency)
+		if err != nil {
+			return err
+		}
+		wk, err := walker.RecListCs(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", sc.IsCheck, sc.CsAlgos, sc.IsStat, du)
 		if err != nil {
 			return err
 		}
@@ -197,6 +216,62 @@ func doList(sc *ServiceCtx) error {
 	}
 	for _, doerEs := range rss {
 		sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry, sc.IsNoOwn, doerEs.Checksum) + "\n"))
+	}
+	return nil
+}
+
+func doLatency(sc *ServiceCtx) error {
+	gc, underIsGc := sc.Dss.(grpcclient.GrpcClient)
+	if !underIsGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	var wg sync.WaitGroup
+	var limiter chan bool
+	if sc.Concurrency > 0 {
+		limiter = make(chan bool, sc.Concurrency)
+	}
+	for i := 0; i < sc.Count; i++ {
+		var err error
+		if sc.Concurrency <= 0 {
+			_, err = gc.GetClient().Latency(context.Background(), &opegrpc.Value{Value: sc.Latency})
+		} else {
+			limiter <- true
+			wg.Add(1)
+			go func() {
+				gc.GetClient().Latency(context.Background(), &opegrpc.Value{Value: sc.Latency})
+				_ = <-limiter
+				wg.Done()
+			}()
+		}
+		if err != nil {
+			return fmt.Errorf("doLatency: %v", err)
+		}
+	}
+	wg.Wait()
+	return nil
+}
+
+func doVersion(sc *ServiceCtx) error {
+	gc, underIsGc := sc.Dss.(grpcclient.GrpcClient)
+	if !underIsGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	v, err := gc.GetClient().Version(context.Background(), &opegrpc.Empty{})
+	if err != nil {
+		return fmt.Errorf("doVersion: %v", err)
+	}
+	fmt.Println(v.Value)
+	return nil
+}
+
+func doShutdown(sc *ServiceCtx) error {
+	gc, underIsGc := sc.Dss.(grpcclient.GrpcClient)
+	if !underIsGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	_, err := gc.GetClient().Shutdown(context.Background(), &opegrpc.Value{Value: "100ms"})
+	if err != nil {
+		return fmt.Errorf("doShutdown: %v", err)
 	}
 	return nil
 }

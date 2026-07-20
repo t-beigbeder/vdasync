@@ -21,16 +21,13 @@ func main() {
 		targetFlag   = flag.String("target", "", "target of the command")
 		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
 		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
-		checkFlag    = flag.Bool("check", false, "compute checksums")
-		csalFlag     = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums")
 		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
 		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
-		exclFlag     = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
-		inclFlag     = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
 		cProfFlag    = flag.String("cprof", "", "cpu.prof file")
 	)
 	cf := cli.CommonFlags()
+	svsf := cli.ServicesFlags()
 	flag.Parse()
 	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
@@ -57,11 +54,11 @@ func main() {
 	}
 	defer outFile.Close()
 
-	if *exclFlag != "" && !common.FileExists(*exclFlag) {
-		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *exclFlag))
+	if *svsf.ExclFlag != "" && !common.FileExists(*svsf.ExclFlag) {
+		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *svsf.ExclFlag))
 	}
-	if *inclFlag != "" && !common.FileExists(*inclFlag) {
-		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *inclFlag))
+	if *svsf.InclFlag != "" && !common.FileExists(*svsf.InclFlag) {
+		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *svsf.InclFlag))
 	}
 
 	var rps []*plugin.RunningPlugin
@@ -102,9 +99,9 @@ func main() {
 	swk, err := walker.RunSynchronizer(
 		lgr, *cf.ConcurrencyFlag,
 		&config.SyncOptionsType{
-			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *checkFlag, CsAlgos: *csalFlag,
+			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *svsf.CheckFlag, CsAlgos: *svsf.CsalFlag,
 			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
-			ExclListPath: *exclFlag, InclListPath: *inclFlag,
+			ExclListPath: *svsf.ExclFlag, InclListPath: *svsf.InclFlag,
 		},
 		sDss, sourceRoot,
 		tDss, targetRoot,
@@ -115,7 +112,7 @@ func main() {
 	syncRes := walker.SyncResult(swk)
 	if !*cf.SilentFlag {
 		walker.DisplaySyncResult(syncRes, outFile, true, *cf.VerboseFlag)
-	} else if !*cf.VerboseFlag {
+	} else if *cf.VerboseFlag {
 		walker.DisplaySyncResult(syncRes, outFile, true, false)
 	}
 	time.Sleep(10 * time.Millisecond)

@@ -22,6 +22,7 @@ const (
 	Ope_Ready_FullMethodName    = "/ope.Ope/Ready"
 	Ope_Version_FullMethodName  = "/ope.Ope/Version"
 	Ope_Shutdown_FullMethodName = "/ope.Ope/Shutdown"
+	Ope_Latency_FullMethodName  = "/ope.Ope/Latency"
 )
 
 // OpeClient is the client API for Ope service.
@@ -31,6 +32,7 @@ type OpeClient interface {
 	Ready(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Bool, error)
 	Version(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Value, error)
 	Shutdown(ctx context.Context, in *Value, opts ...grpc.CallOption) (*Bool, error)
+	Latency(ctx context.Context, in *Value, opts ...grpc.CallOption) (*Empty, error)
 }
 
 type opeClient struct {
@@ -71,6 +73,16 @@ func (c *opeClient) Shutdown(ctx context.Context, in *Value, opts ...grpc.CallOp
 	return out, nil
 }
 
+func (c *opeClient) Latency(ctx context.Context, in *Value, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, Ope_Latency_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // OpeServer is the server API for Ope service.
 // All implementations must embed UnimplementedOpeServer
 // for forward compatibility.
@@ -78,6 +90,7 @@ type OpeServer interface {
 	Ready(context.Context, *Empty) (*Bool, error)
 	Version(context.Context, *Empty) (*Value, error)
 	Shutdown(context.Context, *Value) (*Bool, error)
+	Latency(context.Context, *Value) (*Empty, error)
 	mustEmbedUnimplementedOpeServer()
 }
 
@@ -96,6 +109,9 @@ func (UnimplementedOpeServer) Version(context.Context, *Empty) (*Value, error) {
 }
 func (UnimplementedOpeServer) Shutdown(context.Context, *Value) (*Bool, error) {
 	return nil, status.Error(codes.Unimplemented, "method Shutdown not implemented")
+}
+func (UnimplementedOpeServer) Latency(context.Context, *Value) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method Latency not implemented")
 }
 func (UnimplementedOpeServer) mustEmbedUnimplementedOpeServer() {}
 func (UnimplementedOpeServer) testEmbeddedByValue()             {}
@@ -172,6 +188,24 @@ func _Ope_Shutdown_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Ope_Latency_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Value)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpeServer).Latency(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Ope_Latency_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpeServer).Latency(ctx, req.(*Value))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Ope_ServiceDesc is the grpc.ServiceDesc for Ope service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -190,6 +224,10 @@ var Ope_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Shutdown",
 			Handler:    _Ope_Shutdown_Handler,
+		},
+		{
+			MethodName: "Latency",
+			Handler:    _Ope_Latency_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

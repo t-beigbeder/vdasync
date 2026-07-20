@@ -15,18 +15,18 @@ import (
 
 func main() {
 	var (
-		cmdFlag   = flag.String("cmd", "", "a command to apply: list")
-		dssFlag   = flag.String("dss", "", "dss on which the command applies")
-		checkFlag = flag.Bool("check", false, "compute/display checksums")
-		csalFlag  = flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksum")
-		recurFlag = flag.Bool("recur", false, "apply recursively to sub-directories")
-		exclFlag  = flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none")
-		inclFlag  = flag.String("incl", "", "file containing regexps for paths to be included, defaults to all")
-		sortFlag  = flag.Bool("sort", false, "sort output with entries paths")
-		tsortFlag = flag.Bool("tsort", false, "sort output with entries modification times")
-		noownFlag = flag.Bool("noown", false, "hide uid gid information")
+		cmdFlag     = flag.String("cmd", "", "a command to apply: list latency version shutdown")
+		dssFlag     = flag.String("dss", "", "dss on which the command applies")
+		recurFlag   = flag.Bool("recur", false, "apply recursively to sub-directories")
+		sortFlag    = flag.Bool("sort", false, "sort output with entries paths")
+		tsortFlag   = flag.Bool("tsort", false, "sort output with entries modification times")
+		noownFlag   = flag.Bool("noown", false, "hide uid gid information")
+		statFlag    = flag.Bool("stat", false, "with list cmd, perform additional stat on each entry (simulate I/O)")
+		latencyFlag = flag.String("latency", "100us", "latency")
+		countFlag   = flag.Int("count", 100000, "test count")
 	)
 	cf := cli.CommonFlags()
+	svsf := cli.ServicesFlags()
 	flag.Parse()
 	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
@@ -42,11 +42,11 @@ func main() {
 	}
 	defer outFile.Close()
 
-	if *exclFlag != "" && !common.FileExists(*exclFlag) {
-		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *exclFlag))
+	if *svsf.ExclFlag != "" && !common.FileExists(*svsf.ExclFlag) {
+		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *svsf.ExclFlag))
 	}
-	if *inclFlag != "" && !common.FileExists(*inclFlag) {
-		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *inclFlag))
+	if *svsf.InclFlag != "" && !common.FileExists(*svsf.InclFlag) {
+		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *svsf.InclFlag))
 	}
 
 	var rps []*plugin.RunningPlugin
@@ -88,11 +88,14 @@ func main() {
 		Dss:         dss,
 		Root:        root,
 		IsRecur:     *recurFlag,
-		IsCheck:     *checkFlag,
-		CsAlgos:     *csalFlag,
+		IsCheck:     *svsf.CheckFlag,
+		IsStat:      *statFlag,
+		CsAlgos:     *svsf.CsalFlag,
 		IsSorted:    *sortFlag,
 		IsTSorted:   *tsortFlag,
 		IsNoOwn:     *noownFlag,
+		Latency:     *latencyFlag,
+		Count:       *countFlag,
 		Concurrency: *cf.ConcurrencyFlag,
 		Lgr:         lgr,
 		OutFile:     outFile,

@@ -62,7 +62,7 @@ func (msts *M2StSvc) Del(path_ string) error {
 
 // EndSession implements [metasts.MetaStorageSvc].
 func (msts *M2StSvc) EndSession() error {
-	msts.Lgr.Info("M2StSvc: EndSession")
+	msts.Lgr.Debug("M2StSvc: EndSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	if !msts.hasSession {
@@ -138,7 +138,7 @@ func (msts *M2StSvc) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // NewSession implements [metasts.MetaStorageSvc].
 func (msts *M2StSvc) NewSession() error {
-	msts.Lgr.Info("M2StSvc: NewSession")
+	msts.Lgr.Debug("M2StSvc: NewSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	if msts.hasSession {

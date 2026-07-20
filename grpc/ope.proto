@@ -8,6 +8,7 @@ service Ope {
   rpc Ready(Empty) returns (Bool) {}
   rpc Version(Empty) returns (Value) {}
   rpc Shutdown(Value) returns (Bool) {}
+  rpc Latency(Value) returns (Empty) {}
 }
 
 message Value {

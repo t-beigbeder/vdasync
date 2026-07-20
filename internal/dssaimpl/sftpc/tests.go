@@ -1,6 +1,7 @@
 package sftpc
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net"
@@ -10,6 +11,7 @@ import (
 	"github.com/pkg/sftp"
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -49,7 +51,7 @@ func GetSftpEnv() (user, address, identity, root string) {
 	return
 }
 
-func GetTestSftpClient(user, address, identity string) (*sftp.Client, error) {
+func GetTestSftpClient(user, address, identity, _ string) (*sftp.Client, error) {
 	key, err := os.ReadFile("/local/tmp/id_ssh_test")
 	if err != nil {
 		return nil, err
@@ -59,6 +61,10 @@ func GetTestSftpClient(user, address, identity string) (*sftp.Client, error) {
 		return nil, err
 	}
 	algorithms := ssh.SupportedAlgorithms()
+	khlns, err := common.FileLines("/local/tmp/known_hosts")
+	if err != nil {
+		return nil, err
+	}
 	config := &ssh.ClientConfig{
 		Config: ssh.Config{
 			KeyExchanges: algorithms.KeyExchanges,
@@ -70,6 +76,17 @@ func GetTestSftpClient(user, address, identity string) (*sftp.Client, error) {
 			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
+			hks := key.Type() + " " + base64.StdEncoding.EncodeToString(key.Marshal())
+			_ = hks
+			for ix, khln := range khlns {
+				marker, hosts, pubKey, comment, rest, err := ssh.ParseKnownHosts([]byte(khln))
+				_, _, _, _, _, _ = marker, hosts, pubKey, comment, rest, err
+				khs := pubKey.Type() + " " + base64.StdEncoding.EncodeToString(pubKey.Marshal())
+				if hks == khs {
+					_ = ix
+					return nil
+				}
+			}
 			return nil
 		},
 		HostKeyAlgorithms: algorithms.HostKeys,
@@ -87,7 +104,7 @@ func GetTestSftpClient(user, address, identity string) (*sftp.Client, error) {
 
 func GetSftpDss(t *testing.T) dssa.Dssa {
 	user, address, identity, root := GetSftpEnv()
-	dss, err := MakeSftpClientDssa(user, address, identity, root, 4, GetTestSftpClient)
+	dss, err := MakeSftpClientDssa(user, address, identity, root, 4, GetTestSftpClient, "")
 	require.NoError(t, err)
 	return dss
 }

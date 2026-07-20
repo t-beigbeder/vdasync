@@ -1,6 +1,7 @@
 package sftpc
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -180,12 +181,14 @@ func (sf *sftpClient) Symlink(old string, new_ string) error {
 	return sfc.Symlink(old, path.Join(sf.root, new_))
 }
 
-type SftpClientFactory func(user, address, identity string) (*sftp.Client, error)
+type SftpClientFactory func(user, address, identity, knownHostsFile string) (*sftp.Client, error)
 
-func MakeSftpClientDssa(user, address, identity, root string, concurrency int, factory SftpClientFactory) (dssa.Dssa, error) {
+func MakeSftpClientDssa(
+	user, address, identity, root string, concurrency int,
+	factory SftpClientFactory, knownHostsFile string) (dssa.Dssa, error) {
 	sfcs := make(chan *sftp.Client, concurrency+1)
 	for i := 0; i <= concurrency; i++ {
-		sfc, err := factory(user, address, identity)
+		sfc, err := factory(user, address, identity, knownHostsFile)
 		if err != nil {
 			return nil, fmt.Errorf("MakeSftpClientDssa: factory error count #%d: %v", i, err)
 		}
@@ -194,7 +197,7 @@ func MakeSftpClientDssa(user, address, identity, root string, concurrency int, f
 	return &sftpClient{sfcs: sfcs, root: root}, nil
 }
 
-func GetSftpClient(user, address, identity string) (*sftp.Client, error) {
+func GetSftpClient(user, address, identity, knownHostsFile string) (*sftp.Client, error) {
 	key, err := os.ReadFile(identity)
 	if err != nil {
 		return nil, err
@@ -204,6 +207,21 @@ func GetSftpClient(user, address, identity string) (*sftp.Client, error) {
 		return nil, err
 	}
 	algorithms := ssh.SupportedAlgorithms()
+	var khss []string
+	if knownHostsFile != "" {
+		khlns, err := common.FileLines(knownHostsFile)
+		if err != nil {
+			return nil, err
+		}
+		for _, khln := range khlns {
+			_, _, pubKey, _, _, err := ssh.ParseKnownHosts([]byte(khln))
+			if err != nil {
+				return nil, err
+			}
+			khss = append(khss, pubKey.Type()+" "+base64.StdEncoding.EncodeToString(pubKey.Marshal()))
+		}
+	}
+
 	config := &ssh.ClientConfig{
 		Config: ssh.Config{
 			KeyExchanges: algorithms.KeyExchanges,
@@ -215,7 +233,16 @@ func GetSftpClient(user, address, identity string) (*sftp.Client, error) {
 			ssh.PublicKeys(signer),
 		},
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
-			return nil
+			if knownHostsFile == "" {
+				return nil
+			}
+			hks := key.Type() + " " + base64.StdEncoding.EncodeToString(key.Marshal())
+			for _, khs := range khss {
+				if hks == khs {
+					return nil
+				}
+			}
+			return fmt.Errorf("unkown host key %s for %s", hks, hostname)
 		},
 		HostKeyAlgorithms: algorithms.HostKeys,
 	}

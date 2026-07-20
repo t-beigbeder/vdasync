@@ -26,6 +26,8 @@ func RunSftpPlugin() {
 		sftpAddress = flag.String("sftpaddress", "localhost:22", "SFTP server address, defaults to localhost:22")
 		sftpIdent   = flag.String("sftpident", "", "SSH identity file to authenticate")
 		sftpRoot    = flag.String("sftproot", "", "root path from SFTP server root where files are served")
+		sftpKHFile  = flag.String("sftpkhfile", "", "known_hosts file, defaults to $HOME/.ssh/known_hosts")
+		sftpNoHKC   = flag.Bool("sftpnohkc", false, "ignore host key, insecure, equivalent of ssh StrictHostKeychecking=no")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -39,6 +41,17 @@ func RunSftpPlugin() {
 		common.Fatal(lgr, fmt.Errorf("path.Base: %s: %v", exe, err))
 	}
 
+	knownHostsFile := ""
+	if !*sftpNoHKC {
+		if *sftpKHFile == "" {
+			knownHostsFile = path.Join(os.Getenv("HOME"), ".ssh", "known_hosts")
+		} else {
+			knownHostsFile = *sftpKHFile
+		}
+		if !common.FileExists(knownHostsFile) {
+			common.Fatal(lgr, fmt.Errorf("sftpkhfile: %s does not exist", knownHostsFile))
+		}
+	}
 	if *sftpUser == "" {
 		common.Fatal(lgr, errors.New("sftuser empty"))
 	}
@@ -48,7 +61,7 @@ func RunSftpPlugin() {
 	if *sftpRoot == "" {
 		common.Fatal(lgr, errors.New("sftproot empty"))
 	}
-	dss, err := sftpc.MakeSftpClientDssa(*sftpUser, *sftpAddress, *sftpIdent, *sftpRoot, *cf.ConcurrencyFlag, sftpc.GetSftpClient)
+	dss, err := sftpc.MakeSftpClientDssa(*sftpUser, *sftpAddress, *sftpIdent, *sftpRoot, *cf.ConcurrencyFlag, sftpc.GetSftpClient, knownHostsFile)
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("sftpc.MakeSftpClientDssa: %s: %v", exe, err))
 	}
