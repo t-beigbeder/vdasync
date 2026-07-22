@@ -13,6 +13,7 @@ type opeServer struct {
 	opegrpc.UnimplementedOpeServer
 	grpcServer *grpc.Server
 	shutdownCb func()
+	valueSetCb func(key string, value []byte) error
 }
 
 func (s *opeServer) Ready(context.Context, *opegrpc.Empty) (*opegrpc.Bool, error) {
@@ -41,6 +42,15 @@ func (s *opeServer) Shutdown(ctx context.Context, v *opegrpc.Value) (*opegrpc.Bo
 	return &opegrpc.Bool{Value: true}, nil
 }
 
+func (s *opeServer) SetValue(ctx context.Context, kv *opegrpc.KeyVal) (*opegrpc.Empty, error) {
+	if s.valueSetCb != nil {
+		if err := s.valueSetCb(kv.Key, kv.Val); err != nil {
+			return nil, err
+		}
+	}
+	return &opegrpc.Empty{}, nil
+}
+
 func (s *opeServer) Latency(ctx context.Context, v *opegrpc.Value) (*opegrpc.Empty, error) {
 	du, err := time.ParseDuration(v.Value)
 	if err != nil {
@@ -49,6 +59,8 @@ func (s *opeServer) Latency(ctx context.Context, v *opegrpc.Value) (*opegrpc.Emp
 	time.Sleep(du)
 	return &opegrpc.Empty{}, nil
 }
+
+var _ opegrpc.OpeServer = &opeServer{}
 
 func NewOpeServer(grpcServer *grpc.Server, shutdownCb func()) opegrpc.OpeServer {
 	return &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb}

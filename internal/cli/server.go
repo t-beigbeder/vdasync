@@ -57,7 +57,7 @@ func RunServerOrPlugin(isPlugin bool) {
 	}
 	_, _, err = remote.RunOpeDssaServer(
 		lgr, context.Background(), *hostFlag, *portFlag,
-		sops, localfiles.MakeLocalFilesDssa(), cb)
+		sops, localfiles.MakeLocalFilesDssa(), cb, nil)
 	<-done
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("RunOpeDssaServer failed %s", err))

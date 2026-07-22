@@ -145,6 +145,58 @@ func (*Empty) Descriptor() ([]byte, []int) {
 	return file_grpc_ope_proto_rawDescGZIP(), []int{2}
 }
 
+type KeyVal struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	Val           []byte                 `protobuf:"bytes,2,opt,name=val,proto3" json:"val,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *KeyVal) Reset() {
+	*x = KeyVal{}
+	mi := &file_grpc_ope_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *KeyVal) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*KeyVal) ProtoMessage() {}
+
+func (x *KeyVal) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_ope_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use KeyVal.ProtoReflect.Descriptor instead.
+func (*KeyVal) Descriptor() ([]byte, []int) {
+	return file_grpc_ope_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *KeyVal) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *KeyVal) GetVal() []byte {
+	if x != nil {
+		return x.Val
+	}
+	return nil
+}
+
 var File_grpc_ope_proto protoreflect.FileDescriptor
 
 const file_grpc_ope_proto_rawDesc = "" +
@@ -154,7 +206,10 @@ const file_grpc_ope_proto_rawDesc = "" +
 	"\x05value\x18\x01 \x01(\tR\x05value\"\x1c\n" +
 	"\x04Bool\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\bR\x05value\"\a\n" +
-	"\x05Empty2\x96\x01\n" +
+	"\x05Empty\",\n" +
+	"\x06KeyVal\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x10\n" +
+	"\x03val\x18\x02 \x01(\fR\x03val2\xbd\x01\n" +
 	"\x03Ope\x12 \n" +
 	"\x05Ready\x12\n" +
 	".ope.Empty\x1a\t.ope.Bool\"\x00\x12#\n" +
@@ -162,7 +217,9 @@ const file_grpc_ope_proto_rawDesc = "" +
 	".ope.Empty\x1a\n" +
 	".ope.Value\"\x00\x12#\n" +
 	"\bShutdown\x12\n" +
-	".ope.Value\x1a\t.ope.Bool\"\x00\x12#\n" +
+	".ope.Value\x1a\t.ope.Bool\"\x00\x12%\n" +
+	"\bSetValue\x12\v.ope.KeyVal\x1a\n" +
+	".ope.Empty\"\x00\x12#\n" +
 	"\aLatency\x12\n" +
 	".ope.Value\x1a\n" +
 	".ope.Empty\"\x00B\vZ\t./opegrpcb\x06proto3"
@@ -179,23 +236,26 @@ func file_grpc_ope_proto_rawDescGZIP() []byte {
 	return file_grpc_ope_proto_rawDescData
 }
 
-var file_grpc_ope_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_grpc_ope_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_grpc_ope_proto_goTypes = []any{
-	(*Value)(nil), // 0: ope.Value
-	(*Bool)(nil),  // 1: ope.Bool
-	(*Empty)(nil), // 2: ope.Empty
+	(*Value)(nil),  // 0: ope.Value
+	(*Bool)(nil),   // 1: ope.Bool
+	(*Empty)(nil),  // 2: ope.Empty
+	(*KeyVal)(nil), // 3: ope.KeyVal
 }
 var file_grpc_ope_proto_depIdxs = []int32{
 	2, // 0: ope.Ope.Ready:input_type -> ope.Empty
 	2, // 1: ope.Ope.Version:input_type -> ope.Empty
 	0, // 2: ope.Ope.Shutdown:input_type -> ope.Value
-	0, // 3: ope.Ope.Latency:input_type -> ope.Value
-	1, // 4: ope.Ope.Ready:output_type -> ope.Bool
-	0, // 5: ope.Ope.Version:output_type -> ope.Value
-	1, // 6: ope.Ope.Shutdown:output_type -> ope.Bool
-	2, // 7: ope.Ope.Latency:output_type -> ope.Empty
-	4, // [4:8] is the sub-list for method output_type
-	0, // [0:4] is the sub-list for method input_type
+	3, // 3: ope.Ope.SetValue:input_type -> ope.KeyVal
+	0, // 4: ope.Ope.Latency:input_type -> ope.Value
+	1, // 5: ope.Ope.Ready:output_type -> ope.Bool
+	0, // 6: ope.Ope.Version:output_type -> ope.Value
+	1, // 7: ope.Ope.Shutdown:output_type -> ope.Bool
+	2, // 8: ope.Ope.SetValue:output_type -> ope.Empty
+	2, // 9: ope.Ope.Latency:output_type -> ope.Empty
+	5, // [5:10] is the sub-list for method output_type
+	0, // [0:5] is the sub-list for method input_type
 	0, // [0:0] is the sub-list for extension type_name
 	0, // [0:0] is the sub-list for extension extendee
 	0, // [0:0] is the sub-list for field type_name
@@ -212,7 +272,7 @@ func file_grpc_ope_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_ope_proto_rawDesc), len(file_grpc_ope_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

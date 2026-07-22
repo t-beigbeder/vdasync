@@ -44,6 +44,7 @@ xbuild:
 	go build -o $(BDIR)/vdaservice$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdaservice/main.go
 	go build -o $(BDIR)/testcerts$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/testcerts/main.go
 	go build -o $(BDIR)/vdaserver$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdaserver/main.go
+	go build -o $(BDIR)/vdatserver$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdatserver/main.go
 	go build -o $(BDIR)/vdas3$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/s3/main.go
 	go build -o $(BDIR)/vdaencrypt$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/encrypt/main.go
 	go build -o $(BDIR)/vdasftp$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/sftp/main.go

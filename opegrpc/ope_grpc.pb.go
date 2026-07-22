@@ -22,6 +22,7 @@ const (
 	Ope_Ready_FullMethodName    = "/ope.Ope/Ready"
 	Ope_Version_FullMethodName  = "/ope.Ope/Version"
 	Ope_Shutdown_FullMethodName = "/ope.Ope/Shutdown"
+	Ope_SetValue_FullMethodName = "/ope.Ope/SetValue"
 	Ope_Latency_FullMethodName  = "/ope.Ope/Latency"
 )
 
@@ -32,6 +33,7 @@ type OpeClient interface {
 	Ready(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Bool, error)
 	Version(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Value, error)
 	Shutdown(ctx context.Context, in *Value, opts ...grpc.CallOption) (*Bool, error)
+	SetValue(ctx context.Context, in *KeyVal, opts ...grpc.CallOption) (*Empty, error)
 	Latency(ctx context.Context, in *Value, opts ...grpc.CallOption) (*Empty, error)
 }
 
@@ -73,6 +75,16 @@ func (c *opeClient) Shutdown(ctx context.Context, in *Value, opts ...grpc.CallOp
 	return out, nil
 }
 
+func (c *opeClient) SetValue(ctx context.Context, in *KeyVal, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, Ope_SetValue_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *opeClient) Latency(ctx context.Context, in *Value, opts ...grpc.CallOption) (*Empty, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
@@ -90,6 +102,7 @@ type OpeServer interface {
 	Ready(context.Context, *Empty) (*Bool, error)
 	Version(context.Context, *Empty) (*Value, error)
 	Shutdown(context.Context, *Value) (*Bool, error)
+	SetValue(context.Context, *KeyVal) (*Empty, error)
 	Latency(context.Context, *Value) (*Empty, error)
 	mustEmbedUnimplementedOpeServer()
 }
@@ -109,6 +122,9 @@ func (UnimplementedOpeServer) Version(context.Context, *Empty) (*Value, error) {
 }
 func (UnimplementedOpeServer) Shutdown(context.Context, *Value) (*Bool, error) {
 	return nil, status.Error(codes.Unimplemented, "method Shutdown not implemented")
+}
+func (UnimplementedOpeServer) SetValue(context.Context, *KeyVal) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method SetValue not implemented")
 }
 func (UnimplementedOpeServer) Latency(context.Context, *Value) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Latency not implemented")
@@ -188,6 +204,24 @@ func _Ope_Shutdown_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Ope_SetValue_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(KeyVal)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(OpeServer).SetValue(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: Ope_SetValue_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(OpeServer).SetValue(ctx, req.(*KeyVal))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Ope_Latency_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(Value)
 	if err := dec(in); err != nil {
@@ -224,6 +258,10 @@ var Ope_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Shutdown",
 			Handler:    _Ope_Shutdown_Handler,
+		},
+		{
+			MethodName: "SetValue",
+			Handler:    _Ope_SetValue_Handler,
 		},
 		{
 			MethodName: "Latency",
