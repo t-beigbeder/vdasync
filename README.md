@@ -1,7 +1,8 @@
 # vdasync
 
-Vdasync is a versatile data access and synchronization tool, providing access to local files,
-to remote files and to various data access means through the use of plugins.
+Vdasync is a versatile data access and synchronization tool,
+providing access to local files, to remote files,
+and integrating with various data access means through the use of plugins.
 
 ## General
 
@@ -34,7 +35,7 @@ local or remote files in a standalone or client-server deployment.
 
 ![Vdasync's local and remote deployments](docs/images/vdasync-deployment.png "Vdasync's local and remote deployments schema")
 
-Even if not illustrated, nothing forbids `vdasync` to synchronize remote files among themselves,
+Even if not illustrated, nothing prevents `vdasync` to synchronize remote files among themselves,
 at the cost of related data transfers on the network.
 
 Using cloud or network storage services such as S3 object storage or SFTP
@@ -42,12 +43,12 @@ is enabled with plugins as shown below:
 
 ![Vdasync's plugins deployments](docs/images/vdasync-plugins.png "Vdasync's plugins deployments schema")
 
-Plugins are gRPC servers running on the same host as the `vdasync` command that automatically start and stop them.
+Plugins are gRPC servers running on the same host as the `vdasync` command, which automatically start and stop them.
 They use the same API as `vdaserver` which makes the latter identical to a plugin implementing access to local files
-and running on a remote host.
+and running on a remote host. By the way, such a plugin, named `localFiles`, is provided for testing purpose.
 
 Again, while not illustrated, data synchronization between plugins and remote files is also possible,
-as well as between plugins.
+as well as between plugins themselves.
 
 ## Basic usage
 
