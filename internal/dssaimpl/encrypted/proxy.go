@@ -53,6 +53,9 @@ func (p *proxyDss) setValue(key string, val []byte) error {
 	case KeyRecs:
 		p.recs = strings.Split(string(val), ",")
 	case KeyOpen:
+		if p.dss != nil {
+			return errors.New("encrypted.proxyDss.setValue: already opened")
+		}
 		dss, err := MakeEncryptedDssa(p.lgr, localfiles.MakeLocalFilesDssa(), p.rootPath,
 			strings.Split(p.sidGetter(), ","), false, p.recs,
 		)
@@ -61,6 +64,9 @@ func (p *proxyDss) setValue(key string, val []byte) error {
 		}
 		p.dss = dss
 	case KeyClose:
+		if p.dss == nil {
+			return errors.New("encrypted.proxyDss.setValue: already closed")
+		}
 		p.dss = nil
 	default:
 		return fmt.Errorf("encrypted.proxyDss.setValue: unknown key %s", key)

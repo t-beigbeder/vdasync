@@ -27,6 +27,7 @@ func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.E
 	}
 	return &dssagrpc.Empty{}, nil
 }
+
 func (s *dssaImpl) EndSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
 	s.lgr.Debug("dssaImpl.EndSession")
 	if err := s.dssa_.EndSession(); err != nil {
