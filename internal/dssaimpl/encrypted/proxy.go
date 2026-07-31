@@ -34,9 +34,9 @@ func (p *proxyDss) GetValueSetCb() func(string, []byte) error {
 }
 
 const (
-	KeyIds = "identities"
-	KeyRecs = "recipients"
-	KeyOpen = "open"
+	KeyIds   = "identities"
+	KeyRecs  = "recipients"
+	KeyOpen  = "open"
 	KeyClose = "close"
 )
 
