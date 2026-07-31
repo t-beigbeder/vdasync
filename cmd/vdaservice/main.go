@@ -15,15 +15,18 @@ import (
 
 func main() {
 	var (
-		cmdFlag     = flag.String("cmd", "", "a command to apply: list latency version shutdown")
-		dssFlag     = flag.String("dss", "", "dss on which the command applies")
-		recurFlag   = flag.Bool("recur", false, "apply recursively to sub-directories")
-		sortFlag    = flag.Bool("sort", false, "sort output with entries paths")
-		tsortFlag   = flag.Bool("tsort", false, "sort output with entries modification times")
-		noownFlag   = flag.Bool("noown", false, "hide uid gid information")
-		statFlag    = flag.Bool("stat", false, "with list cmd, perform additional stat on each entry (simulate I/O)")
-		latencyFlag = flag.String("latency", "100us", "latency")
-		countFlag   = flag.Int("count", 100000, "test count")
+		cmdFlag          = flag.String("cmd", "", "a command to apply: list trust latency version shutdown")
+		dssFlag          = flag.String("dss", "", "dss on which the command applies")
+		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
+		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")
+		tsortFlag        = flag.Bool("tsort", false, "sort output with entries modification times")
+		noownFlag        = flag.Bool("noown", false, "hide uid gid information")
+		statFlag         = flag.Bool("stat", false, "with list cmd, perform additional stat on each entry (simulate I/O)")
+		latencyFlag      = flag.String("latency", "100us", "latency")
+		countFlag        = flag.Int("count", 100000, "test count")
+		ageEncIdfFlag    = flag.String("ageeidf", "", "DSS encryption age identities (secrets) file name")
+		ageEncRecfFlag   = flag.String("ageerecf", "", "DSS encryption age recipients (public keys) file name")
+		ageTrustRecfFlag = flag.String("agetrecf", "", "trusted server age recipients (public keys) file name")
 	)
 	cf := cli.CommonFlags()
 	svsf := cli.ServicesFlags()
@@ -47,6 +50,26 @@ func main() {
 	}
 	if *svsf.InclFlag != "" && !common.FileExists(*svsf.InclFlag) {
 		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *svsf.InclFlag))
+	}
+
+	var encIds, encRecs, trustRecs []string
+	if *ageEncIdfFlag != "" {
+		encIds, err = common.FileLines(*ageEncIdfFlag)
+		if err != nil {
+			common.Fatal(lgr, fmt.Errorf("ageeidf: %s: %v", *ageEncIdfFlag, err))
+		}
+	}
+	if *ageEncRecfFlag != "" {
+		encRecs, err = common.FileLines(*ageEncRecfFlag)
+		if err != nil {
+			common.Fatal(lgr, fmt.Errorf("ageerecf: %s: %v", *ageEncRecfFlag, err))
+		}
+	}
+	if *ageTrustRecfFlag != "" {
+		trustRecs, err = common.FileLines(*ageTrustRecfFlag)
+		if err != nil {
+			common.Fatal(lgr, fmt.Errorf("agetrecf: %s: %v", *ageTrustRecfFlag, err))
+		}
 	}
 
 	var rps []*plugin.RunningPlugin
@@ -94,6 +117,9 @@ func main() {
 		IsSorted:    *sortFlag,
 		IsTSorted:   *tsortFlag,
 		IsNoOwn:     *noownFlag,
+		EncIds:      encIds,
+		EncRecs:     encRecs,
+		TrustRecs:   trustRecs,
 		Latency:     *latencyFlag,
 		Count:       *countFlag,
 		Concurrency: *cf.ConcurrencyFlag,

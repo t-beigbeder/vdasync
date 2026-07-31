@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/encrypted"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
@@ -140,6 +142,9 @@ type ServiceCtx struct {
 	IsSorted    bool
 	IsTSorted   bool
 	IsNoOwn     bool
+	EncIds      []string
+	EncRecs     []string
+	TrustRecs   []string
 	Latency     string
 	Count       int
 	Concurrency int
@@ -148,19 +153,20 @@ type ServiceCtx struct {
 }
 
 func DoService(sc *ServiceCtx) error {
-	if sc.Cmd == "list" {
+	switch sc.Cmd {
+	case "list":
 		return doList(sc)
-	}
-	if sc.Cmd == "latency" {
+	case "trust":
+		return doTrust(sc)
+	case "latency":
 		return doLatency(sc)
-	}
-	if sc.Cmd == "version" {
+	case "version":
 		return doVersion(sc)
-	}
-	if sc.Cmd == "shutdown" {
+	case "shutdown":
 		return doShutdown(sc)
+	default:
+		return fmt.Errorf("unknown command: %s", sc.Cmd)
 	}
-	return fmt.Errorf("unknown command: %s", sc.Cmd)
 }
 
 func doList(sc *ServiceCtx) error {
@@ -216,6 +222,42 @@ func doList(sc *ServiceCtx) error {
 	}
 	for _, doerEs := range rss {
 		sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry, sc.IsNoOwn, doerEs.Checksum) + "\n"))
+	}
+	return nil
+}
+
+func doTrust(sc *ServiceCtx) error {
+	gc, underIsGc := sc.Dss.(grpcclient.GrpcClient)
+	if !underIsGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	if sc.EncIds == nil {
+		return errors.New("doTrust: no ageeids")
+	}
+	if sc.EncRecs == nil {
+		return errors.New("doTrust: no ageerecs")
+	}
+	if sc.TrustRecs == nil {
+		return errors.New("doTrust: no agetrecs")
+	}
+	idss, err := common.AgeEncryptMsg([]byte(strings.Join(sc.EncIds, ",")), sc.TrustRecs...)
+	if err != nil {
+		return fmt.Errorf("doTrust: encrypting ageeids failed: %v", err)
+	}
+	bgCtx := context.Background()
+	_, err = gc.GetClient().SetValue(bgCtx, &opegrpc.KeyVal{Key: encrypted.KeyIds, Val: idss})
+	if err != nil {
+		return fmt.Errorf("doTrust: SetValue identities failed %v", err)
+	}
+	_, err = gc.GetClient().SetValue(bgCtx,
+		&opegrpc.KeyVal{Key: encrypted.KeyRecs, Val: []byte(strings.Join(sc.EncRecs, ","))})
+	if err != nil {
+		return fmt.Errorf("doTrust: SetValue recipients failed %v", err)
+	}
+	_, err = gc.GetClient().SetValue(bgCtx,
+		&opegrpc.KeyVal{Key: encrypted.KeyOpen})
+	if err != nil {
+		return fmt.Errorf("doTrust: SetValue open failed %v", err)
 	}
 	return nil
 }
