@@ -40,18 +40,18 @@ const (
 	KeyClose = "close"
 )
 
-func (p *proxyDss) setValue(key string, eVal []byte) error {
-	dVal, err := common.AgeDecryptMsg(eVal, p.ageIdentitiesGetter()...)
-	if err != nil {
-		return err
-	}
+func (p *proxyDss) setValue(key string, val []byte) error {
 	p.mx.Lock()
 	defer p.mx.Unlock()
 	switch key {
 	case KeyIds:
+		dVal, err := common.AgeDecryptMsg(val, p.ageIdentitiesGetter()...)
+		if err != nil {
+			return err
+		}
 		p.sidGetter = func() string { return string(dVal) }
 	case KeyRecs:
-		p.recs = strings.Split(string(dVal), ",")
+		p.recs = strings.Split(string(val), ",")
 	case KeyOpen:
 		dss, err := MakeEncryptedDssa(p.lgr, localfiles.MakeLocalFilesDssa(), p.rootPath,
 			strings.Split(p.sidGetter(), ","), false, p.recs,
