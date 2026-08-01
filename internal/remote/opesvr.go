@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -43,10 +44,11 @@ func (s *opeServer) Shutdown(ctx context.Context, v *opegrpc.Value) (*opegrpc.Bo
 }
 
 func (s *opeServer) SetValue(ctx context.Context, kv *opegrpc.KeyVal) (*opegrpc.Empty, error) {
-	if s.valueSetCb != nil {
-		if err := s.valueSetCb(kv.Key, kv.Val); err != nil {
-			return nil, err
-		}
+	if s.valueSetCb == nil {
+		return nil, errors.New("SetValue on untrusted server")
+	}
+	if err := s.valueSetCb(kv.Key, kv.Val); err != nil {
+		return nil, err
 	}
 	return &opegrpc.Empty{}, nil
 }

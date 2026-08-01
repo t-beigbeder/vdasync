@@ -15,7 +15,7 @@ import (
 
 func main() {
 	var (
-		cmdFlag          = flag.String("cmd", "", "a command to apply: list trust latency version shutdown")
+		cmdFlag          = flag.String("cmd", "", "a command to apply: list [un]trust latency version shutdown")
 		dssFlag          = flag.String("dss", "", "dss on which the command applies")
 		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
 		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")
@@ -96,7 +96,7 @@ func main() {
 		common.Fatal(lgr, errors.New("dss must be provided"))
 	}
 
-	dss, root, err := cli.GetDssAndRootFor(lgr, cf, cfg, false, *dssFlag, rps)
+	dss, root, err := cli.DoGetDssAndRootFor(lgr, cf, cfg, false, *dssFlag, rps, *cmdFlag != "trust" && *cmdFlag != "untrust")
 	_ = root
 	if err != nil {
 		common.Fatal(lgr, err)
