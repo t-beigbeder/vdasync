@@ -22,7 +22,7 @@ func TestGrpcGetTestClientBase(t *testing.T) {
 	t.Chdir(td)
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
 
-	cli, cFunc, err := GrpcGetTestClient(nil)
+	cli, cFunc, err := GrpcGetTestClient(nil, nil)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
@@ -45,7 +45,7 @@ func TestGrpcGetTestClientBase(t *testing.T) {
 }
 
 func TestRunGrpcTestServerFailSlowListen(t *testing.T) {
-	port, cFunc, err := doRunGrpcTestServer(250 * time.Millisecond)
+	port, cFunc, err := doRunGrpcTestServer(250*time.Millisecond, nil)
 	require.Nil(t, err)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	conn, err := grpc.NewClient(fmt.Sprintf("%s:%d", testHost, port), opts...)
@@ -62,7 +62,7 @@ func TestGrpcGetTestClientWaitSlowStart(t *testing.T) {
 	t.Chdir(td)
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
 
-	cli, cFunc, err := doGrpcGetTestClient(250*time.Millisecond, 5, 20*time.Millisecond, nil)
+	cli, cFunc, err := doGrpcGetTestClient(250*time.Millisecond, 5, 20*time.Millisecond, nil, nil)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
@@ -85,7 +85,7 @@ func TestGrpcGetTestClientWaitSlowStart(t *testing.T) {
 }
 
 func TestRunGrpcTestServerShutdown(t *testing.T) {
-	cli, _, err := GrpcGetTestClient(nil)
+	cli, _, err := GrpcGetTestClient(nil, nil)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
@@ -105,7 +105,7 @@ func TestRunGrpcTestServerSelfSigned(t *testing.T) {
 	require.Nil(t, err)
 	sopt, err := GetSimpleTlsSOpt(cf, kf)
 	require.Nil(t, err)
-	cli, _, err := GrpcGetTestClient(GetInsecureSkipVerifyCopt(), sopt)
+	cli, _, err := GrpcGetTestClient(nil, GetInsecureSkipVerifyCopt(), sopt)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})
@@ -125,7 +125,7 @@ func TestRunGrpcTestServerMTls(t *testing.T) {
 	require.Nil(t, err)
 	sopt, err := GetMutualTlsSOpt(cfs["cac"], cfs["svc"], cfs["svk"])
 
-	cli, _, err := GrpcGetTestClient(copt, sopt)
+	cli, _, err := GrpcGetTestClient(nil, copt, sopt)
 	require.Nil(t, err)
 
 	rr, err := cli.Ready(context.Background(), &opegrpc.Empty{})

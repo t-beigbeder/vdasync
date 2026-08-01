@@ -122,6 +122,7 @@ func RunOpeDssaServer(
 	opts []grpc.ServerOption,
 	dssa_ dssa.Dssa,
 	shutdownCb func(),
+	valueSetCb func(string, []byte) error,
 ) (
 	int, context.CancelFunc, error,
 ) {
@@ -144,7 +145,7 @@ func RunOpeDssaServer(
 	if err != nil {
 		return port, cCancel, err
 	}
-	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb})
+	opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer, shutdownCb: shutdownCb, valueSetCb: valueSetCb})
 
 	callStats := make(chan string)
 	go getStat(lgr, callStats)

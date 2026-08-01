@@ -79,7 +79,7 @@ func RunS3Plugin() {
 	}
 	_, _, err = remote.RunOpeDssaServer(
 		lgr, context.Background(), *hostFlag, *portFlag,
-		sops, dss, cb)
+		sops, dss, cb, nil)
 	<-done
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("RunOpeDssaServer failed %s", err))

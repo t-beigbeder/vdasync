@@ -19,7 +19,8 @@ func TestRunOpeDssaServer(t *testing.T) {
 	td := t.TempDir()
 	t.Chdir(td)
 	common.WriteFile(t.Name()+".txt", []byte(t.Name()+"\n"))
-	port, cFunc, err := RunOpeDssaServer(common.GetLogger(), context.Background(), testHost, 0, nil, localfiles.MakeLocalFilesDssa(), nil)
+	port, cFunc, err := RunOpeDssaServer(common.GetLogger(), context.Background(),
+		testHost, 0, nil, localfiles.MakeLocalFilesDssa(), nil, nil)
 	require.Nil(t, err)
 	cli, conn, err := NewOpeDssaClient(fmt.Sprintf("%s:%d", testHost, port), nil)
 	require.Nil(t, err)

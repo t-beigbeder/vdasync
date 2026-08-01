@@ -56,7 +56,7 @@ func TestServiceLatencyRaw(t *testing.T) {
 		t.Skip("OTVL_TEST_FULL not set")
 	}
 	// will take ~ 5s
-	cli, cFunc, err := remote.GrpcGetTestClient(nil)
+	cli, cFunc, err := remote.GrpcGetTestClient(nil, nil)
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
@@ -76,7 +76,7 @@ func TestServiceLatencySimulNet(t *testing.T) {
 		t.Skip("OTVL_TEST_FULL not set")
 	}
 	// will take ~ 5s
-	cli, cFunc, err := remote.GrpcGetTestClient(nil)
+	cli, cFunc, err := remote.GrpcGetTestClient(nil, nil)
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
@@ -96,7 +96,7 @@ func TestServiceLatencySimulCompute(t *testing.T) {
 		t.Skip("OTVL_TEST_FULL not set")
 	}
 	// will take ~ 5s
-	cli, cFunc, err := remote.GrpcGetTestClient(nil)
+	cli, cFunc, err := remote.GrpcGetTestClient(nil, nil)
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)
@@ -112,7 +112,7 @@ func TestServiceLatencySimulCompute(t *testing.T) {
 }
 
 func TestOtherServices(t *testing.T) {
-	cli, cFunc, err := remote.GrpcGetTestClient(nil)
+	cli, cFunc, err := remote.GrpcGetTestClient(nil, nil)
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := grpcclient.MakeGrpcClient(common.GetLogger(), context.Background(), cli)

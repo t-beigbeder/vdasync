@@ -20,6 +20,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/s3msts"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/sftpc"
 	"github.com/t-beigbeder/vdasync/internal/remote"
+	"github.com/t-beigbeder/vdasync/opegrpc"
 )
 
 func getTestOutWriter() io.Writer {
@@ -43,9 +44,40 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	return
 }
 
-func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, encrypted.EncryptedDssa, context.CancelFunc) {
-	cli, cFunc, err := remote.GrpcGetTestClient(nil)
+func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, encrypted.ProxyDssa, context.CancelFunc) {
+	var (
+		dss6 encrypted.ProxyDssa
+		rec1 string
+		id1  string
+		err  error
+		rec2 string
+		id2  string
+	)
+	if hasRencrypt {
+		rec1, id1, err = common.AgeNewKeyPair()
+		require.NoError(t, err)
+		td := t.TempDir()
+		dss6, err = encrypted.MakeProxyDssa(common.GetNullLogger(), td, []string{id1})
+		require.NoError(t, err)
+	}
+	if hasEncrypt || hasRencrypt {
+		rec2, id2, err = common.AgeNewKeyPair()
+		require.NoError(t, err)
+	}
+	cli, cFunc, err := remote.GrpcGetTestClient(dss6, nil)
 	require.NoError(t, err)
+	if hasRencrypt {
+		idss, err := common.AgeEncryptMsg([]byte(id2), rec1)
+		require.NoError(t, err)
+		bgCtx := context.Background()
+		_, err = cli.SetValue(bgCtx, &opegrpc.KeyVal{Key: encrypted.KeyIds, Val: idss})
+		require.NoError(t, err)
+		_, err = cli.SetValue(bgCtx, &opegrpc.KeyVal{Key: encrypted.KeyRecs, Val: []byte(rec2)})
+		require.NoError(t, err)
+		_, err = cli.SetValue(bgCtx, &opegrpc.KeyVal{Key: encrypted.KeyOpen})
+		require.NoError(t, err)
+	}
+
 	dss1 := localfiles.MakeLocalFilesDssa()
 	dss2 := grpcclient.MakeGrpcClient(common.GetNullLogger(), context.Background(), cli)
 	var dss3 s3msts.S3DssaWithMsts
@@ -63,21 +95,19 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dss
 	}
 	require.NoError(t, err)
 	if hasEncrypt {
-		recs, ids, err := common.AgeNewKeyPair()
-		require.NoError(t, err)
 		td := t.TempDir()
 		dss5, _ = encrypted.MakeEncryptedDssa(
 			common.GetNullLogger(),
 			localfiles.MakeLocalFilesDssa(),
 			td,
-			[]string{ids},
+			[]string{id2},
 			false,
-			[]string{recs},
+			[]string{rec2},
 		)
 		require.NotNil(t, dss5)
 		require.NoError(t, dss5.NewSession())
 	}
-	return dss1, dss2, dss3, dss4, dss5, nil, cFunc
+	return dss1, dss2, dss3, dss4, dss5, dss6, cFunc
 }
 
 func TestBasicDryrunSynczer(t *testing.T) {
@@ -1059,6 +1089,17 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
+			label: "TestFilesTreeRemoteEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "reDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTestFilesTree", stepMakeTestFilesTree},
+			},
+		},
+		{
 			label: "TestAugmentedOnFiles",
 			omit:  skipOp,
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
@@ -1099,6 +1140,18 @@ func TestSimpleSteps(t *testing.T) {
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet:    getTd,
 			tDssType: "eDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
+				{"stepUpdateAugmentedTestFilesTree", stepUpdateAugmentedTestFilesTree},
+			},
+		},
+		{
+			label: "TestAugmentedOnRemoteEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "reDss",
 			tdGet:    getTd,
 			simpleSteps: []simpleStep{
 				{"stepMakeAugmentedTestFilesTree", stepMakeAugmentedTestFilesTree},
@@ -1165,6 +1218,18 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
+			label: "Test1OnRemoteEncryptedFilesCheck",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Check: true},
+			srGet:    getTd,
+			tDssType: "reDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"stepMakeTest1Base", stepMakeTest1Base},
+				{"stepMakeTest1Step2", stepMakeTest1Step2},
+			},
+		},
+		{
 			label: "Test2OnSftp",
 			omit:  skipOp,
 			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
@@ -1192,6 +1257,20 @@ func TestSimpleSteps(t *testing.T) {
 				{"test2Step4", test2Step4},
 			},
 		},
+		{
+			label: "Test2OnRemoteEncryptedFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			srGet:    getTd,
+			tDssType: "reDss",
+			tdGet:    getTd,
+			simpleSteps: []simpleStep{
+				{"test2Step1", test2Step1},
+				{"test2Step2", test2Step2},
+				{"test2Step3", test2Step3},
+				{"test2Step4", test2Step4},
+			},
+		},
 	}
 	defer func() {
 		for _, td := range createdDirs {
@@ -1203,7 +1282,7 @@ func TestSimpleSteps(t *testing.T) {
 		if test.omit {
 			continue
 		}
-		_, rDss, _, sftpDss, eDss, _, cFunc := getTestDss(t, false, true, true, false)
+		_, rDss, _, sftpDss, eDss, reDss, cFunc := getTestDss(t, false, true, true, test.tDssType == "reDss")
 		defer func() {
 			if cFunc != nil {
 				cFunc()
@@ -1220,6 +1299,8 @@ func TestSimpleSteps(t *testing.T) {
 			require.NoError(t, sftpc.Cleanup(sftpDss))
 		case "eDss":
 			test.tDss = eDss
+		case "reDss":
+			test.tDss = reDss
 		default:
 			require.Equal(t, "", test.tDssType, fmt.Sprintf("not (yet) implemented: tDssType %s", test.tDssType))
 		}
@@ -1230,7 +1311,7 @@ func TestSimpleSteps(t *testing.T) {
 			}
 			require.NoError(t, err, fmt.Sprintf("label '%s' ssn '%s'", test.label, sst.ssn))
 		}
-		if test.label == "Test1OnEncryptedFilesCheck" {
+		if test.label == "TestFilesTreeRemoteEncryptedFiles" {
 			require.True(t, true)
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
@@ -15,7 +16,12 @@ import (
 
 const testHost = "localhost"
 
-func doRunGrpcTestServer(tToListen time.Duration, opt ...grpc.ServerOption) (int, context.CancelFunc, error) {
+type TestProxyDssa interface {
+	dssa.Dssa
+	GetValueSetCb() func(string, []byte) error
+}
+
+func doRunGrpcTestServer(tToListen time.Duration, tpDss TestProxyDssa, opt ...grpc.ServerOption) (int, context.CancelFunc, error) {
 	_, cCancel := context.WithCancel(context.Background())
 	var (
 		err  error
@@ -40,13 +46,22 @@ func doRunGrpcTestServer(tToListen time.Duration, opt ...grpc.ServerOption) (int
 		if lErr != nil {
 			return
 		}
-		opegrpc.RegisterOpeServer(grpcServer, &opeServer{grpcServer: grpcServer})
+		var tDss dssa.Dssa
+		var vsCb func(key string, value []byte) error
+		if tpDss == nil {
+			tDss = localfiles.MakeLocalFilesDssa()
+		} else {
+			tDss = tpDss
+			vsCb = tpDss.GetValueSetCb()
+		}
+		opegrpc.RegisterOpeServer(grpcServer,
+			&opeServer{grpcServer: grpcServer, valueSetCb: vsCb})
 
 		lgr := common.GetNullLogger()
 		go getStat(lgr, callStats)
 		dssagrpc.RegisterDataStorageSystemServer(
 			grpcServer,
-			&dssaImpl{lgr: lgr, grpcServer: grpcServer, dssa_: localfiles.MakeLocalFilesDssa(), callStats: callStats},
+			&dssaImpl{lgr: lgr, grpcServer: grpcServer, dssa_: tDss, callStats: callStats},
 		)
 		grpcServer.Serve(lis)
 		lgr.Error("doRunGrpcTestServer: stopped serving")
@@ -59,10 +74,6 @@ func doRunGrpcTestServer(tToListen time.Duration, opt ...grpc.ServerOption) (int
 	return port, cancel, nil
 }
 
-func RunGrpcTestServer(opt ...grpc.ServerOption) (int, context.CancelFunc, error) {
-	return doRunGrpcTestServer(0, opt...)
-}
-
 func checkLocalServerReadiness(port int, copt grpc.DialOption) (
 	cli OpeDssaClient, err error,
 ) {
@@ -70,6 +81,7 @@ func checkLocalServerReadiness(port int, copt grpc.DialOption) (
 }
 
 func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration,
+	tDss TestProxyDssa,
 	copt grpc.DialOption, sopt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
@@ -78,7 +90,7 @@ func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDel
 		err    error
 		cli    OpeDssaClient
 	)
-	port, cancel, err := doRunGrpcTestServer(serverTToListen, sopt...)
+	port, cancel, err := doRunGrpcTestServer(serverTToListen, tDss, sopt...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("doGrpcGetTestClient: doRunGrpcTestServer failed %v", err)
 	}
@@ -96,8 +108,8 @@ func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDel
 	return cli, cancel, nil
 }
 
-func GrpcGetTestClient(copt grpc.DialOption, sopt ...grpc.ServerOption) (
+func GrpcGetTestClient(tDss TestProxyDssa, copt grpc.DialOption, sopt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
-	return doGrpcGetTestClient(0, 3, 20*time.Millisecond, copt, sopt...)
+	return doGrpcGetTestClient(0, 3, 20*time.Millisecond, tDss, copt, sopt...)
 }

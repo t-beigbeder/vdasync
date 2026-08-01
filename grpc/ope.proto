@@ -8,6 +8,7 @@ service Ope {
   rpc Ready(Empty) returns (Bool) {}
   rpc Version(Empty) returns (Value) {}
   rpc Shutdown(Value) returns (Bool) {}
+  rpc SetValue(KeyVal) returns (Empty) {}
   rpc Latency(Value) returns (Empty) {}
 }
 
@@ -20,4 +21,9 @@ message Bool {
 }
 
 message Empty {
+}
+
+message KeyVal {
+  string key = 1;
+  bytes val = 2;
 }

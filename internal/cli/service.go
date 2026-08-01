@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/encrypted"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
@@ -64,7 +66,7 @@ func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	}
 }
 
-func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin) (dss dssa.Dssa, root string, err error) {
+func DoGetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin, makeNewSession bool) (dss dssa.Dssa, root string, err error) {
 	var (
 		pName string
 		host  string
@@ -82,7 +84,7 @@ func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConf
 		dss = localfiles.MakeLocalFilesDssa()
 		return
 	}
-	if pName != "" {
+	if pName != "" && pName[0:1] != "_" {
 		rp := plugin.PluginFor(pName, rps)
 		if rp == nil {
 			err = fmt.Errorf("%s: url %s: unkown plugin %s", sot, url, pName)
@@ -105,10 +107,17 @@ func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConf
 		return
 	}
 	dss = grpcclient.MakeGrpcClient(lgr, context.Background(), cli)
+	if !makeNewSession {
+		return
+	}
 	if err = dss.NewSession(); err != nil {
 		return
 	}
 	return
+}
+
+func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin) (dssa.Dssa, string, error) {
+	return DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true)
 }
 
 func GetGrpcClient(lgr *slog.Logger, cf *CommonFlagsType, host string, port int) (dssa.Dssa, error) {
@@ -140,6 +149,9 @@ type ServiceCtx struct {
 	IsSorted    bool
 	IsTSorted   bool
 	IsNoOwn     bool
+	EncIds      []string
+	EncRecs     []string
+	TrustRecs   []string
 	Latency     string
 	Count       int
 	Concurrency int
@@ -148,19 +160,22 @@ type ServiceCtx struct {
 }
 
 func DoService(sc *ServiceCtx) error {
-	if sc.Cmd == "list" {
+	switch sc.Cmd {
+	case "list":
 		return doList(sc)
-	}
-	if sc.Cmd == "latency" {
+	case "trust":
+		return doTrust(sc)
+	case "untrust":
+		return doUnTrust(sc)
+	case "latency":
 		return doLatency(sc)
-	}
-	if sc.Cmd == "version" {
+	case "version":
 		return doVersion(sc)
-	}
-	if sc.Cmd == "shutdown" {
+	case "shutdown":
 		return doShutdown(sc)
+	default:
+		return fmt.Errorf("unknown command: %s", sc.Cmd)
 	}
-	return fmt.Errorf("unknown command: %s", sc.Cmd)
 }
 
 func doList(sc *ServiceCtx) error {
@@ -216,6 +231,56 @@ func doList(sc *ServiceCtx) error {
 	}
 	for _, doerEs := range rss {
 		sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry, sc.IsNoOwn, doerEs.Checksum) + "\n"))
+	}
+	return nil
+}
+
+func doTrust(sc *ServiceCtx) error {
+	gc, isGc := sc.Dss.(grpcclient.GrpcClient)
+	if !isGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	if sc.EncIds == nil {
+		return errors.New("doTrust: no ageeidf")
+	}
+	if sc.EncRecs == nil {
+		return errors.New("doTrust: no ageerecf")
+	}
+	if sc.TrustRecs == nil {
+		return errors.New("doTrust: no agetrecf")
+	}
+	idss, err := common.AgeEncryptMsg([]byte(strings.Join(sc.EncIds, ",")), sc.TrustRecs...)
+	if err != nil {
+		return fmt.Errorf("doTrust: encrypting ageeids failed: %v", err)
+	}
+	bgCtx := context.Background()
+	_, err = gc.GetClient().SetValue(bgCtx, &opegrpc.KeyVal{Key: encrypted.KeyIds, Val: idss})
+	if err != nil {
+		return fmt.Errorf("doTrust: SetValue identities failed %v", err)
+	}
+	_, err = gc.GetClient().SetValue(bgCtx,
+		&opegrpc.KeyVal{Key: encrypted.KeyRecs, Val: []byte(strings.Join(sc.EncRecs, ","))})
+	if err != nil {
+		return fmt.Errorf("doTrust: SetValue recipients failed %v", err)
+	}
+	_, err = gc.GetClient().SetValue(bgCtx,
+		&opegrpc.KeyVal{Key: encrypted.KeyOpen})
+	if err != nil {
+		return fmt.Errorf("doTrust: SetValue open failed %v", err)
+	}
+	return nil
+}
+
+func doUnTrust(sc *ServiceCtx) error {
+	gc, isGc := sc.Dss.(grpcclient.GrpcClient)
+	if !isGc {
+		return fmt.Errorf("dss type %T is not a gRPC client", sc.Dss)
+	}
+	bgCtx := context.Background()
+	_, err := gc.GetClient().SetValue(bgCtx,
+		&opegrpc.KeyVal{Key: encrypted.KeyClose})
+	if err != nil {
+		return fmt.Errorf("doTrust: SetValue close failed %v", err)
 	}
 	return nil
 }
