@@ -13,19 +13,38 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 )
 
+type SessionMonitor interface {
+	WritingServed()
+	SomethingServed()
+}
+
 type ProxyDssa interface {
 	dssa.Dssa
 	GetValueSetCb() func(string, []byte) error
+	GetEncryptedDssa() EncryptedDssa
+	StopSessionMonitor()
 }
 
 type proxyDss struct {
 	lgr                 *slog.Logger
 	rootPath            string
 	ageIdentitiesGetter func() []string
-	dss                 dssa.Dssa
+	dss                 EncryptedDssa
 	mx                  sync.Mutex
 	sidGetter           func() string
 	recs                []string
+}
+
+// StopSessionMonitor implements [ProxyDssa].
+func (p *proxyDss) StopSessionMonitor() {
+	panic("unimplemented")
+}
+
+// GetEncryptedDssa implements [ProxyDssa].
+func (p *proxyDss) GetEncryptedDssa() EncryptedDssa {
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	return p.dss
 }
 
 // GetValueSetCb implements [ProxyDssa].
@@ -228,4 +247,22 @@ func MakeProxyDssa(
 		ageIdentitiesGetter: func() []string { return ageIdentities },
 	}
 	return pxd, nil
+}
+
+type sessionMon struct {
+	dss EncryptedDssa
+}
+
+// SomethingServed implements [SessionMonitor].
+func (sm *sessionMon) SomethingServed() {
+	panic("unimplemented")
+}
+
+// WritingServed implements [SessionMonitor].
+func (sm *sessionMon) WritingServed() {
+	panic("unimplemented")
+}
+
+func StartSessionMonitor(dss EncryptedDssa) SessionMonitor {
+	return &sessionMon{dss: dss}
 }

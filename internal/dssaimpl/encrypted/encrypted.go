@@ -20,6 +20,7 @@ type EncryptedDssa interface {
 	dssa.Dssa
 	Underlying() dssa.Dssa
 	Msts() metasts.MetaStorageSvc
+	SetSessionMonitor(SessionMonitor)
 }
 
 // encryptedDssaImpl implements dssa.Dssa to store data files encrypted
@@ -31,7 +32,25 @@ type encryptedDssaImpl struct {
 	msts                metasts.MetaStorageSvc
 	ageRecipients       []string
 	ageIdentitiesGetter func() []string
+	sm                  SessionMonitor
 	underlyingCheck     bool
+}
+
+// SetSessionMonitor implements [EncryptedDssa].
+func (ed *encryptedDssaImpl) SetSessionMonitor(sm SessionMonitor) {
+	ed.sm = sm
+}
+
+func (ed *encryptedDssaImpl) somethingServed() {
+	if ed.sm != nil {
+		ed.sm.SomethingServed()
+	}
+}
+
+func (ed *encryptedDssaImpl) writingServed() {
+	if ed.sm != nil {
+		ed.sm.WritingServed()
+	}
 }
 
 // Msts implements [EncryptedDssa].
@@ -67,6 +86,7 @@ func (ed *encryptedDssaImpl) EndSession() error {
 
 // GetReadCloser implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) GetReadCloser(path_ string) (io.ReadCloser, error) {
+	ed.somethingServed()
 	de, err := ed.getDe(path_)
 	if err != nil {
 		return nil, err
@@ -83,6 +103,7 @@ func (ed *encryptedDssaImpl) GetReadCloser(path_ string) (io.ReadCloser, error) 
 
 // GetWriteCloser implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	ed.writingServed()
 	de, err := ed.getDe(path_)
 	if err != nil {
 		return nil, err
@@ -128,11 +149,13 @@ func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error
 
 // List implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) List(path_ string) ([]*dssa.DataEntry, error) {
+	ed.somethingServed()
 	return ed.msts.List(path_)
 }
 
 // Mkdir implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Mkdir(de *dssa.DataEntry) error {
+	ed.writingServed()
 	de.IsDir = true // implicit for localfiles
 	if err := ed.msts.Put(de); err != nil {
 		return err
@@ -157,6 +180,7 @@ func (ed *encryptedDssaImpl) NewSession() error {
 
 // Rm implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Rm(path_ string) error {
+	ed.writingServed()
 	de, err := ed.getDe(path_)
 	if err != nil {
 		return err
@@ -184,6 +208,7 @@ func (ed *encryptedDssaImpl) Rm(path_ string) error {
 
 // SetStat implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
+	ed.writingServed()
 	ede, err := ed.getDe(de.Path)
 	if err != nil {
 		return err
@@ -205,6 +230,7 @@ func (ed *encryptedDssaImpl) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bo
 
 // Stat implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
+	ed.somethingServed()
 	de, err := ed.getDe(path_)
 	if err != nil {
 		return nil, err
@@ -217,6 +243,7 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // Checksum implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Checksum(algos, path_ string) (string, error) {
+	ed.somethingServed()
 	gc, underIsGc := ed.underlying.(grpcclient.GrpcClient)
 	if !ed.underlyingCheck || !underIsGc {
 		return common.DssaEntryChecksum(ed, path_, algos)
@@ -237,6 +264,7 @@ func (ed *encryptedDssaImpl) Checksum(algos, path_ string) (string, error) {
 
 // Symlink implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
+	ed.writingServed()
 	de, err := ed.getDe(new_)
 	if err != nil {
 		return err

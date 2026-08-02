@@ -73,6 +73,7 @@ func RunTrustedServer() {
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("RunOpeDssaServer failed %s", err))
 	}
+	dss.StopSessionMonitor()
 	lgr.Info(fmt.Sprintf("%s.main done", cmd), "host", *hostFlag, "port", *portFlag)
 }
 
