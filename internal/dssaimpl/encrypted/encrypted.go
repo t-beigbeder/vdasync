@@ -305,6 +305,7 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string,
 			M2StSvc: metasts.M2StSvc{
 				Lgr: lgr,
 				StSvc: &m2edsStSvc{
+					lgr:                 lgr,
 					dss:                 underlying,
 					rootPath:            rootPath,
 					ageIdentitiesGetter: func() []string { return ageIdentities },

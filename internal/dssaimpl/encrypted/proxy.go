@@ -279,10 +279,16 @@ func newSessionMon(lgr *slog.Logger, dss EncryptedDssa) *sessionMon {
 	return sm
 }
 
-func (sm *sessionMon) runEndSession() {
+func (sm *sessionMon) runEndSession(final bool) {
 	sm.lgr.Debug("sessionMon.runEndSession")
 	if err := sm.dss.EndSession(); err != nil {
-		sm.lgr.Error("")
+		sm.lgr.Error("sessionMon.runEndSession", "err", err)
+	}
+	if final {
+		return
+	}
+	if err := sm.dss.NewSession(); err != nil {
+		sm.lgr.Error("sessionMon.runEndSession", "err", err)
 	}
 }
 
@@ -297,20 +303,20 @@ LOOP:
 		case <-timer.C:
 		case <-sm.endsession:
 			timer.Reset(10 * time.Second)
-			sm.runEndSession()
+			sm.runEndSession(false)
 		case <-sm.writing:
 			writings++
 			if writings >= 1024 {
 				writings = 0
 				timer.Reset(10 * time.Second)
-				sm.runEndSession()
+				sm.runEndSession(false)
 			}
 		case <-sm.done:
 			break LOOP
 		}
 	}
 	timer.Stop()
-	sm.runEndSession()
+	sm.runEndSession(true)
 }
 
 func (sm *sessionMon) endSession() {

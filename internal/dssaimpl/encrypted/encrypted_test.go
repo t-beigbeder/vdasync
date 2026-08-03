@@ -274,8 +274,9 @@ func TestRepairIndex(t *testing.T) {
 	recs, ids, err := common.AgeNewKeyPair()
 	require.NoError(t, err)
 	td := t.TempDir()
+	lgr := common.GetLogger()
 	ds, _ := MakeEncryptedDssa(
-		common.GetLogger(),
+		lgr,
 		localfiles.MakeLocalFilesDssa(),
 		td,
 		[]string{ids},
@@ -297,7 +298,7 @@ func TestRepairIndex(t *testing.T) {
 	require.NoError(t, ds.NewSession())
 	require.NoError(t,
 		CheckIndex(
-			common.GetLogger(), localfiles.MakeLocalFilesDssa(), td,
+			lgr, localfiles.MakeLocalFilesDssa(), td,
 			[]string{ids}, []string{recs}, false),
 	)
 }
