@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -33,11 +34,19 @@ type proxyDss struct {
 	mx                  sync.Mutex
 	sidGetter           func() string
 	recs                []string
+	sm                  *sessionMon
 }
 
 // StopSessionMonitor implements [ProxyDssa].
 func (p *proxyDss) StopSessionMonitor() {
-	panic("unimplemented")
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	if p.dss == nil {
+		return
+	}
+	p.sm.stop()
+	p.sm = nil
+	p.dss = nil
 }
 
 // GetEncryptedDssa implements [ProxyDssa].
@@ -81,11 +90,17 @@ func (p *proxyDss) setValue(key string, val []byte) error {
 		if err != nil {
 			return err
 		}
+		if err = dss.NewSession(); err != nil {
+			return err
+		}
 		p.dss = dss
+		p.sm = newSessionMon(p.lgr, dss)
 	case KeyClose:
 		if p.dss == nil {
 			return errors.New("encrypted.proxyDss.setValue: already closed")
 		}
+		p.sm.stop()
+		p.sm = nil
 		p.dss = nil
 	default:
 		return fmt.Errorf("encrypted.proxyDss.setValue: unknown key %s", key)
@@ -116,14 +131,13 @@ func (p *proxyDss) Checksum(algos string, path_ string) (string, error) {
 
 // EndSession implements [dssa.Dssa].
 func (p *proxyDss) EndSession() error {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return err
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	if p.dss == nil {
+		return errors.New("encrypted.proxyDss: not configured yet")
 	}
-	return dss.EndSession()
+	p.sm.endSession()
+	return nil
 }
 
 // GetReadCloser implements [dssa.Dssa].
@@ -176,14 +190,10 @@ func (p *proxyDss) Mkdir(de *dssa.DataEntry) error {
 
 // NewSession implements [dssa.Dssa].
 func (p *proxyDss) NewSession() error {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
+	if _, err := p.checkProxied(); err != nil {
 		return err
 	}
-	return dss.NewSession()
+	return nil
 }
 
 // Rm implements [dssa.Dssa].
@@ -250,19 +260,75 @@ func MakeProxyDssa(
 }
 
 type sessionMon struct {
-	dss EncryptedDssa
+	lgr        *slog.Logger
+	dss        EncryptedDssa
+	served     chan bool
+	writing    chan bool
+	endsession chan bool
+	done       chan bool
+}
+
+func newSessionMon(lgr *slog.Logger, dss EncryptedDssa) *sessionMon {
+	sm := &sessionMon{lgr: lgr, dss: dss}
+	sm.served = make(chan bool, 1024)
+	sm.writing = make(chan bool, 1024)
+	sm.endsession = make(chan bool, 8)
+	sm.done = make(chan bool)
+	dss.SetSessionMonitor(sm)
+	go sm.monitors()
+	return sm
+}
+
+func (sm *sessionMon) runEndSession() {
+	sm.lgr.Debug("sessionMon.runEndSession")
+	if err := sm.dss.EndSession(); err != nil {
+		sm.lgr.Error("")
+	}
+}
+
+func (sm *sessionMon) monitors() {
+	timer := time.NewTimer(10 * time.Second)
+	writings := 0
+LOOP:
+	for {
+		select {
+		case <-sm.served:
+			timer.Reset(10 * time.Second)
+		case <-timer.C:
+		case <-sm.endsession:
+			timer.Reset(10 * time.Second)
+			sm.runEndSession()
+		case <-sm.writing:
+			writings++
+			if writings >= 1024 {
+				writings = 0
+				timer.Reset(10 * time.Second)
+				sm.runEndSession()
+			}
+		case <-sm.done:
+			break LOOP
+		}
+	}
+	timer.Stop()
+	sm.runEndSession()
+}
+
+func (sm *sessionMon) endSession() {
+	sm.lgr.Debug("sessionMon.endSession")
+	sm.endsession <- true
+}
+
+func (sm *sessionMon) stop() {
+	sm.lgr.Debug("sessionMon.stop")
+	close(sm.done)
 }
 
 // SomethingServed implements [SessionMonitor].
 func (sm *sessionMon) SomethingServed() {
-	panic("unimplemented")
+	sm.served <- true
 }
 
 // WritingServed implements [SessionMonitor].
 func (sm *sessionMon) WritingServed() {
-	panic("unimplemented")
-}
-
-func StartSessionMonitor(dss EncryptedDssa) SessionMonitor {
-	return &sessionMon{dss: dss}
+	sm.writing <- true
 }
