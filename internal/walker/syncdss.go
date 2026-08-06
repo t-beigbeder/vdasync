@@ -14,11 +14,8 @@ func parentUpdated(pe *ProcessedEntry) {
 	if pe.parent == nil || syncUserData(pe.parent).Updated {
 		return
 	}
-	pe.Lgr_().Debug("lock", "pe", pe.DataEntry.Path)
 	pe.parent.mx4child.Lock()
-	defer pe.Lgr_().Debug("unlock 1", "pe", pe.DataEntry.Path)
 	defer pe.parent.mx4child.Unlock()
-	defer pe.Lgr_().Debug("unlock 0", "pe", pe.DataEntry.Path)
 	syncUserData(pe.parent).Updated = true
 }
 
@@ -59,6 +56,20 @@ func isTargetSameKindInSource(pe *ProcessedEntry, sChildren []*dssa.DataEntry, t
 	return false
 }
 
+func mergeRmResult(pe *ProcessedEntry, rmR map[string]*RmEntryStatus) {
+	es := syncUserData(pe)
+	if es.rmResult == nil {
+		es.rmResult = map[string]*RmEntryStatus{}
+	}
+	eRmR, ok := es.rmResult.(map[string]*RmEntryStatus)
+	if !ok {
+		panic("logic")
+	}
+	for rrp, rmEs := range rmR {
+		eRmR[rrp] = rmEs
+	}
+}
+
 func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) error {
 	tp := targetPath(pe)
 	dssInfoSync(pe, true, "List")
@@ -90,8 +101,7 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 				hasErrors = true
 				continue
 			}
-			ses := syncUserData(pe)
-			ses.rmResult = RmResult(walker)
+			mergeRmResult(pe, RmResult(walker))
 		} else {
 			rp := syncRelTargetPath(pe, tde)
 			if !syncData(pe).syncOptions.Dryrun {
@@ -102,14 +112,13 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 					continue
 				}
 			}
-			ses := syncUserData(pe)
-			ses.rmResult = map[string]*RmEntryStatus{
+			mergeRmResult(pe, map[string]*RmEntryStatus{
 				rp: {
 					relPath:        rp,
 					Size:           tde.Size,
 					AggregatedSize: tde.Size,
 				},
-			}
+			})
 		}
 	}
 	if hasErrors {
