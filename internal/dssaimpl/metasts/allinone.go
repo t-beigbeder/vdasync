@@ -61,16 +61,16 @@ func (msts *M2StSvc) Del(path_ string) error {
 }
 
 // EndSession implements [metasts.MetaStorageSvc].
-func (msts *M2StSvc) EndSession() error {
-	msts.Lgr.Debug("M2StSvc: EndSession")
-	msts.mx.Lock()
-	defer msts.mx.Unlock()
+func (msts *M2StSvc) doEndSession(final bool) error {
+	msts.Lgr.Debug("M2StSvc: doEndSession", "final", final)
 	if !msts.hasSession {
-		return errors.New("M2StSvc.EndSession: no active session")
+		return errors.New("M2StSvc.doEndSession: no active session")
 	}
-	msts.hasSession = false
+	if final {
+		msts.hasSession = false
+	}
 	if !msts.hasChanges {
-		msts.Lgr.Debug("M2StSvc.EndSession: no changes")
+		msts.Lgr.Debug("M2StSvc.doEndSession: no changes")
 		return nil
 	}
 	var metaEntries dssagrpc.MetaEntries
@@ -92,7 +92,24 @@ func (msts *M2StSvc) EndSession() error {
 	if err != nil {
 		return err
 	}
+	msts.hasChanges = false
 	return msts.StSvc.Put(bs)
+}
+
+// EndSession implements [metasts.MetaStorageSvc].
+func (msts *M2StSvc) EndSession() error {
+	msts.Lgr.Debug("M2StSvc: EndSession")
+	msts.mx.Lock()
+	defer msts.mx.Unlock()
+	return msts.doEndSession(true)
+}
+
+// SaveSession implements [MetaStorageSvc].
+func (msts *M2StSvc) SaveSession() error {
+	msts.Lgr.Debug("M2StSvc: SaveSession")
+	msts.mx.Lock()
+	defer msts.mx.Unlock()
+	return msts.doEndSession(false)
 }
 
 // Exists implements [metasts.MetaStorageSvc].

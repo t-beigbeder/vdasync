@@ -260,12 +260,13 @@ func MakeProxyDssa(
 }
 
 type sessionMon struct {
-	lgr        *slog.Logger
-	dss        EncryptedDssa
-	served     chan bool
-	writing    chan bool
-	endsession chan bool
-	done       chan bool
+	lgr          *slog.Logger
+	dss          EncryptedDssa
+	served       chan bool
+	writing      chan bool
+	endsession   chan bool
+	done         chan bool
+	synchronized chan bool
 }
 
 func newSessionMon(lgr *slog.Logger, dss EncryptedDssa) *sessionMon {
@@ -274,28 +275,28 @@ func newSessionMon(lgr *slog.Logger, dss EncryptedDssa) *sessionMon {
 	sm.writing = make(chan bool, 1024)
 	sm.endsession = make(chan bool, 8)
 	sm.done = make(chan bool)
+	sm.synchronized = make(chan bool)
 	dss.SetSessionMonitor(sm)
 	go sm.monitors()
 	return sm
 }
 
 func (sm *sessionMon) runEndSession(final bool) {
-	sm.lgr.Debug("sessionMon.runEndSession")
-	if err := sm.dss.EndSession(); err != nil {
-		sm.lgr.Error("sessionMon.runEndSession", "err", err)
-	}
+	sm.lgr.Debug("sessionMon.runEndSession", "final", final)
 	if final {
+		if err := sm.dss.EndSession(); err != nil {
+			sm.lgr.Error("sessionMon.runEndSession: EndSession", "err", err)
+		}
 		return
 	}
-	if err := sm.dss.NewSession(); err != nil {
-		sm.lgr.Error("sessionMon.runEndSession", "err", err)
+	if err := sm.dss.Msts().SaveSession(); err != nil {
+		sm.lgr.Error("sessionMon.runEndSession: SaveSession", "err", err)
 	}
 }
 
 func (sm *sessionMon) monitors() {
 	timer := time.NewTimer(10 * time.Second)
 	writings := 0
-LOOP:
 	for {
 		select {
 		case <-sm.served:
@@ -312,11 +313,14 @@ LOOP:
 				sm.runEndSession(false)
 			}
 		case <-sm.done:
-			break LOOP
+			sm.lgr.Debug("sessionMon.monitors: done")
+			timer.Stop()
+			sm.runEndSession(true)
+			close(sm.synchronized)
+			return
 		}
 	}
-	timer.Stop()
-	sm.runEndSession(true)
+
 }
 
 func (sm *sessionMon) endSession() {
@@ -327,6 +331,7 @@ func (sm *sessionMon) endSession() {
 func (sm *sessionMon) stop() {
 	sm.lgr.Debug("sessionMon.stop")
 	close(sm.done)
+	<-sm.synchronized
 }
 
 // SomethingServed implements [SessionMonitor].
