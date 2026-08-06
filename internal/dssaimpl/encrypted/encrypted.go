@@ -7,12 +7,10 @@ import (
 	"log/slog"
 	"os"
 	"path"
-	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
-	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
 )
 
@@ -33,7 +31,6 @@ type encryptedDssaImpl struct {
 	ageRecipients       []string
 	ageIdentitiesGetter func() []string
 	sm                  SessionMonitor
-	underlyingCheck     bool
 }
 
 // SetSessionMonitor implements [EncryptedDssa].
@@ -243,23 +240,8 @@ func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // Checksum implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Checksum(algos, path_ string) (string, error) {
-	ed.somethingServed()
-	gc, underIsGc := ed.underlying.(grpcclient.GrpcClient)
-	if !ed.underlyingCheck || !underIsGc {
-		return common.DssaEntryChecksum(ed, path_, algos)
-	}
-	de, err := ed.getDe(path_)
-	if err != nil {
-		return "", err
-	}
-	if de == nil {
-		return "", fmt.Errorf("encryptedDssaImpl.Checksum: %s: no such file or directory", path_)
-	}
-	cs, err := gc.EncryptedChecksum(algos, ed.actualPath(de), strings.Join(ed.ageIdentitiesGetter(), ","))
-	if err != nil {
-		return "", err
-	}
-	return cs, nil
+	return common.DssaEntryChecksum(ed, path_, algos)
+	// if !ed.underlyingCheck || !underIsGc {
 }
 
 // Symlink implements [dssa.Dssa].
@@ -296,7 +278,7 @@ var _ dssa.Dssa = &encryptedDssaImpl{}
 var _ EncryptedDssa = &encryptedDssaImpl{}
 
 func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string,
-	ageIdentities []string, underlyingCheck bool, ageRecipients []string) (EncryptedDssa, error) {
+	ageIdentities []string, ageRecipients []string) (EncryptedDssa, error) {
 	dss := &encryptedDssaImpl{
 		lgr:        lgr,
 		underlying: underlying,
@@ -315,7 +297,6 @@ func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string,
 		},
 		ageIdentitiesGetter: func() []string { return ageIdentities },
 		ageRecipients:       ageRecipients,
-		underlyingCheck:     underlyingCheck,
 	}
 	return dss, nil
 }

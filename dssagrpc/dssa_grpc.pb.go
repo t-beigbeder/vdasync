@@ -19,18 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DataStorageSystem_NewSession_FullMethodName        = "/dssa.DataStorageSystem/NewSession"
-	DataStorageSystem_EndSession_FullMethodName        = "/dssa.DataStorageSystem/EndSession"
-	DataStorageSystem_List_FullMethodName              = "/dssa.DataStorageSystem/List"
-	DataStorageSystem_Stat_FullMethodName              = "/dssa.DataStorageSystem/Stat"
-	DataStorageSystem_Checksum_FullMethodName          = "/dssa.DataStorageSystem/Checksum"
-	DataStorageSystem_EncryptedChecksum_FullMethodName = "/dssa.DataStorageSystem/EncryptedChecksum"
-	DataStorageSystem_Mkdir_FullMethodName             = "/dssa.DataStorageSystem/Mkdir"
-	DataStorageSystem_SetStat_FullMethodName           = "/dssa.DataStorageSystem/SetStat"
-	DataStorageSystem_Put_FullMethodName               = "/dssa.DataStorageSystem/Put"
-	DataStorageSystem_Get_FullMethodName               = "/dssa.DataStorageSystem/Get"
-	DataStorageSystem_Rm_FullMethodName                = "/dssa.DataStorageSystem/Rm"
-	DataStorageSystem_Symlink_FullMethodName           = "/dssa.DataStorageSystem/Symlink"
+	DataStorageSystem_NewSession_FullMethodName = "/dssa.DataStorageSystem/NewSession"
+	DataStorageSystem_EndSession_FullMethodName = "/dssa.DataStorageSystem/EndSession"
+	DataStorageSystem_List_FullMethodName       = "/dssa.DataStorageSystem/List"
+	DataStorageSystem_Stat_FullMethodName       = "/dssa.DataStorageSystem/Stat"
+	DataStorageSystem_Checksum_FullMethodName   = "/dssa.DataStorageSystem/Checksum"
+	DataStorageSystem_Mkdir_FullMethodName      = "/dssa.DataStorageSystem/Mkdir"
+	DataStorageSystem_SetStat_FullMethodName    = "/dssa.DataStorageSystem/SetStat"
+	DataStorageSystem_Put_FullMethodName        = "/dssa.DataStorageSystem/Put"
+	DataStorageSystem_Get_FullMethodName        = "/dssa.DataStorageSystem/Get"
+	DataStorageSystem_Rm_FullMethodName         = "/dssa.DataStorageSystem/Rm"
+	DataStorageSystem_Symlink_FullMethodName    = "/dssa.DataStorageSystem/Symlink"
 )
 
 // DataStorageSystemClient is the client API for DataStorageSystem service.
@@ -42,7 +41,6 @@ type DataStorageSystemClient interface {
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
 	Checksum(ctx context.Context, in *AlgosAndPath, opts ...grpc.CallOption) (*Checksums, error)
-	EncryptedChecksum(ctx context.Context, in *AlgosAndPathAndSecret, opts ...grpc.CallOption) (*Checksums, error)
 	Mkdir(ctx context.Context, in *DataEntry, opts ...grpc.CallOption) (*Empty, error)
 	SetStat(ctx context.Context, in *SetStatDataEntry, opts ...grpc.CallOption) (*Empty, error)
 	Put(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[PushedBlock, Length], error)
@@ -103,16 +101,6 @@ func (c *dataStorageSystemClient) Checksum(ctx context.Context, in *AlgosAndPath
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Checksums)
 	err := c.cc.Invoke(ctx, DataStorageSystem_Checksum_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *dataStorageSystemClient) EncryptedChecksum(ctx context.Context, in *AlgosAndPathAndSecret, opts ...grpc.CallOption) (*Checksums, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(Checksums)
-	err := c.cc.Invoke(ctx, DataStorageSystem_EncryptedChecksum_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +188,6 @@ type DataStorageSystemServer interface {
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
 	Checksum(context.Context, *AlgosAndPath) (*Checksums, error)
-	EncryptedChecksum(context.Context, *AlgosAndPathAndSecret) (*Checksums, error)
 	Mkdir(context.Context, *DataEntry) (*Empty, error)
 	SetStat(context.Context, *SetStatDataEntry) (*Empty, error)
 	Put(grpc.ClientStreamingServer[PushedBlock, Length]) error
@@ -231,9 +218,6 @@ func (UnimplementedDataStorageSystemServer) Stat(context.Context, *Path) (*DataE
 }
 func (UnimplementedDataStorageSystemServer) Checksum(context.Context, *AlgosAndPath) (*Checksums, error) {
 	return nil, status.Error(codes.Unimplemented, "method Checksum not implemented")
-}
-func (UnimplementedDataStorageSystemServer) EncryptedChecksum(context.Context, *AlgosAndPathAndSecret) (*Checksums, error) {
-	return nil, status.Error(codes.Unimplemented, "method EncryptedChecksum not implemented")
 }
 func (UnimplementedDataStorageSystemServer) Mkdir(context.Context, *DataEntry) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method Mkdir not implemented")
@@ -364,24 +348,6 @@ func _DataStorageSystem_Checksum_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
-func _DataStorageSystem_EncryptedChecksum_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AlgosAndPathAndSecret)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(DataStorageSystemServer).EncryptedChecksum(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: DataStorageSystem_EncryptedChecksum_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(DataStorageSystemServer).EncryptedChecksum(ctx, req.(*AlgosAndPathAndSecret))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _DataStorageSystem_Mkdir_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(DataEntry)
 	if err := dec(in); err != nil {
@@ -498,10 +464,6 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Checksum",
 			Handler:    _DataStorageSystem_Checksum_Handler,
-		},
-		{
-			MethodName: "EncryptedChecksum",
-			Handler:    _DataStorageSystem_EncryptedChecksum_Handler,
 		},
 		{
 			MethodName: "Mkdir",

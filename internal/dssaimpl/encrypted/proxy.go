@@ -85,7 +85,7 @@ func (p *proxyDss) setValue(key string, val []byte) error {
 			return errors.New("encrypted.proxyDss.setValue: already opened")
 		}
 		dss, err := MakeEncryptedDssa(p.lgr, localfiles.MakeLocalFilesDssa(), p.rootPath,
-			strings.Split(p.sidGetter(), ","), false, p.recs,
+			strings.Split(p.sidGetter(), ","), p.recs,
 		)
 		if err != nil {
 			return err

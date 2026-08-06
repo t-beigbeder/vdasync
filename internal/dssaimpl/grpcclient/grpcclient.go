@@ -18,7 +18,6 @@ type grpcClient struct {
 }
 
 type GrpcClient interface {
-	EncryptedChecksum(algos, path_, secret string) (string, error)
 	GetClient() remote.OpeDssaClient
 }
 
@@ -86,16 +85,6 @@ func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error 
 func (gc *grpcClient) Checksum(algos string, path_ string) (string, error) {
 	gc.lgr.Debug("grpcClient.Checksum", "algos", algos, "path", path_)
 	gcs, err := gc.client.Checksum(gc.ctx, &dssagrpc.AlgosAndPath{Algos: algos, Path: path_})
-	if err != nil {
-		return "", err
-	}
-	return gcs.Checksums, nil
-}
-
-// EncryptedChecksum implements [GrpcClient].
-func (gc *grpcClient) EncryptedChecksum(algos string, path_ string, secret string) (string, error) {
-	gc.lgr.Debug("grpcClient.EncryptedChecksum", "algos", algos, "path", path_)
-	gcs, err := gc.client.EncryptedChecksum(gc.ctx, &dssagrpc.AlgosAndPathAndSecret{Algos: algos, Path: path_, Secret: secret})
 	if err != nil {
 		return "", err
 	}
