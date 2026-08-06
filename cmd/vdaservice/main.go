@@ -31,7 +31,7 @@ func main() {
 	cf := cli.CommonFlags()
 	svsf := cli.ServicesFlags()
 	flag.Parse()
-	lgr, err := common.CliLogger("vdasync", *cf.LogLevelFlag, *cf.LogFlag)
+	lgr, err := common.CliLogger("vdaservice", *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}

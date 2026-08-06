@@ -3,6 +3,7 @@ package encrypted
 import (
 	"fmt"
 	"io"
+	"log/slog"
 	"path"
 	"time"
 
@@ -18,6 +19,7 @@ type m2edsvc struct {
 var _ metasts.MetaStorageSvc = &m2edsvc{}
 
 type m2edsStSvc struct {
+	lgr                 *slog.Logger
 	dss                 dssa.Dssa
 	rootPath            string
 	ageIdentitiesGetter func() []string
@@ -39,7 +41,9 @@ func (m *m2edsStSvc) Exists() (bool, error) {
 
 // Get implements [metasts.StorageSvc].
 func (m *m2edsStSvc) Get() ([]byte, error) {
-	rr, err := m.dss.GetReadCloser(m.metaPath())
+	metaPath := m.metaPath()
+	m.lgr.Debug("m2edsStSvc.Get", "metaPath", metaPath)
+	rr, err := m.dss.GetReadCloser(metaPath)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +57,9 @@ func (m *m2edsStSvc) Get() ([]byte, error) {
 
 // Put implements [metasts.StorageSvc].
 func (m *m2edsStSvc) Put(bs []byte) error {
-	de, err := m.dss.Stat(m.metaPath())
+	metaPath := m.metaPath()
+	m.lgr.Debug("m2edsStSvc.Put", "metaPath", metaPath)
+	de, err := m.dss.Stat(metaPath)
 	if de.Error != nil && !de.ErrNotExist {
 		return err
 	}
@@ -67,7 +73,7 @@ func (m *m2edsStSvc) Put(bs []byte) error {
 	if err != nil {
 		return err
 	}
-	wr, err := m.dss.GetWriteCloser(m.metaPath())
+	wr, err := m.dss.GetWriteCloser(metaPath)
 	if err != nil {
 		return err
 	}

@@ -7,25 +7,53 @@ import (
 	"log/slog"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 )
 
+type SessionMonitor interface {
+	WritingServed()
+	SomethingServed()
+}
+
 type ProxyDssa interface {
 	dssa.Dssa
 	GetValueSetCb() func(string, []byte) error
+	GetEncryptedDssa() EncryptedDssa
+	StopSessionMonitor()
 }
 
 type proxyDss struct {
 	lgr                 *slog.Logger
 	rootPath            string
 	ageIdentitiesGetter func() []string
-	dss                 dssa.Dssa
+	dss                 EncryptedDssa
 	mx                  sync.Mutex
 	sidGetter           func() string
 	recs                []string
+	sm                  *sessionMon
+}
+
+// StopSessionMonitor implements [ProxyDssa].
+func (p *proxyDss) StopSessionMonitor() {
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	if p.dss == nil {
+		return
+	}
+	p.sm.stop()
+	p.sm = nil
+	p.dss = nil
+}
+
+// GetEncryptedDssa implements [ProxyDssa].
+func (p *proxyDss) GetEncryptedDssa() EncryptedDssa {
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	return p.dss
 }
 
 // GetValueSetCb implements [ProxyDssa].
@@ -57,16 +85,22 @@ func (p *proxyDss) setValue(key string, val []byte) error {
 			return errors.New("encrypted.proxyDss.setValue: already opened")
 		}
 		dss, err := MakeEncryptedDssa(p.lgr, localfiles.MakeLocalFilesDssa(), p.rootPath,
-			strings.Split(p.sidGetter(), ","), false, p.recs,
+			strings.Split(p.sidGetter(), ","), p.recs,
 		)
 		if err != nil {
 			return err
 		}
+		if err = dss.NewSession(); err != nil {
+			return err
+		}
 		p.dss = dss
+		p.sm = newSessionMon(p.lgr, dss)
 	case KeyClose:
 		if p.dss == nil {
 			return errors.New("encrypted.proxyDss.setValue: already closed")
 		}
+		p.sm.stop()
+		p.sm = nil
 		p.dss = nil
 	default:
 		return fmt.Errorf("encrypted.proxyDss.setValue: unknown key %s", key)
@@ -97,14 +131,13 @@ func (p *proxyDss) Checksum(algos string, path_ string) (string, error) {
 
 // EndSession implements [dssa.Dssa].
 func (p *proxyDss) EndSession() error {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return err
+	p.mx.Lock()
+	defer p.mx.Unlock()
+	if p.dss == nil {
+		return errors.New("encrypted.proxyDss: not configured yet")
 	}
-	return dss.EndSession()
+	p.sm.endSession()
+	return nil
 }
 
 // GetReadCloser implements [dssa.Dssa].
@@ -157,14 +190,10 @@ func (p *proxyDss) Mkdir(de *dssa.DataEntry) error {
 
 // NewSession implements [dssa.Dssa].
 func (p *proxyDss) NewSession() error {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
+	if _, err := p.checkProxied(); err != nil {
 		return err
 	}
-	return dss.NewSession()
+	return nil
 }
 
 // Rm implements [dssa.Dssa].
@@ -228,4 +257,89 @@ func MakeProxyDssa(
 		ageIdentitiesGetter: func() []string { return ageIdentities },
 	}
 	return pxd, nil
+}
+
+type sessionMon struct {
+	lgr          *slog.Logger
+	dss          EncryptedDssa
+	served       chan bool
+	writing      chan bool
+	endsession   chan bool
+	done         chan bool
+	synchronized chan bool
+}
+
+func newSessionMon(lgr *slog.Logger, dss EncryptedDssa) *sessionMon {
+	sm := &sessionMon{lgr: lgr, dss: dss}
+	sm.served = make(chan bool, 1024)
+	sm.writing = make(chan bool, 1024)
+	sm.endsession = make(chan bool, 8)
+	sm.done = make(chan bool)
+	sm.synchronized = make(chan bool)
+	dss.SetSessionMonitor(sm)
+	go sm.monitors()
+	return sm
+}
+
+func (sm *sessionMon) runEndSession(final bool) {
+	sm.lgr.Debug("sessionMon.runEndSession", "final", final)
+	if final {
+		if err := sm.dss.EndSession(); err != nil {
+			sm.lgr.Error("sessionMon.runEndSession: EndSession", "err", err)
+		}
+		return
+	}
+	if err := sm.dss.Msts().SaveSession(); err != nil {
+		sm.lgr.Error("sessionMon.runEndSession: SaveSession", "err", err)
+	}
+}
+
+func (sm *sessionMon) monitors() {
+	timer := time.NewTimer(10 * time.Second)
+	writings := 0
+	for {
+		select {
+		case <-sm.served:
+			timer.Reset(10 * time.Second)
+		case <-timer.C:
+		case <-sm.endsession:
+			timer.Reset(10 * time.Second)
+			sm.runEndSession(false)
+		case <-sm.writing:
+			writings++
+			if writings >= 1024 {
+				writings = 0
+				timer.Reset(10 * time.Second)
+				sm.runEndSession(false)
+			}
+		case <-sm.done:
+			sm.lgr.Debug("sessionMon.monitors: done")
+			timer.Stop()
+			sm.runEndSession(true)
+			close(sm.synchronized)
+			return
+		}
+	}
+
+}
+
+func (sm *sessionMon) endSession() {
+	sm.lgr.Debug("sessionMon.endSession")
+	sm.endsession <- true
+}
+
+func (sm *sessionMon) stop() {
+	sm.lgr.Debug("sessionMon.stop")
+	close(sm.done)
+	<-sm.synchronized
+}
+
+// SomethingServed implements [SessionMonitor].
+func (sm *sessionMon) SomethingServed() {
+	sm.served <- true
+}
+
+// WritingServed implements [SessionMonitor].
+func (sm *sessionMon) WritingServed() {
+	sm.writing <- true
 }
