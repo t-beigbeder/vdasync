@@ -49,6 +49,7 @@ xbuild:
 	go build -o $(BDIR)/vdaencrypt$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/encrypt/main.go
 	go build -o $(BDIR)/vdasftp$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/sftp/main.go
 	go build -o $(BDIR)/localFiles$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/localfiles/main.go
+	go build -o $(BDIR)/vdasftpsync$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasftpsync/main.go
 
 .PHONY: build
 build: export GOOS = linux
@@ -69,8 +70,15 @@ release:	## go build and release tgz
 	make build
 	make wbuild
 	mkdir -p tmp
-	tar czf tmp/vdasync-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 .
-	tar czf tmp/vdasync-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
+	tar czf tmp/vdasync-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasync vdaservice vdaserver vdatserver
+	tar czf tmp/vdasync-all-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 .
+	tar czf tmp/vdasync-cli-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasync vdaservice
+	tar czf tmp/vdasync-server-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdaserver vdatserver
+	tar czf tmp/vdasync-plugins-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 localFiles vdaencrypt vdas3 vdasftp
+	tar czf tmp/vdasync-sftp-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasftpsync
+	tar czf tmp/vdasync-all-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
+	tar czf tmp/vdasync-cli-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasync.exe vdaservice.exe
+	tar czf tmp/vdasync-sftp-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasftpsync.exe
 
 .PHONY: certs
 certs:	## generate test certificates
