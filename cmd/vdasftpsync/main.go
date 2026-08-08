@@ -11,6 +11,7 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/sftpc"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/walker"
 )
@@ -48,11 +49,15 @@ func main() {
 		fmt.Println(config.GetVersion())
 		os.Exit(0)
 	}
+
 	outFile, err := common.StdWriter(*cf.OutFlag)
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("output file %s: %v", *cf.OutFlag, err))
 	}
 	defer outFile.Close()
+
+	df := &cli.DssaFactory{}
+	df.Register("sftp", &sftpc.DssaMaker{})
 
 	if *svsf.ExclFlag != "" && !common.FileExists(*svsf.ExclFlag) {
 		common.Fatal(lgr, fmt.Errorf("exclusion file: %s does not exist", *svsf.ExclFlag))
@@ -60,6 +65,7 @@ func main() {
 	if *svsf.InclFlag != "" && !common.FileExists(*svsf.InclFlag) {
 		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *svsf.InclFlag))
 	}
+
 
 	var rps []*plugin.RunningPlugin
 	cfg, err := cli.LoadConfig(cf)
@@ -85,12 +91,12 @@ func main() {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
 
-	sDss, sourceRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps, nil)
+	sDss, sourceRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps, df)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
 	defer sDss.EndSession()
-	tDss, targetRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps, nil)
+	tDss, targetRoot, err := cli.GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps, df)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
