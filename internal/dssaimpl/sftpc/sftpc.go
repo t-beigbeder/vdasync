@@ -201,17 +201,17 @@ type DssaMaker struct{}
 
 // MakeDssa implements [dssa.DssaMaker].
 func (dmk *DssaMaker) MakeDssa(args ...any) (dssa.Dssa, error) {
-	if len(args) != 6  {
+	if len(args) != 6 {
 		return nil, fmt.Errorf("sftpc.MakeDssa: 6 arguments required, %d given", len(args))
 	}
-	var(
-		user string
-		address string
-		identity string
-		root string
-		concurrency int
+	var (
+		user           string
+		address        string
+		identity       string
+		root           string
+		concurrency    int
 		knownHostsFile string
-		ok bool
+		ok             bool
 	)
 	if user, ok = args[0].(string); !ok {
 		return nil, errors.New("sftpc.MakeDssa: user incorrect type")

@@ -66,7 +66,6 @@ func main() {
 		common.Fatal(lgr, fmt.Errorf("inclusion file: %s does not exist", *svsf.InclFlag))
 	}
 
-
 	var rps []*plugin.RunningPlugin
 	cfg, err := cli.LoadConfig(cf)
 	if err != nil {

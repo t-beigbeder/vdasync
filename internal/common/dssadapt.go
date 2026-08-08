@@ -119,6 +119,26 @@ func CopyEntry(dss dssa.Dssa, old, new_ string) error {
 	return wr.Close()
 }
 
+func ChmodRO(dss dssa.Dssa, path_ string) error {
+	de, err := dss.Stat(path_)
+	if err != nil {
+		return err
+	}
+	de.UserRights.Write = false
+	de.GroupRights.Write = false
+	de.OtherRights.Write = false
+	return dss.SetStat(de, false, false)
+}
+
+func ChmodRW(dss dssa.Dssa, path_ string) error {
+	de, err := dss.Stat(path_)
+	if err != nil {
+		return err
+	}
+	de.UserRights.Write = true
+	return dss.SetStat(de, false, false)
+}
+
 func DssaEntryChecksum(dss dssa.Dssa, path_ string, algos string) (string, error) {
 	rc, err := dss.GetReadCloser(path_)
 	if err != nil {

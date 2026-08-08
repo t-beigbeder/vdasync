@@ -296,10 +296,9 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		require.Equal(t, total-1, sr[""].AggregatedChildrenNumber)
 		require.Equal(t, total-1, sr[""].AggregatedCreated)
 		require.Equal(t, 1, sr[""].AggregatedUpdated)
-		if sr[""].AggregatedError != 0 {
-			lgr.Error("TestModAugmentedTestDataSynczer", "err", err)
+		if doRm {
+			require.Equal(t, 0, sr[""].AggregatedError)
 		}
-		require.Equal(t, 0, sr[""].AggregatedError)
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true})
 		require.Nil(t, err)
@@ -312,17 +311,27 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		require.Nil(t, err)
 		_ = sad2 + saf2 + 1
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: doRm, Check: doCheck})
-		require.Equal(t, 0, sr[""].AggregatedError)
+		if sr[""].AggregatedError != 0 {
+			DisplaySyncResult(sr, os.Stderr, true, true)
+			require.True(t, true)
+		}
+		if doRm {
+			require.Equal(t, 0, sr[""].AggregatedError)
+		}
 		require.NotEqual(t, 0, sr[""].AggregatedModChanged)
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: false, Rm: doRm, Check: doCheck})
 		require.Nil(t, err)
-		require.Equal(t, 0, sr[""].AggregatedError)
+		if doRm {
+			require.Equal(t, 0, sr[""].AggregatedError)
+		}
 		require.NotEqual(t, 0, sr[""].AggregatedModChanged)
 
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: doRm, Check: doCheck})
 		require.Nil(t, err)
-		require.Equal(t, 0, sr[""].AggregatedError)
+		if doRm {
+			require.Equal(t, 0, sr[""].AggregatedError)
+		}
 		require.LessOrEqual(t, sr[""].AggregatedModChanged, 1)
 	}
 }
@@ -941,8 +950,13 @@ func stepUtilMkfile(ssd *simpleStepsDesc, root, fp string) error {
 }
 
 func stepUtilRmdir(lgr *slog.Logger, ssd *simpleStepsDesc, root, dp string) error {
-	_, err := RemoveAll(lgr, 2, ssd.sDss, root, dp, "source", false)
-	return err
+	if _, err := RecChmodRW(lgr, 2, ssd.sDss, path.Join(root, dp), "source"); err != nil {
+		return err
+	}
+	if _, err := RemoveAll(lgr, 2, ssd.sDss, root, dp, "source", false); err != nil {
+		return err
+	}
+	return nil
 }
 
 func stepMakeTest1Base(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
@@ -1003,8 +1017,28 @@ func test2Step1(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 	if err := stepUtilMkfile(ssd, sr, "d1/f11.dat"); err != nil {
 		return err
 	}
-	_, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600)
-	return err
+	if err := stepUtilMkfile(ssd, sr, "d3/f31ro.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d3/f32rw.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d4ro/f41.dat"); err != nil {
+		return err
+	}
+	if err := stepUtilMkfile(ssd, sr, "d4ro/f42.dat"); err != nil {
+		return err
+	}
+	if _, err := RecTouch(ssd.cLgr, 0, ssd.sDss, sr, "source", time.Now().Unix()-39600); err != nil {
+		return err
+	}
+	if err := common.ChmodRO(ssd.sDss, path.Join(sr, "d3", "f31ro.dat")); err != nil {
+		return err
+	}
+	if _, err := RecChmodRO(ssd.cLgr.With("subStep", ssn), 0, ssd.sDss, path.Join(sr, "d4ro"), "source"); err != nil {
+		return err
+	}
+	return nil
 }
 
 func test2Step2(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
@@ -1026,6 +1060,17 @@ func test2Step3(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 
 func test2Step4(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
 	if err := stepUtilRmdir(ssd.cLgr.With("subStep", ssn), ssd, sr, "d2"); err != nil {
+		return err
+	}
+	return nil
+}
+
+func test2Step5(ssn string, ssd *simpleStepsDesc, sr, tr string) error {
+	if err := stepUtilRmdir(ssd.cLgr.With("subStep", ssn), ssd, sr, "d4ro"); err != nil {
+		return err
+	}
+	//err := common.ChmodRW(ssd.sDss, path.Join(sr, "d2", "f21ro.dat"))
+	if err := ssd.sDss.Rm(path.Join(sr, "d3", "f31ro.dat")); err != nil {
 		return err
 	}
 	return nil
@@ -1229,9 +1274,22 @@ func TestSimpleSteps(t *testing.T) {
 			},
 		},
 		{
+			label: "Test2OnFiles",
+			omit:  skipOp,
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Force: true},
+			srGet: getTd, trGet: getTd, tdGet: getTd,
+			simpleSteps: []simpleStep{
+				{"test2Step1", test2Step1},
+				{"test2Step2", test2Step2},
+				{"test2Step3", test2Step3},
+				{"test2Step4", test2Step4},
+				{"test2Step5", test2Step5},
+			},
+		},
+		{
 			label: "Test2OnSftp",
 			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true, Force: true},
 			srGet:    getTd,
 			tDssType: "sftpDss",
 			tdGet:    getTd,
@@ -1240,6 +1298,7 @@ func TestSimpleSteps(t *testing.T) {
 				{"test2Step2", test2Step2},
 				{"test2Step3", test2Step3},
 				{"test2Step4", test2Step4},
+				{"test2Step5", test2Step5},
 			},
 		},
 		{

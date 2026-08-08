@@ -21,6 +21,7 @@ func main() {
 		targetFlag   = flag.String("target", "", "target of the command")
 		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
 		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
+		forceFlag    = flag.Bool("force", false, "force removing read-only files in sync target")
 		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
 		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
@@ -99,7 +100,8 @@ func main() {
 	swk, err := walker.RunSynchronizer(
 		lgr, *cf.ConcurrencyFlag,
 		&config.SyncOptionsType{
-			Dryrun: *dryRunFlag, Rm: *rmFlag, Check: *svsf.CheckFlag, CsAlgos: *svsf.CsalFlag,
+			Dryrun: *dryRunFlag, Rm: *rmFlag, Force: *forceFlag,
+			Check: *svsf.CheckFlag, CsAlgos: *svsf.CsalFlag,
 			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
 			ExclListPath: *svsf.ExclFlag, InclListPath: *svsf.InclFlag,
 		},

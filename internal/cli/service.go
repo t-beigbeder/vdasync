@@ -342,17 +342,17 @@ func doShutdown(sc *ServiceCtx) error {
 }
 
 type DssaFactory struct {
-	makers map [string]dssa.DssaMaker
+	makers map[string]dssa.DssaMaker
 }
 
-func (df *DssaFactory)Register(type_ string, maker dssa.DssaMaker) {
+func (df *DssaFactory) Register(type_ string, maker dssa.DssaMaker) {
 	if df.makers == nil {
 		df.makers = map[string]dssa.DssaMaker{}
 	}
 	df.makers[type_] = maker
 }
 
-func (df *DssaFactory)Make(type_ string, args... any) (dssa.Dssa, error) {
+func (df *DssaFactory) Make(type_ string, args ...any) (dssa.Dssa, error) {
 	maker, ok := df.makers[type_]
 	if !ok {
 		return nil, fmt.Errorf("DssaFactory.Make: unknown type %s", type_)

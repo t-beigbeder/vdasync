@@ -96,10 +96,12 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			continue
 		}
 		if tde.IsDir {
-			_, err := RecChmodRW(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), path.Join(targetRoot(pe), syncRelTargetPath(pe, tde)), "target")
-			if err != nil {
-				hasErrors = true
-				continue
+			if syncData(pe).syncOptions.Force {
+				_, err := RecChmodRW(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), path.Join(targetRoot(pe), syncRelTargetPath(pe, tde)), "target")
+				if err != nil {
+					hasErrors = true
+					continue
+				}
 			}
 			rmWlk, err := RemoveAll(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), targetRoot(pe), syncRelTargetPath(pe, tde), "target", syncData(pe).syncOptions.Dryrun)
 			if err != nil {

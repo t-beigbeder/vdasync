@@ -40,6 +40,7 @@ type SyncOptionsType struct {
 	NoMtime      bool   `yaml:"noMtime"`
 	NoMtLink     bool   `yaml:"noMtLink"`
 	Rm           bool   `yaml`
+	Force        bool   `yaml`
 	ExclListPath string `yaml:"exclListPath"`
 	InclListPath string `yaml:"inclListPath"`
 }
