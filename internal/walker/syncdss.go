@@ -3,9 +3,9 @@ package walker
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"log/slog"
+	"path"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 )
@@ -96,12 +96,17 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 			continue
 		}
 		if tde.IsDir {
-			walker, err := RemoveAll(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), targetRoot(pe), syncRelTargetPath(pe, tde), "target", syncData(pe).syncOptions.Dryrun)
+			_, err := RecChmodRW(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), path.Join(targetRoot(pe), syncRelTargetPath(pe, tde)), "target")
 			if err != nil {
 				hasErrors = true
 				continue
 			}
-			mergeRmResult(pe, RmResult(walker))
+			rmWlk, err := RemoveAll(pe.Lgr_(), pe.wi.concurrency/2, targetDs(pe), targetRoot(pe), syncRelTargetPath(pe, tde), "target", syncData(pe).syncOptions.Dryrun)
+			if err != nil {
+				hasErrors = true
+				continue
+			}
+			mergeRmResult(pe, RmResult(rmWlk))
 		} else {
 			rp := syncRelTargetPath(pe, tde)
 			if !syncData(pe).syncOptions.Dryrun {
@@ -122,7 +127,9 @@ func purgeTargetDirChildren(pe *ProcessedEntry, sChildren []*dssa.DataEntry) err
 		}
 	}
 	if hasErrors {
-		return fmt.Errorf("purgeTargetDirChildren: some children removal failed")
+		msg := "purgeTargetDirChildren: some children removal failed"
+		err = errors.New(msg)
+		return setSyncError(pe, msg, true, err)
 	}
 	return nil
 }
