@@ -259,7 +259,7 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		doCheck bool
 		tDss    dssa.Dssa
 	}
-	rLgr := common.GetLogger()
+	rLgr := common.GetNullLogger()
 	dss1, dss2, _, _, dss5, _, cFunc := getTestDss(t, false, false, true, false)
 	defer cFunc()
 
@@ -311,10 +311,6 @@ func TestModAugmentedTestDataSynczer(t *testing.T) {
 		require.Nil(t, err)
 		_ = sad2 + saf2 + 1
 		sr, err = runSyncTest(lgr, dss1, tDss, sde, td2, &config.SyncOptionsType{Dryrun: true, Rm: doRm, Check: doCheck})
-		if sr[""].AggregatedError != 0 {
-			DisplaySyncResult(sr, os.Stderr, true, true)
-			require.True(t, true)
-		}
 		if doRm {
 			require.Equal(t, 0, sr[""].AggregatedError)
 		}

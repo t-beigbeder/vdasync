@@ -72,13 +72,8 @@ release:	## go build and release tgz
 	mkdir -p tmp
 	tar czf tmp/vdasync-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasync vdaservice vdaserver vdatserver
 	tar czf tmp/vdasync-all-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 .
-	tar czf tmp/vdasync-cli-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasync vdaservice
-	tar czf tmp/vdasync-server-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdaserver vdatserver
-	tar czf tmp/vdasync-plugins-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 localFiles vdaencrypt vdas3 vdasftp
-	tar czf tmp/vdasync-sftp-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasftpsync
-	tar czf tmp/vdasync-all-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
-	tar czf tmp/vdasync-cli-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasync.exe vdaservice.exe
 	tar czf tmp/vdasync-sftp-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasftpsync.exe
+	tar czf tmp/vdasync-all-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
 
 .PHONY: certs
 certs:	## generate test certificates

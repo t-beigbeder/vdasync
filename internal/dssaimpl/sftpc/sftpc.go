@@ -237,6 +237,9 @@ func (dmk *DssaMaker) MakeDssa(args ...any) (dssa.Dssa, error) {
 var _ dssa.DssaMaker = &DssaMaker{}
 
 func GetSftpClient(user, address, identity, knownHostsFile string) (*sftp.Client, error) {
+	if identity == "" {
+		return nil, errors.New("GetSftpClient: missing identity file")
+	}
 	key, err := os.ReadFile(identity)
 	if err != nil {
 		return nil, err
@@ -285,7 +288,7 @@ func GetSftpClient(user, address, identity, knownHostsFile string) (*sftp.Client
 		},
 		HostKeyAlgorithms: algorithms.HostKeys,
 	}
-	sc, err := ssh.Dial("tcp", "t-sk3s-sv-ext:22", config)
+	sc, err := ssh.Dial("tcp", address, config)
 	if err != nil {
 		return nil, err
 	}
