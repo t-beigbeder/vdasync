@@ -97,8 +97,9 @@ func DoGetDssAndRootFor(
 		sfs, args := config.SftpServer(cfg, pName[1:])
 		if sfs == nil || df == nil {
 			err = fmt.Errorf("%s: url %s: unkown dss prefix %s", sot, url, pName)
+			return
 		}
-		lgr.Debug("DoGetDssAndRootFor: DssaFactory.Make", "args", args)
+		lgr.Debug("DoGetDssAndRootFor: DssaFactory.Make", "sfs", sfs, "args", args)
 		dss, err = df.Make("sftp", args...)
 		return
 	}
