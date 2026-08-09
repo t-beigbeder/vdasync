@@ -197,7 +197,49 @@ func MakeSftpClientDssa(
 	return &sftpClient{sfcs: sfcs, root: root}, nil
 }
 
+type DssaMaker struct{}
+
+// MakeDssa implements [dssa.DssaMaker].
+func (dmk *DssaMaker) MakeDssa(args ...any) (dssa.Dssa, error) {
+	if len(args) != 6 {
+		return nil, fmt.Errorf("sftpc.MakeDssa: 6 arguments required, %d given", len(args))
+	}
+	var (
+		user           string
+		address        string
+		identity       string
+		root           string
+		concurrency    int
+		knownHostsFile string
+		ok             bool
+	)
+	if user, ok = args[0].(string); !ok {
+		return nil, errors.New("sftpc.MakeDssa: user incorrect type")
+	}
+	if address, ok = args[1].(string); !ok {
+		return nil, errors.New("sftpc.MakeDssa: address incorrect type")
+	}
+	if identity, ok = args[2].(string); !ok {
+		return nil, errors.New("sftpc.MakeDssa: identity incorrect type")
+	}
+	if root, ok = args[3].(string); !ok {
+		return nil, errors.New("sftpc.MakeDssa: root incorrect type")
+	}
+	if concurrency, ok = args[4].(int); !ok {
+		return nil, errors.New("sftpc.MakeDssa: concurrency incorrect type")
+	}
+	if knownHostsFile, ok = args[5].(string); !ok {
+		return nil, errors.New("sftpc.MakeDssa: knownHostsFile incorrect type")
+	}
+	return MakeSftpClientDssa(user, address, identity, root, concurrency, GetSftpClient, knownHostsFile)
+}
+
+var _ dssa.DssaMaker = &DssaMaker{}
+
 func GetSftpClient(user, address, identity, knownHostsFile string) (*sftp.Client, error) {
+	if identity == "" {
+		return nil, errors.New("GetSftpClient: missing identity file")
+	}
 	key, err := os.ReadFile(identity)
 	if err != nil {
 		return nil, err
@@ -246,7 +288,7 @@ func GetSftpClient(user, address, identity, knownHostsFile string) (*sftp.Client
 		},
 		HostKeyAlgorithms: algorithms.HostKeys,
 	}
-	sc, err := ssh.Dial("tcp", "t-sk3s-sv-ext:22", config)
+	sc, err := ssh.Dial("tcp", address, config)
 	if err != nil {
 		return nil, err
 	}

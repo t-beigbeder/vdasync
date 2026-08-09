@@ -66,7 +66,12 @@ func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	}
 }
 
-func DoGetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin, makeNewSession bool) (dss dssa.Dssa, root string, err error) {
+func DoGetDssAndRootFor(
+	lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig,
+	isTarget bool, url string,
+	rps []*plugin.RunningPlugin, makeNewSession bool,
+	df *DssaFactory,
+) (dss dssa.Dssa, root string, err error) {
 	var (
 		pName string
 		host  string
@@ -84,7 +89,21 @@ func DoGetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliCo
 		dss = localfiles.MakeLocalFilesDssa()
 		return
 	}
-	if pName != "" && pName[0:1] != "_" {
+	if pName[0:1] == "_" {
+		if host != "" || port != 0 {
+			err = fmt.Errorf("%s: url %s: underscore prefixed dss don't support host/port", sot, url)
+			return
+		}
+		sfs, args := config.SftpServer(cfg, pName[1:])
+		if sfs == nil || df == nil {
+			err = fmt.Errorf("%s: url %s: unkown dss prefix %s", sot, url, pName)
+			return
+		}
+		lgr.Debug("DoGetDssAndRootFor: DssaFactory.Make", "sfs", sfs, "args", args)
+		dss, err = df.Make("sftp", args...)
+		return
+	}
+	if pName != "" {
 		rp := plugin.PluginFor(pName, rps)
 		if rp == nil {
 			err = fmt.Errorf("%s: url %s: unkown plugin %s", sot, url, pName)
@@ -96,8 +115,8 @@ func DoGetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliCo
 		}
 		return
 	}
-	dst := config.RemoteDataStore(cfg, host, port)
-	copt, err := GetClientServerTls(cf, dst)
+	vs := config.VdaServer(cfg, host, port)
+	copt, err := GetClientServerTls(cf, vs)
 	if err != nil {
 		return
 	}
@@ -116,13 +135,13 @@ func DoGetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliCo
 	return
 }
 
-func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin) (dssa.Dssa, string, error) {
-	return DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true)
+func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin, df *DssaFactory) (dssa.Dssa, string, error) {
+	return DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df)
 }
 
 func GetGrpcClient(lgr *slog.Logger, cf *CommonFlagsType, host string, port int) (dssa.Dssa, error) {
-	dst := config.RemoteDataStore(&config.CliConfig{}, host, port)
-	copt, err := GetClientServerTls(cf, dst)
+	vs := config.VdaServer(&config.CliConfig{}, host, port)
+	copt, err := GetClientServerTls(cf, vs)
 	if err != nil {
 		return nil, err
 	}
@@ -339,4 +358,23 @@ func doShutdown(sc *ServiceCtx) error {
 		return fmt.Errorf("doShutdown: %v", err)
 	}
 	return nil
+}
+
+type DssaFactory struct {
+	makers map[string]dssa.DssaMaker
+}
+
+func (df *DssaFactory) Register(type_ string, maker dssa.DssaMaker) {
+	if df.makers == nil {
+		df.makers = map[string]dssa.DssaMaker{}
+	}
+	df.makers[type_] = maker
+}
+
+func (df *DssaFactory) Make(type_ string, args ...any) (dssa.Dssa, error) {
+	maker, ok := df.makers[type_]
+	if !ok {
+		return nil, fmt.Errorf("DssaFactory.Make: unknown type %s", type_)
+	}
+	return maker.MakeDssa(args...)
 }

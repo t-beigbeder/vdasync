@@ -22,7 +22,7 @@ type PluginType struct {
 	Port           int      `yaml`
 }
 
-type DataStoreType struct {
+type VdaServerType struct {
 	Host           string `yaml`
 	Port           int    `yaml`
 	Insecure       bool   `yaml`
@@ -40,8 +40,19 @@ type SyncOptionsType struct {
 	NoMtime      bool   `yaml:"noMtime"`
 	NoMtLink     bool   `yaml:"noMtLink"`
 	Rm           bool   `yaml`
+	Force        bool   `yaml`
 	ExclListPath string `yaml:"exclListPath"`
 	InclListPath string `yaml:"inclListPath"`
+}
+
+type SftpServerType struct {
+	Name           string `yaml`
+	User           string `yaml`
+	Address        string `yaml`
+	Identity       string `yaml`
+	Root           string `yaml`
+	Concurrency    int    `yaml`
+	KnownHostsFile string `yaml:"knownHostsFile"`
 }
 
 type CliConfig struct {
@@ -51,7 +62,8 @@ type CliConfig struct {
 	PluginReadyRetries int                 `yaml:"pluginReadyRetries"`
 	PluginReadyTimeout string              `yaml:"pluginReadyTimeout"`
 	PluginAddress      string              `yaml:"pluginAddress"`
-	DataStores         []*DataStoreType    `yaml:"dataStores"`
+	VdaServers         []*VdaServerType    `yaml:"vdaServers"`
+	SftpServers        []*SftpServerType   `yaml:"sftpServers"`
 	SyncOptions        *SyncOptionsType    `yaml:"syncOptions"`
 }
 
@@ -100,14 +112,26 @@ func Load(config string) (*CliConfig, error) {
 	return &conf, nil
 }
 
-func RemoteDataStore(cfg *CliConfig, host string, port int) *DataStoreType {
+func VdaServer(cfg *CliConfig, host string, port int) *VdaServerType {
 	if cfg == nil {
 		cfg = &CliConfig{}
 	}
-	for _, ds := range cfg.DataStores {
-		if (ds.Host == "" || ds.Host == host) && ds.Port == port {
-			return ds
+	for _, vs := range cfg.VdaServers {
+		if (vs.Host == "" || vs.Host == host) && vs.Port == port {
+			return vs
 		}
 	}
 	return nil
+}
+
+func SftpServer(cfg *CliConfig, name string) (*SftpServerType, []any) {
+	if cfg == nil {
+		cfg = &CliConfig{}
+	}
+	for _, sfs := range cfg.SftpServers {
+		if sfs.Name == name {
+			return sfs, []any{sfs.User, sfs.Address, sfs.Identity, sfs.Root, sfs.Concurrency, sfs.KnownHostsFile}
+		}
+	}
+	return nil, nil
 }

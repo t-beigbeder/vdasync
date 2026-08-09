@@ -39,3 +39,7 @@ type Dssa interface {
 	Rm(string) error
 	Symlink(old, new_ string) error
 }
+
+type DssaMaker interface {
+	MakeDssa(args ...any) (Dssa, error)
+}
