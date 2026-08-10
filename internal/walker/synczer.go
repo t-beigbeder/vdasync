@@ -107,14 +107,14 @@ func RunSynchronizer(
 ) (Walker, error) {
 	sde, err := sourceDs.Stat(sourceRoot)
 	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: source %v", err)
+		return nil, fmt.Errorf("RunSynchronizer: source %s: %v", sourceRoot, err)
 	}
 	if !sde.IsDir {
 		return nil, fmt.Errorf("RunSynchronizer: source %s is not a dir", sourceRoot)
 	}
 	tde, err := targetDs.Stat(targetRoot)
 	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: target %v", err)
+		return nil, fmt.Errorf("RunSynchronizer: target %s: %v", targetRoot, err)
 	}
 	if !tde.IsDir {
 		return nil, fmt.Errorf("RunSynchronizer: target %s is not a dir", targetRoot)
