@@ -80,8 +80,8 @@ func CheckIndex(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIden
 			}
 			continue
 		}
-		defer er.Close()
 		_, err = io.Copy(io.Discard, er)
+		er.Close()
 		if err != nil {
 			lgr.Error("CheckIndex: read error", "path", path_, "ePath", ap, "err", err)
 			if !dryRun {

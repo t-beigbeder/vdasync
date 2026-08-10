@@ -54,7 +54,7 @@ func (d *localFiles) Stat(path_ string) (*dssa.DataEntry, error) {
 	if err != nil {
 		return &dssa.DataEntry{Path: path_, Error: err, ErrNotExist: os.IsNotExist(err)}, err
 	}
-	isOther := fi.Mode().Type()&(fs.ModeNamedPipe | fs.ModeSocket | fs.ModeDevice | fs.ModeCharDevice | fs.ModeIrregular) != 0
+	isOther := fi.Mode().Type()&(fs.ModeNamedPipe|fs.ModeSocket|fs.ModeDevice|fs.ModeCharDevice|fs.ModeIrregular) != 0
 	if isOther {
 		err = common.ErrUnhandledFileType
 		return &dssa.DataEntry{Path: path_, Error: err}, err

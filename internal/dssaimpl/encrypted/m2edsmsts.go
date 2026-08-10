@@ -26,6 +26,40 @@ type m2edsStSvc struct {
 	ageRecipients       []string
 }
 
+func (m *m2edsStSvc) flagPath() string {
+	return path.Join(m.rootPath, ".vdasync.flag")
+}
+
+// FlagCreate implements [metasts.StorageSvc].
+func (m *m2edsStSvc) FlagCreate() error {
+	wc, err := m.dss.GetWriteCloser(m.flagPath())
+	if err != nil {
+		return err
+	}
+	defer wc.Close()
+	if _, err = wc.Write([]byte("")); err != nil {
+		return err
+	}
+	return wc.Close()
+}
+
+// FlagExists implements [metasts.StorageSvc].
+func (m *m2edsStSvc) FlagExists() (bool, error) {
+	de, err := m.dss.Stat(m.flagPath())
+	if err == nil {
+		return true, nil
+	}
+	if de != nil && de.ErrNotExist {
+		return false, nil
+	}
+	return false, err
+}
+
+// FlagRemove implements [metasts.StorageSvc].
+func (m *m2edsStSvc) FlagRemove() error {
+	return m.dss.Rm(m.flagPath())
+}
+
 func (m *m2edsStSvc) metaPath() string {
 	return path.Join(m.rootPath, ".vdasync.meta")
 }
