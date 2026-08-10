@@ -341,8 +341,11 @@ func onStartNdirEntrySync(pe *ProcessedEntry) {
 	if isExcluded(pe) {
 		return
 	}
-
 	syncEntryStatusInit(pe)
+	if pe.DataEntry.Error != nil {
+		setSyncError(pe, "cannot process", false, pe.DataEntry.Error)
+		return
+	}
 	runNdirEntrySync(pe)
 }
 
@@ -417,7 +420,7 @@ func onDoneEntrySync(pe *ProcessedEntry) {
 
 	setEntryChanges(pe)
 	es := syncUserData(pe)
-	if !syncOptions(pe).Dryrun {
+	if !syncOptions(pe).Dryrun && es.Error == nil {
 		if es.Created || es.Updated || es.ModChanged {
 			runSetStatEntrySync(pe)
 		}
