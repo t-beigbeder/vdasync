@@ -107,14 +107,14 @@ func RunSynchronizer(
 ) (Walker, error) {
 	sde, err := sourceDs.Stat(sourceRoot)
 	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: source %v", err)
+		return nil, fmt.Errorf("RunSynchronizer: source %s: %v", sourceRoot, err)
 	}
 	if !sde.IsDir {
 		return nil, fmt.Errorf("RunSynchronizer: source %s is not a dir", sourceRoot)
 	}
 	tde, err := targetDs.Stat(targetRoot)
 	if err != nil {
-		return nil, fmt.Errorf("RunSynchronizer: target %v", err)
+		return nil, fmt.Errorf("RunSynchronizer: target %s: %v", targetRoot, err)
 	}
 	if !tde.IsDir {
 		return nil, fmt.Errorf("RunSynchronizer: target %s is not a dir", targetRoot)
@@ -327,6 +327,9 @@ func onStartDirEntrySync(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEnt
 		if isExcluded(&ProcessedEntry{DataEntry: de, parent: pe, wi: pe.wi}) {
 			continue
 		}
+		if de.Error == common.ErrUnhandledFileType && syncOptions(pe).IgnoreIrreg {
+			continue
+		}
 		inclChildren = append(inclChildren, de)
 	}
 
@@ -341,8 +344,11 @@ func onStartNdirEntrySync(pe *ProcessedEntry) {
 	if isExcluded(pe) {
 		return
 	}
-
 	syncEntryStatusInit(pe)
+	if pe.DataEntry.Error != nil {
+		setSyncError(pe, "cannot process", false, pe.DataEntry.Error)
+		return
+	}
 	runNdirEntrySync(pe)
 }
 
@@ -417,7 +423,7 @@ func onDoneEntrySync(pe *ProcessedEntry) {
 
 	setEntryChanges(pe)
 	es := syncUserData(pe)
-	if !syncOptions(pe).Dryrun {
+	if !syncOptions(pe).Dryrun && es.Error == nil {
 		if es.Created || es.Updated || es.ModChanged {
 			runSetStatEntrySync(pe)
 		}

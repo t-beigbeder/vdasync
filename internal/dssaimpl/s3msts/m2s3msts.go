@@ -17,6 +17,25 @@ type m2s3StSvc struct {
 	msvc *m2s3svc
 }
 
+func (m *m2s3StSvc) flagKey() string {
+	return path.Join(m.msvc.rootPrefix, "/.vdasync/m2s3msts.flag")
+}
+
+// FlagCreate implements [metasts.StorageSvc].
+func (m *m2s3StSvc) FlagCreate() error {
+	return m.msvc.s3repo.PutObject(m.flagKey(), []byte(""))
+}
+
+// FlagExists implements [metasts.StorageSvc].
+func (m *m2s3StSvc) FlagExists() (bool, error) {
+	return m.msvc.s3repo.ObjectExists(m.flagKey())
+}
+
+// FlagRemove implements [metasts.StorageSvc].
+func (m *m2s3StSvc) FlagRemove() error {
+	return m.msvc.s3repo.DeleteObject(m.flagKey())
+}
+
 func (m *m2s3StSvc) key() string {
 	return path.Join(m.msvc.rootPrefix, "/.vdasync/m2s3msts.meta")
 }

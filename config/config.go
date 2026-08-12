@@ -41,6 +41,7 @@ type SyncOptionsType struct {
 	NoMtLink     bool   `yaml:"noMtLink"`
 	Rm           bool   `yaml`
 	Force        bool   `yaml`
+	IgnoreIrreg  bool   `yaml:"ignoreIrreg"`
 	ExclListPath string `yaml:"exclListPath"`
 	InclListPath string `yaml:"inclListPath"`
 }

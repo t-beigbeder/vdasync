@@ -79,7 +79,7 @@ func TestChecksum(t *testing.T) {
 	require.Equal(t, h2+","+h1, h3)
 	rs := []string{}
 	for i := 0; i < 32; i++ {
-		require.Nil(t, WriteFile(ft, []byte(fmt.Sprintf("TestChecksum-%02d", i))))
+		require.Nil(t, WriteFile(ft, fmt.Appendf(nil, "TestChecksum-%02d", i)))
 		hl1, err := FileChecksum(ft, "sha256")
 		require.Nil(t, err)
 		rs = append(rs, hl1)

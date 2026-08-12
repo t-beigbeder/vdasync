@@ -55,16 +55,16 @@ func DisplaySyncResult(sr map[string]*SyncEntryStatus, wr io.Writer, agg, all bo
 		es := sr[key]
 		hdr := computeSyncHeader(es)
 		if all || hdr[1:] != "-----" {
-			wr.Write([]byte(fmt.Sprintf("%s %s\n", hdr, es.relPath)))
+			wr.Write(fmt.Appendf(nil, "%s %s\n", hdr, es.relPath))
 		}
 	}
 	res := sr[""]
 	if agg {
-		wr.Write([]byte(fmt.Sprintf(
+		wr.Write(fmt.Appendf(nil,
 			"total: %d errors: %d size: %d created: %d updated: %d removed: %d mod changed: %d\n",
 			res.AggregatedChildrenNumber, res.AggregatedError, res.AggregatedSize,
 			res.AggregatedCreated, res.AggregatedUpdated,
 			res.RemovedChildrenNumber, res.AggregatedModChanged,
-		)))
+		))
 	}
 }

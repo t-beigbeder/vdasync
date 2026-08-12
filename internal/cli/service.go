@@ -89,7 +89,7 @@ func DoGetDssAndRootFor(
 		dss = localfiles.MakeLocalFilesDssa()
 		return
 	}
-	if pName[0:1] == "_" {
+	if pName != "" && pName[0:1] == "_" {
 		if host != "" || port != 0 {
 			err = fmt.Errorf("%s: url %s: underscore prefixed dss don't support host/port", sot, url)
 			return
@@ -182,6 +182,8 @@ func DoService(sc *ServiceCtx) error {
 	switch sc.Cmd {
 	case "list":
 		return doList(sc)
+	case "mkdir":
+		return doMkdir(sc)
 	case "trust":
 		return doTrust(sc)
 	case "untrust":
@@ -252,6 +254,13 @@ func doList(sc *ServiceCtx) error {
 		sc.OutFile.Write([]byte(common.DataEntryList(doerEs.DataEntry, sc.IsNoOwn, doerEs.Checksum) + "\n"))
 	}
 	return nil
+}
+
+func doMkdir(sc *ServiceCtx) error {
+	if !sc.IsRecur {
+		return sc.Dss.Mkdir(&dssa.DataEntry{Path: sc.Root, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+	}
+	return common.MakeParents(sc.Dss, sc.Root)
 }
 
 func doTrust(sc *ServiceCtx) error {

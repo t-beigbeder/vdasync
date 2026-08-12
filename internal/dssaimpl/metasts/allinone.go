@@ -19,6 +19,9 @@ type StorageSvc interface {
 	Exists() (bool, error)
 	Get() ([]byte, error)
 	Put([]byte) error
+	FlagExists() (bool, error)
+	FlagCreate() error
+	FlagRemove() error
 }
 
 type M2StSvc struct {
