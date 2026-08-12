@@ -89,7 +89,7 @@ func DoGetDssAndRootFor(
 		dss = localfiles.MakeLocalFilesDssa()
 		return
 	}
-	if pName[0:1] == "_" {
+	if pName != "" && pName[0:1] == "_" {
 		if host != "" || port != 0 {
 			err = fmt.Errorf("%s: url %s: underscore prefixed dss don't support host/port", sot, url)
 			return

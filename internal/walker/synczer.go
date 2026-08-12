@@ -327,6 +327,9 @@ func onStartDirEntrySync(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEnt
 		if isExcluded(&ProcessedEntry{DataEntry: de, parent: pe, wi: pe.wi}) {
 			continue
 		}
+		if de.Error == common.ErrUnhandledFileType && syncOptions(pe).IgnoreIrreg {
+			continue
+		}
 		inclChildren = append(inclChildren, de)
 	}
 
