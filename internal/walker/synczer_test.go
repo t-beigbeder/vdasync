@@ -102,6 +102,7 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dss
 			td,
 			[]string{id2},
 			[]string{rec2},
+			false,
 		)
 		require.NotNil(t, dss5)
 		require.NoError(t, dss5.NewSession())

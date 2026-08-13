@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"path"
 	"slices"
 	"strings"
 	"sync"
@@ -164,6 +166,7 @@ type ServiceCtx struct {
 	IsRecur     bool
 	IsCheck     bool
 	IsStat      bool
+	IsRepair    bool
 	CsAlgos     string
 	IsSorted    bool
 	IsTSorted   bool
@@ -194,15 +197,21 @@ func DoService(sc *ServiceCtx) error {
 		return doVersion(sc)
 	case "shutdown":
 		return doShutdown(sc)
+	case "interactive":
+		return doInteractive(sc)
 	default:
 		return fmt.Errorf("unknown command: %s", sc.Cmd)
 	}
 }
 
-func doList(sc *ServiceCtx) error {
+func doList(sc *ServiceCtx, args ...string) error {
 	rs := map[string]*walker.DoerEntryStatus{}
+	arg := sc.Root
+	if len(args) > 0 {
+		arg = path.Join(arg, args[0])
+	}
 	if !sc.IsRecur {
-		des, err := sc.Dss.List(sc.Root)
+		des, err := sc.Dss.List(arg)
 		if err != nil {
 			return err
 		}
@@ -221,7 +230,7 @@ func doList(sc *ServiceCtx) error {
 		if err != nil {
 			return err
 		}
-		wk, err := walker.RecListCs(sc.Lgr, sc.Concurrency, sc.Dss, sc.Root, "dss", sc.IsCheck, sc.CsAlgos, sc.IsStat, du)
+		wk, err := walker.RecListCs(sc.Lgr, sc.Concurrency, sc.Dss, arg, "dss", sc.IsCheck, sc.CsAlgos, sc.IsStat, du)
 		if err != nil {
 			return err
 		}
@@ -256,11 +265,45 @@ func doList(sc *ServiceCtx) error {
 	return nil
 }
 
-func doMkdir(sc *ServiceCtx) error {
-	if !sc.IsRecur {
-		return sc.Dss.Mkdir(&dssa.DataEntry{Path: sc.Root, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+func doMkdir(sc *ServiceCtx, args ...string) error {
+	arg := sc.Root
+	if len(args) > 0 {
+		arg = path.Join(arg, args[0])
 	}
-	return common.MakeParents(sc.Dss, sc.Root)
+	if !sc.IsRecur {
+		return sc.Dss.Mkdir(&dssa.DataEntry{Path: arg, UserRights: dssa.Rights{Read: true, Write: true, Execute: true}})
+	}
+	return common.MakeParents(sc.Dss, arg)
+}
+
+func doRemove(sc *ServiceCtx, args ...string) error {
+	arg := sc.Root
+	if len(args) > 0 {
+		arg = path.Join(arg, args[0])
+	}
+	if !sc.IsRecur {
+		return sc.Dss.Rm(arg)
+	}
+	de, err := sc.Dss.Stat(arg)
+	if err != nil {
+		return err
+	}
+	rmWk := walker.NewRecursiveRemover(sc.Lgr, sc.Concurrency, sc.Dss, arg, "interactive", false)
+	return rmWk.Run(de)
+}
+
+func doTouch(sc *ServiceCtx, args ...string) error {
+	arg := sc.Root
+	if len(args) > 0 {
+		arg = path.Join(arg, args[0])
+	}
+	wc, err := sc.Dss.GetWriteCloser(arg)
+	if err != nil {
+		return err
+	}
+	defer wc.Close()
+	wc.Write([]byte(""))
+	return nil
 }
 
 func doTrust(sc *ServiceCtx) error {
@@ -286,15 +329,21 @@ func doTrust(sc *ServiceCtx) error {
 	if err != nil {
 		return fmt.Errorf("doTrust: SetValue identities failed %v", err)
 	}
+
 	_, err = gc.GetClient().SetValue(bgCtx,
 		&opegrpc.KeyVal{Key: encrypted.KeyRecs, Val: []byte(strings.Join(sc.EncRecs, ","))})
 	if err != nil {
 		return fmt.Errorf("doTrust: SetValue recipients failed %v", err)
 	}
+
+	openOrRepair := encrypted.KeyOpen
+	if sc.IsRepair {
+		openOrRepair = encrypted.KeyRepair
+	}
 	_, err = gc.GetClient().SetValue(bgCtx,
-		&opegrpc.KeyVal{Key: encrypted.KeyOpen})
+		&opegrpc.KeyVal{Key: openOrRepair})
 	if err != nil {
-		return fmt.Errorf("doTrust: SetValue open failed %v", err)
+		return fmt.Errorf("doTrust: SetValue %s failed %v", openOrRepair, err)
 	}
 	return nil
 }
@@ -367,6 +416,44 @@ func doShutdown(sc *ServiceCtx) error {
 		return fmt.Errorf("doShutdown: %v", err)
 	}
 	return nil
+}
+
+func doInteractive(sc *ServiceCtx) error {
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Print("-> ")
+	for scanner.Scan() {
+		words := strings.Fields(scanner.Text())
+		if len(words) == 0 {
+			fmt.Print("-> ")
+			continue
+		}
+		args := []string{}
+		if len(words) > 1 {
+			args = append(args, words[1])
+		}
+		switch words[0] {
+		case "list":
+			if err := doList(sc, args...); err != nil {
+				fmt.Fprintf(os.Stderr, "list: %v\n", err)
+			}
+		case "mkdir":
+			if err := doMkdir(sc, args...); err != nil {
+				fmt.Fprintf(os.Stderr, "mkdir: %v\n", err)
+			}
+		case "remove":
+			if err := doRemove(sc, args...); err != nil {
+				fmt.Fprintf(os.Stderr, "remove: %v\n", err)
+			}
+		case "touch":
+			if err := doTouch(sc, args...); err != nil {
+				fmt.Fprintf(os.Stderr, "touch: %v\n", err)
+			}
+		default:
+			fmt.Fprintf(os.Stderr, "unknown command %s\n", words[0])
+		}
+		fmt.Print("-> ")
+	}
+	return scanner.Err()
 }
 
 type DssaFactory struct {

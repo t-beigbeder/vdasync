@@ -28,7 +28,7 @@ type M2StSvc struct {
 	Lgr        *slog.Logger
 	StSvc      StorageSvc
 	mx         sync.Mutex
-	hasRepair bool
+	HasRepair  bool
 	hasSession bool
 	hasChanges bool
 	flagExists bool
@@ -36,7 +36,7 @@ type M2StSvc struct {
 	dirs       map[string]map[string]bool
 }
 
-func (msts *M2StSvc)setHasChanges() error {
+func (msts *M2StSvc) setHasChanges() error {
 	if msts.hasChanges {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (msts *M2StSvc)setHasChanges() error {
 	return nil
 }
 
-func (msts *M2StSvc)resetHasChanges() error {
+func (msts *M2StSvc) resetHasChanges() error {
 	if !msts.hasChanges {
 		return nil
 	}
@@ -183,7 +183,6 @@ func (msts *M2StSvc) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // NewSession implements [metasts.MetaStorageSvc].
 func (msts *M2StSvc) NewSession() error {
-	msts.Lgr.Debug("M2StSvc: NewSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	if msts.hasSession {
@@ -193,17 +192,20 @@ func (msts *M2StSvc) NewSession() error {
 	if err != nil {
 		return err
 	}
-	if fe && !msts.hasRepair {
+	msts.Lgr.Debug("M2StSvc: NewSession", "FlagExists", fe, "HasRepair", msts.HasRepair)
+	if fe && !msts.HasRepair {
 		return errors.New("M2StSvc.NewSession: inconsistent metadata, repair is needed")
-	}
-	if fe {
-		return errors.New("M2StSvc.NewSession: inconsistent metadata , but repair is not yet implemented")
 	}
 	msts.hasSession = true
 	ok, err := msts.StSvc.Exists()
 	if err != nil {
 		return err
 	}
+
+	if fe {
+		msts.setHasChanges()
+	}
+
 	msts.entries = map[string]*dssa.DataEntry{}
 	msts.dirs = map[string]map[string]bool{}
 	if !ok {
