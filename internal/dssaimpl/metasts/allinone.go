@@ -28,10 +28,34 @@ type M2StSvc struct {
 	Lgr        *slog.Logger
 	StSvc      StorageSvc
 	mx         sync.Mutex
+	HasRepair  bool
 	hasSession bool
 	hasChanges bool
+	flagExists bool
 	entries    map[string]*dssa.DataEntry
 	dirs       map[string]map[string]bool
+}
+
+func (msts *M2StSvc) setHasChanges() error {
+	if msts.hasChanges {
+		return nil
+	}
+	if err := msts.StSvc.FlagCreate(); err != nil {
+		return err
+	}
+	msts.hasChanges = true
+	return nil
+}
+
+func (msts *M2StSvc) resetHasChanges() error {
+	if !msts.hasChanges {
+		return nil
+	}
+	if err := msts.StSvc.FlagRemove(); err != nil {
+		return err
+	}
+	msts.hasChanges = false
+	return nil
 }
 
 // Del implements [metasts.MetaStorageSvc].
@@ -53,14 +77,13 @@ func (msts *M2StSvc) Del(path_ string) error {
 	if !ok {
 		return fmt.Errorf("parent %s for entry %s to be deleted does not exist", pp, de.Path)
 	}
-	msts.hasChanges = true
 	if de.IsDir {
 		delete(msts.dirs, path_)
 	}
 
 	delete(msts.entries, path_)
 	delete(msts.dirs[pp], path_)
-	return nil
+	return msts.setHasChanges()
 }
 
 // EndSession implements [metasts.MetaStorageSvc].
@@ -95,8 +118,10 @@ func (msts *M2StSvc) doEndSession(final bool) error {
 	if err != nil {
 		return err
 	}
-	msts.hasChanges = false
-	return msts.StSvc.Put(bs)
+	if err = msts.StSvc.Put(bs); err != nil {
+		return err
+	}
+	return msts.resetHasChanges()
 }
 
 // EndSession implements [metasts.MetaStorageSvc].
@@ -158,17 +183,29 @@ func (msts *M2StSvc) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // NewSession implements [metasts.MetaStorageSvc].
 func (msts *M2StSvc) NewSession() error {
-	msts.Lgr.Debug("M2StSvc: NewSession")
 	msts.mx.Lock()
 	defer msts.mx.Unlock()
 	if msts.hasSession {
 		return errors.New("M2StSvc.NewSession: there is already an active session")
+	}
+	fe, err := msts.StSvc.FlagExists()
+	if err != nil {
+		return err
+	}
+	msts.Lgr.Debug("M2StSvc: NewSession", "FlagExists", fe, "HasRepair", msts.HasRepair)
+	if fe && !msts.HasRepair {
+		return errors.New("M2StSvc.NewSession: inconsistent metadata, repair is needed")
 	}
 	msts.hasSession = true
 	ok, err := msts.StSvc.Exists()
 	if err != nil {
 		return err
 	}
+
+	if fe {
+		msts.setHasChanges()
+	}
+
 	msts.entries = map[string]*dssa.DataEntry{}
 	msts.dirs = map[string]map[string]bool{}
 	if !ok {
@@ -199,8 +236,7 @@ func (msts *M2StSvc) NewSession() error {
 			msts.dirs[gp][gpc] = true
 		}
 	}
-	msts.hasChanges = false
-	return nil
+	return msts.resetHasChanges()
 }
 
 // Put implements [metasts.MetaStorageSvc].
@@ -228,10 +264,9 @@ func (msts *M2StSvc) Put(de *dssa.DataEntry) error {
 	} else if de.IsDir {
 		msts.dirs[de.Path] = map[string]bool{}
 	}
-	msts.hasChanges = true
 	msts.dirs[pp][de.Path] = true
 	msts.entries[de.Path] = de
-	return nil
+	return msts.setHasChanges()
 }
 
 func MakeM2StSvc(lgr *slog.Logger, stSvc StorageSvc) (MetaStorageSvc, error) {

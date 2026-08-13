@@ -62,15 +62,43 @@ func (p *proxyDss) GetValueSetCb() func(string, []byte) error {
 }
 
 const (
-	KeyIds   = "identities"
-	KeyRecs  = "recipients"
-	KeyOpen  = "open"
-	KeyClose = "close"
+	KeyIds    = "identities"
+	KeyRecs   = "recipients"
+	KeyOpen   = "open"
+	KeyClose  = "close"
+	KeyRepair = "repair"
 )
+
+func (p *proxyDss) openOrRepair(repair bool) error {
+	if p.dss != nil {
+		return errors.New("encrypted.proxyDss.setValue: already opened")
+	}
+	dss, err := MakeEncryptedDssa(p.lgr, localfiles.MakeLocalFilesDssa(), p.rootPath,
+		strings.Split(p.sidGetter(), ","), p.recs, repair,
+	)
+	if err != nil {
+		return err
+	}
+	if repair {
+		if err = dss.NewSession(); err != nil {
+			return err
+		}
+		err = CheckIndex(p.lgr, localfiles.MakeLocalFilesDssa(), p.rootPath,
+			strings.Split(p.sidGetter(), ","), p.recs, true)
+		return err
+	}
+	if err = dss.NewSession(); err != nil {
+		return err
+	}
+	p.dss = dss
+	p.sm = newSessionMon(p.lgr, dss)
+	return nil
+}
 
 func (p *proxyDss) setValue(key string, val []byte) error {
 	p.mx.Lock()
 	defer p.mx.Unlock()
+	p.lgr.Debug("setValue", "key", key)
 	switch key {
 	case KeyIds:
 		dVal, err := common.AgeDecryptMsg(val, p.ageIdentitiesGetter()...)
@@ -81,20 +109,9 @@ func (p *proxyDss) setValue(key string, val []byte) error {
 	case KeyRecs:
 		p.recs = strings.Split(string(val), ",")
 	case KeyOpen:
-		if p.dss != nil {
-			return errors.New("encrypted.proxyDss.setValue: already opened")
-		}
-		dss, err := MakeEncryptedDssa(p.lgr, localfiles.MakeLocalFilesDssa(), p.rootPath,
-			strings.Split(p.sidGetter(), ","), p.recs,
-		)
-		if err != nil {
-			return err
-		}
-		if err = dss.NewSession(); err != nil {
-			return err
-		}
-		p.dss = dss
-		p.sm = newSessionMon(p.lgr, dss)
+		return p.openOrRepair(false)
+	case KeyRepair:
+		return p.openOrRepair(true)
 	case KeyClose:
 		if p.dss == nil {
 			return errors.New("encrypted.proxyDss.setValue: already closed")

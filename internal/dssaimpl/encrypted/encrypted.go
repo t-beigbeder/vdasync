@@ -278,14 +278,16 @@ var _ dssa.Dssa = &encryptedDssaImpl{}
 var _ EncryptedDssa = &encryptedDssaImpl{}
 
 func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string,
-	ageIdentities []string, ageRecipients []string) (EncryptedDssa, error) {
+	ageIdentities []string, ageRecipients []string,
+	repair bool) (EncryptedDssa, error) {
 	dss := &encryptedDssaImpl{
 		lgr:        lgr,
 		underlying: underlying,
 		rootPath:   rootPath,
 		msts: &m2edsvc{
 			M2StSvc: metasts.M2StSvc{
-				Lgr: lgr,
+				Lgr:       lgr,
+				HasRepair: repair,
 				StSvc: &m2edsStSvc{
 					lgr:                 lgr,
 					dss:                 underlying,

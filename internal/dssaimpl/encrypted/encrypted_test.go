@@ -36,6 +36,7 @@ func getDs(t *testing.T) (string, dssa.Dssa, string) {
 		td,
 		[]string{ids},
 		[]string{recs},
+		false,
 	)
 	require.NotNil(t, ds)
 	return td, ds, ids
@@ -267,6 +268,7 @@ func TestRepairIndex(t *testing.T) {
 		td,
 		[]string{ids},
 		[]string{recs},
+		false,
 	)
 	require.NotNil(t, ds)
 	require.NoError(t, ds.NewSession())

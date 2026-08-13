@@ -30,7 +30,8 @@ func (msts *m2edsvc) listAll(idx map[string]*dssa.DataEntry, path_ string) error
 func CheckIndex(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIdentities []string, ageRecipients []string, dryRun bool) error {
 	msts := &m2edsvc{
 		M2StSvc: metasts.M2StSvc{
-			Lgr: lgr,
+			Lgr:       lgr,
+			HasRepair: true,
 			StSvc: &m2edsStSvc{
 				lgr:                 lgr,
 				dss:                 underlying,
@@ -94,5 +95,6 @@ func CheckIndex(lgr *slog.Logger, underlying dssa.Dssa, rootPath string, ageIden
 	if err := msts.EndSession(); err != nil {
 		return err
 	}
+	msts.StSvc.FlagRemove()
 	return nil
 }

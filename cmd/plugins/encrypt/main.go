@@ -83,7 +83,7 @@ func RunEncryptPlugin() {
 		}
 		os.Exit(0)
 	}
-	dss, err := encrypted.MakeEncryptedDssa(lgr, underlying, rootPath, identities, recipients)
+	dss, err := encrypted.MakeEncryptedDssa(lgr, underlying, rootPath, identities, recipients, false)
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("encrypted.MakeEncryptedDssa: %s: %v", exe, err))
 	}

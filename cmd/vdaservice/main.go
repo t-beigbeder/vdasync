@@ -15,13 +15,14 @@ import (
 
 func main() {
 	var (
-		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency version shutdown")
+		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency version shutdown interactive")
 		dssFlag          = flag.String("dss", "", "dss on which the command applies")
 		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
 		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")
 		tsortFlag        = flag.Bool("tsort", false, "sort output with entries modification times")
 		noownFlag        = flag.Bool("noown", false, "hide uid gid information")
 		statFlag         = flag.Bool("stat", false, "with list cmd, perform additional stat on each entry (simulate I/O)")
+		repairFlag       = flag.Bool("repair", false, "with trust cmd, request trusted server to repair metadata")
 		latencyFlag      = flag.String("latency", "100us", "latency")
 		countFlag        = flag.Int("count", 100000, "test count")
 		ageEncIdfFlag    = flag.String("ageeidf", "", "DSS encryption age identities (secrets) file name")
@@ -113,6 +114,7 @@ func main() {
 		IsRecur:     *recurFlag,
 		IsCheck:     *svsf.CheckFlag,
 		IsStat:      *statFlag,
+		IsRepair:    *repairFlag,
 		CsAlgos:     *svsf.CsalFlag,
 		IsSorted:    *sortFlag,
 		IsTSorted:   *tsortFlag,
