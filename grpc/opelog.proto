@@ -18,11 +18,6 @@ message StoredEntry {
     string sym_link_target = 6;
 }
 
-message Checksums {
-    // comma-separated list algo:hexa-of-checksum
-    string checksums = 1;
-}
-
 enum OpeCode {
    OPE_CODE_UNSPECIFIED = 0;
    OPE_CODE_SOURCE_STAT = 1;
@@ -43,6 +38,9 @@ message OpeLogEntry {
     uint64 error_id = 4;
     StoredEntry source = 5;
     StoredEntry target = 6;
+    // comma-separated list algo:hexa-of-checksum
+    string source_checksums = 7;
+    string target_checksums = 8;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total

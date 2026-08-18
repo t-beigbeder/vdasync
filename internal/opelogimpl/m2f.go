@@ -16,7 +16,7 @@ type m2fMng struct {
 	mx         sync.Mutex
 	source     string
 	target     string
-	les        map[string]*opeloggrpc.LogEntry
+	les        map[string]*opelog.LogEntry
 	hasSession bool
 	hasUpdates bool
 }
@@ -38,15 +38,25 @@ func (m *m2fMng) EndSession() error {
 	}
 	i := 0
 	for _, le := range m.les {
-		les := &opeloggrpc.LogEntry{
+		gles := &opeloggrpc.LogEntry{
 			RelPath:       le.RelPath,
 			OpeLogEntries: make([]*opeloggrpc.OpeLogEntry, len(le.OpeLogEntries)),
 		}
-		oles := les.OpeLogEntries
-		for _, ole := range le.OpeLogEntries {
-			oles = append(oles, ole)
+		goles := gles.OpeLogEntries
+		for j, ole := range le.OpeLogEntries {
+			gole := &opeloggrpc.OpeLogEntry{
+				Code:            opeloggrpc.OpeCode(ole.Code),
+				Check:           ole.Check,
+				TimeStamp:       ole.TimeStamp,
+				ErrorId:         ole.ErrorId,
+				Source:          opelog.StoredEntry2GrpcStoredEntry(ole.Source),
+				Target:          opelog.StoredEntry2GrpcStoredEntry(ole.Target),
+				SourceChecksums: ole.SourceChecksums,
+				TargetChecksums: ole.TargetChecksums,
+			}
+			goles[j] = gole
 		}
-		aio.LogEntries[i] = les
+		aio.LogEntries[i] = gles
 		i++
 	}
 	bs, err := proto.Marshal(&aio)
@@ -101,20 +111,36 @@ func (m *m2fMng) NewSession() error {
 	}
 	m.source = aio.Source
 	m.target = aio.Target
-	m.les = make(map[string]*opeloggrpc.LogEntry, len(aio.LogEntries))
-	for _, le := range aio.LogEntries {
-		m.les[le.RelPath] = le
+	m.les = make(map[string]*opelog.LogEntry, len(aio.LogEntries))
+	for _, gle := range aio.LogEntries {
+		m.les[gle.RelPath] = &opelog.LogEntry{
+			RelPath:       gle.RelPath,
+			OpeLogEntries: make([]*opelog.OpeLogEntry, len(gle.OpeLogEntries)),
+		}
+		le := m.les[gle.RelPath]
+		for jx, gole := range gle.OpeLogEntries {
+			le.OpeLogEntries[jx] = &opelog.OpeLogEntry{
+				Code:            opelog.OpeCode(gole.Code),
+				Check:           gole.Check,
+				TimeStamp:       gole.TimeStamp,
+				ErrorId:         gole.ErrorId,
+				Source:          opelog.GrpcStoredEntry2StoredEntry(gole.Source),
+				Target:          opelog.GrpcStoredEntry2StoredEntry(gole.Target),
+				SourceChecksums: gole.SourceChecksums,
+				TargetChecksums: gole.TargetChecksums,
+			}
+		}
 	}
 	return nil
 }
 
 // PutEntryLog implements [opelog.OpeLogManager].
-func (m *m2fMng) PutEntryLog(relPath string, ole *opeloggrpc.OpeLogEntry) error {
+func (m *m2fMng) PutEntryLog(relPath string, ole *opelog.OpeLogEntry) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	le, ok := m.les[relPath]
 	if !ok {
-		le = &opeloggrpc.LogEntry{RelPath: relPath, OpeLogEntries: []*opeloggrpc.OpeLogEntry{}}
+		le = &opelog.LogEntry{RelPath: relPath, OpeLogEntries: []*opelog.OpeLogEntry{}}
 		m.les[relPath] = le
 	}
 	le.OpeLogEntries = append(le.OpeLogEntries, ole)
