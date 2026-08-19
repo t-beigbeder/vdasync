@@ -42,9 +42,8 @@ func (m *m2fMng) EndSession() error {
 			RelPath:       le.RelPath,
 			OpeLogEntries: make([]*opeloggrpc.OpeLogEntry, len(le.OpeLogEntries)),
 		}
-		goles := gles.OpeLogEntries
 		for j, ole := range le.OpeLogEntries {
-			gole := &opeloggrpc.OpeLogEntry{
+			gles.OpeLogEntries[j] = &opeloggrpc.OpeLogEntry{
 				Code:            opeloggrpc.OpeCode(ole.Code),
 				Check:           ole.Check,
 				TimeStamp:       ole.TimeStamp,
@@ -54,7 +53,6 @@ func (m *m2fMng) EndSession() error {
 				SourceChecksums: ole.SourceChecksums,
 				TargetChecksums: ole.TargetChecksums,
 			}
-			goles[j] = gole
 		}
 		aio.LogEntries[i] = gles
 		i++
