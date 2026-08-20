@@ -21,6 +21,20 @@ type m2fMng struct {
 	hasUpdates bool
 }
 
+// GetEntryLog implements [opelog.OpeLogManager].
+func (m *m2fMng) GetEntryLog(relPath string) (*opelog.LogEntry, error) {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	if !m.hasSession {
+		return nil, errors.New("m2fMng.GetEntryLog: no session to get")
+	}
+	le, ok := m.les[relPath]
+	if !ok {
+		return nil, fmt.Errorf("m2fMng.GetEntryLog: %s: no such entry", relPath)
+	}
+	return le, nil
+}
+
 func MakeM2fManager(path, source, target string) (opelog.OpeLogManager, error) {
 	return &m2fMng{path: path, source: source, target: target}, nil
 }

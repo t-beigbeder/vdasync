@@ -9,6 +9,7 @@ type OpeLogManager interface {
 	EndSession() error
 	Init(source, target string) error
 	PutEntryLog(relPath string, ole *OpeLogEntry) error
+	GetEntryLog(relPath string) (*LogEntry, error)
 }
 
 type OpeCode opeloggrpc.OpeCode
@@ -38,6 +39,7 @@ type StoredEntry struct {
 	Gid           uint32
 	Mode          uint32
 	SymLinkTarget string
+	Children      []string
 }
 
 type OpeLogEntry struct {
@@ -61,6 +63,8 @@ func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 	if gse == nil {
 		return nil
 	}
+	children := make([]string, len(gse.Children))
+	copy(children, gse.Children)
 	return &StoredEntry{
 		Size:          gse.Size,
 		Mtime:         gse.Mtime,
@@ -68,6 +72,7 @@ func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 		Gid:           gse.Gid,
 		Mode:          gse.Mode,
 		SymLinkTarget: gse.SymLinkTarget,
+		Children:      children,
 	}
 }
 
@@ -75,6 +80,8 @@ func StoredEntry2GrpcStoredEntry(se *StoredEntry) *opeloggrpc.StoredEntry {
 	if se == nil {
 		return nil
 	}
+	children := make([]string, len(se.Children))
+	copy(children, se.Children)
 	return &opeloggrpc.StoredEntry{
 		Size:          se.Size,
 		Mtime:         se.Mtime,
@@ -82,5 +89,6 @@ func StoredEntry2GrpcStoredEntry(se *StoredEntry) *opeloggrpc.StoredEntry {
 		Gid:           se.Gid,
 		Mode:          se.Mode,
 		SymLinkTarget: se.SymLinkTarget,
+		Children:      children,
 	}
 }

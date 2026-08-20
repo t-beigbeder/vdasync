@@ -151,6 +151,7 @@ type StoredEntry struct {
 	Gid           uint32                 `protobuf:"varint,4,opt,name=gid,proto3" json:"gid,omitempty"`
 	Mode          uint32                 `protobuf:"varint,5,opt,name=mode,proto3" json:"mode,omitempty"`
 	SymLinkTarget string                 `protobuf:"bytes,6,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
+	Children      []string               `protobuf:"bytes,7,rep,name=children,proto3" json:"children,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -225,6 +226,13 @@ func (x *StoredEntry) GetSymLinkTarget() string {
 		return x.SymLinkTarget
 	}
 	return ""
+}
+
+func (x *StoredEntry) GetChildren() []string {
+	if x != nil {
+		return x.Children
+	}
+	return nil
 }
 
 type OpeLogEntry struct {
@@ -396,14 +404,15 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x11grpc/opelog.proto\x12\x06opelog\"b\n" +
 	"\bLogEntry\x12\x19\n" +
 	"\brel_path\x18\x01 \x01(\tR\arelPath\x12;\n" +
-	"\x0fope_log_entries\x18\x02 \x03(\v2\x13.opelog.OpeLogEntryR\ropeLogEntries\"\x97\x01\n" +
+	"\x0fope_log_entries\x18\x02 \x03(\v2\x13.opelog.OpeLogEntryR\ropeLogEntries\"\xb3\x01\n" +
 	"\vStoredEntry\x12\x12\n" +
 	"\x04size\x18\x01 \x01(\x03R\x04size\x12\x14\n" +
 	"\x05mtime\x18\x02 \x01(\x03R\x05mtime\x12\x10\n" +
 	"\x03uid\x18\x03 \x01(\rR\x03uid\x12\x10\n" +
 	"\x03gid\x18\x04 \x01(\rR\x03gid\x12\x12\n" +
 	"\x04mode\x18\x05 \x01(\rR\x04mode\x12&\n" +
-	"\x0fsym_link_target\x18\x06 \x01(\tR\rsymLinkTarget\"\xb2\x02\n" +
+	"\x0fsym_link_target\x18\x06 \x01(\tR\rsymLinkTarget\x12\x1a\n" +
+	"\bchildren\x18\a \x03(\tR\bchildren\"\xb2\x02\n" +
 	"\vOpeLogEntry\x12#\n" +
 	"\x04code\x18\x01 \x01(\x0e2\x0f.opelog.OpeCodeR\x04code\x12\x14\n" +
 	"\x05check\x18\x02 \x01(\bR\x05check\x12\x1d\n" +

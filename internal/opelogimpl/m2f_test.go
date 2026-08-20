@@ -13,7 +13,7 @@ import (
 
 func TestM2fOpeLogs(t *testing.T) {
 	std := t.TempDir()
-	require.NoError(t, common.FileTreeGenerate(std, 100, 10000, 2, 1024, false, 0))
+	require.NoError(t, common.FileTreeGenerate(std, 250, 25000, 2, 32768, false, 0))
 	lgr := common.GetLogger()
 	dss := localfiles.MakeLocalFilesDssa()
 
@@ -27,6 +27,10 @@ func TestM2fOpeLogs(t *testing.T) {
 	startDe := func(pe *dssa.DssProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
 		des, _ := dss.List(pe.DataEntry.Path)
 		de := pe.DataEntry
+		children := make([]string, len(des))
+		for ic, child := range des {
+			children[ic] = path.Base(child.Path)
+		}
 		olm.PutEntryLog(common.RelPath(de.Path, std),
 			&opelog.OpeLogEntry{
 				Code:      opelog.OPE_CODE_SOURCE_STAT,
@@ -36,8 +40,9 @@ func TestM2fOpeLogs(t *testing.T) {
 					Mtime:         de.Mtime,
 					Uid:           uint32(de.User),
 					Gid:           uint32(de.Group),
-					Mode:          uint32(common.Rights2Mod([3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights})),
+					Mode:          common.DataEntryMod(de),
 					SymLinkTarget: de.SymLinkTarget,
+					Children:      children,
 				},
 				SourceChecksums: "none",
 			})
@@ -54,7 +59,7 @@ func TestM2fOpeLogs(t *testing.T) {
 					Mtime:         de.Mtime,
 					Uid:           uint32(de.User),
 					Gid:           uint32(de.Group),
-					Mode:          uint32(common.Rights2Mod([3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights})),
+					Mode:          common.DataEntryMod(de),
 					SymLinkTarget: de.SymLinkTarget,
 				},
 				SourceChecksums: "none",
@@ -68,6 +73,7 @@ func TestM2fOpeLogs(t *testing.T) {
 	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), std, ttd)
 	require.NoError(t, err)
 	require.NoError(t, olm2.NewSession())
-
-	lgr.Debug("TestM2fOpeLogs: done", "path", ltd)
+	le, err := olm2.GetEntryLog("")
+	require.NoError(t, err)
+	lgr.Debug("TestM2fOpeLogs: done", "path", ltd, "le", len(le.OpeLogEntries))
 }

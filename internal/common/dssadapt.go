@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"path"
 	"strings"
 	"time"
@@ -146,6 +147,17 @@ func DssaEntryChecksum(dss dssa.Dssa, path_ string, algos string) (string, error
 	}
 	defer rc.Close()
 	return ReaderChecksum(rc, algos)
+}
+
+func DataEntryMod(de *dssa.DataEntry) uint32 {
+	mod := uint32(Rights2Mod([3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}))
+	if de.IsDir {
+		mod |= uint32(fs.ModeDir)
+	}
+	if de.IsSymLink {
+		mod |= uint32(fs.ModeSymlink)
+	}
+	return mod
 }
 
 func rightsList(rights dssa.Rights) string {
