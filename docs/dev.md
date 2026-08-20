@@ -6,4 +6,4 @@ On linux amd64 platforms, clone the git repository, install Go development tools
 
 On other platforms, adapt the `build` rule in the Makefile.
 
-Go is also able to build binaries for any target platform, just add required buildx rules in the Makefile.
+Go is also able to build binaries for any target platform, just add required *build rules in the Makefile.
