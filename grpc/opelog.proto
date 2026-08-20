@@ -9,14 +9,24 @@ message LogEntry {
     repeated OpeLogEntry ope_log_entries = 2;
 }
 
+message Rights {
+    bool read = 1;
+    bool write = 2;
+    bool execute = 3;
+}
+
 message StoredEntry {
-    int64 size = 1;
-    int64 mtime = 2;
-    uint32 uid = 3;
-    uint32 gid = 4;
-    uint32 mode = 5;
-    string sym_link_target = 6;
-    repeated string children = 7;
+    bool is_dir = 1;
+    int64 size = 2;
+    int64 mtime = 3;
+    int32 user = 4;
+    Rights user_rights = 5;
+    int32 group = 6;
+    Rights group_rights = 7;
+    Rights other_rights = 8;
+    bool is_sym_link = 9;
+    string sym_link_target = 10;
+    repeated string children = 11;
 }
 
 enum OpeCode {

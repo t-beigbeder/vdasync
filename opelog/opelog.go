@@ -32,12 +32,22 @@ type LogEntry struct {
 	OpeLogEntries []*OpeLogEntry
 }
 
+type Rights struct {
+	Read    bool
+	Write   bool
+	Execute bool
+}
+
 type StoredEntry struct {
+	IsDir         bool
 	Size          int64
 	Mtime         int64
-	Uid           uint32
-	Gid           uint32
-	Mode          uint32
+	User          int32
+	UserRights    *Rights
+	Group         int32
+	GroupRights   *Rights
+	OtherRights   *Rights
+	IsSymLink     bool
 	SymLinkTarget string
 	Children      []string
 }
@@ -59,6 +69,10 @@ type OpeLogAllInOne struct {
 	LogEntries []*LogEntry
 }
 
+func gr2ser(gr *opeloggrpc.Rights) *Rights {
+	return &Rights{Read: gr.Read, Write: gr.Write, Execute: gr.Execute}
+}
+
 func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 	if gse == nil {
 		return nil
@@ -66,14 +80,21 @@ func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 	children := make([]string, len(gse.Children))
 	copy(children, gse.Children)
 	return &StoredEntry{
+		IsDir:         gse.IsDir,
 		Size:          gse.Size,
 		Mtime:         gse.Mtime,
-		Uid:           gse.Uid,
-		Gid:           gse.Gid,
-		Mode:          gse.Mode,
+		User:          gse.User,
+		UserRights:    gr2ser(gse.UserRights),
+		Group:         gse.Group,
+		GroupRights:   gr2ser(gse.GroupRights),
+		OtherRights:   gr2ser(gse.OtherRights),
+		IsSymLink:     gse.IsSymLink,
 		SymLinkTarget: gse.SymLinkTarget,
 		Children:      children,
 	}
+}
+func ser2gr(ser *Rights) *opeloggrpc.Rights {
+	return &opeloggrpc.Rights{Read: ser.Read, Write: ser.Write, Execute: ser.Execute}
 }
 
 func StoredEntry2GrpcStoredEntry(se *StoredEntry) *opeloggrpc.StoredEntry {
@@ -83,11 +104,15 @@ func StoredEntry2GrpcStoredEntry(se *StoredEntry) *opeloggrpc.StoredEntry {
 	children := make([]string, len(se.Children))
 	copy(children, se.Children)
 	return &opeloggrpc.StoredEntry{
+		IsDir:         se.IsDir,
 		Size:          se.Size,
 		Mtime:         se.Mtime,
-		Uid:           se.Uid,
-		Gid:           se.Gid,
-		Mode:          se.Mode,
+		User:          se.User,
+		UserRights:    ser2gr(se.UserRights),
+		Group:         se.Group,
+		GroupRights:   ser2gr(se.GroupRights),
+		OtherRights:   ser2gr(se.OtherRights),
+		IsSymLink:     se.IsSymLink,
 		SymLinkTarget: se.SymLinkTarget,
 		Children:      children,
 	}

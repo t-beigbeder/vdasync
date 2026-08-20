@@ -143,22 +143,86 @@ func (x *LogEntry) GetOpeLogEntries() []*OpeLogEntry {
 	return nil
 }
 
+type Rights struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Read          bool                   `protobuf:"varint,1,opt,name=read,proto3" json:"read,omitempty"`
+	Write         bool                   `protobuf:"varint,2,opt,name=write,proto3" json:"write,omitempty"`
+	Execute       bool                   `protobuf:"varint,3,opt,name=execute,proto3" json:"execute,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Rights) Reset() {
+	*x = Rights{}
+	mi := &file_grpc_opelog_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Rights) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Rights) ProtoMessage() {}
+
+func (x *Rights) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_opelog_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Rights.ProtoReflect.Descriptor instead.
+func (*Rights) Descriptor() ([]byte, []int) {
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *Rights) GetRead() bool {
+	if x != nil {
+		return x.Read
+	}
+	return false
+}
+
+func (x *Rights) GetWrite() bool {
+	if x != nil {
+		return x.Write
+	}
+	return false
+}
+
+func (x *Rights) GetExecute() bool {
+	if x != nil {
+		return x.Execute
+	}
+	return false
+}
+
 type StoredEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Size          int64                  `protobuf:"varint,1,opt,name=size,proto3" json:"size,omitempty"`
-	Mtime         int64                  `protobuf:"varint,2,opt,name=mtime,proto3" json:"mtime,omitempty"`
-	Uid           uint32                 `protobuf:"varint,3,opt,name=uid,proto3" json:"uid,omitempty"`
-	Gid           uint32                 `protobuf:"varint,4,opt,name=gid,proto3" json:"gid,omitempty"`
-	Mode          uint32                 `protobuf:"varint,5,opt,name=mode,proto3" json:"mode,omitempty"`
-	SymLinkTarget string                 `protobuf:"bytes,6,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
-	Children      []string               `protobuf:"bytes,7,rep,name=children,proto3" json:"children,omitempty"`
+	IsDir         bool                   `protobuf:"varint,1,opt,name=is_dir,json=isDir,proto3" json:"is_dir,omitempty"`
+	Size          int64                  `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	Mtime         int64                  `protobuf:"varint,3,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	User          int32                  `protobuf:"varint,4,opt,name=user,proto3" json:"user,omitempty"`
+	UserRights    *Rights                `protobuf:"bytes,5,opt,name=user_rights,json=userRights,proto3" json:"user_rights,omitempty"`
+	Group         int32                  `protobuf:"varint,6,opt,name=group,proto3" json:"group,omitempty"`
+	GroupRights   *Rights                `protobuf:"bytes,7,opt,name=group_rights,json=groupRights,proto3" json:"group_rights,omitempty"`
+	OtherRights   *Rights                `protobuf:"bytes,8,opt,name=other_rights,json=otherRights,proto3" json:"other_rights,omitempty"`
+	IsSymLink     bool                   `protobuf:"varint,9,opt,name=is_sym_link,json=isSymLink,proto3" json:"is_sym_link,omitempty"`
+	SymLinkTarget string                 `protobuf:"bytes,10,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
+	Children      []string               `protobuf:"bytes,11,rep,name=children,proto3" json:"children,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *StoredEntry) Reset() {
 	*x = StoredEntry{}
-	mi := &file_grpc_opelog_proto_msgTypes[1]
+	mi := &file_grpc_opelog_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -170,7 +234,7 @@ func (x *StoredEntry) String() string {
 func (*StoredEntry) ProtoMessage() {}
 
 func (x *StoredEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[1]
+	mi := &file_grpc_opelog_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -183,7 +247,14 @@ func (x *StoredEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StoredEntry.ProtoReflect.Descriptor instead.
 func (*StoredEntry) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{1}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *StoredEntry) GetIsDir() bool {
+	if x != nil {
+		return x.IsDir
+	}
+	return false
 }
 
 func (x *StoredEntry) GetSize() int64 {
@@ -200,25 +271,46 @@ func (x *StoredEntry) GetMtime() int64 {
 	return 0
 }
 
-func (x *StoredEntry) GetUid() uint32 {
+func (x *StoredEntry) GetUser() int32 {
 	if x != nil {
-		return x.Uid
+		return x.User
 	}
 	return 0
 }
 
-func (x *StoredEntry) GetGid() uint32 {
+func (x *StoredEntry) GetUserRights() *Rights {
 	if x != nil {
-		return x.Gid
+		return x.UserRights
+	}
+	return nil
+}
+
+func (x *StoredEntry) GetGroup() int32 {
+	if x != nil {
+		return x.Group
 	}
 	return 0
 }
 
-func (x *StoredEntry) GetMode() uint32 {
+func (x *StoredEntry) GetGroupRights() *Rights {
 	if x != nil {
-		return x.Mode
+		return x.GroupRights
 	}
-	return 0
+	return nil
+}
+
+func (x *StoredEntry) GetOtherRights() *Rights {
+	if x != nil {
+		return x.OtherRights
+	}
+	return nil
+}
+
+func (x *StoredEntry) GetIsSymLink() bool {
+	if x != nil {
+		return x.IsSymLink
+	}
+	return false
 }
 
 func (x *StoredEntry) GetSymLinkTarget() string {
@@ -252,7 +344,7 @@ type OpeLogEntry struct {
 
 func (x *OpeLogEntry) Reset() {
 	*x = OpeLogEntry{}
-	mi := &file_grpc_opelog_proto_msgTypes[2]
+	mi := &file_grpc_opelog_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -264,7 +356,7 @@ func (x *OpeLogEntry) String() string {
 func (*OpeLogEntry) ProtoMessage() {}
 
 func (x *OpeLogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[2]
+	mi := &file_grpc_opelog_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -277,7 +369,7 @@ func (x *OpeLogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpeLogEntry.ProtoReflect.Descriptor instead.
 func (*OpeLogEntry) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{2}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *OpeLogEntry) GetCode() OpeCode {
@@ -348,7 +440,7 @@ type OpeLogAllInOne struct {
 
 func (x *OpeLogAllInOne) Reset() {
 	*x = OpeLogAllInOne{}
-	mi := &file_grpc_opelog_proto_msgTypes[3]
+	mi := &file_grpc_opelog_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -360,7 +452,7 @@ func (x *OpeLogAllInOne) String() string {
 func (*OpeLogAllInOne) ProtoMessage() {}
 
 func (x *OpeLogAllInOne) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[3]
+	mi := &file_grpc_opelog_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -373,7 +465,7 @@ func (x *OpeLogAllInOne) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpeLogAllInOne.ProtoReflect.Descriptor instead.
 func (*OpeLogAllInOne) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{3}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *OpeLogAllInOne) GetSource() string {
@@ -404,15 +496,25 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x11grpc/opelog.proto\x12\x06opelog\"b\n" +
 	"\bLogEntry\x12\x19\n" +
 	"\brel_path\x18\x01 \x01(\tR\arelPath\x12;\n" +
-	"\x0fope_log_entries\x18\x02 \x03(\v2\x13.opelog.OpeLogEntryR\ropeLogEntries\"\xb3\x01\n" +
-	"\vStoredEntry\x12\x12\n" +
-	"\x04size\x18\x01 \x01(\x03R\x04size\x12\x14\n" +
-	"\x05mtime\x18\x02 \x01(\x03R\x05mtime\x12\x10\n" +
-	"\x03uid\x18\x03 \x01(\rR\x03uid\x12\x10\n" +
-	"\x03gid\x18\x04 \x01(\rR\x03gid\x12\x12\n" +
-	"\x04mode\x18\x05 \x01(\rR\x04mode\x12&\n" +
-	"\x0fsym_link_target\x18\x06 \x01(\tR\rsymLinkTarget\x12\x1a\n" +
-	"\bchildren\x18\a \x03(\tR\bchildren\"\xb2\x02\n" +
+	"\x0fope_log_entries\x18\x02 \x03(\v2\x13.opelog.OpeLogEntryR\ropeLogEntries\"L\n" +
+	"\x06Rights\x12\x12\n" +
+	"\x04read\x18\x01 \x01(\bR\x04read\x12\x14\n" +
+	"\x05write\x18\x02 \x01(\bR\x05write\x12\x18\n" +
+	"\aexecute\x18\x03 \x01(\bR\aexecute\"\xf3\x02\n" +
+	"\vStoredEntry\x12\x15\n" +
+	"\x06is_dir\x18\x01 \x01(\bR\x05isDir\x12\x12\n" +
+	"\x04size\x18\x02 \x01(\x03R\x04size\x12\x14\n" +
+	"\x05mtime\x18\x03 \x01(\x03R\x05mtime\x12\x12\n" +
+	"\x04user\x18\x04 \x01(\x05R\x04user\x12/\n" +
+	"\vuser_rights\x18\x05 \x01(\v2\x0e.opelog.RightsR\n" +
+	"userRights\x12\x14\n" +
+	"\x05group\x18\x06 \x01(\x05R\x05group\x121\n" +
+	"\fgroup_rights\x18\a \x01(\v2\x0e.opelog.RightsR\vgroupRights\x121\n" +
+	"\fother_rights\x18\b \x01(\v2\x0e.opelog.RightsR\votherRights\x12\x1e\n" +
+	"\vis_sym_link\x18\t \x01(\bR\tisSymLink\x12&\n" +
+	"\x0fsym_link_target\x18\n" +
+	" \x01(\tR\rsymLinkTarget\x12\x1a\n" +
+	"\bchildren\x18\v \x03(\tR\bchildren\"\xb2\x02\n" +
 	"\vOpeLogEntry\x12#\n" +
 	"\x04code\x18\x01 \x01(\x0e2\x0f.opelog.OpeCodeR\x04code\x12\x14\n" +
 	"\x05check\x18\x02 \x01(\bR\x05check\x12\x1d\n" +
@@ -453,25 +555,29 @@ func file_grpc_opelog_proto_rawDescGZIP() []byte {
 }
 
 var file_grpc_opelog_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
+var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_grpc_opelog_proto_goTypes = []any{
 	(OpeCode)(0),           // 0: opelog.OpeCode
 	(*LogEntry)(nil),       // 1: opelog.LogEntry
-	(*StoredEntry)(nil),    // 2: opelog.StoredEntry
-	(*OpeLogEntry)(nil),    // 3: opelog.OpeLogEntry
-	(*OpeLogAllInOne)(nil), // 4: opelog.OpeLogAllInOne
+	(*Rights)(nil),         // 2: opelog.Rights
+	(*StoredEntry)(nil),    // 3: opelog.StoredEntry
+	(*OpeLogEntry)(nil),    // 4: opelog.OpeLogEntry
+	(*OpeLogAllInOne)(nil), // 5: opelog.OpeLogAllInOne
 }
 var file_grpc_opelog_proto_depIdxs = []int32{
-	3, // 0: opelog.LogEntry.ope_log_entries:type_name -> opelog.OpeLogEntry
-	0, // 1: opelog.OpeLogEntry.code:type_name -> opelog.OpeCode
-	2, // 2: opelog.OpeLogEntry.source:type_name -> opelog.StoredEntry
-	2, // 3: opelog.OpeLogEntry.target:type_name -> opelog.StoredEntry
-	1, // 4: opelog.OpeLogAllInOne.log_entries:type_name -> opelog.LogEntry
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	4, // 0: opelog.LogEntry.ope_log_entries:type_name -> opelog.OpeLogEntry
+	2, // 1: opelog.StoredEntry.user_rights:type_name -> opelog.Rights
+	2, // 2: opelog.StoredEntry.group_rights:type_name -> opelog.Rights
+	2, // 3: opelog.StoredEntry.other_rights:type_name -> opelog.Rights
+	0, // 4: opelog.OpeLogEntry.code:type_name -> opelog.OpeCode
+	3, // 5: opelog.OpeLogEntry.source:type_name -> opelog.StoredEntry
+	3, // 6: opelog.OpeLogEntry.target:type_name -> opelog.StoredEntry
+	1, // 7: opelog.OpeLogAllInOne.log_entries:type_name -> opelog.LogEntry
+	8, // [8:8] is the sub-list for method output_type
+	8, // [8:8] is the sub-list for method input_type
+	8, // [8:8] is the sub-list for extension type_name
+	8, // [8:8] is the sub-list for extension extendee
+	0, // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_grpc_opelog_proto_init() }
@@ -485,7 +591,7 @@ func file_grpc_opelog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_opelog_proto_rawDesc), len(file_grpc_opelog_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   4,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
