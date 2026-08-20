@@ -28,6 +28,15 @@ It comes with the following components:
   - [vdasftp](docs/vdasftp.md), accessing files available from on a SFTP server,
   - [vdaencrypt](docs/vdaencrypt.md), storing encrypted data on local or remote files,
 
+The following additional components are also provided:
+
+  - [vdatserver](docs/vdatserver.md) is a gRPC server providing access
+  to remote encrypted files, an alternative to the `vdaencrypt` plugin
+  to encrypt the files on the server side for better efficiency,
+  - [vdasftpsync](docs/vdasftpsync.md) integrates the `vdasftp` plugin inside `vdasync`
+  for simpler deployment
+  - [testcerts](docs/tls.md) a generator for testing certificates and their CA
+
 ## Deployment overview
 
 The schema below illustrates how `vdasync` synchronizes

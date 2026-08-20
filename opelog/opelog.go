@@ -13,6 +13,19 @@ type OpeLogManager interface {
 
 type OpeCode opeloggrpc.OpeCode
 
+const (
+	OPE_CODE_UNSPECIFIED     = OpeCode(opeloggrpc.OpeCode_OPE_CODE_UNSPECIFIED)
+	OPE_CODE_SOURCE_STAT     = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SOURCE_STAT)
+	OPE_CODE_TARGET_STAT     = OpeCode(opeloggrpc.OpeCode_OPE_CODE_TARGET_STAT)
+	OPE_CODE_SOURCE_CHECKSUM = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SOURCE_CHECKSUM)
+	OPE_CODE_TARGET_CHECKSUM = OpeCode(opeloggrpc.OpeCode_OPE_CODE_TARGET_CHECKSUM)
+	OPE_CODE_MKDIR           = OpeCode(opeloggrpc.OpeCode_OPE_CODE_MKDIR)
+	OPE_CODE_COPY            = OpeCode(opeloggrpc.OpeCode_OPE_CODE_COPY)
+	OPE_CODE_SYMLINK         = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SYMLINK)
+	OPE_CODE_DELETE          = OpeCode(opeloggrpc.OpeCode_OPE_CODE_DELETE)
+	OPE_CODE_SET_STAT        = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SET_STAT)
+)
+
 type LogEntry struct {
 	RelPath       string
 	OpeLogEntries []*OpeLogEntry
@@ -45,6 +58,9 @@ type OpeLogAllInOne struct {
 }
 
 func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
+	if gse == nil {
+		return nil
+	}
 	return &StoredEntry{
 		Size:          gse.Size,
 		Mtime:         gse.Mtime,
@@ -55,13 +71,16 @@ func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 	}
 }
 
-func StoredEntry2GrpcStoredEntry(gse *StoredEntry) *opeloggrpc.StoredEntry {
+func StoredEntry2GrpcStoredEntry(se *StoredEntry) *opeloggrpc.StoredEntry {
+	if se == nil {
+		return nil
+	}
 	return &opeloggrpc.StoredEntry{
-		Size:          gse.Size,
-		Mtime:         gse.Mtime,
-		Uid:           gse.Uid,
-		Gid:           gse.Gid,
-		Mode:          gse.Mode,
-		SymLinkTarget: gse.SymLinkTarget,
+		Size:          se.Size,
+		Mtime:         se.Mtime,
+		Uid:           se.Uid,
+		Gid:           se.Gid,
+		Mode:          se.Mode,
+		SymLinkTarget: se.SymLinkTarget,
 	}
 }

@@ -21,6 +21,10 @@ type m2fMng struct {
 	hasUpdates bool
 }
 
+func MakeM2fManager(path, source, target string) (opelog.OpeLogManager, error) {
+	return &m2fMng{path: path, source: source, target: target}, nil
+}
+
 // EndSession implements [opelog.OpeLogManager].
 func (m *m2fMng) EndSession() error {
 	m.mx.Lock()
@@ -99,7 +103,7 @@ func (m *m2fMng) NewSession() error {
 	if m.hasSession {
 		return nil
 	}
-	bs, err := common.LoadFile(m.path)
+	bs, err := common.UnsafeLoadFile(m.path)
 	if err != nil {
 		return err
 	}
@@ -129,6 +133,7 @@ func (m *m2fMng) NewSession() error {
 			}
 		}
 	}
+	m.hasSession = true
 	return nil
 }
 
@@ -136,12 +141,16 @@ func (m *m2fMng) NewSession() error {
 func (m *m2fMng) PutEntryLog(relPath string, ole *opelog.OpeLogEntry) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
+	if !m.hasSession {
+		return errors.New("m2fMng.PutEntryLog: no session to put")
+	}
 	le, ok := m.les[relPath]
 	if !ok {
 		le = &opelog.LogEntry{RelPath: relPath, OpeLogEntries: []*opelog.OpeLogEntry{}}
 		m.les[relPath] = le
 	}
 	le.OpeLogEntries = append(le.OpeLogEntries, ole)
+	m.hasUpdates = true
 	return nil
 }
 

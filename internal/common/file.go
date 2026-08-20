@@ -129,14 +129,12 @@ func WriteFile(path_ string, data []byte) error {
 	return file.Close()
 }
 
-const MaxLoadFileSize = 65536
-
-func LoadFile(path_ string) ([]byte, error) {
+func doLoadFile(path_ string, max int) ([]byte, error) {
 	sz, err := FileSize(path_)
 	if err != nil {
 		return nil, err
 	}
-	if sz > MaxLoadFileSize {
+	if max > 0 && sz > MaxLoadFileSize {
 		return nil, fmt.Errorf("file size is %d bytes > %d", sz, MaxLoadFileSize)
 	}
 	file, err := os.Open(path_)
@@ -145,6 +143,16 @@ func LoadFile(path_ string) ([]byte, error) {
 	}
 	defer file.Close()
 	return io.ReadAll(file)
+}
+
+const MaxLoadFileSize = 65536
+
+func LoadFile(path_ string) ([]byte, error) {
+	return doLoadFile(path_, 65536)
+}
+
+func UnsafeLoadFile(path_ string) ([]byte, error) {
+	return doLoadFile(path_, 0)
 }
 
 func FileLines(path_ string) ([]string, error) {
