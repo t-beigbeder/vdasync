@@ -59,3 +59,19 @@ It can be configured as a systemd service on Linux platforms as following
         server or plugin TLS certificate key
     -notls
         insecure communication with servers over http
+
+### Client configuration
+
+As mentioned on the [configuration](conf.md) page, TLS configuration may be provided
+in the vdaServers section of the file, as in:
+
+    vdaServers:
+    - host: ""
+      port: 9443
+      clientCertPath: /path/to/client_cert
+      clientKeyPath: /path/to/client_key
+      caCertPath: /path/to/ca_cert
+
+The DSS syntax to access the data files on the server is then simply:
+
+    dss://<fqdn>:<port>/path/to/remote_file

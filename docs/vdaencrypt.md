@@ -114,3 +114,14 @@ would be leveraged by vdasync/vdaservice with DSS URL:
 would be leveraged by vdasync/vdaservice with DSS URL:
 
     remote_enc_sample+dss:/path/to/data_file
+
+### Auditing and repairing the encrypted data store
+
+The vdaencrypt comes with a -repair flag, which is analyzing the encrypted metadata
+stored under the underlying directory in the `.vdasync.meta` file on one side,
+and the encrypted data stored in files distributed under the same underlying directory.
+The command will report all inconsistent data. Coupled with the -crepair flag,
+inconsistencies will be fixed by removing inconsistent data and purging unreferenced files.
+
+In the case of remote storage on a DSS server, the command must be run from the server,
+referring directly to the remote encrypted files as the underlying DSS.
