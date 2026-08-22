@@ -25,15 +25,20 @@ Such metadata handling has limitations both in terms of scalability (could handl
 and reliability (metadata global file update can fail after numerous encrypted data files updates).
 The second point is generally not a big concern as synchronization can be run as many times as wanted until it succeeds.
 However, such errors can leave unreferenced data files that require periodic clean-up.
-Corrupted metadata files may require manual clean-up.
+Corrupted metadata files may require manual rollback and clean-up.
+The plugin comes with an inline repair tool to recover from such incidents.
 
 ### Restrictions on the remote data storage
 
-Even if the encrypted data is technically available to several users in parallel, such use cases are not managed at all.
+Even if the encrypted data is technically available from a server to several clients in parallel,
+such use cases are not managed at all.
 
-Computing checksums on the encrypted data requires downloading the content locally to decrypt it, consuming corresponding bandwidth.
+Computing checksums on the encrypted data requires downloading the content locally to decrypt it,
+involving related data transfer.
 
-If unacceptable, see the [DSS trusted server](vdatserver.md) component, which computes encryption and manage metadata on the server-side
+If such restrictions make the solution unusable,
+the [DSS trusted server](vdatserver.md) component provides an alternative
+which computes encryption and manages metadata on the server-side
 but requires to upload public and private keys.
 
 To be completed.
@@ -48,8 +53,7 @@ Plugin is `vdaencrypt` and its arguments can be found with `vdaencrypt -help`. M
 
 TLS arguments for the communication with the plugin apply as usual.
 When using `vdaserver` for remote encrypted files storage, the plugin also acts as a DSS client and related TLS options apply:
-`-ca` for the server CA, `-clientkey` and `-clientcert` for the client identity, provided here as flags
-but more likely as corresponding entries in the plugin configuration file.
+`-ca` for the server CA, `-clientkey` and `-clientcert` for the client identity.
 
 ### Configuration sample for local encryption
 
