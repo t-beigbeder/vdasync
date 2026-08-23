@@ -17,10 +17,11 @@ For instance:
       address: "otvl-sftp-server:22"
       ident: /home/guest/.ssh/id_ssh_test
       root: /path/to/sftp_root
+      concurrency: 4
       knownHostsFile: /home/guest/.ssh/special_kown_hosts
 
 
-would be leveraged by vdasync/vdaservice with DSS URL using an underscore
+would be leveraged by `vdasync` with a DSS URL using an underscore
 in front of the name of the sftpServer configuration entry:
 
     _sftp_sample+dss:/path/to/data_file

@@ -22,6 +22,12 @@ Plugin is `vdasftp` and its arguments can be found with `vdasftp -help`. Main ar
             root path from SFTP server root where files are served
     -sftpuser string
             SFTP server login
+    -conc int
+            number of concurrent activities
+
+The concurrency argument enables using as many SFTP clients plus one,
+that may be used in parallel when uploading or downloading data files
+during configuration.
 
 ### Configuration sample
 
@@ -49,3 +55,10 @@ The following configuration
 would be leveraged by vdasync/vdaservice with DSS URL:
 
     sftp_sample+dss:/path/to/data_file
+
+## Restrictions
+
+Compared to native OS access to files, the SFTP implementation at least on Linux
+is not able to set the last modification time of symbolic links.
+The synchronization flag `-nomtlink` can be used to ignore
+such differences on symbolic links.

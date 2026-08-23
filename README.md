@@ -108,6 +108,13 @@ Vdasync technical details are following:
 - [TLS configuration](docs/tls.md)
 - [Development](docs/dev.md)
 
+## Limitation
+
+The native or plugin-based DSS implementations are not able to handle special files
+(sockets, pipes, devices...) other than symbolic links.
+This is notified as an error by the API, and in the case of the synchronization CLI
+may be ignored using explicit exclusion lists or implicitly with the `-iirreg` flag.
+
 ## Status
 
 Vdasync is actively tested on Linux amd64 and tested on Windows amd64.
