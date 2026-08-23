@@ -12,37 +12,6 @@ because the encrypted data identities are kept on client side and only leveraged
 When used with `vdaserver` remote encrypted files, the server may also be hosted on _insecure_ environments
 because it only sees opaque encrypted data while decryption is fully done on the client side.
 
-## Limitations and restrictions
-
-### Scalability and reliability
-
-It is a "simple" encryption tool because local files attributes and directories content are globally
-
-- loaded in client memory during data access
-- stored in a single encrypted file updated at the end of the synchronization, keeping previous versions as backup
-
-Such metadata handling has limitations both in terms of scalability (could handle 100k files but not 10 millions),
-and reliability (metadata global file update can fail after numerous encrypted data files updates).
-The second point is generally not a big concern as synchronization can be run as many times as wanted until it succeeds.
-However, such errors can leave unreferenced data files that require periodic clean-up.
-Corrupted metadata files may require manual rollback and clean-up.
-The plugin comes with an inline repair tool to recover from such incidents.
-
-### Restrictions on the remote data storage
-
-Even if the encrypted data is technically available from a server to several clients in parallel,
-such use cases are not managed at all.
-
-Computing checksums on the encrypted data requires downloading the content locally to decrypt it,
-involving related data transfer.
-
-If such restrictions make the solution unusable,
-the [DSS trusted server](vdatserver.md) component provides an alternative
-which computes encryption and manages metadata on the server-side
-but requires to upload public and private keys.
-
-To be completed.
-
 ## Usage
 
 Plugin is `vdaencrypt` and its arguments can be found with `vdaencrypt -help`. Main arguments are:
@@ -125,3 +94,32 @@ inconsistencies will be fixed by removing inconsistent data and purging unrefere
 
 In the case of remote storage on a DSS server, the command must be run from the server,
 referring directly to the remote encrypted files as the underlying DSS.
+
+## Limitations and restrictions
+
+### Scalability and reliability
+
+It is a "simple" encryption tool because local files attributes and directories content are globally
+
+- loaded in plugin memory during data access
+- stored in a single encrypted file updated at the end of the synchronization, keeping previous versions as backup
+
+Such metadata handling has limitations both in terms of scalability (could handle 100k files but not 10 millions),
+and reliability (metadata global file update can fail after numerous encrypted data files updates).
+The second point is generally not a big concern as synchronization can be run as many times as wanted until it succeeds.
+However, such errors can leave unreferenced data files that require periodic clean-up.
+Corrupted metadata files may require manual rollback and clean-up.
+The plugin comes with an inline repair tool to recover from such incidents.
+
+### Restrictions on the remote data storage
+
+Even if the encrypted data is technically available from a server to several clients in parallel,
+such use cases are not managed at all.
+
+Computing checksums on the encrypted data requires downloading the content locally to decrypt it,
+involving related data transfer.
+
+If such restrictions make the solution unusable,
+the [DSS trusted server](vdatserver.md) component provides an alternative
+which computes encryption and manages metadata on the server-side
+but requires to upload public and private keys.
