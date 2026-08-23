@@ -7,7 +7,7 @@ need to be encrypted and authenticated to ensure security.
 gRPC authentication basically provides standard TLS authentication using client-side certificates:
 [mTLS](https://en.wikipedia.org/wiki/Mutual_authentication#mTLS).
 
-The is the model applied for securing communications between vdasync's CLI clients and remote `vdaserver`,
+This is the model applied for securing communications between vdasync's CLI clients and remote `vdaserver`,
 or the different plugins on localhost.
 
 While not recommended, using self-signed certificates can be requested, it disables client authentication.

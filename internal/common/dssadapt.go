@@ -148,6 +148,11 @@ func DssaEntryChecksum(dss dssa.Dssa, path_ string, algos string) (string, error
 	return ReaderChecksum(rc, algos)
 }
 
+func DataEntryMod(de *dssa.DataEntry) uint32 {
+	mod := uint32(Rights2Mod([3]dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}))
+	return mod
+}
+
 func rightsList(rights dssa.Rights) string {
 	rs := "-"
 	if rights.Read {

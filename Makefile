@@ -101,3 +101,4 @@ grpc-code: export PATH=$(vPATH):$(HOME)/.local/bin:/home/dv-user/go/bin
 grpc-code:	## generate grpc code from proto files
 	protoc --go_out=. --go-grpc_out=. grpc/ope.proto
 	protoc --go_out=. --go-grpc_out=. grpc/dssa.proto
+	protoc --go_out=. --go-grpc_out=. grpc/opelog.proto

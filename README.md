@@ -25,8 +25,17 @@ It comes with the following components:
 - a gRPC plugin API to add other data access means, among which the following are provided:
 
   - [vdas3](docs/vdas3.md), storing data as S3 storage objects,
-  - [vdasftp](docs/vdasftp.md), accessing files available from on a SFTP server,
+  - [vdasftp](docs/vdasftp.md), accessing files available on a SFTP server,
   - [vdaencrypt](docs/vdaencrypt.md), storing encrypted data on local or remote files,
+
+The following additional components are also provided:
+
+  - [vdatserver](docs/vdatserver.md) is a gRPC server providing access
+  to remote encrypted files, an alternative to the `vdaencrypt` plugin remote storage
+  to encrypt the files on the server side for better efficiency and capabilities,
+  - [vdasftpsync](docs/vdasftpsync.md) integrates the `vdasftp` plugin inside `vdasync`
+  for simpler deployment
+  - [testcerts](docs/tls.md) a generator for testing certificates and their authorities
 
 ## Deployment overview
 
@@ -98,6 +107,13 @@ Vdasync technical details are following:
 - [vdasync's configuration](docs/conf.md)
 - [TLS configuration](docs/tls.md)
 - [Development](docs/dev.md)
+
+## Limitation
+
+The native or plugin-based DSS implementations are not able to handle special files
+(sockets, pipes, devices...) other than symbolic links.
+This is notified as an error by the API, and in the case of the synchronization CLI
+may be ignored using explicit exclusion lists or implicitly with the `-iirreg` flag.
 
 ## Status
 

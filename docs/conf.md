@@ -33,6 +33,12 @@ you can consult its format in the [source](../config/config.go).
       - otvl-tests
       - "-s3prefix"
       - vdasync/tests/default
+    vdaServers:
+    - host: ""
+      port: 9443
+      clientCertPath: /path/to/client_cert
+      clientKeyPath: /path/to/client_key
+      caCertPath: /path/to/ca_cert
 
 This configuration starts two plugins along with the `vdasync` tool.
 The plugins use the TLS certificate provided with certPath/keyPath
@@ -40,5 +46,9 @@ and authenticate the client's certificate using the CA certificate provided with
 The vdasync client authenticates the plugins as TLS servers using the same CA certificate, thus a client CA.
 Each plugin receives its own set of additional arguments based on its type,
 this is explained in the plugins specific sections.
+
+The vdaServers section is convenient to declare clients certificate and server CA
+for the access to a [vdaserver](vdaserver.md).
+When the host is left as the empty string, the configuration is used for any host with the given https port. 
 
 See also [TLS page](tls.md)
