@@ -23,7 +23,7 @@ func RunSftpPlugin() {
 		nameFlag    = flag.String("name", "", "plugin name")
 		typeFlag    = flag.String("type", "", "plugin type")
 		sftpUser    = flag.String("sftpuser", "", "SFTP server login")
-		sftpAddress = flag.String("sftpaddress", "localhost:22", "SFTP server address, defaults to localhost:22")
+		sftpAddress = flag.String("sftpaddress", "localhost:22", "SFTP server address")
 		sftpIdent   = flag.String("sftpident", "", "SSH identity file to authenticate")
 		sftpRoot    = flag.String("sftproot", "", "root path from SFTP server root where files are served")
 		sftpKHFile  = flag.String("sftpkhfile", "", "known_hosts file, defaults to $HOME/.ssh/known_hosts")
