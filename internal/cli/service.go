@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/alecthomas/units"
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -176,6 +177,7 @@ type ServiceCtx struct {
 	TrustRecs   []string
 	Latency     string
 	Count       int
+	Size        string
 	Concurrency int
 	Lgr         *slog.Logger
 	OutFile     io.Writer
@@ -193,6 +195,8 @@ func DoService(sc *ServiceCtx) error {
 		return doUnTrust(sc)
 	case "latency":
 		return doLatency(sc)
+	case "ftgen":
+		return doFtGen(sc)
 	case "version":
 		return doVersion(sc)
 	case "shutdown":
@@ -391,6 +395,14 @@ func doLatency(sc *ServiceCtx) error {
 	}
 	wg.Wait()
 	return nil
+}
+
+func doFtGen(sc *ServiceCtx) error {
+	size, err := units.ParseStrictBytes(sc.Size)
+	if err != nil {
+		return fmt.Errorf("size: %v", err)
+	}
+	return common.FileTreeGenerate(sc.Root, sc.Count/1000, sc.Count, 3, int(size), false, sc.Concurrency)
 }
 
 func doVersion(sc *ServiceCtx) error {
