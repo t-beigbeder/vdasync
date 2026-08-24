@@ -63,7 +63,7 @@ func (m *m2fMng) EndSession() error {
 		for j, ole := range le.OpeLogEntries {
 			gles.OpeLogEntries[j] = &opeloggrpc.OpeLogEntry{
 				Code:            opeloggrpc.OpeCode(ole.Code),
-				Check:           ole.Check,
+				Verify:          ole.Verify,
 				TimeStamp:       ole.TimeStamp,
 				ErrorId:         ole.ErrorId,
 				Source:          opelog.StoredEntry2GrpcStoredEntry(ole.Source),
@@ -137,7 +137,7 @@ func (m *m2fMng) NewSession() error {
 		for jx, gole := range gle.OpeLogEntries {
 			le.OpeLogEntries[jx] = &opelog.OpeLogEntry{
 				Code:            opelog.OpeCode(gole.Code),
-				Check:           gole.Check,
+				Verify:          gole.Verify,
 				TimeStamp:       gole.TimeStamp,
 				ErrorId:         gole.ErrorId,
 				Source:          opelog.GrpcStoredEntry2StoredEntry(gole.Source),

@@ -15,16 +15,17 @@ type OpeLogManager interface {
 type OpeCode opeloggrpc.OpeCode
 
 const (
-	OPE_CODE_UNSPECIFIED     = OpeCode(opeloggrpc.OpeCode_OPE_CODE_UNSPECIFIED)
-	OPE_CODE_SOURCE_STAT     = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SOURCE_STAT)
-	OPE_CODE_TARGET_STAT     = OpeCode(opeloggrpc.OpeCode_OPE_CODE_TARGET_STAT)
-	OPE_CODE_SOURCE_CHECKSUM = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SOURCE_CHECKSUM)
-	OPE_CODE_TARGET_CHECKSUM = OpeCode(opeloggrpc.OpeCode_OPE_CODE_TARGET_CHECKSUM)
-	OPE_CODE_MKDIR           = OpeCode(opeloggrpc.OpeCode_OPE_CODE_MKDIR)
-	OPE_CODE_COPY            = OpeCode(opeloggrpc.OpeCode_OPE_CODE_COPY)
-	OPE_CODE_SYMLINK         = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SYMLINK)
-	OPE_CODE_DELETE          = OpeCode(opeloggrpc.OpeCode_OPE_CODE_DELETE)
-	OPE_CODE_SET_STAT        = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SET_STAT)
+	OPE_CODE_UNSPECIFIED       = OpeCode(opeloggrpc.OpeCode_OPE_CODE_UNSPECIFIED)
+	OPE_CODE_SOURCE_STAT       = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SOURCE_STAT)
+	OPE_CODE_TARGET_STAT       = OpeCode(opeloggrpc.OpeCode_OPE_CODE_TARGET_STAT)
+	OPE_CODE_SOURCE_CHECKSUM   = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SOURCE_CHECKSUM)
+	OPE_CODE_TARGET_CHECKSUM   = OpeCode(opeloggrpc.OpeCode_OPE_CODE_TARGET_CHECKSUM)
+	OPE_CODE_MKDIR             = OpeCode(opeloggrpc.OpeCode_OPE_CODE_MKDIR)
+	OPE_CODE_COPY              = OpeCode(opeloggrpc.OpeCode_OPE_CODE_COPY)
+	OPE_CODE_SYMLINK           = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SYMLINK)
+	OPE_CODE_DELETE            = OpeCode(opeloggrpc.OpeCode_OPE_CODE_DELETE)
+	OPE_CODE_SET_STAT          = OpeCode(opeloggrpc.OpeCode_OPE_CODE_SET_STAT)
+	OpeCode_OPE_CODE_WRITE_MOD = OpeCode(opeloggrpc.OpeCode_OPE_CODE_WRITE_MOD)
 )
 
 type LogEntry struct {
@@ -54,7 +55,7 @@ type StoredEntry struct {
 
 type OpeLogEntry struct {
 	Code            OpeCode
-	Check           bool
+	Verify          bool
 	TimeStamp       int64
 	ErrorId         uint64
 	Source          *StoredEntry

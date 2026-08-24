@@ -34,21 +34,23 @@ const (
 	OpeCode_OPE_CODE_SYMLINK         OpeCode = 7
 	OpeCode_OPE_CODE_DELETE          OpeCode = 8
 	OpeCode_OPE_CODE_SET_STAT        OpeCode = 9
+	OpeCode_OPE_CODE_WRITE_MOD       OpeCode = 10
 )
 
 // Enum value maps for OpeCode.
 var (
 	OpeCode_name = map[int32]string{
-		0: "OPE_CODE_UNSPECIFIED",
-		1: "OPE_CODE_SOURCE_STAT",
-		2: "OPE_CODE_TARGET_STAT",
-		3: "OPE_CODE_SOURCE_CHECKSUM",
-		4: "OPE_CODE_TARGET_CHECKSUM",
-		5: "OPE_CODE_MKDIR",
-		6: "OPE_CODE_COPY",
-		7: "OPE_CODE_SYMLINK",
-		8: "OPE_CODE_DELETE",
-		9: "OPE_CODE_SET_STAT",
+		0:  "OPE_CODE_UNSPECIFIED",
+		1:  "OPE_CODE_SOURCE_STAT",
+		2:  "OPE_CODE_TARGET_STAT",
+		3:  "OPE_CODE_SOURCE_CHECKSUM",
+		4:  "OPE_CODE_TARGET_CHECKSUM",
+		5:  "OPE_CODE_MKDIR",
+		6:  "OPE_CODE_COPY",
+		7:  "OPE_CODE_SYMLINK",
+		8:  "OPE_CODE_DELETE",
+		9:  "OPE_CODE_SET_STAT",
+		10: "OPE_CODE_WRITE_MOD",
 	}
 	OpeCode_value = map[string]int32{
 		"OPE_CODE_UNSPECIFIED":     0,
@@ -61,6 +63,7 @@ var (
 		"OPE_CODE_SYMLINK":         7,
 		"OPE_CODE_DELETE":          8,
 		"OPE_CODE_SET_STAT":        9,
+		"OPE_CODE_WRITE_MOD":       10,
 	}
 )
 
@@ -330,7 +333,7 @@ func (x *StoredEntry) GetChildren() []string {
 type OpeLogEntry struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Code      OpeCode                `protobuf:"varint,1,opt,name=code,proto3,enum=opelog.OpeCode" json:"code,omitempty"`
-	Check     bool                   `protobuf:"varint,2,opt,name=check,proto3" json:"check,omitempty"`
+	Verify    bool                   `protobuf:"varint,2,opt,name=verify,proto3" json:"verify,omitempty"`
 	TimeStamp int64                  `protobuf:"varint,3,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
 	ErrorId   uint64                 `protobuf:"varint,4,opt,name=error_id,json=errorId,proto3" json:"error_id,omitempty"`
 	Source    *StoredEntry           `protobuf:"bytes,5,opt,name=source,proto3" json:"source,omitempty"`
@@ -379,9 +382,9 @@ func (x *OpeLogEntry) GetCode() OpeCode {
 	return OpeCode_OPE_CODE_UNSPECIFIED
 }
 
-func (x *OpeLogEntry) GetCheck() bool {
+func (x *OpeLogEntry) GetVerify() bool {
 	if x != nil {
-		return x.Check
+		return x.Verify
 	}
 	return false
 }
@@ -514,10 +517,10 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\vis_sym_link\x18\t \x01(\bR\tisSymLink\x12&\n" +
 	"\x0fsym_link_target\x18\n" +
 	" \x01(\tR\rsymLinkTarget\x12\x1a\n" +
-	"\bchildren\x18\v \x03(\tR\bchildren\"\xb2\x02\n" +
+	"\bchildren\x18\v \x03(\tR\bchildren\"\xb4\x02\n" +
 	"\vOpeLogEntry\x12#\n" +
-	"\x04code\x18\x01 \x01(\x0e2\x0f.opelog.OpeCodeR\x04code\x12\x14\n" +
-	"\x05check\x18\x02 \x01(\bR\x05check\x12\x1d\n" +
+	"\x04code\x18\x01 \x01(\x0e2\x0f.opelog.OpeCodeR\x04code\x12\x16\n" +
+	"\x06verify\x18\x02 \x01(\bR\x06verify\x12\x1d\n" +
 	"\n" +
 	"time_stamp\x18\x03 \x01(\x03R\ttimeStamp\x12\x19\n" +
 	"\berror_id\x18\x04 \x01(\x04R\aerrorId\x12+\n" +
@@ -529,7 +532,7 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x06source\x18\x01 \x01(\tR\x06source\x12\x16\n" +
 	"\x06target\x18\x02 \x01(\tR\x06target\x121\n" +
 	"\vlog_entries\x18\x03 \x03(\v2\x10.opelog.LogEntryR\n" +
-	"logEntries*\xfc\x01\n" +
+	"logEntries*\x94\x02\n" +
 	"\aOpeCode\x12\x18\n" +
 	"\x14OPE_CODE_UNSPECIFIED\x10\x00\x12\x18\n" +
 	"\x14OPE_CODE_SOURCE_STAT\x10\x01\x12\x18\n" +
@@ -540,7 +543,9 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\rOPE_CODE_COPY\x10\x06\x12\x14\n" +
 	"\x10OPE_CODE_SYMLINK\x10\a\x12\x13\n" +
 	"\x0fOPE_CODE_DELETE\x10\b\x12\x15\n" +
-	"\x11OPE_CODE_SET_STAT\x10\tB\x0eZ\f./opeloggrpcb\x06proto3"
+	"\x11OPE_CODE_SET_STAT\x10\t\x12\x16\n" +
+	"\x12OPE_CODE_WRITE_MOD\x10\n" +
+	"B\x0eZ\f./opeloggrpcb\x06proto3"
 
 var (
 	file_grpc_opelog_proto_rawDescOnce sync.Once
