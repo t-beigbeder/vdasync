@@ -30,11 +30,8 @@ It comes with the following components:
 
 The following additional components are also provided:
 
-  - [vdatserver](docs/vdatserver.md) is a gRPC server providing access
-  to remote encrypted files, an alternative to the `vdaencrypt` plugin remote storage
-  to encrypt the files on the server side for better efficiency and capabilities,
-  - [vdasftpsync](docs/vdasftpsync.md) integrates the `vdasftp` plugin inside `vdasync`
-  for simpler deployment
+  - [vdatserver](docs/vdatserver.md), is a gRPC server providing shared access to encrypted files
+  - [vdasftpsync](docs/vdasftpsync.md), a convenience utility that integrates the `vdasftp` plugin inside `vdasync`
   - [testcerts](docs/tls.md) a generator for testing certificates and their authorities
 
 ## Deployment overview

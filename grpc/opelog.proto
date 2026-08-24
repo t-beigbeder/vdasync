@@ -40,11 +40,12 @@ enum OpeCode {
    OPE_CODE_SYMLINK = 7;
    OPE_CODE_DELETE = 8;
    OPE_CODE_SET_STAT = 9;
+   OPE_CODE_WRITE_MOD = 10;
 }
 
 message OpeLogEntry {
     OpeCode code = 1;
-    bool check = 2;
+    bool verify = 2;
     int64 time_stamp = 3;
     uint64 error_id = 4;
     StoredEntry source = 5;
