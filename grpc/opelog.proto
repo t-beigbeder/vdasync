@@ -9,26 +9,6 @@ message LogEntry {
     repeated OpeLogEntry ope_log_entries = 2;
 }
 
-message Rights {
-    bool read = 1;
-    bool write = 2;
-    bool execute = 3;
-}
-
-message StoredEntry {
-    bool is_dir = 1;
-    int64 size = 2;
-    int64 mtime = 3;
-    int32 user = 4;
-    Rights user_rights = 5;
-    int32 group = 6;
-    Rights group_rights = 7;
-    Rights other_rights = 8;
-    bool is_sym_link = 9;
-    string sym_link_target = 10;
-    repeated string children = 11;
-}
-
 enum OpeCode {
    OPE_CODE_UNSPECIFIED = 0;
    OPE_CODE_SOURCE_STAT = 1;
@@ -55,9 +35,69 @@ message OpeLogEntry {
     string target_checksums = 8;
 }
 
+message Rights {
+    bool read = 1;
+    bool write = 2;
+    bool execute = 3;
+}
+
+message StoredEntry {
+    bool is_present = 1;
+    bool is_dir = 2;
+    int64 size = 3;
+    int64 mtime = 4;
+    int32 user = 5;
+    Rights user_rights = 6;
+    int32 group = 7;
+    Rights group_rights = 8;
+    Rights other_rights = 9;
+    bool is_sym_link = 10;
+    string sym_link_target = 11;
+    repeated string children = 12;
+}
+
+enum EventCode {
+   EVT_UNSPECIFIED = 0;
+   EVT_ABS = 1;
+   EVT_EXIST = 2;
+   EVT_CR_MOD = 3;
+   EVT_ATTS_CHG = 4;
+   EVT_START_DIRUP = 5;
+   EVT_END_DIRUP = 6;
+}
+
+enum OriginCode {
+   ORI_UNSPECIFIED = 0;
+   ORI_LIST = 1;
+   ORI_STAT = 2;
+   ORI_READ = 3;
+   ORI_MKDIR = 4;
+   ORI_WRITE = 5;
+   ORI_SET_STAT = 6;
+   ORI_RM = 7;
+}
+
+message Event {
+    EventCode kind = 1;
+    OriginCode origin = 2;
+    int64 time_stamp = 3;
+    int32 state_index = 4;
+    // comma-separated list algo:hexa-of-checksum
+    string checksums = 5;
+}
+
+message LogicalEntry {
+    repeated StoredEntry source_states = 1;
+    repeated Event source_events = 2;
+    repeated StoredEntry target_states = 3;
+    repeated Event target_events = 4;
+    tbc stats = 5;
+}
+
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
 message OpeLogAllInOne {
-    string source = 1;
-    string target = 2;
-    repeated LogEntry log_entries = 3;
+    string source_root = 1;
+    string target_root = 2;
+    // the key is the relative path
+    map<string,LogicalEntry> logical_entries = 3;
 }
