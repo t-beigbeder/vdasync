@@ -4,37 +4,6 @@ package opelog;
 
 option go_package = "./opeloggrpc";
 
-message LogEntry {
-    string rel_path = 1;
-    repeated OpeLogEntry ope_log_entries = 2;
-}
-
-enum OpeCode {
-   OPE_CODE_UNSPECIFIED = 0;
-   OPE_CODE_SOURCE_STAT = 1;
-   OPE_CODE_TARGET_STAT = 2;
-   OPE_CODE_SOURCE_CHECKSUM = 3;
-   OPE_CODE_TARGET_CHECKSUM = 4;
-   OPE_CODE_MKDIR = 5;
-   OPE_CODE_COPY = 6;
-   OPE_CODE_SYMLINK = 7;
-   OPE_CODE_DELETE = 8;
-   OPE_CODE_SET_STAT = 9;
-   OPE_CODE_WRITE_MOD = 10;
-}
-
-message OpeLogEntry {
-    OpeCode code = 1;
-    bool verify = 2;
-    int64 time_stamp = 3;
-    uint64 error_id = 4;
-    StoredEntry source = 5;
-    StoredEntry target = 6;
-    // comma-separated list algo:hexa-of-checksum
-    string source_checksums = 7;
-    string target_checksums = 8;
-}
-
 message Rights {
     bool read = 1;
     bool write = 2;
@@ -80,18 +49,39 @@ enum OriginCode {
 message Event {
     EventCode kind = 1;
     OriginCode origin = 2;
-    int64 time_stamp = 3;
-    int32 state_index = 4;
+    int32 update_count = 3;
+    int32 validate_count = 4;
+    int64 time_stamp = 5;
+    int32 state_index = 6;
     // comma-separated list algo:hexa-of-checksum
-    string checksums = 5;
+    string checksums = 7;
+}
+
+message AggInfo {
+    int64 number = 1;
+    int64 size = 2;
+}
+
+message ComputedStats {
+    int64 time_stamp = 1;
+    AggInfo source_list_or_stat = 2;
+    AggInfo target_list_or_stat = 3;
+    AggInfo read = 4;
+    AggInfo create = 5;
+    AggInfo update = 6;
+    AggInfo remove = 7;
+    AggInfo mod_change = 8;
+    AggInfo error = 9;
 }
 
 message LogicalEntry {
+    // keeping source and target states out of event saves storage when unchanged
     repeated StoredEntry source_states = 1;
     repeated Event source_events = 2;
     repeated StoredEntry target_states = 3;
-    repeated Event target_events = 4;
-    tbc stats = 5;
+    StoredEntry transient_dirup_state = 4;
+    repeated Event target_events = 5;
+    repeated ComputedStats stats_list = 6;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
