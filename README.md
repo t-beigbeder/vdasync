@@ -111,10 +111,11 @@ Vdasync technical details are following:
 (sockets, pipes, devices...) other than symbolic links.
 This is notified as an error by the API, and in the case of the synchronization CLI
 may be ignored using explicit exclusion lists or implicitly with the `-iirreg` flag.
-- While the DSS implementations could provide some horizontal scalability through distributed processing,
+- While a DSS implementation can provide some horizontal scalability through distributed processing or storage,
 this is (currently) not the case for the synchronization engine itself.
-The memory used by the `vdasync` process remains moderated on very large datasets through the use of operation logs.
-Anyway such a limitation could be a concern when DSS implementations provide high I/O rates that cannot be fully leveraged
+Even if the memory used by the `vdasync` process remains moderated on very large datasets
+through the use of operation logs,
+such a limitation could be a concern when DSS implementations provide high I/O rates that cannot be fully leveraged
 by the actual data copy performed by `vdasync` itself.
 
 ## Status
