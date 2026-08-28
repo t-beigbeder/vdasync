@@ -107,12 +107,14 @@ func GrpcLogicalEntry2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 	if gle == nil {
 		return nil
 	}
+	dirupChildren := make([]string, len(gle.DirupChildren))
+	copy(dirupChildren, gle.DirupChildren)
 	return &LogicalEntry{
 		SourceStates:  gses2ses(gle.SourceStates),
 		SourceEvents:  gevs2evs(gle.SourceEvents),
 		TargetStates:  gses2ses(gle.TargetStates),
 		DirupState:    GrpcStoredEntry2StoredEntry(gle.DirupState),
-		DirupChildren: gle.DirupChildren,
+		DirupChildren: dirupChildren,
 		TargetEvents:  gevs2evs(gle.TargetEvents),
 		StatsList:     gcss2css(gle.StatsList),
 	}
@@ -221,12 +223,14 @@ func LogicalEntry2GrpcLogicalEntry(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 	if le == nil {
 		return nil
 	}
+	dirupChildren := make([]string, len(le.DirupChildren))
+	copy(dirupChildren, le.DirupChildren)
 	return &opeloggrpc.LogicalEntry{
 		SourceStates:  ses2gses(le.SourceStates),
 		SourceEvents:  evs2gevs(le.SourceEvents),
 		TargetStates:  ses2gses(le.TargetStates),
 		DirupState:    StoredEntry2GrpcStoredEntry(le.DirupState),
-		DirupChildren: le.DirupChildren,
+		DirupChildren: dirupChildren,
 		TargetEvents:  evs2gevs(le.TargetEvents),
 		StatsList:     css2gcss(le.StatsList),
 	}
