@@ -131,6 +131,27 @@ func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 		Children:      children,
 	}
 }
+
+func gses2ses(gses []*opeloggrpc.StoredEntry) []*StoredEntry {
+	if gses == nil {
+		return nil
+	}
+	ses := make([]*StoredEntry, len(gses))
+	for i, gse := range(gses) {
+		ses[i] = GrpcStoredEntry2StoredEntry(gse)
+	}
+	return ses
+}
+
+func GrpcLogicalEntry2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
+	if gle == nil {
+		return nil
+	}
+	return &LogicalEntry{
+		SourceStates: gses2ses(gle.SourceStates),
+	}
+}
+
 func ser2gr(ser *Rights) *opeloggrpc.Rights {
 	return &opeloggrpc.Rights{Read: ser.Read, Write: ser.Write, Execute: ser.Execute}
 }
@@ -154,5 +175,14 @@ func StoredEntry2GrpcStoredEntry(se *StoredEntry) *opeloggrpc.StoredEntry {
 		IsSymLink:     se.IsSymLink,
 		SymLinkTarget: se.SymLinkTarget,
 		Children:      children,
+	}
+}
+
+func LogicalEntry2GrpcLogicalEntry(le *LogicalEntry) *opeloggrpc.LogicalEntry {
+	if le == nil {
+		return nil
+	}
+	return &opeloggrpc.LogicalEntry{
+		SourceStates: nil,
 	}
 }

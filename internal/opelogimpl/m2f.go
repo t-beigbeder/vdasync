@@ -28,10 +28,7 @@ func (m *m2fMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error) {
 	if !m.hasSession {
 		return nil, errors.New("m2fMng.GetEntryLog: no session to get")
 	}
-	le, ok := m.les[relPath]
-	if !ok {
-		return nil, fmt.Errorf("m2fMng.GetEntryLog: %s: no such entry", relPath)
-	}
+	le, _ := m.les[relPath]
 	return le, nil
 }
 
@@ -54,26 +51,8 @@ func (m *m2fMng) EndSession() error {
 		TargetRoot:     m.target,
 		LogicalEntries: make(map[string]*opeloggrpc.LogicalEntry, len(m.les)),
 	}
-	i := 0
-	for _, le := range m.les {
-		gles := &opeloggrpc.LogicalEntry{
-			RelPath:       le.RelPath,
-			OpeLogEntries: make([]*opeloggrpc.OpeLogEntry, len(le.OpeLogEntries)),
-		}
-		for j, ole := range le.OpeLogEntries {
-			gles.OpeLogEntries[j] = &opeloggrpc.OpeLogEntry{
-				Code:            opeloggrpc.OpeCode(ole.Code),
-				Verify:          ole.Verify,
-				TimeStamp:       ole.TimeStamp,
-				ErrorId:         ole.ErrorId,
-				Source:          opelog.StoredEntry2GrpcStoredEntry(ole.Source),
-				Target:          opelog.StoredEntry2GrpcStoredEntry(ole.Target),
-				SourceChecksums: ole.SourceChecksums,
-				TargetChecksums: ole.TargetChecksums,
-			}
-		}
-		aio.LogEntries[i] = gles
-		i++
+	for rp, le := range m.les {
+		aio.LogicalEntries[rp] = opelog.LogicalEntry2GrpcLogicalEntry(le)
 	}
 	bs, err := proto.Marshal(&aio)
 	if err != nil {
@@ -97,8 +76,8 @@ func (m *m2fMng) Init(source string, target string) error {
 		return fmt.Errorf("m2fMng.Init: %s should be created without entries", m.path)
 	}
 	aio := opeloggrpc.OpeLogAllInOne{
-		Source: m.source,
-		Target: m.target,
+		SourceRoot: m.source,
+		TargetRoot: m.target,
 	}
 	bs, err := proto.Marshal(&aio)
 	if err != nil {
@@ -125,45 +104,24 @@ func (m *m2fMng) NewSession() error {
 	if err = proto.Unmarshal(bs, &aio); err != nil {
 		return err
 	}
-	m.source = aio.Source
-	m.target = aio.Target
-	m.les = make(map[string]*opelog.LogEntry, len(aio.LogEntries))
-	for _, gle := range aio.LogEntries {
-		m.les[gle.RelPath] = &opelog.LogEntry{
-			RelPath:       gle.RelPath,
-			OpeLogEntries: make([]*opelog.OpeLogEntry, len(gle.OpeLogEntries)),
-		}
-		le := m.les[gle.RelPath]
-		for jx, gole := range gle.OpeLogEntries {
-			le.OpeLogEntries[jx] = &opelog.OpeLogEntry{
-				Code:            opelog.OpeCode(gole.Code),
-				Verify:          gole.Verify,
-				TimeStamp:       gole.TimeStamp,
-				ErrorId:         gole.ErrorId,
-				Source:          opelog.GrpcStoredEntry2StoredEntry(gole.Source),
-				Target:          opelog.GrpcStoredEntry2StoredEntry(gole.Target),
-				SourceChecksums: gole.SourceChecksums,
-				TargetChecksums: gole.TargetChecksums,
-			}
-		}
+	m.source = aio.SourceRoot
+	m.target = aio.TargetRoot
+	m.les = make(map[string]*opelog.LogicalEntry, len(aio.LogicalEntries))
+	for rp, gle := range aio.LogicalEntries {
+		m.les[rp] = opelog.GrpcLogicalEntry2LogicalEntry(gle)
 	}
 	m.hasSession = true
 	return nil
 }
 
-// PutEntryLog implements [opelog.OpeLogManager].
+// PutLogicalEntry implements [opelog.OpeLogManager].
 func (m *m2fMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.hasSession {
 		return errors.New("m2fMng.PutEntryLog: no session to put")
 	}
-	le, ok := m.les[relPath]
-	if !ok {
-		le = &opelog.LogEntry{RelPath: relPath, OpeLogEntries: []*opelog.OpeLogEntry{}}
-		m.les[relPath] = le
-	}
-	le.OpeLogEntries = append(le.OpeLogEntries, ole)
+	m.les[relPath] = ole
 	m.hasUpdates = true
 	return nil
 }
