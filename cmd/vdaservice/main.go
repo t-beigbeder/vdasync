@@ -25,7 +25,7 @@ func main() {
 		repairFlag       = flag.Bool("repair", false, "with trust cmd, request trusted server to repair metadata")
 		latencyFlag      = flag.String("latency", "100us", "latency")
 		countFlag        = flag.Int("count", 100000, "test count, number of files")
-		sizeFlag         = flag.String("size", "1KiB", "maximum file size")
+		sizeFlag         = flag.Int("size", 1024, "maximum file size")
 		ageEncIdfFlag    = flag.String("ageeidf", "", "DSS encryption age identities (secrets) file name")
 		ageEncRecfFlag   = flag.String("ageerecf", "", "DSS encryption age recipients (public keys) file name")
 		ageTrustRecfFlag = flag.String("agetrecf", "", "trusted server age recipients (public keys) file name")
