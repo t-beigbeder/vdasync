@@ -16,13 +16,13 @@ type m2fMng struct {
 	mx         sync.Mutex
 	source     string
 	target     string
-	les        map[string]*opelog.LogEntry
+	les        map[string]*opelog.LogicalEntry
 	hasSession bool
 	hasUpdates bool
 }
 
 // GetEntryLog implements [opelog.OpeLogManager].
-func (m *m2fMng) GetEntryLog(relPath string) (*opelog.LogEntry, error) {
+func (m *m2fMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.hasSession {
@@ -50,13 +50,13 @@ func (m *m2fMng) EndSession() error {
 		return nil
 	}
 	aio := opeloggrpc.OpeLogAllInOne{
-		Source:     m.source,
-		Target:     m.target,
-		LogEntries: make([]*opeloggrpc.LogEntry, len(m.les)),
+		SourceRoot:     m.source,
+		TargetRoot:     m.target,
+		LogicalEntries: make(map[string]*opeloggrpc.LogicalEntry, len(m.les)),
 	}
 	i := 0
 	for _, le := range m.les {
-		gles := &opeloggrpc.LogEntry{
+		gles := &opeloggrpc.LogicalEntry{
 			RelPath:       le.RelPath,
 			OpeLogEntries: make([]*opeloggrpc.OpeLogEntry, len(le.OpeLogEntries)),
 		}
@@ -152,7 +152,7 @@ func (m *m2fMng) NewSession() error {
 }
 
 // PutEntryLog implements [opelog.OpeLogManager].
-func (m *m2fMng) PutEntryLog(relPath string, ole *opelog.OpeLogEntry) error {
+func (m *m2fMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.hasSession {

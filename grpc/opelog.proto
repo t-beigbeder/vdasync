@@ -55,6 +55,7 @@ message Event {
     int32 state_index = 6;
     // comma-separated list algo:hexa-of-checksum
     string checksums = 7;
+    string error = 8;
 }
 
 message AggInfo {

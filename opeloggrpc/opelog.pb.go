@@ -348,6 +348,7 @@ type Event struct {
 	StateIndex    int32                  `protobuf:"varint,6,opt,name=state_index,json=stateIndex,proto3" json:"state_index,omitempty"`
 	// comma-separated list algo:hexa-of-checksum
 	Checksums     string `protobuf:"bytes,7,opt,name=checksums,proto3" json:"checksums,omitempty"`
+	Error         string `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -427,6 +428,13 @@ func (x *Event) GetStateIndex() int32 {
 func (x *Event) GetChecksums() string {
 	if x != nil {
 		return x.Checksums
+	}
+	return ""
+}
+
+func (x *Event) GetError() string {
+	if x != nil {
+		return x.Error
 	}
 	return ""
 }
@@ -594,14 +602,15 @@ func (x *ComputedStats) GetError() *AggInfo {
 type LogicalEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// keeping source and target states out of event saves storage when unchanged
-	SourceStates        []*StoredEntry   `protobuf:"bytes,1,rep,name=source_states,json=sourceStates,proto3" json:"source_states,omitempty"`
-	SourceEvents        []*Event         `protobuf:"bytes,2,rep,name=source_events,json=sourceEvents,proto3" json:"source_events,omitempty"`
-	TargetStates        []*StoredEntry   `protobuf:"bytes,3,rep,name=target_states,json=targetStates,proto3" json:"target_states,omitempty"`
-	TransientDirupState *StoredEntry     `protobuf:"bytes,4,opt,name=transient_dirup_state,json=transientDirupState,proto3" json:"transient_dirup_state,omitempty"`
-	TargetEvents        []*Event         `protobuf:"bytes,5,rep,name=target_events,json=targetEvents,proto3" json:"target_events,omitempty"`
-	StatsList           []*ComputedStats `protobuf:"bytes,6,rep,name=stats_list,json=statsList,proto3" json:"stats_list,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	SourceStates  []*StoredEntry   `protobuf:"bytes,1,rep,name=source_states,json=sourceStates,proto3" json:"source_states,omitempty"`
+	SourceEvents  []*Event         `protobuf:"bytes,2,rep,name=source_events,json=sourceEvents,proto3" json:"source_events,omitempty"`
+	TargetStates  []*StoredEntry   `protobuf:"bytes,3,rep,name=target_states,json=targetStates,proto3" json:"target_states,omitempty"`
+	DirupState    *StoredEntry     `protobuf:"bytes,4,opt,name=dirup_state,json=dirupState,proto3" json:"dirup_state,omitempty"`
+	DirupChildren []string         `protobuf:"bytes,5,rep,name=dirup_children,json=dirupChildren,proto3" json:"dirup_children,omitempty"`
+	TargetEvents  []*Event         `protobuf:"bytes,6,rep,name=target_events,json=targetEvents,proto3" json:"target_events,omitempty"`
+	StatsList     []*ComputedStats `protobuf:"bytes,7,rep,name=stats_list,json=statsList,proto3" json:"stats_list,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogicalEntry) Reset() {
@@ -655,9 +664,16 @@ func (x *LogicalEntry) GetTargetStates() []*StoredEntry {
 	return nil
 }
 
-func (x *LogicalEntry) GetTransientDirupState() *StoredEntry {
+func (x *LogicalEntry) GetDirupState() *StoredEntry {
 	if x != nil {
-		return x.TransientDirupState
+		return x.DirupState
+	}
+	return nil
+}
+
+func (x *LogicalEntry) GetDirupChildren() []string {
+	if x != nil {
+		return x.DirupChildren
 	}
 	return nil
 }
@@ -762,7 +778,7 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\vis_sym_link\x18\n" +
 	" \x01(\bR\tisSymLink\x12&\n" +
 	"\x0fsym_link_target\x18\v \x01(\tR\rsymLinkTarget\x12\x1a\n" +
-	"\bchildren\x18\f \x03(\tR\bchildren\"\x82\x02\n" +
+	"\bchildren\x18\f \x03(\tR\bchildren\"\x98\x02\n" +
 	"\x05Event\x12%\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x11.opelog.EventCodeR\x04kind\x12*\n" +
 	"\x06origin\x18\x02 \x01(\x0e2\x12.opelog.OriginCodeR\x06origin\x12!\n" +
@@ -772,7 +788,8 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"time_stamp\x18\x05 \x01(\x03R\ttimeStamp\x12\x1f\n" +
 	"\vstate_index\x18\x06 \x01(\x05R\n" +
 	"stateIndex\x12\x1c\n" +
-	"\tchecksums\x18\a \x01(\tR\tchecksums\"5\n" +
+	"\tchecksums\x18\a \x01(\tR\tchecksums\x12\x14\n" +
+	"\x05error\x18\b \x01(\tR\x05error\"5\n" +
 	"\aAggInfo\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x12\n" +
 	"\x04size\x18\x02 \x01(\x03R\x04size\"\xa5\x03\n" +
@@ -787,15 +804,17 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x06remove\x18\a \x01(\v2\x0f.opelog.AggInfoR\x06remove\x12.\n" +
 	"\n" +
 	"mod_change\x18\b \x01(\v2\x0f.opelog.AggInfoR\tmodChange\x12%\n" +
-	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xe9\x02\n" +
+	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xfd\x02\n" +
 	"\fLogicalEntry\x128\n" +
 	"\rsource_states\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\fsourceStates\x122\n" +
 	"\rsource_events\x18\x02 \x03(\v2\r.opelog.EventR\fsourceEvents\x128\n" +
-	"\rtarget_states\x18\x03 \x03(\v2\x13.opelog.StoredEntryR\ftargetStates\x12G\n" +
-	"\x15transient_dirup_state\x18\x04 \x01(\v2\x13.opelog.StoredEntryR\x13transientDirupState\x122\n" +
-	"\rtarget_events\x18\x05 \x03(\v2\r.opelog.EventR\ftargetEvents\x124\n" +
+	"\rtarget_states\x18\x03 \x03(\v2\x13.opelog.StoredEntryR\ftargetStates\x124\n" +
+	"\vdirup_state\x18\x04 \x01(\v2\x13.opelog.StoredEntryR\n" +
+	"dirupState\x12%\n" +
+	"\x0edirup_children\x18\x05 \x03(\tR\rdirupChildren\x122\n" +
+	"\rtarget_events\x18\x06 \x03(\v2\r.opelog.EventR\ftargetEvents\x124\n" +
 	"\n" +
-	"stats_list\x18\x06 \x03(\v2\x15.opelog.ComputedStatsR\tstatsList\"\x80\x02\n" +
+	"stats_list\x18\a \x03(\v2\x15.opelog.ComputedStatsR\tstatsList\"\x80\x02\n" +
 	"\x0eOpeLogAllInOne\x12\x1f\n" +
 	"\vsource_root\x18\x01 \x01(\tR\n" +
 	"sourceRoot\x12\x1f\n" +
@@ -869,7 +888,7 @@ var file_grpc_opelog_proto_depIdxs = []int32{
 	3,  // 13: opelog.LogicalEntry.source_states:type_name -> opelog.StoredEntry
 	4,  // 14: opelog.LogicalEntry.source_events:type_name -> opelog.Event
 	3,  // 15: opelog.LogicalEntry.target_states:type_name -> opelog.StoredEntry
-	3,  // 16: opelog.LogicalEntry.transient_dirup_state:type_name -> opelog.StoredEntry
+	3,  // 16: opelog.LogicalEntry.dirup_state:type_name -> opelog.StoredEntry
 	4,  // 17: opelog.LogicalEntry.target_events:type_name -> opelog.Event
 	6,  // 18: opelog.LogicalEntry.stats_list:type_name -> opelog.ComputedStats
 	9,  // 19: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
