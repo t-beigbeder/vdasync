@@ -79,9 +79,10 @@ message LogicalEntry {
     repeated StoredEntry source_states = 1;
     repeated Event source_events = 2;
     repeated StoredEntry target_states = 3;
-    StoredEntry transient_dirup_state = 4;
-    repeated Event target_events = 5;
-    repeated ComputedStats stats_list = 6;
+    StoredEntry dirup_state = 4;
+    repeated string dirup_children = 5;
+    repeated Event target_events = 6;
+    repeated ComputedStats stats_list = 7;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
