@@ -1,53 +1,81 @@
 package opelogimpl
 
 import (
+	"errors"
 	"fmt"
+	"path"
+	"strings"
+	"sync"
 
-	"github.com/joncrlsn/dque"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 type largeQ struct {
-	dq *dque.DQue
-}
-
-type Item struct {
-	S string
+	mx         sync.Mutex
+	dq chan any
+	dir        string
+	segSize    int
+	curOffset  int
+	lastOffset int
+	closed     bool
+	curEntries []string
+	lastEntries []string
 }
 
 // Close implements [opelog.Queue].
 func (lq *largeQ) Close() error {
-	return lq.dq.Close()
+	panic("unimplemented")
 }
 
 // Dequeue implements [opelog.Queue].
 func (lq *largeQ) Dequeue() (string, error) {
-	as, err := lq.dq.DequeueBlock()
-	if err != nil {
-		return "", err
+	lq.mx.Lock()
+	for lq.curOffset == lq.lastOffset {
+		lq.mx.Unlock()
+		<- lq.dq
+		lq.mx.Lock()
 	}
-	is, ok := as.(*Item)
-	if !ok {
-		return "", fmt.Errorf("Dequeue: incorrect type: %T", as)
-	}
-	return is.S, nil
+	defer lq.mx.Unlock()
 }
 
 // Enqueue implements [opelog.Queue].
 func (lq *largeQ) Enqueue(s string) error {
-	return lq.dq.Enqueue(&Item{s})
+	if strings.Contains(s, "\n") {
+		return errors.New("largeQ.Enqueue optimization forbids \\n character")
+	}
+	lq.mx.Lock()
+	defer lq.mx.Unlock()
+	lastEntries := lq.lastEntries
+	curSeg := lq.curOffset / lq.segSize
+	lastSeg := lq.lastOffset / lq.segSize
+	if lastSeg == curSeg {
+		lastEntries = lq.curEntries
+	}
+	segOffset := (len(lastEntries) + 1) % lq.segSize
+	if segOffset == 0 {
+		if lastSeg != curSeg {
+			fp := path.Join(lq.dir, fmt.Sprintf(".largeQ-%d.txt", segOffset))
+			if err := common.WriteFile(fp, []byte(strings.Join(lastEntries, "\n"))); err != nil {
+				return fmt.Errorf("largeQ.Enqueue: write %s error %v", fp, err)
+			}
+		}
+		lq.lastEntries = make([]string, lq.segSize)
+		lastEntries = lq.lastEntries
+	}
+	lastEntries[segOffset] = s
+	if lq.curOffset == lq.lastOffset {
+		lq.dq <- ""
+	}
+	lq.lastOffset += 1
+	return nil
 }
 
-func MakeLargeQ(path string, segSize int) (opelog.Queue, error) {
+func MakeLargeQ(dir string, segSize int) (opelog.Queue, error) {
+	dq := make(chan any, 1)
 	if segSize == 0 {
 		segSize = 1000000
 	}
-	dq, err := dque.New(".lq.dque", path, segSize, func() any { return &Item{} })
-	if err != nil {
-		return nil, err
-	}
-	if err := dq.TurboOn(); err != nil {
-		return nil, err
-	}
-	return &largeQ{dq: dq}, nil
+	curEntries := make([]string, segSize)
+	return &largeQ{dq: dq, dir: dir, segSize: segSize, curEntries: curEntries}, nil
 }
