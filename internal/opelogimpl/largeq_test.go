@@ -10,9 +10,9 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
-func TestDqSimple(t *testing.T) {
+func TestLqSimple(t *testing.T) {
 	td := t.TempDir()
-	lq, err := MakeDQ(td, 10000)
+	lq, err := MakeLargeQ(td, 10000)
 	require.NoError(t, err)
 	lgr := common.DbgLogger()
 	lgr.Debug("start")
@@ -27,6 +27,9 @@ func TestDqSimple(t *testing.T) {
 			lgr.Debug("this")
 		}
 		require.NoError(t, err)
+		if fmt.Sprintf("%7d", i) != s {
+			lgr.Debug("here")
+		}
 		require.Equal(t, fmt.Sprintf("%7d", i), s)
 	}
 	s, err := lq.Dequeue()
@@ -37,7 +40,7 @@ func TestDqSimple(t *testing.T) {
 	lgr.Debug("end")
 }
 
-func TestDqConcur(t *testing.T) {
+func TestLqConcur(t *testing.T) {
 	td := t.TempDir()
 	lq, err := MakeDQ(td, 10000)
 	require.NoError(t, err)
