@@ -49,13 +49,18 @@ enum OriginCode {
 message Event {
     EventCode kind = 1;
     OriginCode origin = 2;
-    int32 update_count = 3;
-    int32 validate_count = 4;
-    int64 time_stamp = 5;
-    int32 state_index = 6;
+    int64 time_stamp = 3;
+    int32 state_index = 4;
     // comma-separated list algo:hexa-of-checksum
-    string checksums = 7;
-    string error = 8;
+    string checksums = 5;
+    string error = 6;
+}
+
+message Verification {
+    int64 time_stamp = 1;
+    bool with_checksum = 2;
+    StoredEntry new_status = 3;
+    string new_checksums = 4;
 }
 
 message AggInfo {
@@ -79,11 +84,13 @@ message LogicalEntry {
     // keeping source and target states out of event saves storage when unchanged
     repeated StoredEntry source_states = 1;
     repeated Event source_events = 2;
-    repeated StoredEntry target_states = 3;
-    StoredEntry dirup_state = 4;
-    repeated string dirup_children = 5;
-    repeated Event target_events = 6;
-    repeated ComputedStats stats_list = 7;
+    Verification source_verif = 3;
+    repeated StoredEntry target_states = 4;
+    StoredEntry dirup_state = 5;
+    repeated string dirup_children = 6;
+    repeated Event target_events = 7;
+    Verification target_verif = 8;
+    repeated ComputedStats stats_list = 9;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
