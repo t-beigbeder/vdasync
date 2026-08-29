@@ -11,6 +11,10 @@ type largeQ struct {
 	dq *dque.DQue
 }
 
+type Item struct {
+	S string
+}
+
 // Close implements [opelog.Queue].
 func (lq *largeQ) Close() error {
 	return lq.dq.Close()
@@ -22,20 +26,23 @@ func (lq *largeQ) Dequeue() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s, ok := as.(string)
+	is, ok := as.(*Item)
 	if !ok {
 		return "", fmt.Errorf("Dequeue: incorrect type: %T", as)
 	}
-	return s, nil
+	return is.S, nil
 }
 
 // Enqueue implements [opelog.Queue].
 func (lq *largeQ) Enqueue(s string) error {
-	return lq.dq.Enqueue(s)
+	return lq.dq.Enqueue(&Item{s})
 }
 
-func MakeLargeQ(path string) (opelog.Queue, error) {
-	dq, err := dque.New(".lq.dque", path, 1000000, func() any { return "" })
+func MakeLargeQ(path string, segSize int) (opelog.Queue, error) {
+	if segSize == 0 {
+		segSize = 1000000
+	}
+	dq, err := dque.New(".lq.dque", path, segSize, func() any { return &Item{} })
 	if err != nil {
 		return nil, err
 	}

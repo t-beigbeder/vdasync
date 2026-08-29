@@ -59,15 +59,20 @@ type StoredEntry struct {
 }
 
 type Event struct {
-	Kind          EventCode
-	Origin        OriginCode
-	UpdateCount   int32
-	ValidateCount int32
-	TimeStamp     int64
-	StateIndex    int32
+	Kind       EventCode
+	Origin     OriginCode
+	TimeStamp  int64
+	StateIndex int32
 	// comma-separated list algo:hexa-of-checksum
 	Checksums string
 	Error     string
+}
+
+type Verification struct {
+	TimeStamp    int64
+	WithChecksum bool
+	NewStatus    *StoredEntry
+	NewChecksums string
 }
 
 type AggInfo struct {
@@ -91,10 +96,12 @@ type LogicalEntry struct {
 	// keeping source and target states out of event saves storage when unchanged
 	SourceStates  []*StoredEntry
 	SourceEvents  []*Event
+	SourceVerif   *Verification
 	TargetStates  []*StoredEntry
 	DirupState    *StoredEntry
 	DirupChildren []string
 	TargetEvents  []*Event
+	TargetVerif   *Verification
 	StatsList     []*ComputedStats
 }
 

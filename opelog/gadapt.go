@@ -46,14 +46,12 @@ func GrpcEvent2Event(ge *opeloggrpc.Event) *Event {
 		return nil
 	}
 	return &Event{
-		Kind:          EventCode(ge.Kind),
-		Origin:        OriginCode(ge.Origin),
-		UpdateCount:   ge.UpdateCount,
-		ValidateCount: ge.ValidateCount,
-		TimeStamp:     ge.TimeStamp,
-		StateIndex:    ge.StateIndex,
-		Checksums:     ge.Checksums,
-		Error:         ge.Error,
+		Kind:       EventCode(ge.Kind),
+		Origin:     OriginCode(ge.Origin),
+		TimeStamp:  ge.TimeStamp,
+		StateIndex: ge.StateIndex,
+		Checksums:  ge.Checksums,
+		Error:      ge.Error,
 	}
 }
 
@@ -66,6 +64,18 @@ func gevs2evs(gevs []*opeloggrpc.Event) []*Event {
 		evs[i] = GrpcEvent2Event(gev)
 	}
 	return evs
+}
+
+func gvr2vr(gvr *opeloggrpc.Verification) *Verification {
+	if gvr == nil {
+		return nil
+	}
+	return &Verification{
+		TimeStamp:    gvr.TimeStamp,
+		WithChecksum: gvr.WithChecksum,
+		NewStatus:    GrpcStoredEntry2StoredEntry(gvr.NewStatus),
+		NewChecksums: gvr.NewChecksums,
+	}
 }
 
 func gai2ai(gai *opeloggrpc.AggInfo) *AggInfo {
@@ -112,10 +122,12 @@ func GrpcLogicalEntry2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 	return &LogicalEntry{
 		SourceStates:  gses2ses(gle.SourceStates),
 		SourceEvents:  gevs2evs(gle.SourceEvents),
+		SourceVerif:   gvr2vr(gle.SourceVerif),
 		TargetStates:  gses2ses(gle.TargetStates),
 		DirupState:    GrpcStoredEntry2StoredEntry(gle.DirupState),
 		DirupChildren: dirupChildren,
 		TargetEvents:  gevs2evs(gle.TargetEvents),
+		TargetVerif:   gvr2vr(gle.TargetVerif),
 		StatsList:     gcss2css(gle.StatsList),
 	}
 }
@@ -162,14 +174,12 @@ func Event2GrpcEvent(ev *Event) *opeloggrpc.Event {
 		return nil
 	}
 	return &opeloggrpc.Event{
-		Kind:          opeloggrpc.EventCode(ev.Kind),
-		Origin:        opeloggrpc.OriginCode(ev.Origin),
-		UpdateCount:   ev.UpdateCount,
-		ValidateCount: ev.ValidateCount,
-		TimeStamp:     ev.TimeStamp,
-		StateIndex:    ev.StateIndex,
-		Checksums:     ev.Checksums,
-		Error:         ev.Error,
+		Kind:       opeloggrpc.EventCode(ev.Kind),
+		Origin:     opeloggrpc.OriginCode(ev.Origin),
+		TimeStamp:  ev.TimeStamp,
+		StateIndex: ev.StateIndex,
+		Checksums:  ev.Checksums,
+		Error:      ev.Error,
 	}
 }
 
@@ -182,6 +192,18 @@ func evs2gevs(evs []*Event) []*opeloggrpc.Event {
 		gevs[i] = Event2GrpcEvent(ev)
 	}
 	return gevs
+}
+
+func vr2gvr(vr *Verification) *opeloggrpc.Verification {
+	if vr == nil {
+		return nil
+	}
+	return &opeloggrpc.Verification{
+		TimeStamp:    vr.TimeStamp,
+		WithChecksum: vr.WithChecksum,
+		NewStatus:    StoredEntry2GrpcStoredEntry(vr.NewStatus),
+		NewChecksums: vr.NewChecksums,
+	}
 }
 
 func ai2gai(ai *AggInfo) *opeloggrpc.AggInfo {
@@ -228,10 +250,12 @@ func LogicalEntry2GrpcLogicalEntry(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 	return &opeloggrpc.LogicalEntry{
 		SourceStates:  ses2gses(le.SourceStates),
 		SourceEvents:  evs2gevs(le.SourceEvents),
+		SourceVerif:   vr2gvr(le.SourceVerif),
 		TargetStates:  ses2gses(le.TargetStates),
 		DirupState:    StoredEntry2GrpcStoredEntry(le.DirupState),
 		DirupChildren: dirupChildren,
 		TargetEvents:  evs2gevs(le.TargetEvents),
+		TargetVerif:   vr2gvr(le.TargetVerif),
 		StatsList:     css2gcss(le.StatsList),
 	}
 }
