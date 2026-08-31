@@ -73,6 +73,10 @@ func (lq *largeQ) Dequeue() (string, error) {
 
 	curSeg := lq.curOffset / lq.segSize
 	lastSeg := lq.lastOffset / lq.segSize
+	if curSeg > 0 {
+		fp := path.Join(lq.dir, fmt.Sprintf(".largeQ-%d.txt", curSeg-1))
+		os.Remove(fp)
+	}
 	if curSeg == lastSeg {
 		copy(lq.curEntries, lq.lastEntries)
 		s := lq.curEntries[segOffset]
