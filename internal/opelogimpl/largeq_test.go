@@ -22,6 +22,7 @@ func TestLqSimple(t *testing.T) {
 	}
 	lq.Enqueue("EOF")
 	lgr.Debug("enqueued")
+
 	for i := range 100000 {
 		s, err := lq.Dequeue()
 		require.NoError(t, err)
@@ -38,6 +39,8 @@ func TestLqSimple(t *testing.T) {
 func TestLqConcur(t *testing.T) {
 	lgr := common.DbgLogger()
 	td := t.TempDir()
+	i := 3
+	_ = i
 	lq, err := MakeLargeQ(lgr, td, 10000)
 	require.NoError(t, err)
 	lgr.Debug("start")
@@ -97,7 +100,7 @@ func TestLqBackAndForth(t *testing.T) {
 			s, err := lq.Dequeue()
 			require.NoError(t, err)
 			require.Equal(t, fmt.Sprintf("%7d", i), s)
-			if i%10000 < 10 && i > 10 {
+			if i > 0 && i%10000 == 0 {
 				lgr.Debug("dequeued", "i", i)
 			}
 		}
@@ -108,17 +111,17 @@ func TestLqBackAndForth(t *testing.T) {
 		wg.Done()
 	}()
 
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	for i := range 30000 {
 		require.NoError(t, lq.Enqueue(fmt.Sprintf("%7d", i+30000)))
 	}
-	lgr.Debug("enqueued 30000")
+	lgr.Debug("enqueued 60000")
 
-	time.Sleep(1 * time.Millisecond)
+	time.Sleep(400 * time.Millisecond)
 	for i := range 40000 {
 		require.NoError(t, lq.Enqueue(fmt.Sprintf("%7d", i+60000)))
 	}
-	lgr.Debug("enqueued 40000")
+	lgr.Debug("enqueued 100000")
 	lq.Enqueue("EOF")
 
 	require.NoError(t, lq.Close())
