@@ -42,7 +42,7 @@ func TestLqSimple(t *testing.T) {
 
 func TestLqConcur(t *testing.T) {
 	td := t.TempDir()
-	lq, err := MakeDQ(td, 10000)
+	lq, err := MakeLargeQ(td, 10000)
 	require.NoError(t, err)
 	lgr := common.DbgLogger()
 	lgr.Debug("start")
@@ -60,7 +60,7 @@ func TestLqConcur(t *testing.T) {
 			for {
 				s, err := lq.Dequeue()
 				if err != nil {
-					if !strings.HasPrefix(err.Error(), "queue is closed") {
+					if !strings.HasPrefix(err.Error(), "largeQ.Dequeue: all is read on closed queue") {
 						lgr.Error("concur", "i", j, "err", err)
 					}
 					break

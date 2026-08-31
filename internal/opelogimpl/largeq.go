@@ -53,16 +53,17 @@ func (lq *largeQ) Dequeue() (string, error) {
 		lq.mx.Lock()
 	}
 	defer lq.mx.Unlock()
-	if lq.curOffset%lq.segSize != 0 {
-		s := lq.curEntries[lq.curOffset%lq.segSize]
+	segOffset := lq.curOffset%lq.segSize
+	curSeg := lq.curOffset / lq.segSize
+	lastSeg := lq.lastOffset / lq.segSize
+	if segOffset != 0 || curSeg == 0 {
+		s := lq.curEntries[segOffset]
 		lq.curOffset += 1
 		return s, nil
 	}
-	curSeg := lq.curOffset / lq.segSize
-	lastSeg := lq.lastOffset / lq.segSize
 	if curSeg == lastSeg {
 		copy(lq.curEntries, lq.lastEntries)
-		s := lq.curEntries[lq.curOffset%lq.segSize]
+		s := lq.curEntries[segOffset]
 		lq.curOffset += 1
 		return s, nil
 	}
@@ -79,7 +80,7 @@ func (lq *largeQ) Dequeue() (string, error) {
 		return "", fmt.Errorf("largeQ.Dequeue: read %s len %d", fp, len(lns))
 	}
 	copy(lq.curEntries, lns)
-	s := lq.curEntries[lq.curOffset%lq.segSize]
+	s := lq.curEntries[segOffset]
 	lq.curOffset += 1
 	return s, nil
 }
@@ -103,9 +104,11 @@ func (lq *largeQ) Enqueue(s string) error {
 	segOffset := lq.lastOffset % lq.segSize
 	lastEntries[segOffset] = s
 	if segOffset == lq.segSize - 1 {
-		fp := path.Join(lq.dir, fmt.Sprintf(".largeQ-%d.txt", lastSeg-1))
-		if err := common.WriteFile(fp, []byte(strings.Join(lastEntries, "\n"))); err != nil {
-			return fmt.Errorf("largeQ.Enqueue: write %s error %v", fp, err)
+		if lastSeg != 0 {
+			fp := path.Join(lq.dir, fmt.Sprintf(".largeQ-%d.txt", lastSeg))
+			if err := common.WriteFile(fp, []byte(strings.Join(lastEntries, "\n"))); err != nil {
+				return fmt.Errorf("largeQ.Enqueue: write %s error %v", fp, err)
+			}
 		}
 		lq.lastEntries = make([]string, lq.segSize)
 	}
