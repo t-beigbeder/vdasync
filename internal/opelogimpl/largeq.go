@@ -101,18 +101,13 @@ func (lq *largeQ) Enqueue(s string) error {
 		lastEntries = lq.curEntries
 	}
 	segOffset := lq.lastOffset % lq.segSize
-	if lastSeg > curSeg && segOffset == 0 {
+	lastEntries[segOffset] = s
+	if segOffset == lq.segSize - 1 {
 		fp := path.Join(lq.dir, fmt.Sprintf(".largeQ-%d.txt", lastSeg-1))
 		if err := common.WriteFile(fp, []byte(strings.Join(lastEntries, "\n"))); err != nil {
 			return fmt.Errorf("largeQ.Enqueue: write %s error %v", fp, err)
 		}
 		lq.lastEntries = make([]string, lq.segSize)
-		lastEntries = lq.lastEntries
-	}
-	lastEntries[segOffset] = s
-	if segOffset == lq.segSize - 1 {
-		lq.lastEntries = make([]string, lq.segSize)
-		copy(lq.lastEntries, lq.curEntries)
 	}
 	lq.lastOffset += 1
 	if lq.curOffset+1 == lq.lastOffset {
