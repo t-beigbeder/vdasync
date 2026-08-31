@@ -5,16 +5,17 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
 func TestLqSimple(t *testing.T) {
-	td := t.TempDir()
-	lq, err := MakeLargeQ(td, 10000)
-	require.NoError(t, err)
 	lgr := common.DbgLogger()
+	td := t.TempDir()
+	lq, err := MakeLargeQ(lgr, td, 10000)
+	require.NoError(t, err)
 	lgr.Debug("start")
 	for i := range 100000 {
 		require.NoError(t, lq.Enqueue(fmt.Sprintf("%7d", i)))
@@ -23,13 +24,7 @@ func TestLqSimple(t *testing.T) {
 	lgr.Debug("enqueued")
 	for i := range 100000 {
 		s, err := lq.Dequeue()
-		if err != nil {
-			lgr.Debug("this")
-		}
 		require.NoError(t, err)
-		if fmt.Sprintf("%7d", i) != s {
-			lgr.Debug("here")
-		}
 		require.Equal(t, fmt.Sprintf("%7d", i), s)
 	}
 	s, err := lq.Dequeue()
@@ -41,10 +36,10 @@ func TestLqSimple(t *testing.T) {
 }
 
 func TestLqConcur(t *testing.T) {
-	td := t.TempDir()
-	lq, err := MakeLargeQ(td, 10000)
-	require.NoError(t, err)
 	lgr := common.DbgLogger()
+	td := t.TempDir()
+	lq, err := MakeLargeQ(lgr, td, 10000)
+	require.NoError(t, err)
 	lgr.Debug("start")
 	for i := range 100000 {
 		require.NoError(t, lq.Enqueue(fmt.Sprintf("%7d", i)))
@@ -82,4 +77,53 @@ func TestLqConcur(t *testing.T) {
 		count += counts[i]
 	}
 	lgr.Debug("end", "count", count)
+}
+
+func TestLqBackAndForth(t *testing.T) {
+	lgr := common.DbgLogger()
+	td := t.TempDir()
+	lq, err := MakeLargeQ(lgr, td, 10000)
+	require.NoError(t, err)
+	lgr.Debug("start")
+	for i := range 30000 {
+		require.NoError(t, lq.Enqueue(fmt.Sprintf("%7d", i)))
+	}
+	lgr.Debug("enqueued 30000")
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		lgr.Debug("go subroutine started")
+		for i := range 100000 {
+			s, err := lq.Dequeue()
+			require.NoError(t, err)
+			require.Equal(t, fmt.Sprintf("%7d", i), s)
+			if i%10000 < 10 && i > 10 {
+				lgr.Debug("dequeued", "i", i)
+			}
+		}
+		s, err := lq.Dequeue()
+		require.NoError(t, err)
+		require.Equal(t, "EOF", s)
+		lgr.Debug("go subroutine ended")
+		wg.Done()
+	}()
+
+	time.Sleep(100 * time.Millisecond)
+	for i := range 30000 {
+		require.NoError(t, lq.Enqueue(fmt.Sprintf("%7d", i+30000)))
+	}
+	lgr.Debug("enqueued 30000")
+
+	time.Sleep(1 * time.Millisecond)
+	for i := range 40000 {
+		require.NoError(t, lq.Enqueue(fmt.Sprintf("%7d", i+60000)))
+	}
+	lgr.Debug("enqueued 40000")
+	lq.Enqueue("EOF")
+
+	require.NoError(t, lq.Close())
+	lgr.Debug("closed")
+
+	wg.Wait()
+	lgr.Debug("done")
 }

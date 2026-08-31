@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path"
 	"strings"
@@ -15,6 +16,7 @@ import (
 type largeQ struct {
 	mx          sync.Mutex
 	dq          chan bool
+	lgr         *slog.Logger
 	dir         string
 	segSize     int
 	curOffset   int
@@ -44,16 +46,24 @@ func (lq *largeQ) Close() error {
 // Dequeue implements [opelog.Queue].
 func (lq *largeQ) Dequeue() (string, error) {
 	lq.mx.Lock()
+	wasBlocked := false
 	for lq.curOffset == lq.lastOffset {
 		lq.mx.Unlock()
 		if lq.closed {
 			return "", errors.New("largeQ.Dequeue: all is read on closed queue")
 		}
+		lq.lgr.Debug("largeQ.Dequeue", "curOffset", lq.curOffset, "lastOffset", lq.lastOffset, "lq.dq <-", true)
 		lq.dq <- true
+		lq.lgr.Debug("largeQ.Dequeue", "curOffset", lq.curOffset, "lastOffset", lq.lastOffset, "lq.dq done", true)
 		lq.mx.Lock()
+		lq.lgr.Debug("largeQ.Dequeue", "curOffset", lq.curOffset, "lastOffset", lq.lastOffset, "lq.dq done", "locked")
+		wasBlocked = true
+	}
+	if wasBlocked {
+		lq.lgr.Debug("largeQ.Dequeue", "curOffset", lq.curOffset, "lastOffset", lq.lastOffset, "lq.dq done", "wasBlocked")
 	}
 	defer lq.mx.Unlock()
-	segOffset := lq.curOffset%lq.segSize
+	segOffset := lq.curOffset % lq.segSize
 	curSeg := lq.curOffset / lq.segSize
 	lastSeg := lq.lastOffset / lq.segSize
 	if segOffset != 0 || curSeg == 0 {
@@ -103,7 +113,7 @@ func (lq *largeQ) Enqueue(s string) error {
 	}
 	segOffset := lq.lastOffset % lq.segSize
 	lastEntries[segOffset] = s
-	if segOffset == lq.segSize - 1 {
+	if segOffset == lq.segSize-1 {
 		if lastSeg != 0 {
 			fp := path.Join(lq.dir, fmt.Sprintf(".largeQ-%d.txt", lastSeg))
 			if err := common.WriteFile(fp, []byte(strings.Join(lastEntries, "\n"))); err != nil {
@@ -114,19 +124,23 @@ func (lq *largeQ) Enqueue(s string) error {
 	}
 	lq.lastOffset += 1
 	if lq.curOffset+1 == lq.lastOffset {
+		lq.lgr.Debug("largeQ.Enqueue")
+		lq.lgr.Debug("largeQ.Enqueue", "curOffset", lq.curOffset, "lastOffset", lq.lastOffset, "<-lq.dq", "?")
 		select {
-		case <-lq.dq:
+		case vt := <-lq.dq:
+			lq.lgr.Debug("largeQ.Enqueue", "curOffset", lq.curOffset, "lastOffset", lq.lastOffset, "<-lq.dq", vt)
 		default:
+			lq.lgr.Debug("largeQ.Enqueue", "curOffset", lq.curOffset, "lastOffset", lq.lastOffset, "<-lq.dq", "default")
 		}
 	}
 	return nil
 }
 
-func MakeLargeQ(dir string, segSize int) (opelog.Queue, error) {
+func MakeLargeQ(lgr *slog.Logger, dir string, segSize int) (opelog.Queue, error) {
 	dq := make(chan bool)
 	if segSize == 0 {
 		segSize = 1000000
 	}
 	curEntries := make([]string, segSize)
-	return &largeQ{dq: dq, dir: dir, segSize: segSize, curEntries: curEntries}, nil
+	return &largeQ{dq: dq, lgr: lgr, dir: dir, segSize: segSize, curEntries: curEntries}, nil
 }
