@@ -35,6 +35,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.47.1 // indirect
 	github.com/aws/smithy-go v1.28.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gammazero/cascadeq v0.2.1 // indirect
+	github.com/gammazero/deque v1.2.1 // indirect
+	github.com/gammazero/fsutil v0.4.0 // indirect
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/joncrlsn/dque v0.0.0-20241024143830-7723fd131a64 // indirect
 	github.com/kr/fs v0.1.0 // indirect

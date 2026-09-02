@@ -13,7 +13,7 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
-type largeQ struct {
+type largeQV0 struct {
 	lgr         *slog.Logger
 	dir         string
 	segSize     int
@@ -26,8 +26,8 @@ type largeQ struct {
 	lastEntries []string
 }
 
-// Close implements [opelog.Queue].
-func (lq *largeQ) Close() error {
+// Close implements [opelog.QueueV0].
+func (lq *largeQV0) Close() error {
 	lq.mx.Lock()
 	defer lq.mx.Unlock()
 	if lq.closed {
@@ -51,8 +51,8 @@ func (lq *largeQ) Close() error {
 	return nil
 }
 
-// Dequeue implements [opelog.Queue].
-func (lq *largeQ) Dequeue() (string, error) {
+// Dequeue implements [opelog.QueueV0].
+func (lq *largeQV0) Dequeue() (string, error) {
 	lq.mx.Lock()
 	for lq.curOffset == lq.lastOffset {
 		lq.mx.Unlock()
@@ -102,8 +102,8 @@ func (lq *largeQ) Dequeue() (string, error) {
 	return s, nil
 }
 
-// Enqueue implements [opelog.Queue].
-func (lq *largeQ) Enqueue(s string) error {
+// Enqueue implements [opelog.QueueV0].
+func (lq *largeQV0) Enqueue(s string) error {
 	if strings.Contains(s, "\n") {
 		return errors.New("largeQ.Enqueue optimization forbids \\n character")
 	}
@@ -136,14 +136,14 @@ func (lq *largeQ) Enqueue(s string) error {
 	return nil
 }
 
-func MakeLargeQ(lgr *slog.Logger, dir string, segSize int) (opelog.Queue, error) {
+func MakeLargeQV0(lgr *slog.Logger, dir string, segSize int) (opelog.QueueV0, error) {
 	dq := make(chan bool)
 	if segSize == 0 {
 		segSize = 1000000
 	}
 	curEntries := make([]string, segSize)
 	lastEntries := make([]string, segSize)
-	return &largeQ{
+	return &largeQV0{
 		dq: dq, lgr: lgr, dir: dir, segSize: segSize,
 		curEntries: curEntries, lastEntries: lastEntries,
 	}, nil

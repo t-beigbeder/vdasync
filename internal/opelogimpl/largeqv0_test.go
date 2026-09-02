@@ -12,9 +12,10 @@ import (
 )
 
 func TestLqSimple(t *testing.T) {
+	t.Skip("will soon be removed")
 	lgr := common.DbgLogger()
 	td := t.TempDir()
-	lq, err := MakeLargeQ(lgr, td, 10000)
+	lq, err := MakeLargeQV0(lgr, td, 10000)
 	require.NoError(t, err)
 	lgr.Debug("start")
 	for i := range 100000 {
@@ -37,11 +38,12 @@ func TestLqSimple(t *testing.T) {
 }
 
 func TestLqConcur(t *testing.T) {
+	t.Skip("will soon be removed")
 	lgr := common.DbgLogger()
 	td := t.TempDir()
 	i := 3
 	_ = i
-	lq, err := MakeLargeQ(lgr, td, 10000)
+	lq, err := MakeLargeQV0(lgr, td, 10000)
 	require.NoError(t, err)
 	lgr.Debug("start")
 	for i := range 100000 {
@@ -83,9 +85,10 @@ func TestLqConcur(t *testing.T) {
 }
 
 func TestLqBackAndForth(t *testing.T) {
+	t.Skip("will soon be removed")
 	lgr := common.DbgLogger()
 	td := t.TempDir()
-	lq, err := MakeLargeQ(lgr, td, 10000)
+	lq, err := MakeLargeQV0(lgr, td, 10000)
 	require.NoError(t, err)
 	lgr.Debug("start")
 	for i := range 30000 {

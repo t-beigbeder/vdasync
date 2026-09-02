@@ -15,12 +15,12 @@ type LdqItem struct {
 	S string
 }
 
-// Close implements [opelog.Queue].
+// Close implements [opelog.QueueV0].
 func (lq *ldq) Close() error {
 	return lq.dq.Close()
 }
 
-// Dequeue implements [opelog.Queue].
+// Dequeue implements [opelog.QueueV0].
 func (lq *ldq) Dequeue() (string, error) {
 	as, err := lq.dq.DequeueBlock()
 	if err != nil {
@@ -33,12 +33,12 @@ func (lq *ldq) Dequeue() (string, error) {
 	return is.S, nil
 }
 
-// Enqueue implements [opelog.Queue].
+// Enqueue implements [opelog.QueueV0].
 func (lq *ldq) Enqueue(s string) error {
 	return lq.dq.Enqueue(&LdqItem{s})
 }
 
-func MakeDQ(path string, segSize int) (opelog.Queue, error) {
+func MakeDQ(path string, segSize int) (opelog.QueueV0, error) {
 	if segSize == 0 {
 		segSize = 1000000
 	}
