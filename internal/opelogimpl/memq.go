@@ -3,7 +3,7 @@ package opelogimpl
 import "github.com/t-beigbeder/vdasync/opelog"
 
 type memQ struct {
-	cq chan []byte
+	cq chan string
 }
 
 // Close implements [Queue].
@@ -13,19 +13,19 @@ func (mq *memQ) Close() error {
 }
 
 // Get implements [Queue].
-func (mq *memQ) Get() ([]byte, error) {
+func (mq *memQ) Get() (string, error) {
 	return <-mq.cq, nil
 }
 
 // Put implements [Queue].
-func (mq *memQ) Put(bs []byte) error {
-	mq.cq <- bs
+func (mq *memQ) Put(s string) error {
+	mq.cq <- s
 	return nil
 }
 
 func NewMemQueue(conc int) opelog.Queue {
 	mq := &memQ{
-		cq: make(chan []byte, conc+1),
+		cq: make(chan string, conc+1),
 	}
 	return mq
 }

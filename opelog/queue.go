@@ -7,7 +7,7 @@ type QueueV0 interface {
 }
 
 type Queue interface {
-	Put([]byte) error
-	Get() ([]byte, error)
+	Put(string) error
+	Get() (string, error)
 	Close() error
 }
