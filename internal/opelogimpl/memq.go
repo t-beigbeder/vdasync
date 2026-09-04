@@ -1,19 +1,36 @@
 package opelogimpl
 
-import "github.com/t-beigbeder/vdasync/opelog"
+import (
+	"errors"
+	"sync"
+
+	"github.com/t-beigbeder/vdasync/opelog"
+)
 
 type memQ struct {
-	cq chan string
+	cq     chan string
+	mx     sync.Mutex
+	closed bool
 }
 
 // Close implements [Queue].
 func (mq *memQ) Close() error {
-	close(mq.cq)
+	mq.mx.Lock()
+	defer mq.mx.Unlock()
+	if mq.closed {
+		return errors.New("memq.Close: already closed")
+	}
+	mq.closed = true
 	return nil
 }
 
 // Get implements [Queue].
 func (mq *memQ) Get() (string, error) {
+	mq.mx.Lock()
+	defer mq.mx.Unlock()
+	if mq.closed {
+		return "", errors.New("memq.Get: all is read on closed queue")
+	}
 	return <-mq.cq, nil
 }
 

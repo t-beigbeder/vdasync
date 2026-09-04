@@ -19,7 +19,6 @@ type largeQ struct {
 	dir      string
 	segSize  int
 	mx       sync.Mutex
-	closing  bool
 	closed   bool
 	prodSubs []chan bool
 	cOff     int
@@ -43,10 +42,10 @@ func (lq *largeQ) saveEntries() error {
 func (lq *largeQ) Close() error {
 	lq.mx.Lock()
 	defer lq.mx.Unlock()
-	if lq.closing {
+	if lq.closed {
 		return errors.New("largeQ.Close: already done")
 	}
-	lq.closing = true
+	lq.closed = true
 	if lq.pEntries.Len() > 0 {
 		if err := lq.saveEntries(); err != nil {
 			return err
@@ -65,7 +64,7 @@ func (lq *largeQ) Close() error {
 func (lq *largeQ) Get() (string, error) {
 	lq.mx.Lock()
 	for lq.cOff == lq.pOff {
-		if lq.closing || lq.closed {
+		if lq.closed {
 			lq.mx.Unlock()
 			return "", errors.New("largeQ.Get: all is read on closed queue")
 		}
@@ -86,7 +85,7 @@ func (lq *largeQ) Get() (string, error) {
 		fp := path.Join(lq.dir, fmt.Sprintf(".largeQ-%d.txt", lq.cOff/lq.segSize))
 		bs, err := common.UnsafeLoadFile(fp)
 		if err != nil {
-			return "", fmt.Errorf("largeQ.Get: load error %v", err)
+			return "", fmt.Errorf("largeQ.Get: load error %v pOff %d cOff %d", err, lq.pOff, lq.cOff)
 		}
 		if err := os.Remove(fp); err != nil {
 			return "", fmt.Errorf("largeQ.Get: remove error %v", err)
@@ -112,7 +111,7 @@ func (lq *largeQ) Put(s string) error {
 	}
 	lq.mx.Lock()
 	defer lq.mx.Unlock()
-	if lq.closing {
+	if lq.closed {
 		return errors.New("largeQ.Put: write on closed queue")
 	}
 	if lq.pEntries.Len() == lq.segSize {
