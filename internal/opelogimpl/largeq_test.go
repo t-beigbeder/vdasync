@@ -2,7 +2,6 @@ package opelogimpl
 
 import (
 	"fmt"
-	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -61,44 +60,4 @@ func TestLargeqSimple(t *testing.T) {
 		total += subTotals[cons]
 	}
 	require.Equal(t, 100000, total)
-}
-
-func TestCond(t *testing.T) {
-	var pokemonList = []string{"Pikachu", "Charmander", "Squirtle", "Bulbasaur", "Jigglypuff"}
-	var cond = sync.NewCond(&sync.Mutex{})
-	var pokemon = ""
-	var wg sync.WaitGroup
-	lgr := common.DbgLogger()
-	consDone := false
-
-	wg.Add(1)
-	go func() {
-		lgr.Debug("consumer starts")
-		cond.L.Lock()
-		defer cond.L.Unlock()
-
-		// waits until Pikachu appears
-		for pokemon != "Pikachu" {
-			cond.Wait()
-			lgr.Debug("consumer caught", "pokemon", pokemon)
-		}
-		lgr.Debug("consumer caught Pikachu")
-		consDone = true
-		wg.Done()
-	}()
-
-	wg.Add(1)
-	go func() {
-		// Every 1ms, a random Pokémon appears
-		for i := 0; i < 100 && !consDone; i++ {
-			time.Sleep(time.Millisecond)
-			cond.L.Lock()
-			pokemon = pokemonList[rand.Intn(len(pokemonList))]
-			lgr.Debug("producer signals", "pokemon", pokemon)
-			cond.L.Unlock()
-			cond.Signal()
-		}
-		wg.Done()
-	}()
-	wg.Wait()
 }
