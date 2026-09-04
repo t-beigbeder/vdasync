@@ -38,6 +38,15 @@ func (lq *largeQ) saveEntries() error {
 	return nil
 }
 
+func (lq *largeQ) prodEvent() {
+	if lq.cOff+1 == lq.pOff {
+		for _, prodSub := range lq.prodSubs {
+			close(prodSub)
+		}
+		lq.prodSubs = make([]chan bool, 0)
+	}
+}
+
 // Close implements [opelog.Queue].
 func (lq *largeQ) Close() error {
 	lq.mx.Lock()
@@ -51,12 +60,7 @@ func (lq *largeQ) Close() error {
 			return err
 		}
 	}
-	if lq.cOff == lq.pOff {
-		for _, prodSub := range lq.prodSubs {
-			close(prodSub)
-		}
-		lq.prodSubs = make([]chan bool, 0)
-	}
+	lq.prodEvent()
 	return nil
 }
 
@@ -114,19 +118,14 @@ func (lq *largeQ) Put(s string) error {
 	if lq.closed {
 		return errors.New("largeQ.Put: write on closed queue")
 	}
+	lq.pEntries.PushBack(s)
+	lq.pOff++
 	if lq.pEntries.Len() == lq.segSize {
 		if err := lq.saveEntries(); err != nil {
 			return err
 		}
 	}
-	lq.pEntries.PushBack(s)
-	if lq.cOff == lq.pOff {
-		for _, prodSub := range lq.prodSubs {
-			close(prodSub)
-		}
-		lq.prodSubs = make([]chan bool, 0)
-	}
-	lq.pOff++
+	lq.prodEvent()
 	return nil
 }
 

@@ -20,6 +20,7 @@ func (mq *memQ) Close() error {
 	if mq.closed {
 		return errors.New("memq.Close: already closed")
 	}
+	close(mq.cq)
 	mq.closed = true
 	return nil
 }

@@ -24,7 +24,6 @@ func TestMemqSimple(t *testing.T) {
 		lgr.Debug("push done")
 		wg.Done()
 	}()
-	done := make(chan bool)
 	subTotals := [conc]int{}
 	for cons := range conc {
 		wg.Add(1)
@@ -32,20 +31,18 @@ func TestMemqSimple(t *testing.T) {
 			lgr.Debug("pull started", "cons", cons)
 		DONE:
 			for {
-				select {
-				case <-done:
+				si, err := mq.Get()
+				if err != nil {
+					lgr.Error("pull", "err", err)
 					break DONE
-				default:
-					si, err := mq.Get()
-					if err != nil {
+				}
+				if si == "EOF" {
+					if err := mq.Close(); err != nil {
 						lgr.Error("pull", "err", err)
-						break DONE
 					}
-					if si == "EOF" {
-						close(done)
-					} else {
-						subTotals[cons]++
-					}
+					break DONE
+				} else {
+					subTotals[cons]++
 				}
 			}
 			lgr.Debug("pull done", "cons", cons)

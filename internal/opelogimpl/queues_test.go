@@ -24,7 +24,7 @@ type productionDesc struct {
 
 type baseTestDesc struct {
 	label         string
-	skipped       bool
+	unSkipped     bool
 	lgr           *slog.Logger
 	conc          int
 	qType         string
@@ -137,6 +137,8 @@ func TestQueuesSimple(t *testing.T) {
 	dbgLog := common.DbgLogger()
 	nullLog := common.GetNullLogger()
 	defLog := common.GetLogger()
+	_, _ = dbgLog, defLog
+	skipped := false
 	tests := []*baseTestDesc{
 		{
 			label: "memq prod then cons",
@@ -157,7 +159,17 @@ func TestQueuesSimple(t *testing.T) {
 		},
 		{
 			label:   "largeq prod then cons",
-			lgr:     dbgLog,
+			qType:   "LargeQueue",
+			segSize: 10000,
+			production: []*productionDesc{
+				{
+					smpNum: 1000000,
+				},
+			},
+		},
+		{
+			label:   "largeq prod then cons 4",
+			conc:    4,
 			qType:   "LargeQueue",
 			segSize: 10000,
 			production: []*productionDesc{
@@ -189,8 +201,8 @@ func TestQueuesSimple(t *testing.T) {
 			tq, err = NewLargeQ(test.lgr, td, test.segSize)
 		}
 		require.NoError(t, err)
-		if test.skipped {
-			defLog.Info(t.Name(), "label", test.label, "skipped", test.skipped)
+		if skipped && !test.unSkipped {
+			defLog.Info(t.Name(), "label", test.label, "skipped", !test.unSkipped)
 			continue
 		}
 		require.NoError(t, runBaseTest(t, test, tq))
