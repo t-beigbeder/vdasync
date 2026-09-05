@@ -53,10 +53,6 @@ func (m *m2fMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error) {
 	return le, nil
 }
 
-func MakeM2fManager(path string) (opelog.OpeLogManager, error) {
-	return &m2fMng{path: path}, nil
-}
-
 // Sync implements [opelog.OpeLogManager].
 func (m *m2fMng) Sync() error {
 	m.mx.Lock()
@@ -172,3 +168,7 @@ func (m *m2fMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error
 }
 
 var _ opelog.OpeLogManager = &m2fMng{}
+
+func MakeM2fManager(path string) (opelog.OpeLogManager, error) {
+	return &m2fMng{path: path}, nil
+}

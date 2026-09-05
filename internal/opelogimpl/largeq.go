@@ -70,12 +70,12 @@ func (lq *largeQ) Get() (string, error) {
 	for lq.cOff == lq.pOff {
 		if lq.closed {
 			lq.mx.Unlock()
-			return "", errors.New("largeQ.Get: all is read on closed queue")
+			return "", common.ErrReadClosedQueue
 		}
 		prodSub := make(chan bool)
 		lq.prodSubs = append(lq.prodSubs, prodSub)
 		lq.mx.Unlock()
-		<-prodSub
+		<-prodSub // FIXME: can block
 		lq.mx.Lock()
 	}
 	defer lq.mx.Unlock()

@@ -1,10 +1,8 @@
 package opelogimpl
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -92,7 +90,7 @@ func runBaseTest(_ *testing.T, bt *baseTestDesc, tq opelog.Queue) error {
 			for {
 				s, err = tq.Get()
 				if err != nil {
-					if strings.Contains(err.Error(), "all is read") {
+					if err == common.ErrReadClosedQueue {
 						err = nil
 					}
 					break
@@ -115,14 +113,14 @@ func runBaseTest(_ *testing.T, bt *baseTestDesc, tq opelog.Queue) error {
 	wg.Wait()
 	var err error
 	if hasErrors {
-		err = errors.New("subroutine error, consult logs for details")
+		err = fmt.Errorf("[%s] subroutine error, consult logs for details", bt.label)
 	} else {
 		sum := 0
 		for cons := range bt.conc {
 			sum += counts[cons]
 		}
 		if sum != total {
-			err = fmt.Errorf("produced %d consumed %d", total, sum)
+			err = fmt.Errorf("[%s] produced %d consumed %d", bt.label, total, sum)
 		}
 	}
 	if err != nil {
@@ -169,6 +167,7 @@ func TestQueuesSimple(t *testing.T) {
 		},
 		{
 			label:   "largeq prod then cons 4",
+			lgr: dbgLog,
 			conc:    4,
 			qType:   "LargeQueue",
 			segSize: 10000,
