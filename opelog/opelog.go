@@ -5,9 +5,10 @@ import (
 )
 
 type OpeLogManager interface {
-	NewSession() error
-	EndSession() error
-	Init(source, target string) error
+	Create(source, target string) error
+	Open(readOnly bool) error
+	Sync() error
+	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
 }
