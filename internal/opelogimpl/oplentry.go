@@ -132,7 +132,14 @@ func (ole *oplLogicalEntry) load() error {
 	if err := ole.target().load(); err != nil {
 		return err
 	}
-	if ole.owi.owo.NoInvCheck || ole.le.InvChecksums != "" || !ole.source().isPresent() {
+	if ole.le.InvChecksums == "" || ole.owi.owo.NoInvCheck || !ole.source().isPresent() {
+		return nil
+	}
+	if ole.source().currentState().IsDir {
+		return nil
+	}
+	eev := ole.source().existOrAbsEv()
+	if eev.Checksums != "" {
 		return nil
 	}
 	if ole.owi.hasGoal("create") && ole.requiresCreate() {
@@ -214,8 +221,14 @@ func (ose *oplStoredEntry) fullPath() string {
 
 func (ose *oplStoredEntry) events() (evs *[]*opelog.Event) {
 	if ose.isTarget {
+		if ose.le.TargetEvents == nil {
+			ose.le.TargetEvents = []*opelog.Event{}
+		}
 		evs = &ose.le.TargetEvents
 	} else {
+		if ose.le.SourceEvents == nil {
+			ose.le.SourceEvents = []*opelog.Event{}
+		}
 		evs = &ose.le.SourceEvents
 	}
 	return
@@ -223,7 +236,7 @@ func (ose *oplStoredEntry) events() (evs *[]*opelog.Event) {
 
 func (ose *oplStoredEntry) existOrAbsEv() (ev *opelog.Event) {
 	evs := ose.events()
-	for i := len(*evs) - 1; i >= 0; i-- {
+	for i := range slices.Backward(*evs) {
 		if (*evs)[i].Kind == opelog.EVT_ABS || (*evs)[i].Kind == opelog.EVT_EXIST {
 			return (*evs)[i]
 		}
@@ -372,16 +385,18 @@ func (ose *oplStoredEntry) load() error {
 }
 
 func (ose *oplStoredEntry) checkInventory() error {
+	eev := ose.existOrAbsEv()
 	rr, err := ose.dss().GetReadCloser(ose.fullPath())
 	if err != nil {
 		return err
 	}
 	defer rr.Close()
-	css, err := common.ReaderChecksum(rr,  ose.owi.owo.InvCsAlgos)
-	if err != nil {
+	if eev.Checksums, err = common.ReaderChecksum(rr, ose.owi.owo.InvCsAlgos); err != nil {
 		return err
 	}
-	ose.le.InvChecksums = css
+	if eev.Checksums != ose.le.InvChecksums {
+		return fmt.Errorf("inventory checksum failed")
+	}
 	ose.hasChanges = true
 	return nil
 }

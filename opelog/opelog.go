@@ -93,6 +93,12 @@ func (se *StoredEntry) HasChild(cChild string) bool {
 }
 
 func (nse *StoredEntry) Equal(ose *StoredEntry) (result bool) {
+	if nse == nil && ose == nil {
+		return true
+	}
+	if nse == nil || ose == nil {
+		return
+	}
 	if nse.IsPresent != ose.IsPresent {
 		return
 	}

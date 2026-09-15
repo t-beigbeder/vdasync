@@ -14,15 +14,15 @@ import (
 )
 
 type owTest struct {
-	label   string
-	unSkipped bool
-	lgr     *slog.Logger
-	ftgen   func(root string) error
-	conc int
-	owo     *config.OpeLogOptionsType
-	oplm    opelog.OpeLogManager
-	oplq    opelog.Queue
-	loadInv bool
+	label         string
+	unSkipped     bool
+	lgr           *slog.Logger
+	ftgen         func(root string) error
+	conc          int
+	owo           *config.OpeLogOptionsType
+	oplm          opelog.OpeLogManager
+	oplq          opelog.Queue
+	loadInv       bool
 	std, ltd, ttd string
 }
 
@@ -46,7 +46,7 @@ func (owt *owTest) invImport() error {
 		return err
 	}
 	defer owt.oplm.Close()
-	if err :=  InventoryCsvImport(owt.oplm, cPath, owt.owo.InvCsAlgos); err != nil {
+	if err := InventoryCsvImport(owt.oplm, cPath, owt.owo.InvCsAlgos); err != nil {
 		return err
 	}
 	if err := owt.oplm.Close(); err != nil {
@@ -66,25 +66,25 @@ func TestManyOplWalkers(t *testing.T) {
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
 	defLgr = infLgr
-	skipDefault := true
+	skipDefault := false
 
 	owts := []owTest{
 		{
-			label: "load - c0 small simple",
+			label:     "load - c0 small simple",
 			unSkipped: false,
-			lgr: defLgr,
-			ftgen: ftGenSmall,
-			conc: 0,
+			lgr:       defLgr,
+			ftgen:     ftGenSmall,
+			conc:      0,
 			owo: &config.OpeLogOptionsType{
-				Goals:      "load", // load, create, update/remove, verify
+				Goals: "load", // load, create, update/remove, verify
 			},
-			oplm: nil,
-			oplq: nil,
+			oplm:    nil,
+			oplq:    nil,
 			loadInv: false,
 		},
 		{
 			label: "load c4 - medium with sync",
-			conc: 4,
+			conc:  4,
 			ftgen: ftGenMedium,
 			owo: &config.OpeLogOptionsType{
 				Goals:      "load",
@@ -92,10 +92,10 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label: "load & inv check - c4 small simple",
+			label:     "load & inv check - c4 small simple",
 			unSkipped: true,
-			ftgen: ftGenSmall,
-			conc: 4,
+			ftgen:     ftGenSmall,
+			conc:      4,
 			owo: &config.OpeLogOptionsType{
 				Goals:      "load", // load, create, update/remove, verify
 				InvCsAlgos: "md5",

@@ -79,23 +79,28 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 			ow.owErr(lgr, "oplWalkerImpl.work", fmt.Errorf("badly prefixed relPath from queue: %s", pfxRelPath))
 			break
 		}
+		relPath := pfxRelPath[2:]
 		ow.detail(ow.lgr, "oplWalkerImpl.work", "worker", wkn, "readPathFromQueue", pfxRelPath[2:])
-		le, err := ow.oplm.GetLogicalEntry(pfxRelPath[2:])
+		le, err := ow.oplm.GetLogicalEntry(relPath)
 		if err != nil {
 			ow.owErr(lgr, "oplWalkerImpl.work: GetLogicalEntry", err)
 			continue
 		}
-		ole := &oplLogicalEntry{plgr: lgr, relPath: pfxRelPath[2:], owi: ow, le: le, sHasParent: string(pfxRelPath[0]) == "1", tHasParent: string(pfxRelPath[1]) == "1"}
+		ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le, sHasParent: string(pfxRelPath[0]) == "1", tHasParent: string(pfxRelPath[1]) == "1"}
 		if le == nil {
 			ole.le = &opelog.LogicalEntry{}
 			ole.hasChanges = true
 		}
 		if err := ole.process(); err != nil {
+			_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
 			ow.owErr(lgr, "oplWalkerImpl.work: process entry", err)
 			continue
 		}
 		if ole.hasChanges {
-			ow.oplm.PutLogicalEntry(pfxRelPath[2:], ole.le)
+			if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
+				ow.owErr(lgr, "oplWalkerImpl.work: process entry", err)
+				continue
+			}
 		}
 	}
 	ow.lgr.Debug("oplWalkerImpl.work: stop", "worker", wkn)
