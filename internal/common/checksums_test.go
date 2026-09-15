@@ -30,6 +30,7 @@ func TestChecksum(t *testing.T) {
 	require.Equal(t, "sha256:4b86be7f5fe5776cd535cdf1e81fdd77c204df48c751f61c121b3e72f6767e1e", h1)
 	r1, err := os.Open(ft)
 	require.NoError(t, err)
+	defer r1.Close()
 	cr1, err := NewChecksumsReader(r1, "sha256")
 	require.NoError(t, err)
 	_, err = io.Copy(io.Discard, cr1)
@@ -45,11 +46,22 @@ func TestChecksum(t *testing.T) {
 	require.Equal(t, h2+","+h1, h3)
 	r3, err := os.Open(ft)
 	require.NoError(t, err)
+	defer r3.Close()
 	cr3, err := NewChecksumsReader(r3, "sha512,sha256")
 	require.NoError(t, err)
 	_, err = io.Copy(io.Discard, cr3)
 	require.NoError(t, err)
 	require.Equal(t, h3, cr3.Checksums())
+
+	r4, err := os.Open(ft)
+	require.NoError(t, err)
+	defer r4.Close()
+	cr4, err := NewChecksumsReader(r4, "")
+	require.NoError(t, err)
+	n4, err := io.Copy(io.Discard, cr4)
+	require.NoError(t, err)
+	require.Equal(t, len(t.Name()), int(n4))
+	require.Equal(t, "", cr4.Checksums())
 
 	rs := []string{}
 	for i := 0; i < 32; i++ {

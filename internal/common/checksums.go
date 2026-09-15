@@ -114,6 +114,9 @@ type cssReader struct {
 
 // Checksums implements [ChecksumsReader].
 func (cssr *cssReader) Checksums() string {
+	if len(cssr.algoss) == 0 {
+		return ""
+	}
 	cs := []string{}
 	for ix, h := range cssr.hs {
 		fmt_ := fmt.Sprintf("%%0%dx", h.Size())
@@ -128,6 +131,9 @@ func (cssr *cssReader) Read(buffer []byte) (n int, err error) {
 	if err != nil && err != io.EOF {
 		return
 	}
+	if len(cssr.algoss) == 0 {
+		return
+	}
 	rErr := err
 	for _, h := range cssr.hs {
 		_, err = h.Write(buffer[0:n])
@@ -140,6 +146,9 @@ func (cssr *cssReader) Read(buffer []byte) (n int, err error) {
 }
 
 func NewChecksumsReader(rdr io.Reader, algos string) (ChecksumsReader, error) {
+	if algos == "" {
+		return &cssReader{rdr: rdr}, nil
+	}
 	algoss, hs, err := hsFor(algos)
 	if err != nil {
 		return nil, err
