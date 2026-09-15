@@ -2,6 +2,7 @@ package common
 
 import (
 	"bufio"
+	"crypto/md5"
 	"crypto/sha256"
 	"crypto/sha3"
 	"crypto/sha512"
@@ -57,6 +58,8 @@ func FileSha256(path_ string) (string, error) {
 
 func HashFactory(hName string) (hash.Hash, error) {
 	switch hName {
+	case "md5":
+		return md5.New(), nil
 	case "sha256":
 		return sha256.New(), nil
 	case "sha512":

@@ -6,6 +6,6 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
-func CsvExport(olm opelog.OpeLogManager, w io.Writer) error {
+func OplCsvExport(olm opelog.OpeLogManager, wrr io.Writer) error {
 	return nil
 }

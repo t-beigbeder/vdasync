@@ -188,6 +188,8 @@ type ComputedStats struct {
 
 type LogicalEntry struct {
 	// keeping source and target states out of event saves storage when unchanged
+	InvState      *StoredEntry
+	InvChecksums  string
 	SourceStates  []*StoredEntry
 	SourceEvents  []*Event
 	SourceVerif   *Verification

@@ -123,6 +123,8 @@ func GrpcLogicalEntry2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 		return nil
 	}
 	return &LogicalEntry{
+		InvState:      GrpcStoredEntry2StoredEntry(gle.InvState),
+		InvChecksums:  gle.InvChecksums,
 		SourceStates:  gses2ses(gle.SourceStates),
 		SourceEvents:  gevs2evs(gle.SourceEvents),
 		SourceVerif:   gvr2vr(gle.SourceVerif),
@@ -252,6 +254,8 @@ func LogicalEntry2GrpcLogicalEntry(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 		return nil
 	}
 	return &opeloggrpc.LogicalEntry{
+		InvState:      StoredEntry2GrpcStoredEntry(le.InvState),
+		InvChecksums:  le.InvChecksums,
 		SourceStates:  ses2gses(le.SourceStates),
 		SourceEvents:  evs2gevs(le.SourceEvents),
 		SourceVerif:   vr2gvr(le.SourceVerif),

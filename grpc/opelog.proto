@@ -82,6 +82,8 @@ message ComputedStats {
 }
 
 message LogicalEntry {
+    StoredEntry inv_state = 11;
+    string inv_checksums = 12;
     // keeping source and target states out of event saves storage when unchanged
     repeated StoredEntry source_states = 1;
     repeated Event source_events = 2;

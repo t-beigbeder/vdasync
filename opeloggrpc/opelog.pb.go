@@ -660,7 +660,9 @@ func (x *ComputedStats) GetError() *AggInfo {
 }
 
 type LogicalEntry struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
+	state        protoimpl.MessageState `protogen:"open.v1"`
+	InvState     *StoredEntry           `protobuf:"bytes,11,opt,name=inv_state,json=invState,proto3" json:"inv_state,omitempty"`
+	InvChecksums string                 `protobuf:"bytes,12,opt,name=inv_checksums,json=invChecksums,proto3" json:"inv_checksums,omitempty"`
 	// keeping source and target states out of event saves storage when unchanged
 	SourceStates  []*StoredEntry   `protobuf:"bytes,1,rep,name=source_states,json=sourceStates,proto3" json:"source_states,omitempty"`
 	SourceEvents  []*Event         `protobuf:"bytes,2,rep,name=source_events,json=sourceEvents,proto3" json:"source_events,omitempty"`
@@ -704,6 +706,20 @@ func (x *LogicalEntry) ProtoReflect() protoreflect.Message {
 // Deprecated: Use LogicalEntry.ProtoReflect.Descriptor instead.
 func (*LogicalEntry) Descriptor() ([]byte, []int) {
 	return file_grpc_opelog_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *LogicalEntry) GetInvState() *StoredEntry {
+	if x != nil {
+		return x.InvState
+	}
+	return nil
+}
+
+func (x *LogicalEntry) GetInvChecksums() string {
+	if x != nil {
+		return x.InvChecksums
+	}
+	return ""
 }
 
 func (x *LogicalEntry) GetSourceStates() []*StoredEntry {
@@ -894,8 +910,10 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x06remove\x18\a \x01(\v2\x0f.opelog.AggInfoR\x06remove\x12.\n" +
 	"\n" +
 	"mod_change\x18\b \x01(\v2\x0f.opelog.AggInfoR\tmodChange\x12%\n" +
-	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"\x8c\x04\n" +
-	"\fLogicalEntry\x128\n" +
+	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xe3\x04\n" +
+	"\fLogicalEntry\x120\n" +
+	"\tinv_state\x18\v \x01(\v2\x13.opelog.StoredEntryR\binvState\x12#\n" +
+	"\rinv_checksums\x18\f \x01(\tR\finvChecksums\x128\n" +
 	"\rsource_states\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\fsourceStates\x122\n" +
 	"\rsource_events\x18\x02 \x03(\v2\r.opelog.EventR\fsourceEvents\x127\n" +
 	"\fsource_verif\x18\x03 \x01(\v2\x14.opelog.VerificationR\vsourceVerif\x128\n" +
@@ -981,21 +999,22 @@ var file_grpc_opelog_proto_depIdxs = []int32{
 	6,  // 11: opelog.ComputedStats.remove:type_name -> opelog.AggInfo
 	6,  // 12: opelog.ComputedStats.mod_change:type_name -> opelog.AggInfo
 	6,  // 13: opelog.ComputedStats.error:type_name -> opelog.AggInfo
-	3,  // 14: opelog.LogicalEntry.source_states:type_name -> opelog.StoredEntry
-	4,  // 15: opelog.LogicalEntry.source_events:type_name -> opelog.Event
-	5,  // 16: opelog.LogicalEntry.source_verif:type_name -> opelog.Verification
-	3,  // 17: opelog.LogicalEntry.target_states:type_name -> opelog.StoredEntry
-	3,  // 18: opelog.LogicalEntry.dirup_state:type_name -> opelog.StoredEntry
-	4,  // 19: opelog.LogicalEntry.target_events:type_name -> opelog.Event
-	5,  // 20: opelog.LogicalEntry.target_verif:type_name -> opelog.Verification
-	7,  // 21: opelog.LogicalEntry.stats_list:type_name -> opelog.ComputedStats
-	10, // 22: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
-	8,  // 23: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
-	24, // [24:24] is the sub-list for method output_type
-	24, // [24:24] is the sub-list for method input_type
-	24, // [24:24] is the sub-list for extension type_name
-	24, // [24:24] is the sub-list for extension extendee
-	0,  // [0:24] is the sub-list for field type_name
+	3,  // 14: opelog.LogicalEntry.inv_state:type_name -> opelog.StoredEntry
+	3,  // 15: opelog.LogicalEntry.source_states:type_name -> opelog.StoredEntry
+	4,  // 16: opelog.LogicalEntry.source_events:type_name -> opelog.Event
+	5,  // 17: opelog.LogicalEntry.source_verif:type_name -> opelog.Verification
+	3,  // 18: opelog.LogicalEntry.target_states:type_name -> opelog.StoredEntry
+	3,  // 19: opelog.LogicalEntry.dirup_state:type_name -> opelog.StoredEntry
+	4,  // 20: opelog.LogicalEntry.target_events:type_name -> opelog.Event
+	5,  // 21: opelog.LogicalEntry.target_verif:type_name -> opelog.Verification
+	7,  // 22: opelog.LogicalEntry.stats_list:type_name -> opelog.ComputedStats
+	10, // 23: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
+	8,  // 24: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
+	25, // [25:25] is the sub-list for method output_type
+	25, // [25:25] is the sub-list for method input_type
+	25, // [25:25] is the sub-list for extension type_name
+	25, // [25:25] is the sub-list for extension extendee
+	0,  // [0:25] is the sub-list for field type_name
 }
 
 func init() { file_grpc_opelog_proto_init() }

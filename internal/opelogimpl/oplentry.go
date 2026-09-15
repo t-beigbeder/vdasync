@@ -20,7 +20,9 @@ type oplLogicalEntry struct {
 	plgr       *slog.Logger
 	owi        *oplWalkerImpl
 	le         *opelog.LogicalEntry
+	sHasParent bool
 	sChildrenQ []string
+	tHasParent bool
 	tChildrenQ []string
 }
 
@@ -40,6 +42,19 @@ func (ole *oplLogicalEntry) target() *oplStoredEntry {
 	return &oplStoredEntry{oplLogicalEntry: ole, isTarget: true}
 }
 
+func (ole *oplLogicalEntry) qPfx() string {
+	s := "1"
+	if ole.source().isAbsent() {
+		s = "0"
+	}
+	if ole.target().isAbsent() {
+		s += "0"
+	} else {
+		s += "1"
+	}
+	return s
+}
+
 func (ole *oplLogicalEntry) queueChildren() error {
 	merged := slices.Clone(ole.sChildrenQ)
 	for _, childRp := range ole.tChildrenQ {
@@ -49,7 +64,7 @@ func (ole *oplLogicalEntry) queueChildren() error {
 	}
 	ole.sChildrenQ, ole.tChildrenQ = nil, nil
 	for _, childRp := range merged {
-		if err := ole.owi.oplq.Put(path.Join(ole.relPath, childRp)); err != nil {
+		if err := ole.owi.oplq.Put(ole.qPfx() + path.Join(ole.relPath, childRp)); err != nil {
 			ole.owi.owErr(ole.lgr(), "oplq.Put error", err)
 			return err
 		}
@@ -80,7 +95,8 @@ func (ole *oplLogicalEntry) computeNext() error {
 		return err
 	}
 	if ple.DepCount == 0 {
-		if err = ole.owi.oplq.Put(prp); err != nil {
+		oPle := &oplLogicalEntry{le: ple}
+		if err = ole.owi.oplq.Put(oPle.qPfx() + prp); err != nil {
 			return err
 		}
 	}
@@ -237,6 +253,22 @@ func (ose *oplStoredEntry) isDone() bool {
 	return true
 }
 
+func (ose *oplStoredEntry) isAbsent() bool {
+	eev := ose.existOrAbsEv()
+	if eev == nil || eev.Error != "" || eev.Kind != opelog.EVT_ABS {
+		return false
+	}
+	return true
+}
+
+func (ose *oplStoredEntry) hasParent() bool {
+	if ose.isTarget {
+		return ose.tHasParent
+	} else {
+		return ose.sHasParent
+	}
+}
+
 func (ose *oplStoredEntry) setChildrenQ(children []string) {
 	if ose.isTarget {
 		ose.tChildrenQ = slices.Clone(children)
@@ -250,7 +282,12 @@ func (ose *oplStoredEntry) load() error {
 	if eev != nil && eev.Error == "" {
 		return nil
 	}
-	ose.lgr().Debug("load: start")
+	ose.lgr().Debug("load: start", "hasParent", ose.hasParent())
+	if !ose.hasParent() {
+		ose.newState(&opelog.StoredEntry{})
+		ose.newEvent(opelog.EVT_ABS, opelog.ORI_UNSPECIFIED, "")
+		return nil
+	}
 	de, err := ose.dss().Stat(ose.fullPath())
 	if err != nil && !de.ErrNotExist {
 		ose.newState(&opelog.StoredEntry{})

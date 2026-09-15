@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"log/slog"
 	"path"
 	"testing"
 	"time"
@@ -13,17 +14,20 @@ import (
 
 func TestOplWalker(t *testing.T) {
 	//t.Skip("wip")
-	lgr := common.DbgLogger()
-	var err error
-	//lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	var (
+		lgr *slog.Logger
+		err error
+	)
+	// lgr = common.DbgLogger()
+	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	lgr = common.InfoLogger()
-	//lgr = common.GetLogger()
+	// lgr = common.GetLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")
 	std := t.TempDir()
 	require.NoError(t, common.FileTreeGenerate(std, 100, 3000, 2, 4096, false, 2))
-	lgr.Debug("TestM2fOpeLogs: FileTreeGenerated")
+	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
 	ltd := t.TempDir()
 	ttd := t.TempDir()

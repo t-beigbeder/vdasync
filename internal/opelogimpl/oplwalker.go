@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -31,7 +32,7 @@ type oplWalkerImpl struct {
 	tRoot      string
 	gErrs      []error
 	syncTicker *time.Ticker
-	bg context.Context
+	bg         context.Context
 }
 
 func (ow *oplWalkerImpl) owErr(lgr *slog.Logger, msg string, err error) error {
@@ -47,12 +48,7 @@ func (ow *oplWalkerImpl) detail(lgr *slog.Logger, msg string, args ...any) {
 }
 
 func (ow *oplWalkerImpl) hasGoal(goal string) bool {
-	for _, owg := range strings.Split(ow.owo.Goals, ",") {
-		if owg == goal {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Split(ow.owo.Goals, ","), goal)
 }
 
 func (ow *oplWalkerImpl) oplmSync() {
@@ -72,20 +68,24 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 	lgr := ow.lgr.With("worker", wkn)
 	lgr.Debug("oplWalkerImpl.work: start", "worker", wkn)
 	for {
-		relPath, err := ow.oplq.Get()
+		pfxRelPath, err := ow.oplq.Get()
 		if err != nil {
 			if err != common.ErrReadClosedQueue {
 				ow.owErr(lgr, "oplWalkerImpl.work", err)
 			}
 			break
 		}
-		ow.detail(ow.lgr, "oplWalkerImpl.work", "worker", wkn, "readPathFromQueue", relPath)
-		le, err := ow.oplm.GetLogicalEntry(relPath)
+		if len(pfxRelPath) < 2 {
+			ow.owErr(lgr, "oplWalkerImpl.work", fmt.Errorf("badly prefixed relPath from queue: %s", pfxRelPath))
+			break
+		}
+		ow.detail(ow.lgr, "oplWalkerImpl.work", "worker", wkn, "readPathFromQueue", pfxRelPath[2:])
+		le, err := ow.oplm.GetLogicalEntry(pfxRelPath[2:])
 		if err != nil {
 			ow.owErr(lgr, "oplWalkerImpl.work: GetLogicalEntry", err)
 			continue
 		}
-		ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le}
+		ole := &oplLogicalEntry{plgr: lgr, relPath: pfxRelPath[2:], owi: ow, le: le, sHasParent: string(pfxRelPath[0]) == "1", tHasParent: string(pfxRelPath[1]) == "1"}
 		if le == nil {
 			ole.le = &opelog.LogicalEntry{}
 			ole.hasChanges = true
@@ -95,7 +95,7 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 			continue
 		}
 		if ole.hasChanges {
-			ow.oplm.PutLogicalEntry(relPath, ole.le)
+			ow.oplm.PutLogicalEntry(pfxRelPath[2:], ole.le)
 		}
 	}
 	ow.lgr.Debug("oplWalkerImpl.work: stop", "worker", wkn)
@@ -116,7 +116,7 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.syncTicker = time.NewTicker(time.Duration(ow.owo.SyncPeriod))
 		go ow.oplmSync()
 	}
-	ow.oplq.Put("")
+	ow.oplq.Put("11")
 	wg.Wait()
 	if ow.owo.SyncPeriod != 0 {
 		ow.syncTicker.Stop()
@@ -135,7 +135,11 @@ func (ow *oplWalkerImpl) Run() error {
 	return nil
 }
 
-func NewOplWalker(lgr *slog.Logger, conc int, oplq opelog.Queue, oplm opelog.OpeLogManager, owo *config.OpeLogOptionsType, sds, tds dssa.Dssa, sRoot, tRoot string) OplWalker {
+func NewOplWalker(lgr *slog.Logger, conc int,
+	oplq opelog.Queue, oplm opelog.OpeLogManager,
+	owo *config.OpeLogOptionsType,
+	sds, tds dssa.Dssa, sRoot, tRoot string,
+) OplWalker {
 	if conc == 0 {
 		conc = 1
 	}
