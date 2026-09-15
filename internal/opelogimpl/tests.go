@@ -42,7 +42,7 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 		if err != nil {
 			return err
 		}
-		csvLine := make([]string, 1 + len(strings.Split(css, ",")))
+		csvLine := make([]string, 1+len(strings.Split(css, ",")))
 		csvLine[0] = rp
 		for i, cs := range strings.Split(css, ",") {
 			alCs := strings.Split(cs, ":")

@@ -36,12 +36,12 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, csvPath string, algos string)
 			headFound = true
 			for i, col := range cCols {
 				if col == "relPath" {
-					sCols[0] = i+1
+					sCols[0] = i + 1
 					continue
 				}
 				for j, algo := range sAlgos {
 					if col == algo {
-						sCols[j+1] = i+1
+						sCols[j+1] = i + 1
 					}
 				}
 			}
@@ -62,9 +62,9 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, csvPath string, algos string)
 			relPath = cCols[sCols[0]]
 		}
 		var sCss []string
-		for i := range len(sCols)-1 {
+		for i := range len(sCols) - 1 {
 			ix := sCols[i+1]
-			if len(cCols) <= ix  {
+			if len(cCols) <= ix {
 				break
 			}
 			sCss = append(sCss, fmt.Sprintf("%s:%s", sAlgos[i], cCols[ix]))

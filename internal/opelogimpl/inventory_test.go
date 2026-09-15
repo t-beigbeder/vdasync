@@ -1,6 +1,5 @@
 package opelogimpl
 
-
 import (
 	"path"
 	"testing"
