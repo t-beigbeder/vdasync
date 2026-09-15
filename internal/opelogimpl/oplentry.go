@@ -42,6 +42,27 @@ func (ole *oplLogicalEntry) target() *oplStoredEntry {
 	return &oplStoredEntry{oplLogicalEntry: ole, isTarget: true}
 }
 
+func (ole *oplLogicalEntry) requiresCreate() (yes bool) {
+	if !ole.source().isPresent() {
+		return
+	}
+	if !ole.target().isAbsent() {
+		return
+	}
+	return true
+}
+
+func (ole *oplLogicalEntry) requiresUpdate() (yes bool) {
+	if !ole.source().isPresent() {
+		return
+	}
+	if !ole.target().isPresent() {
+		return
+	}
+	// may need remove anyway, that's part of this test for update in the broad sense
+	return true
+}
+
 func (ole *oplLogicalEntry) qPfx() string {
 	s := "1"
 	if ole.source().isAbsent() {
@@ -109,6 +130,18 @@ func (ole *oplLogicalEntry) load() error {
 		return err
 	}
 	if err := ole.target().load(); err != nil {
+		return err
+	}
+	if ole.owi.owo.NoInvCheck || ole.le.InvChecksums != "" || !ole.source().isPresent() {
+		return nil
+	}
+	if ole.owi.hasGoal("create") && ole.requiresCreate() {
+		return nil
+	}
+	if ole.owi.hasGoal("update") && ole.requiresUpdate() {
+		return nil
+	}
+	if err := ole.source().checkInventory(); err != nil {
 		return err
 	}
 	return nil
@@ -253,6 +286,14 @@ func (ose *oplStoredEntry) isDone() bool {
 	return true
 }
 
+func (ose *oplStoredEntry) isPresent() bool {
+	eev := ose.existOrAbsEv()
+	if eev == nil || eev.Error != "" || eev.Kind != opelog.EVT_EXIST {
+		return false
+	}
+	return true
+}
+
 func (ose *oplStoredEntry) isAbsent() bool {
 	eev := ose.existOrAbsEv()
 	if eev == nil || eev.Error != "" || eev.Kind != opelog.EVT_ABS {
@@ -327,5 +368,20 @@ func (ose *oplStoredEntry) load() error {
 	ose.newState(se)
 	ose.newEvent(opelog.EVT_EXIST, opelog.ORI_STAT, "")
 
+	return nil
+}
+
+func (ose *oplStoredEntry) checkInventory() error {
+	rr, err := ose.dss().GetReadCloser(ose.fullPath())
+	if err != nil {
+		return err
+	}
+	defer rr.Close()
+	css, err := common.ReaderChecksum(rr,  ose.owi.owo.InvCsAlgos)
+	if err != nil {
+		return err
+	}
+	ose.le.InvChecksums = css
+	ose.hasChanges = true
 	return nil
 }

@@ -62,6 +62,16 @@ func (nr *Rights) Equal(or *Rights) (result bool) {
 	return
 }
 
+func cmpRights(nrp, orp **Rights) (result bool) {
+	if *nrp == nil && *orp == nil {
+		return true
+	}
+	if *nrp == nil || *orp == nil {
+		return
+	}
+	return (*nrp).Equal(*orp)
+}
+
 type StoredEntry struct {
 	IsPresent     bool
 	IsDir         bool
@@ -98,16 +108,16 @@ func (nse *StoredEntry) Equal(ose *StoredEntry) (result bool) {
 	if nse.User != ose.User {
 		return
 	}
-	if !nse.UserRights.Equal(ose.UserRights) {
+	if !cmpRights(&nse.UserRights, &ose.UserRights) {
 		return
 	}
 	if nse.Group != ose.Group {
 		return
 	}
-	if !nse.GroupRights.Equal(ose.GroupRights) {
+	if !cmpRights(&nse.GroupRights, &ose.GroupRights) {
 		return
 	}
-	if !nse.OtherRights.Equal(ose.OtherRights) {
+	if !cmpRights(&nse.OtherRights, &ose.OtherRights) {
 		return
 	}
 	if nse.IsSymLink != ose.IsSymLink {
