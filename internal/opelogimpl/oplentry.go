@@ -280,9 +280,10 @@ func (ose *oplStoredEntry) newEvent(kind opelog.EventCode, origin opelog.OriginC
 
 func (ose *oplStoredEntry) isDone() bool {
 	eev := ose.existOrAbsEv()
-	if eev == nil || eev.Error != "" {
+	if eev == nil {
 		return false
 	}
+	// having an error mark it done anyway
 	return true
 }
 
