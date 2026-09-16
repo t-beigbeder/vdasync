@@ -16,15 +16,47 @@ const (
 )
 
 type csvExporter struct {
-	columns []string
+	columns     []string
 	rowExporter func(relPath string, ole *opelog.LogicalEntry) []string
 }
 
-var exporters map[RptType]csvExporter = map[RptType]csvExporter{
-	RPT_SYNTHETIC: csvExporter{
-		columns: []string{"a"},
-		rowExporter: func(relPath string, ole *opelog.LogicalEntry) []string {return []string{relPath, ole.InvChecksums}},
-	},
+var exporters map[RptType]csvExporter = map[RptType]csvExporter{}
+
+type rptLe struct {
+	oplLogicalEntry
+}
+
+func (rle *rptLe)curSState() *opelog.StoredEntry {
+	ole := rle.source().currentState()
+	if ole == nil {
+		ole = &opelog.StoredEntry{}
+	}
+	return ole
+}
+
+type dispBool bool
+
+func (db dispBool) String() string {
+	if db {
+		return "x"
+	}
+	return ""
+}
+
+func syntheticExporter(relPath string, le *opelog.LogicalEntry) []string {
+	rle := rptLe{oplLogicalEntry: oplLogicalEntry{le: le}}
+	record := make([]string, len(exporters[RPT_SYNTHETIC].columns))
+	record[0] = relPath
+	record[1] = le.InvChecksums
+	record[2] = dispBool(rle.curSState().IsPresent).String()
+	return record
+}
+
+func init() {
+	exporters[RPT_SYNTHETIC] = csvExporter{
+		columns:     []string{"RelPath", "InvChecksums", "Source"},
+		rowExporter: syntheticExporter,
+	}
 }
 
 func OplCsvExport(oplm opelog.OpeLogManager, csvPath string, rt RptType) error {
