@@ -86,8 +86,7 @@ func (ole *oplLogicalEntry) queueChildren() error {
 	ole.sChildrenQ, ole.tChildrenQ = nil, nil
 	for _, childRp := range merged {
 		if err := ole.owi.oplq.Put(ole.qPfx() + path.Join(ole.relPath, childRp)); err != nil {
-			ole.owi.owErr(ole.lgr(), "oplq.Put error", err)
-			return err
+			return ole.owi.owErr(ole.lgr(), "oplq.Put error", err)
 		}
 	}
 	ole.le.DepCount = int32(len(merged))
@@ -132,25 +131,10 @@ func (ole *oplLogicalEntry) load() error {
 	if err := ole.target().load(); err != nil {
 		return err
 	}
-	if ole.le.InvChecksums == "" || ole.owi.owo.NoInvCheck || !ole.source().isPresent() {
-		return nil
-	}
-	if ole.source().currentState().IsDir {
-		return nil
-	}
-	eev := ole.source().existOrAbsEv()
-	if eev.Checksums != "" {
-		return nil
-	}
-	if ole.owi.hasGoal("create") && ole.requiresCreate() {
-		return nil
-	}
-	if ole.owi.hasGoal("update") && ole.requiresUpdate() {
-		return nil
-	}
 	if err := ole.source().checkInventory(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -289,6 +273,9 @@ func (ose *oplStoredEntry) newEvent(kind opelog.EventCode, origin opelog.OriginC
 			Kind: kind, Origin: origin, TimeStamp: time.Now().Unix(),
 			StateIndex: int32(len(*ose.states()) - 1), Error: sErr})
 	ose.hasChanges = true
+	if sErr != "" {
+		ose.lgr().Error("oplStoredEntry.newEvent", "kind", kind, "origin", origin, "err", sErr)
+	}
 }
 
 func (ose *oplStoredEntry) isDone() bool {
@@ -346,7 +333,7 @@ func (ose *oplStoredEntry) load() error {
 	if err != nil && !de.ErrNotExist {
 		ose.newState(&opelog.StoredEntry{})
 		ose.newEvent(opelog.EVT_ABS, opelog.ORI_STAT, err.Error())
-		return err
+		return nil
 	}
 	if de.ErrNotExist {
 		ose.newState(&opelog.StoredEntry{})
@@ -362,7 +349,7 @@ func (ose *oplStoredEntry) load() error {
 			se.IsPresent = true
 			ose.newState(se)
 			ose.newEvent(opelog.EVT_EXIST, opelog.ORI_STAT, err.Error())
-			return err
+			return nil
 		}
 
 		for _, cde := range cdes {
@@ -385,18 +372,40 @@ func (ose *oplStoredEntry) load() error {
 }
 
 func (ose *oplStoredEntry) checkInventory() error {
+	if ose.le.InvChecksums == "" || ose.owi.owo.NoInvCheck || !ose.isPresent() {
+		return nil
+	}
+	if ose.currentState().IsDir {
+		return nil
+	}
+
 	eev := ose.existOrAbsEv()
+	if eev.Checksums != "" {
+		return nil
+	}
+	if ose.owi.hasGoal("create") && ose.requiresCreate() {
+		return nil
+	}
+	if ose.owi.hasGoal("update") && ose.requiresUpdate() {
+		return nil
+	}
+
 	rr, err := ose.dss().GetReadCloser(ose.fullPath())
 	if err != nil {
-		return err
+		ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_READ, err.Error())
+		return nil
 	}
 	defer rr.Close()
 	if eev.Checksums, err = common.ReaderChecksum(rr, ose.owi.owo.InvCsAlgos); err != nil {
-		return err
+		ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_READ, err.Error())
+		return nil
 	}
 	if eev.Checksums != ose.le.InvChecksums {
-		return fmt.Errorf("inventory checksum failed")
+		err := fmt.Errorf(
+			"inventory checksum failed: inv %s actual %s",
+			ose.le.InvChecksums, eev.Checksums)
+		ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_READ, err.Error())
+		return nil
 	}
-	ose.hasChanges = true
 	return nil
 }

@@ -167,6 +167,21 @@ func (m *m2fMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error
 	return nil
 }
 
+// Walk implements [opelog.OpeLogManager].
+func (m *m2fMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	if !m.isOpen {
+		return errors.New("m2fMng.Walk: not opened")
+	}
+	for relPath, ole := range m.les {
+		if err := doIt(relPath, ole); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 var _ opelog.OpeLogManager = &m2fMng{}
 
 func MakeM2fManager(path string) (opelog.OpeLogManager, error) {

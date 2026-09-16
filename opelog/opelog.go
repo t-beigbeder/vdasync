@@ -15,6 +15,7 @@ type OpeLogManager interface {
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
+	Walk(func(relPath string, ole *LogicalEntry) error) error
 }
 
 type EventCode opeloggrpc.EventCode
@@ -29,6 +30,10 @@ const (
 	EVT_END_DIRUP   = EventCode(opeloggrpc.EventCode_EVT_END_DIRUP)
 )
 
+func (ec EventCode) String() string {
+	return opeloggrpc.EventCode(ec).String()
+}
+
 type OriginCode opeloggrpc.OriginCode
 
 const (
@@ -41,6 +46,10 @@ const (
 	ORI_SET_STAT    = OriginCode(opeloggrpc.OriginCode_ORI_SET_STAT)
 	ORI_RM          = OriginCode(opeloggrpc.OriginCode_ORI_RM)
 )
+
+func (oc OriginCode) String() string {
+	return opeloggrpc.OriginCode(oc).String()
+}
 
 type Rights struct {
 	Read    bool
