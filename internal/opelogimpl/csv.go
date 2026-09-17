@@ -61,6 +61,14 @@ func (rse *rptSe) dispPres() string {
 	return "x"
 }
 
+func (rse *rptSe) dispCss() string {
+	css, sErr := rse.currentChecksums()
+	if sErr != "" {
+		return "error"
+	}
+	return css
+}
+
 type dispBool bool
 
 func (db dispBool) String() string {
@@ -100,15 +108,25 @@ func dispMtime(se *opelog.StoredEntry) string {
 func syntheticExporter(relPath string, le *opelog.LogicalEntry) []string {
 	rle := rptLe{oplLogicalEntry: &oplLogicalEntry{le: le}}
 	scs := rle.source().curState()
+	tcs := rle.target().curState()
 	record := make([]string, len(exporters[RPT_SYNTHETIC].columns))
 	record[0] = relPath
 	record[1] = le.InvChecksums
-	record[2] = rle.source().dispPres()
-	record[3] = dispDirChildren(scs)
-	record[4] = scs.SymLinkTarget
-	record[5] = dispSize(scs)
-	record[6] = dispMtime(scs)
-	record[7] = ""
+	sBase := 2
+	record[sBase] = rle.source().dispPres()
+	record[sBase+1] = dispDirChildren(scs)
+	record[sBase+2] = scs.SymLinkTarget
+	record[sBase+3] = dispSize(scs)
+	record[sBase+4] = dispMtime(scs)
+	record[sBase+5] = rle.source().dispCss()
+	tBase := 8
+	record[tBase] = rle.target().dispPres()
+	record[tBase+1] = dispDirChildren(tcs)
+	record[tBase+2] = tcs.SymLinkTarget
+	record[tBase+3] = dispSize(tcs)
+	record[tBase+4] = dispMtime(tcs)
+	record[tBase+5] = rle.target().dispCss()
+
 	return record
 }
 
@@ -117,6 +135,7 @@ func init() {
 		columns: []string{
 			"RelPath", "InvChecksums",
 			"Source", "SChildren", "SSymLink", "SSize", "SMtime", "SCs",
+			"Target", "TChildren", "TSymLink", "TSize", "TMtime", "TCs",
 		},
 		rowExporter: syntheticExporter,
 	}

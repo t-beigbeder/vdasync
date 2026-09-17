@@ -55,6 +55,22 @@ func (owt *owTest) invImport() error {
 	return nil
 }
 
+func (owt *owTest) invCheck() error {
+	if !owt.loadInv {
+		return nil
+	}
+	cPath := path.Join(owt.ltd, "oplmExport.csv")
+	if err := owt.oplm.Open(true); err != nil {
+		return err
+	}
+	defer owt.oplm.Close()
+	if err := OplCsvExport(owt.oplm, cPath, RPT_SYNTHETIC); err != nil {
+		return err
+	}
+	owt.lgr.Info("invCheck", "csvExport", cPath)
+	return nil
+}
+
 func TestManyOplWalkers(t *testing.T) {
 	var (
 		err error
@@ -66,7 +82,7 @@ func TestManyOplWalkers(t *testing.T) {
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
 	defLgr = infLgr
-	skipDefault := false
+	skipDefault := true
 
 	owts := []owTest{
 		{
@@ -93,14 +109,22 @@ func TestManyOplWalkers(t *testing.T) {
 		},
 		{
 			label:     "load & inv check - c4 small simple",
+			ftgen:     ftGenSmall,
+			conc:      4,
+			owo: &config.OpeLogOptionsType{
+				Goals:      "load",
+				InvCsAlgos: "md5",
+			},
+			loadInv: true,
+		},
+		{
+			label:     "create - c4 small simple",
 			unSkipped: true,
 			ftgen:     ftGenSmall,
 			conc:      4,
 			owo: &config.OpeLogOptionsType{
-				Goals:      "load", // load, create, update/remove, verify
-				InvCsAlgos: "md5",
+				Goals:      "create",
 			},
-			loadInv: true,
 		},
 	}
 
@@ -133,7 +157,7 @@ func TestManyOplWalkers(t *testing.T) {
 			owt.std, owt.ttd)
 		err = ow.Run()
 		require.NoError(t, err)
-
+		require.NoError(t, owt.invCheck())
 	}
 }
 

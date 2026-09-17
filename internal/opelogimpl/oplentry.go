@@ -96,7 +96,7 @@ func (ole *oplLogicalEntry) queueChildren() error {
 func (ole *oplLogicalEntry) computeNext() error {
 	ole.owi.mx.Lock()
 	defer ole.owi.mx.Unlock()
-	if !ole.source().isDone() || !ole.target().isDone() || ole.le.DepCount != 0 {
+	if !ole.source().isKnown() || !ole.target().isKnown() || ole.le.DepCount != 0 {
 		return nil
 	}
 	if ole.relPath == "" {
@@ -138,6 +138,21 @@ func (ole *oplLogicalEntry) load() error {
 	return nil
 }
 
+func (ole *oplLogicalEntry) create() error {
+	ole.lgr().Debug("create: start")
+	if err := ole.source().load(); err != nil {
+		return err
+	}
+	if err := ole.target().load(); err != nil {
+		return err
+	}
+	if err := ole.source().checkInventory(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (ole *oplLogicalEntry) process() error {
 	ole.lgr().Debug("process: start")
 	var (
@@ -150,6 +165,8 @@ func (ole *oplLogicalEntry) process() error {
 		switch goal {
 		case "load":
 			err = ole.load()
+		case "create":
+			err = ole.create()
 		default:
 			err = errors.ErrUnsupported
 		}
@@ -228,6 +245,22 @@ func (ose *oplStoredEntry) existOrAbsEv() (ev *opelog.Event) {
 	return nil
 }
 
+func (ose *oplStoredEntry) currentEvent() *opelog.Event {
+	evs := ose.events()
+	if len(*evs) == 0 {
+		return nil
+	}
+	return (*evs)[len(*evs)-1]
+}
+
+func (ose *oplStoredEntry) currentChecksums() (string, string) {
+	ev := ose.currentEvent()
+	if ev == nil {
+		return "", ""
+	}
+	return ev.Checksums, ev.Error
+}
+
 func (ose *oplStoredEntry) states() (sts *[]*opelog.StoredEntry) {
 	if ose.isTarget {
 		sts = &ose.le.TargetStates
@@ -278,12 +311,12 @@ func (ose *oplStoredEntry) newEvent(kind opelog.EventCode, origin opelog.OriginC
 	}
 }
 
-func (ose *oplStoredEntry) isDone() bool {
+func (ose *oplStoredEntry) isKnown() bool {
 	eev := ose.existOrAbsEv()
 	if eev == nil {
 		return false
 	}
-	// having an error mark it done anyway
+	// may be on error anyway
 	return true
 }
 
