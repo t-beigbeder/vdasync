@@ -140,16 +140,38 @@ func (ole *oplLogicalEntry) load() error {
 
 func (ole *oplLogicalEntry) create() error {
 	ole.lgr().Debug("create: start")
-	if err := ole.source().load(); err != nil {
+	sose, tose := ole.source(), ole.target()
+	if err := sose.load(); err != nil {
 		return err
 	}
-	if err := ole.target().load(); err != nil {
+	if err := tose.load(); err != nil {
 		return err
 	}
-	if err := ole.source().checkInventory(); err != nil {
+	if !sose.isPresent() || !tose.isAbsent() {
+		return nil
+	}
+	tde := sose.currentState().ToDataEntry(tose.fullPath())
+	if sose.currentState().IsDir {
+		tose.detail("dss.Mkdir", "path", tose.fullPath())
+		if err := tose.dss().Mkdir(tde); err != nil {
+			tose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_MKDIR, err.Error())
+			return nil
+		}
+		// TODO: perform DIRUP or CHMOD if done
+		return nil
+	}
+	if sose.currentState().IsSymLink {
+		tose.detail("dss.Symlink", "SymLinkTarget", sose.currentState().SymLinkTarget, "path", tose.fullPath())
+		if err := tose.dss().Symlink(sose.currentState().SymLinkTarget, tose.fullPath()); err != nil {
+			tose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_WRITE, err.Error())
+			return nil
+		}
+		// TODO: perform CHMOD
+	}
+	if err := ole.copy(); err != nil {
 		return err
 	}
-
+	// TODO: perform CHMOD
 	return nil
 }
 
@@ -363,6 +385,7 @@ func (ose *oplStoredEntry) load() error {
 		ose.newEvent(opelog.EVT_ABS, opelog.ORI_UNSPECIFIED, "")
 		return nil
 	}
+	ose.detail("dss.Stat", "path", ose.fullPath())
 	de, err := ose.dss().Stat(ose.fullPath())
 	if err != nil && !de.ErrNotExist {
 		ose.newState(&opelog.StoredEntry{})
@@ -377,6 +400,7 @@ func (ose *oplStoredEntry) load() error {
 	var children, fCn []string
 	var cdes []*dssa.DataEntry
 	if de.IsDir {
+		ose.detail("dss.List", "path", ose.fullPath())
 		cdes, err = ose.dss().List(ose.fullPath())
 		if err != nil {
 			se := opelog.FromDataEntry(de, nil)
@@ -424,6 +448,7 @@ func (ose *oplStoredEntry) checkInventory() error {
 		return nil
 	}
 
+	ose.detail("dss.GetReadCloser", "path", ose.fullPath(), "algos", ose.owi.owo.InvCsAlgos)
 	rr, err := ose.dss().GetReadCloser(ose.fullPath())
 	if err != nil {
 		ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_READ, err.Error())

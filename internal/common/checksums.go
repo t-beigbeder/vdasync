@@ -9,8 +9,66 @@ import (
 	"hash"
 	"io"
 	"os"
+	"slices"
 	"strings"
 )
+
+func AddAlgos(algos, added string) string {
+	if added == "" {
+		return algos
+	}
+	if algos == "" {
+		return added
+	}
+	sAlgos := strings.Split(algos, ",")
+	sAdded := strings.Split(added, ",")
+	for _, add := range sAdded {
+		if slices.Contains(sAlgos, add) {
+			continue
+		}
+		sAlgos = append(sAlgos, add)
+	}
+	return strings.Join(sAlgos, ",")
+}
+
+func Css2Map(css string) map[string]string {
+	sCss := strings.Split(css, ",")
+	res := make(map[string]string, len(sCss))
+	for _, cs := range sCss {
+		scs := strings.Split(cs, ":")
+		if len(scs) != 2 {
+			continue
+		}
+		res[scs[0]] = scs[1]
+	}
+	return res
+}
+
+func AlgosFrom(css string) string {
+	sAlgos := []string{}
+	for scs := range strings.SplitSeq(css, ",") {
+		ac := strings.Split(scs, ":")
+		if len(ac) == 2 {
+			sAlgos = append(sAlgos, ac[0])
+		}
+	}
+	return strings.Join(sAlgos, ",")
+}
+
+func FilterCss(css, algos string) string {
+	if algos == "" {
+		return ""
+	}
+	cm := Css2Map(css)
+	sRes := make([]string, 0, len(cm))
+	for algo := range strings.SplitSeq(algos, ",") {
+		c, ok := cm[algo]
+		if ok {
+			sRes = append(sRes, fmt.Sprintf("%s:%s", algo, c))
+		}
+	}
+	return strings.Join(sRes, ",")
+}
 
 func ReaderSha256(rdr io.Reader) (string, error) {
 	h := sha256.New()

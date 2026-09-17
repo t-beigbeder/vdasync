@@ -177,6 +177,27 @@ func FromDataEntry(dse *dssa.DataEntry, children []string) *StoredEntry {
 	}
 }
 
+func r2dr(r *Rights) *dssa.Rights {
+	return &dssa.Rights{Read: r.Read, Write: r.Write, Execute: r.Execute}
+}
+
+func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
+	return &dssa.DataEntry{
+		IsDir:         ose.IsDir,
+		Path:          path_,
+		Size:          ose.Size,
+		Mtime:         ose.Mtime,
+		User:          int(ose.User),
+		UserRights:    *r2dr(ose.UserRights),
+		Group:         int(ose.Group),
+		GroupRights:   *r2dr(ose.GroupRights),
+		OtherRights:   *r2dr(ose.OtherRights),
+		IsSymLink:     ose.IsSymLink,
+		SymLinkTarget: ose.SymLinkTarget,
+		AddMeta:       bytes.Clone(ose.AddMeta),
+	}
+}
+
 type Event struct {
 	Kind       EventCode
 	Origin     OriginCode

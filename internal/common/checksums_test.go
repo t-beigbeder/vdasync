@@ -81,3 +81,17 @@ func TestChecksum(t *testing.T) {
 	}
 	require.Equal(t, 3*32, len(rs))
 }
+
+func TestAlgosHandling(t *testing.T) {
+	require.Equal(t, "a,b,c,d,e", AddAlgos("a,b,c", "d,e"))
+	require.Equal(t, "a,b,c", AddAlgos("a,b,c", ""))
+	require.Equal(t, "a,b,c", AddAlgos("a,b,c", "c,b"))
+	require.Equal(t, "a,b,c", AddAlgos("", "a,b,c"))
+	require.Equal(t, 2, len(Css2Map("a:1,b:2")))
+	require.Equal(t, "a:1,b:2", FilterCss("a:1,b:2", "a,b"))
+	require.Equal(t, "b:2,a:1", FilterCss("a:1,b:2", "b,a"))
+	require.Equal(t, "", FilterCss("a:1,b:2", ""))
+	require.Equal(t, "", FilterCss("a:1,b:2", "c"))
+	require.Equal(t, "a:1,c:3", FilterCss("a:1,b:2,c:3", "a,c"))
+	require.Equal(t, "a,c", AlgosFrom("a:1,b2,c:3"))
+}

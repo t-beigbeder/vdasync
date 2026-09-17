@@ -108,9 +108,9 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label:     "load & inv check - c4 small simple",
-			ftgen:     ftGenSmall,
-			conc:      4,
+			label: "load & inv check - c4 small simple",
+			ftgen: ftGenSmall,
+			conc:  4,
 			owo: &config.OpeLogOptionsType{
 				Goals:      "load",
 				InvCsAlgos: "md5",
@@ -123,7 +123,7 @@ func TestManyOplWalkers(t *testing.T) {
 			ftgen:     ftGenSmall,
 			conc:      4,
 			owo: &config.OpeLogOptionsType{
-				Goals:      "create",
+				Goals: "create",
 			},
 		},
 	}
