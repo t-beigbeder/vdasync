@@ -141,12 +141,16 @@ func (ole *oplLogicalEntry) load() error {
 func (ole *oplLogicalEntry) create() error {
 	ole.lgr().Debug("create: start")
 	sose, tose := ole.source(), ole.target()
-	if err := sose.load(); err != nil {
-		return err
+	if !ole.owi.hasGoal("load") {
+		// FIXME: perhaps is there a better way to factorize
+		if err := sose.load(); err != nil {
+			return err
+		}
+		if err := tose.load(); err != nil {
+			return err
+		}
 	}
-	if err := tose.load(); err != nil {
-		return err
-	}
+
 	if !sose.isPresent() || !tose.isAbsent() {
 		return nil
 	}
@@ -167,6 +171,7 @@ func (ole *oplLogicalEntry) create() error {
 			return nil
 		}
 		// TODO: perform CHMOD
+		
 	}
 	if err := ole.copy(); err != nil {
 		return err

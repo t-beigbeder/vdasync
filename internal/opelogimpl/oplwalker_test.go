@@ -119,7 +119,7 @@ func TestManyOplWalkers(t *testing.T) {
 		},
 		{
 			label:     "create - c4 small simple",
-			unSkipped: true,
+			unSkipped: false,
 			ftgen:     ftGenSmall,
 			conc:      4,
 			owo: &config.OpeLogOptionsType{
