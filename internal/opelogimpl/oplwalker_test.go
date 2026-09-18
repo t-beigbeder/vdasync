@@ -195,3 +195,34 @@ func TestOplWalker(t *testing.T) {
 	err = ow.Run()
 	require.NoError(t, err)
 }
+
+func TestGoals(t *testing.T) {
+	owi := &oplWalkerImpl{owo: &config.OpeLogOptionsType{Goals: ""}}
+	owi.owo.Goals = "load"
+	require.True(t, owi.impliesGoal("load"))
+	require.False(t, owi.impliesGoal("create"))
+	owi.owo.Goals = "create"
+	require.True(t, owi.impliesGoal("load"))
+	require.True(t, owi.impliesGoal("create"))
+	require.False(t, owi.impliesGoal("update"))
+	owi.owo.Goals = "update"
+	require.True(t, owi.impliesGoal("load"))
+	require.True(t, owi.impliesGoal("create"))
+	require.True(t, owi.impliesGoal("update"))
+	require.False(t, owi.impliesGoal("verify"))
+	owi.owo.Goals = "load,create,update,verify2"
+	require.True(t, owi.impliesGoal("load"))
+	require.True(t, owi.impliesGoal("create"))
+	require.True(t, owi.impliesGoal("update"))
+	require.False(t, owi.impliesGoal("verify"))
+	owi.owo.Goals = "load,create,update,verify"
+	require.True(t, owi.impliesGoal("load"))
+	require.True(t, owi.impliesGoal("create"))
+	require.True(t, owi.impliesGoal("update"))
+	require.True(t, owi.impliesGoal("verify"))
+	owi.owo.Goals = "verify"
+	require.False(t, owi.impliesGoal("load"))
+	require.False(t, owi.impliesGoal("create"))
+	require.False(t, owi.impliesGoal("update"))
+	require.True(t, owi.impliesGoal("verify"))
+}

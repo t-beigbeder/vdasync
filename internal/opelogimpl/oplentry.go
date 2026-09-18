@@ -140,44 +140,10 @@ func (ole *oplLogicalEntry) load() error {
 
 func (ole *oplLogicalEntry) create() error {
 	ole.lgr().Debug("create: start")
-	sose, tose := ole.source(), ole.target()
-	if !ole.owi.hasGoal("load") {
-		// FIXME: perhaps is there a better way to factorize
-		if err := sose.load(); err != nil {
-			return err
-		}
-		if err := tose.load(); err != nil {
-			return err
-		}
-	}
-
-	if !sose.isPresent() || !tose.isAbsent() {
+	if !ole.source().isPresent() || !ole.target().isAbsent() {
 		return nil
 	}
-	tde := sose.currentState().ToDataEntry(tose.fullPath())
-	if sose.currentState().IsDir {
-		tose.detail("dss.Mkdir", "path", tose.fullPath())
-		if err := tose.dss().Mkdir(tde); err != nil {
-			tose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_MKDIR, err.Error())
-			return nil
-		}
-		// TODO: perform DIRUP or CHMOD if done
-		return nil
-	}
-	if sose.currentState().IsSymLink {
-		tose.detail("dss.Symlink", "SymLinkTarget", sose.currentState().SymLinkTarget, "path", tose.fullPath())
-		if err := tose.dss().Symlink(sose.currentState().SymLinkTarget, tose.fullPath()); err != nil {
-			tose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_WRITE, err.Error())
-			return nil
-		}
-		// TODO: perform CHMOD
-		
-	}
-	if err := ole.copy(); err != nil {
-		return err
-	}
-	// TODO: perform CHMOD
-	return nil
+	return ole.target().create()
 }
 
 func (ole *oplLogicalEntry) process() error {
@@ -186,7 +152,7 @@ func (ole *oplLogicalEntry) process() error {
 		err error
 	)
 	for goal := range strings.SplitSeq("load,create,update,verify", ",") {
-		if !ole.owi.hasGoal(goal) {
+		if !ole.owi.impliesGoal(goal) {
 			continue
 		}
 		switch goal {
@@ -194,6 +160,10 @@ func (ole *oplLogicalEntry) process() error {
 			err = ole.load()
 		case "create":
 			err = ole.create()
+		case "update":
+			err = errors.ErrUnsupported
+		case "verify":
+			err = errors.ErrUnsupported
 		default:
 			err = errors.ErrUnsupported
 		}
@@ -446,10 +416,10 @@ func (ose *oplStoredEntry) checkInventory() error {
 	if eev.Checksums != "" {
 		return nil
 	}
-	if ose.owi.hasGoal("create") && ose.requiresCreate() {
+	if ose.owi.impliesGoal("create") && ose.requiresCreate() {
 		return nil
 	}
-	if ose.owi.hasGoal("update") && ose.requiresUpdate() {
+	if ose.owi.impliesGoal("update") && ose.requiresUpdate() {
 		return nil
 	}
 
@@ -472,4 +442,36 @@ func (ose *oplStoredEntry) checkInventory() error {
 		return nil
 	}
 	return nil
+}
+
+func (ose *oplStoredEntry) create() error {
+	sose := ose.source()
+	tde := sose.currentState().ToDataEntry(ose.fullPath())
+	// algorithm implies target has parent existing
+	if sose.currentState().IsDir {
+		ose.detail("dss.Mkdir", "path", ose.fullPath())
+		if err := ose.dss().Mkdir(tde); err != nil {
+			ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_MKDIR, err.Error())
+			return nil
+		}
+		// TODO: perform DIRUP or CHMOD if done
+		ose.setChildrenQ(sose.currentState().Children)
+
+		return nil
+	}
+	if sose.currentState().IsSymLink {
+		ose.detail("dss.Symlink", "SymLinkTarget", sose.currentState().SymLinkTarget, "path", ose.fullPath())
+		if err := ose.dss().Symlink(sose.currentState().SymLinkTarget, ose.fullPath()); err != nil {
+			ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_WRITE, err.Error())
+			return nil
+		}
+		// TODO: perform CHMOD
+
+	}
+	if err := ose.copy(); err != nil {
+		return err
+	}
+	// TODO: perform CHMOD
+	return nil
+
 }

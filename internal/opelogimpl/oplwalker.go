@@ -47,8 +47,29 @@ func (ow *oplWalkerImpl) detail(lgr *slog.Logger, msg string, args ...any) {
 	lgr.Log(ow.bg, slog.LevelDebug+2, msg, args...)
 }
 
-func (ow *oplWalkerImpl) hasGoal(goal string) bool {
-	return slices.Contains(strings.Split(ow.owo.Goals, ","), goal)
+func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
+	reqGoals := strings.Split(ow.owo.Goals, ",")
+	hasAny := func (goals string) bool {
+		sgs := strings.Split(goals, ",")
+		for rg := range slices.Values(reqGoals) {
+			if slices.Contains(sgs, rg) {
+				return true
+			}
+		}
+		return false
+	}
+	switch goal {
+	case "load":
+		return hasAny("load,create,update")
+	case "create":
+		return hasAny("create,update")
+	case "update":
+		return hasAny("update")
+	case "verify":
+		return hasAny("verify")
+	default:
+		return false
+	}
 }
 
 func (ow *oplWalkerImpl) oplmSync() {

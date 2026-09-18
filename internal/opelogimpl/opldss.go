@@ -33,7 +33,7 @@ func (ole *oplLogicalEntry) validateChecksums(readCss string) (string, error) {
 	}
 	oCss := common.FilterCss(readCss, oAlgos)
 	pCss := sose.currentEvent().Checksums
-	if pCss != "" && oCss !=  pCss  {
+	if pCss != "" && oCss != pCss {
 		err := fmt.Errorf(
 			"validate checksum failed: previous %s actual %s", pCss, oCss)
 		sose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_READ, err.Error())

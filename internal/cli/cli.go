@@ -137,6 +137,8 @@ func ParseUrl(url string) (pluginName, host string, port int, rootPath string, e
 }
 
 func NormalizeRoot(rootPath string) (string, error) {
+	// should treat c:/path/to/root and /path/to/root as absolute
+	// else prefix with os.Getwd()
 	return filepath.Abs(rootPath)
 }
 
