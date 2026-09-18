@@ -3,6 +3,7 @@ package opelog
 import (
 	"bytes"
 	"slices"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/opeloggrpc"
@@ -55,6 +56,10 @@ type Rights struct {
 	Read    bool
 	Write   bool
 	Execute bool
+}
+
+func (or *Rights) Clone() *Rights {
+	return &Rights{or.Read, or.Write, or.Execute}
 }
 
 func (nr *Rights) Equal(or *Rights) (result bool) {
@@ -198,6 +203,17 @@ func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 	}
 }
 
+func (ose *StoredEntry) Copy() *StoredEntry {
+	return &StoredEntry{
+		IsPresent:     ose.IsPresent,
+		IsDir:         ose.IsDir,
+		Size:          ose.Size,
+		Mtime:         time.Now().Unix(),
+		IsSymLink:     ose.IsSymLink,
+		SymLinkTarget: ose.SymLinkTarget,
+	}
+}
+
 type Event struct {
 	Kind       EventCode
 	Origin     OriginCode
@@ -241,7 +257,7 @@ type LogicalEntry struct {
 	SourceVerif   *Verification
 	TargetStates  []*StoredEntry
 	DepCount      int32
-	DirupState    *StoredEntry
+	DirupState    *StoredEntry // FIXME: needed?
 	DirupChildren []string
 	TargetEvents  []*Event
 	TargetVerif   *Verification

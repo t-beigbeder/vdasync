@@ -49,7 +49,7 @@ func (ow *oplWalkerImpl) detail(lgr *slog.Logger, msg string, args ...any) {
 
 func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
 	reqGoals := strings.Split(ow.owo.Goals, ",")
-	hasAny := func (goals string) bool {
+	hasAny := func(goals string) bool {
 		sgs := strings.Split(goals, ",")
 		for rg := range slices.Values(reqGoals) {
 			if slices.Contains(sgs, rg) {

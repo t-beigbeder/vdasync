@@ -167,10 +167,10 @@ func TestOplWalker(t *testing.T) {
 		lgr *slog.Logger
 		err error
 	)
-	// lgr = common.DbgLogger()
+	lgr = common.GetLogger()
+	// lgr = common.InfoLogger()
 	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	lgr = common.InfoLogger()
-	// lgr = common.GetLogger()
+	// lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")

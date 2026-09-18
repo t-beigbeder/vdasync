@@ -391,9 +391,9 @@ func (ose *oplStoredEntry) load() error {
 			} else {
 				fCn = append(fCn, path.Base(cde.Path))
 			}
-			children = slices.Concat(children, fCn)
-			ose.setChildrenQ(children)
 		}
+		children = slices.Concat(children, fCn)
+		ose.setChildrenQ(children)
 	}
 
 	se := opelog.FromDataEntry(de, children)
@@ -456,6 +456,10 @@ func (ose *oplStoredEntry) create() error {
 		}
 		// TODO: perform DIRUP or CHMOD if done
 		ose.setChildrenQ(sose.currentState().Children)
+		ose.le.DirupChildren = nil
+		se := ose.source().currentState().Copy()
+		ose.newState(se)
+		ose.newEvent(opelog.EVT_EXIST, opelog.ORI_MKDIR, "")
 
 		return nil
 	}
