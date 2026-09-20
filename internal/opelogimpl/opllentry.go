@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
-	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 // This file is about high order services for logical entries
@@ -78,7 +77,6 @@ func (ole *oplLogicalEntry) computeNext() error {
 		if ole.target().currentEvent().Error != "" {
 			return nil
 		}
-		ole.target().newEvent(opelog.EVT_END_DIRUP, opelog.ORI_UNSPECIFIED, "")
 	}
 	if ole.relPath == "" {
 		return ole.owi.oplq.Close()

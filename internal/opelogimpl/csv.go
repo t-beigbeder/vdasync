@@ -48,7 +48,7 @@ func (rse *rptSe) curState() *opelog.StoredEntry {
 }
 
 func (rse *rptSe) dispPres() string {
-	eev := rse.existOrAbsEv()
+	eev := rse.currentEvent()
 	if eev == nil {
 		return ""
 	}

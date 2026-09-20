@@ -100,5 +100,11 @@ func (ole *oplLogicalEntry) copyStat() error {
 		tose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_SET_STAT, err.Error())
 		return nil
 	}
+	tose.newState(sse.CopiedFrom())
+	if sse.IsDir && len(sse.Children) != 0 {
+		tose.newEvent(opelog.EVT_END_DIRUP, opelog.ORI_SET_STAT, "")
+	} else {
+		tose.newEvent(opelog.EVT_ATTS_CHG, opelog.ORI_SET_STAT, "")
+	}
 	return nil
 }

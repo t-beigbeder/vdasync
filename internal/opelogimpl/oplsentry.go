@@ -204,7 +204,7 @@ func (ose *oplStoredEntry) create() error {
 		}
 		ose.setChildrenQ(sse.Children)
 		ose.le.DirupChildren = nil // FIXME: needed?
-		se := ose.source().currentState().CreatedFrom()
+		se := sse.CreatedFrom()
 		ose.newState(se)
 		ose.newEvent(opelog.EVT_EXIST, opelog.ORI_MKDIR, "")
 		if len(sse.Children) != 0 {
