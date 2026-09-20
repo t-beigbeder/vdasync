@@ -81,7 +81,6 @@ func TestManyOplWalkers(t *testing.T) {
 	infLgr := common.InfoLogger()
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
-	defLgr = infLgr
 	skipDefault := true
 
 	owts := []owTest{
@@ -119,7 +118,8 @@ func TestManyOplWalkers(t *testing.T) {
 		},
 		{
 			label:     "create - c4 small simple",
-			unSkipped: false,
+			lgr: dbgLgr,
+			unSkipped: true,
 			ftgen:     ftGenSmall,
 			conc:      4,
 			owo: &config.OpeLogOptionsType{

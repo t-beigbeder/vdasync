@@ -87,7 +87,7 @@ func (ow *oplWalkerImpl) oplmSync() {
 func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	lgr := ow.lgr.With("worker", wkn)
-	lgr.Debug("oplWalkerImpl.work: start", "worker", wkn)
+	lgr.Debug("oplWalkerImpl.work: start")
 	for {
 		pfxRelPath, err := ow.oplq.Get()
 		if err != nil {
@@ -100,14 +100,16 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 			ow.owErr(lgr, "oplWalkerImpl.work", fmt.Errorf("badly prefixed relPath from queue: %s", pfxRelPath))
 			break
 		}
+		sHasP:= string(pfxRelPath[0]) == "1"
+		tHasP:= string(pfxRelPath[1]) == "1"
 		relPath := pfxRelPath[2:]
-		ow.detail(ow.lgr, "oplWalkerImpl.work", "worker", wkn, "readPathFromQueue", pfxRelPath[2:])
+		ow.detail(ow.lgr, "oplWalkerImpl.work", "worker", wkn, "readPathFromQueue", relPath, "sHasParent", sHasP, "tHasParent", tHasP)
 		le, err := ow.oplm.GetLogicalEntry(relPath)
 		if err != nil {
 			ow.owErr(lgr, "oplWalkerImpl.work: GetLogicalEntry", err)
 			continue
 		}
-		ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le, sHasParent: string(pfxRelPath[0]) == "1", tHasParent: string(pfxRelPath[1]) == "1"}
+		ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le, sHasParent: sHasP, tHasParent: tHasP}
 		if le == nil {
 			ole.le = &opelog.LogicalEntry{}
 			ole.hasChanges = true
@@ -124,7 +126,7 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 			}
 		}
 	}
-	ow.lgr.Debug("oplWalkerImpl.work: stop", "worker", wkn)
+	lgr.Debug("oplWalkerImpl.work: stop")
 }
 
 func (ow *oplWalkerImpl) Run() error {
