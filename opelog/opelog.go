@@ -203,7 +203,7 @@ func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 	}
 }
 
-func (ose *StoredEntry) Copy() *StoredEntry {
+func (ose *StoredEntry) CreatedFrom() *StoredEntry {
 	return &StoredEntry{
 		IsPresent:     ose.IsPresent,
 		IsDir:         ose.IsDir,
@@ -211,6 +211,24 @@ func (ose *StoredEntry) Copy() *StoredEntry {
 		Mtime:         time.Now().Unix(),
 		IsSymLink:     ose.IsSymLink,
 		SymLinkTarget: ose.SymLinkTarget,
+	}
+}
+
+func (ose *StoredEntry) CopiedFrom() *StoredEntry {
+	return &StoredEntry{
+		IsPresent:     ose.IsPresent,
+		IsDir:         ose.IsDir,
+		Size:          ose.Size,
+		Mtime:         ose.Mtime,
+		User:          ose.User,
+		UserRights:    ose.UserRights.Clone(),
+		Group:         ose.Group,
+		GroupRights:   ose.GroupRights.Clone(),
+		OtherRights:   ose.OtherRights.Clone(),
+		IsSymLink:     ose.IsSymLink,
+		SymLinkTarget: ose.SymLinkTarget,
+		Children:      slices.Clone(ose.Children),
+		AddMeta:       bytes.Clone(ose.AddMeta),
 	}
 }
 
@@ -257,8 +275,9 @@ type LogicalEntry struct {
 	SourceVerif   *Verification
 	TargetStates  []*StoredEntry
 	DepCount      int32
-	DirupState    *StoredEntry // FIXME: needed?
-	DirupChildren []string
+	DirUpdating   bool
+	DirupState    *StoredEntry
+	DirupChildren []string // FIXME: needed?
 	TargetEvents  []*Event
 	TargetVerif   *Verification
 	StatsList     []*ComputedStats

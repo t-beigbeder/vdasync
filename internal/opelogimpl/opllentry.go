@@ -8,7 +8,10 @@ import (
 	"strings"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/opelog"
 )
+
+// This file is about high order services for logical entries
 
 func (ole *oplLogicalEntry) requiresCreate() (yes bool) {
 	if !ole.source().isPresent() {
@@ -67,6 +70,16 @@ func (ole *oplLogicalEntry) computeNext() error {
 	if !ole.source().isKnown() || !ole.target().isKnown() || ole.le.DepCount != 0 {
 		return nil
 	}
+	if ole.le.DirUpdating {
+		ole.le.DirUpdating = false
+		if err := ole.copyStat(); err != nil {
+			return nil
+		}
+		if ole.target().currentEvent().Error != "" {
+			return nil
+		}
+		ole.target().newEvent(opelog.EVT_END_DIRUP, opelog.ORI_UNSPECIFIED, "")
+	}
 	if ole.relPath == "" {
 		return ole.owi.oplq.Close()
 	}
@@ -92,7 +105,7 @@ func (ole *oplLogicalEntry) computeNext() error {
 }
 
 func (ole *oplLogicalEntry) load() error {
-	ole.lgr().Debug("load: start")
+	ole.detail("load: start")
 	if err := ole.source().load(); err != nil {
 		return err
 	}
@@ -107,7 +120,7 @@ func (ole *oplLogicalEntry) load() error {
 }
 
 func (ole *oplLogicalEntry) create() error {
-	ole.lgr().Debug("create: start")
+	ole.detail("create: start")
 	if !ole.source().isPresent() || !ole.target().isAbsent() {
 		return nil
 	}

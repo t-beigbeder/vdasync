@@ -100,8 +100,8 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 			ow.owErr(lgr, "oplWalkerImpl.work", fmt.Errorf("badly prefixed relPath from queue: %s", pfxRelPath))
 			break
 		}
-		sHasP:= string(pfxRelPath[0]) == "1"
-		tHasP:= string(pfxRelPath[1]) == "1"
+		sHasP := string(pfxRelPath[0]) == "1"
+		tHasP := string(pfxRelPath[1]) == "1"
 		relPath := pfxRelPath[2:]
 		ow.detail(ow.lgr, "oplWalkerImpl.work", "worker", wkn, "readPathFromQueue", relPath, "sHasParent", sHasP, "tHasParent", tHasP)
 		le, err := ow.oplm.GetLogicalEntry(relPath)

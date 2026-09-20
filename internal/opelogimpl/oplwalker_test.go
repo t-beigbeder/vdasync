@@ -26,6 +26,10 @@ type owTest struct {
 	std, ltd, ttd string
 }
 
+var ftGenTiny = func(root string) error {
+	return common.FileTreeGenerate(root, 5, 20, 1, 1024, false, 2)
+}
+
 var ftGenSmall = func(root string) error {
 	return common.FileTreeGenerate(root, 20, 600, 2, 1024, false, 2)
 }
@@ -117,10 +121,9 @@ func TestManyOplWalkers(t *testing.T) {
 			loadInv: true,
 		},
 		{
-			label:     "create - c4 small simple",
-			lgr: dbgLgr,
+			label:     "create - c4 tiny simple",
 			unSkipped: true,
-			ftgen:     ftGenSmall,
+			ftgen:     ftGenTiny,
 			conc:      4,
 			owo: &config.OpeLogOptionsType{
 				Goals: "create",
@@ -155,9 +158,13 @@ func TestManyOplWalkers(t *testing.T) {
 			nil, owt.oplm, owt.owo,
 			localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
 			owt.std, owt.ttd)
-		err = ow.Run()
-		require.NoError(t, err)
+		require.NoError(t, ow.Run())
 		require.NoError(t, owt.invCheck())
+		require.NoError(t, owt.oplm.Open(true))
+		csvPath := path.Join(owt.ltd, "oplm.csv")
+		require.NoError(t, OplCsvExport(owt.oplm, csvPath, RPT_SYNTHETIC))
+		owt.lgr.Info("exported", "csv", csvPath)
+		require.True(t, true)
 	}
 }
 

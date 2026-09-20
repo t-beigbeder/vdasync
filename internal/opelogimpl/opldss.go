@@ -89,3 +89,16 @@ func (ole *oplLogicalEntry) copy() error {
 	sose.hasChanges = true
 	return nil
 }
+
+func (ole *oplLogicalEntry) copyStat() error {
+	sose, tose := ole.source(), ole.target()
+	sse := sose.currentState()
+	tose.detail("dss.SetStat", "path", tose.fullPath())
+	if err := tose.dss().SetStat(
+		sse.ToDataEntry(tose.fullPath()),
+		tose.owi.owo.NoPerm, tose.owi.owo.NoMtime); err != nil {
+		tose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_SET_STAT, err.Error())
+		return nil
+	}
+	return nil
+}

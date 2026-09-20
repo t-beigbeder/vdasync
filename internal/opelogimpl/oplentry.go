@@ -39,7 +39,6 @@ func (ole *oplLogicalEntry) target() *oplStoredEntry {
 	return &oplStoredEntry{oplLogicalEntry: ole, isTarget: true}
 }
 
-
 type oplStoredEntry struct {
 	*oplLogicalEntry
 	isTarget bool

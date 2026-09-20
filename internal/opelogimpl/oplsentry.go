@@ -11,6 +11,8 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
+// This file is about high order services for stored entries
+
 func (ose *oplStoredEntry) existOrAbsEv() (ev *opelog.Event) {
 	evs := ose.events()
 	for i := range slices.Backward(*evs) {
@@ -191,36 +193,40 @@ func (ose *oplStoredEntry) checkInventory() error {
 
 func (ose *oplStoredEntry) create() error {
 	sose := ose.source()
-	tde := sose.currentState().ToDataEntry(ose.fullPath())
+	sse := sose.currentState()
+	tde := sse.ToDataEntry(ose.fullPath())
 	// algorithm implies target has parent existing
-	if sose.currentState().IsDir {
+	if sse.IsDir {
 		ose.detail("dss.Mkdir", "path", ose.fullPath())
 		if err := ose.dss().Mkdir(tde); err != nil {
 			ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_MKDIR, err.Error())
 			return nil
 		}
-		// TODO: perform DIRUP or CHMOD if done
-		ose.setChildrenQ(sose.currentState().Children)
-		ose.le.DirupChildren = nil
-		se := ose.source().currentState().Copy()
+		ose.setChildrenQ(sse.Children)
+		ose.le.DirupChildren = nil // FIXME: needed?
+		se := ose.source().currentState().CreatedFrom()
 		ose.newState(se)
 		ose.newEvent(opelog.EVT_EXIST, opelog.ORI_MKDIR, "")
-
-		return nil
+		if len(sse.Children) != 0 {
+			ose.le.DirUpdating = true
+			ose.newEvent(opelog.EVT_START_DIRUP, opelog.ORI_UNSPECIFIED, "")
+			return nil
+		}
 	}
-	if sose.currentState().IsSymLink {
-		ose.detail("dss.Symlink", "SymLinkTarget", sose.currentState().SymLinkTarget, "path", ose.fullPath())
-		if err := ose.dss().Symlink(sose.currentState().SymLinkTarget, ose.fullPath()); err != nil {
+	if sse.IsSymLink {
+		ose.detail("dss.Symlink", "SymLinkTarget", sse.SymLinkTarget, "path", ose.fullPath())
+		if err := ose.dss().Symlink(sse.SymLinkTarget, ose.fullPath()); err != nil {
 			ose.newEvent(opelog.EVT_UNSPECIFIED, opelog.ORI_WRITE, err.Error())
 			return nil
 		}
-		// TODO: perform CHMOD
-
 	}
-	if err := ose.copy(); err != nil {
-		return err
+	if !sse.IsDir && !sse.IsSymLink {
+		if err := ose.copy(); err != nil {
+			return err
+		}
 	}
-	// TODO: perform CHMOD
+	if err := ose.copyStat(); err != nil {
+		return nil
+	}
 	return nil
-
 }
