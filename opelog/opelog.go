@@ -1,6 +1,7 @@
 package opelog
 
 import (
+	"bufio"
 	"bytes"
 	"slices"
 	"time"
@@ -282,6 +283,32 @@ type LogicalEntry struct {
 	TargetEvents []*Event
 	DepCount     int32
 	StatsList    []*ComputedStats
+}
+
+func (le *LogicalEntry) AddOrShareSe(se *StoredEntry) int32 {
+	if se == nil {
+		return -1
+	}
+	for i, exSe := range slices.Backward(le.SharedSes) {
+		if se.Equal(exSe) {
+			return int32(i)
+		}
+	}
+	le.SharedSes = append(le.SharedSes, se)
+	return int32(len(le.SharedSes) - 1)
+}
+
+func (le *LogicalEntry) AddOrShareTcs(tcs []byte) int32 {
+	if tcs == nil {
+		return -1
+	}
+	for i, exTcs := range slices.Backward(le.SharedTcss) {
+		if bytes.Equal(tcs, exTcs.Tcs) {
+			return int32(i)
+		}
+	}
+	le.SharedTcss = append(le.SharedTcss, &TypedChecksum{Tcs: bytes.Clone(tcs)})
+	return int32(len(le.SharedTcss) - 1)
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
