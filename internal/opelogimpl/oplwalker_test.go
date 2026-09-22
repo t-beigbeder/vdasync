@@ -85,7 +85,8 @@ func TestManyOplWalkers(t *testing.T) {
 	infLgr := common.InfoLogger()
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
-	skipDefault := true
+	skipDefault := false
+	defLgr = infLgr
 
 	owts := []owTest{
 		{
@@ -113,6 +114,7 @@ func TestManyOplWalkers(t *testing.T) {
 		{
 			label: "load & inv check - c4 small simple",
 			ftgen: ftGenSmall,
+			unSkipped: true,
 			conc:  4,
 			owo: &config.OpeLogOptionsType{
 				Goals:      "load",
@@ -160,10 +162,11 @@ func TestManyOplWalkers(t *testing.T) {
 			owt.std, owt.ttd)
 		require.NoError(t, ow.Run())
 		require.NoError(t, owt.invCheck())
-		require.NoError(t, owt.oplm.Open(true))
 		csvPath := path.Join(owt.ltd, "oplm.csv")
+		require.NoError(t, owt.oplm.Open(true))
 		require.NoError(t, OplCsvExport(owt.oplm, csvPath, RPT_SYNTHETIC))
 		owt.lgr.Info("exported", "csv", csvPath)
+		require.NoError(t, owt.oplm.Close())
 		require.True(t, true)
 	}
 }

@@ -78,6 +78,7 @@ func (m *m2fMng) Close() error {
 		return errors.New("m2fMng.Close: not opened")
 	}
 	if !m.hasUpdates {
+		m.isOpen = false
 		return nil
 	}
 	if err := m.save(); err != nil {
