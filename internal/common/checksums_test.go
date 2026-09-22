@@ -95,3 +95,43 @@ func TestAlgosHandling(t *testing.T) {
 	require.Equal(t, "a:1,c:3", FilterCss("a:1,b:2,c:3", "a,c"))
 	require.Equal(t, "a,c", AlgosFrom("a:1,b2,c:3"))
 }
+
+func TestCsString2Bytes(t *testing.T) {
+	ft := path.Join(t.TempDir(), "TestCsString2Bytes.dat")
+	require.Nil(t, WriteFile(ft, []byte(t.Name())))
+	h1, err := FileChecksum(ft, "sha256")
+	require.Nil(t, err)
+	require.Equal(t, "sha256:0b3b26c3b2e9c20ffa068810ed8badab23d77a423619c698d0ba96787ed83051", h1)
+	h2, err := FileChecksum(ft, "md5")
+	require.Nil(t, err)
+	require.Equal(t, "md5:6ced4125b87379848fd3807d129b3dca", h2)
+
+	bss1, err := Checksums2TypedChecksums(h1)
+	require.NoError(t, err)
+	h1b, err := TypedChecksums2Checksums(bss1)
+	require.NoError(t, err)
+	require.Equal(t, h1, h1b)
+
+	bss12, err := Checksums2TypedChecksums(fmt.Sprintf("%s,%s", h1, h2))
+	require.NoError(t, err)
+	h12b, err := TypedChecksums2Checksums(bss12)
+	require.NoError(t, err)
+	require.Equal(t, fmt.Sprintf("%s,%s", h1, h2), h12b)
+
+	bss21, err := Checksums2TypedChecksums(fmt.Sprintf("%s,%s", h2, h1))
+	require.NoError(t, err)
+	h21b, err := TypedChecksums2Checksums(bss21)
+	require.NoError(t, err)
+	require.Equal(t, fmt.Sprintf("%s,%s", h2, h1), h21b)
+
+	rdr, err := os.Open(ft)
+	require.NoError(t, err)
+	defer rdr.Close()
+	cr, err := NewChecksumsReader(rdr, "sha256,md5")
+	require.NoError(t, err)
+	nr, err := io.Copy(io.Discard, cr)
+	require.NoError(t, err)
+	require.Equal(t, len(t.Name()), int(nr))
+	require.Equal(t, fmt.Sprintf("%s,%s", h1, h2), cr.Checksums())
+	require.Equal(t, bss12, cr.TypedChecksums())
+}

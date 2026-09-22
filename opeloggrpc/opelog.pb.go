@@ -21,37 +21,104 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type HalgoCode int32
+
+const (
+	HalgoCode_HAL_UNSPECIFIED HalgoCode = 0
+	HalgoCode_HAL_MD5         HalgoCode = 1
+	HalgoCode_HAL_SHA256      HalgoCode = 2
+	HalgoCode_HAL_SHA512      HalgoCode = 3
+	HalgoCode_HAL_SHA3_256    HalgoCode = 4
+	HalgoCode_HAL_SHA3_512    HalgoCode = 5
+)
+
+// Enum value maps for HalgoCode.
+var (
+	HalgoCode_name = map[int32]string{
+		0: "HAL_UNSPECIFIED",
+		1: "HAL_MD5",
+		2: "HAL_SHA256",
+		3: "HAL_SHA512",
+		4: "HAL_SHA3_256",
+		5: "HAL_SHA3_512",
+	}
+	HalgoCode_value = map[string]int32{
+		"HAL_UNSPECIFIED": 0,
+		"HAL_MD5":         1,
+		"HAL_SHA256":      2,
+		"HAL_SHA512":      3,
+		"HAL_SHA3_256":    4,
+		"HAL_SHA3_512":    5,
+	}
+)
+
+func (x HalgoCode) Enum() *HalgoCode {
+	p := new(HalgoCode)
+	*p = x
+	return p
+}
+
+func (x HalgoCode) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (HalgoCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_grpc_opelog_proto_enumTypes[0].Descriptor()
+}
+
+func (HalgoCode) Type() protoreflect.EnumType {
+	return &file_grpc_opelog_proto_enumTypes[0]
+}
+
+func (x HalgoCode) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use HalgoCode.Descriptor instead.
+func (HalgoCode) EnumDescriptor() ([]byte, []int) {
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{0}
+}
+
 type EventCode int32
 
 const (
-	EventCode_EVT_UNSPECIFIED EventCode = 0
-	EventCode_EVT_ABS         EventCode = 1
-	EventCode_EVT_EXIST       EventCode = 2
-	EventCode_EVT_CR_MOD      EventCode = 3
-	EventCode_EVT_ATTS_CHG    EventCode = 4
-	EventCode_EVT_START_DIRUP EventCode = 5
-	EventCode_EVT_END_DIRUP   EventCode = 6
+	EventCode_EVT_UNSPECIFIED  EventCode = 0
+	EventCode_EVT_INV_LOADED   EventCode = 1
+	EventCode_EVT_LOADED       EventCode = 2
+	EventCode_EVT_CREATED      EventCode = 3
+	EventCode_EVT_REMOVED      EventCode = 4
+	EventCode_EVT_UPDATED      EventCode = 5
+	EventCode_EVT_META_CHANGED EventCode = 6
+	EventCode_EVT_VERIF_PASSED EventCode = 7
+	EventCode_EVT_VERIF_FAILED EventCode = 8
+	EventCode_EVT_ERROR_RAISED EventCode = 9
 )
 
 // Enum value maps for EventCode.
 var (
 	EventCode_name = map[int32]string{
 		0: "EVT_UNSPECIFIED",
-		1: "EVT_ABS",
-		2: "EVT_EXIST",
-		3: "EVT_CR_MOD",
-		4: "EVT_ATTS_CHG",
-		5: "EVT_START_DIRUP",
-		6: "EVT_END_DIRUP",
+		1: "EVT_INV_LOADED",
+		2: "EVT_LOADED",
+		3: "EVT_CREATED",
+		4: "EVT_REMOVED",
+		5: "EVT_UPDATED",
+		6: "EVT_META_CHANGED",
+		7: "EVT_VERIF_PASSED",
+		8: "EVT_VERIF_FAILED",
+		9: "EVT_ERROR_RAISED",
 	}
 	EventCode_value = map[string]int32{
-		"EVT_UNSPECIFIED": 0,
-		"EVT_ABS":         1,
-		"EVT_EXIST":       2,
-		"EVT_CR_MOD":      3,
-		"EVT_ATTS_CHG":    4,
-		"EVT_START_DIRUP": 5,
-		"EVT_END_DIRUP":   6,
+		"EVT_UNSPECIFIED":  0,
+		"EVT_INV_LOADED":   1,
+		"EVT_LOADED":       2,
+		"EVT_CREATED":      3,
+		"EVT_REMOVED":      4,
+		"EVT_UPDATED":      5,
+		"EVT_META_CHANGED": 6,
+		"EVT_VERIF_PASSED": 7,
+		"EVT_VERIF_FAILED": 8,
+		"EVT_ERROR_RAISED": 9,
 	}
 )
 
@@ -66,11 +133,11 @@ func (x EventCode) String() string {
 }
 
 func (EventCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_grpc_opelog_proto_enumTypes[0].Descriptor()
+	return file_grpc_opelog_proto_enumTypes[1].Descriptor()
 }
 
 func (EventCode) Type() protoreflect.EnumType {
-	return &file_grpc_opelog_proto_enumTypes[0]
+	return &file_grpc_opelog_proto_enumTypes[1]
 }
 
 func (x EventCode) Number() protoreflect.EnumNumber {
@@ -79,71 +146,68 @@ func (x EventCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use EventCode.Descriptor instead.
 func (EventCode) EnumDescriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{0}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{1}
 }
 
-type OriginCode int32
+type ProcessingCode int32
 
 const (
-	OriginCode_ORI_UNSPECIFIED OriginCode = 0
-	OriginCode_ORI_LIST        OriginCode = 1
-	OriginCode_ORI_STAT        OriginCode = 2
-	OriginCode_ORI_READ        OriginCode = 3
-	OriginCode_ORI_MKDIR       OriginCode = 4
-	OriginCode_ORI_WRITE       OriginCode = 5
-	OriginCode_ORI_SET_STAT    OriginCode = 6
-	OriginCode_ORI_RM          OriginCode = 7
+	ProcessingCode_PRC_UNSPECIFIED ProcessingCode = 0
+	ProcessingCode_PRC_LOADING     ProcessingCode = 1
+	ProcessingCode_PRC_CREATING    ProcessingCode = 2
+	ProcessingCode_PRC_REMOVING    ProcessingCode = 3
+	ProcessingCode_PRC_UPDATING    ProcessingCode = 4
+	ProcessingCode_PRC_VERIFYING   ProcessingCode = 5
+	ProcessingCode_PRC_NONE        ProcessingCode = 6
 )
 
-// Enum value maps for OriginCode.
+// Enum value maps for ProcessingCode.
 var (
-	OriginCode_name = map[int32]string{
-		0: "ORI_UNSPECIFIED",
-		1: "ORI_LIST",
-		2: "ORI_STAT",
-		3: "ORI_READ",
-		4: "ORI_MKDIR",
-		5: "ORI_WRITE",
-		6: "ORI_SET_STAT",
-		7: "ORI_RM",
+	ProcessingCode_name = map[int32]string{
+		0: "PRC_UNSPECIFIED",
+		1: "PRC_LOADING",
+		2: "PRC_CREATING",
+		3: "PRC_REMOVING",
+		4: "PRC_UPDATING",
+		5: "PRC_VERIFYING",
+		6: "PRC_NONE",
 	}
-	OriginCode_value = map[string]int32{
-		"ORI_UNSPECIFIED": 0,
-		"ORI_LIST":        1,
-		"ORI_STAT":        2,
-		"ORI_READ":        3,
-		"ORI_MKDIR":       4,
-		"ORI_WRITE":       5,
-		"ORI_SET_STAT":    6,
-		"ORI_RM":          7,
+	ProcessingCode_value = map[string]int32{
+		"PRC_UNSPECIFIED": 0,
+		"PRC_LOADING":     1,
+		"PRC_CREATING":    2,
+		"PRC_REMOVING":    3,
+		"PRC_UPDATING":    4,
+		"PRC_VERIFYING":   5,
+		"PRC_NONE":        6,
 	}
 )
 
-func (x OriginCode) Enum() *OriginCode {
-	p := new(OriginCode)
+func (x ProcessingCode) Enum() *ProcessingCode {
+	p := new(ProcessingCode)
 	*p = x
 	return p
 }
 
-func (x OriginCode) String() string {
+func (x ProcessingCode) String() string {
 	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
 }
 
-func (OriginCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_grpc_opelog_proto_enumTypes[1].Descriptor()
+func (ProcessingCode) Descriptor() protoreflect.EnumDescriptor {
+	return file_grpc_opelog_proto_enumTypes[2].Descriptor()
 }
 
-func (OriginCode) Type() protoreflect.EnumType {
-	return &file_grpc_opelog_proto_enumTypes[1]
+func (ProcessingCode) Type() protoreflect.EnumType {
+	return &file_grpc_opelog_proto_enumTypes[2]
 }
 
-func (x OriginCode) Number() protoreflect.EnumNumber {
+func (x ProcessingCode) Number() protoreflect.EnumNumber {
 	return protoreflect.EnumNumber(x)
 }
 
-// Deprecated: Use OriginCode.Descriptor instead.
-func (OriginCode) EnumDescriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{1}
+// Deprecated: Use ProcessingCode.Descriptor instead.
+func (ProcessingCode) EnumDescriptor() ([]byte, []int) {
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{2}
 }
 
 type Rights struct {
@@ -208,19 +272,18 @@ func (x *Rights) GetExecute() bool {
 
 type StoredEntry struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	IsPresent     bool                   `protobuf:"varint,1,opt,name=is_present,json=isPresent,proto3" json:"is_present,omitempty"`
-	IsDir         bool                   `protobuf:"varint,2,opt,name=is_dir,json=isDir,proto3" json:"is_dir,omitempty"`
-	Size          int64                  `protobuf:"varint,3,opt,name=size,proto3" json:"size,omitempty"`
-	Mtime         int64                  `protobuf:"varint,4,opt,name=mtime,proto3" json:"mtime,omitempty"`
-	User          int32                  `protobuf:"varint,5,opt,name=user,proto3" json:"user,omitempty"`
-	UserRights    *Rights                `protobuf:"bytes,6,opt,name=user_rights,json=userRights,proto3" json:"user_rights,omitempty"`
-	Group         int32                  `protobuf:"varint,7,opt,name=group,proto3" json:"group,omitempty"`
-	GroupRights   *Rights                `protobuf:"bytes,8,opt,name=group_rights,json=groupRights,proto3" json:"group_rights,omitempty"`
-	OtherRights   *Rights                `protobuf:"bytes,9,opt,name=other_rights,json=otherRights,proto3" json:"other_rights,omitempty"`
-	IsSymLink     bool                   `protobuf:"varint,10,opt,name=is_sym_link,json=isSymLink,proto3" json:"is_sym_link,omitempty"`
-	SymLinkTarget string                 `protobuf:"bytes,11,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
-	Children      []string               `protobuf:"bytes,12,rep,name=children,proto3" json:"children,omitempty"`
-	AddMeta       []byte                 `protobuf:"bytes,13,opt,name=add_meta,json=addMeta,proto3" json:"add_meta,omitempty"`
+	IsDir         bool                   `protobuf:"varint,1,opt,name=is_dir,json=isDir,proto3" json:"is_dir,omitempty"`
+	Size          int64                  `protobuf:"varint,2,opt,name=size,proto3" json:"size,omitempty"`
+	Mtime         int64                  `protobuf:"varint,3,opt,name=mtime,proto3" json:"mtime,omitempty"`
+	User          int32                  `protobuf:"varint,4,opt,name=user,proto3" json:"user,omitempty"`
+	UserRights    *Rights                `protobuf:"bytes,5,opt,name=user_rights,json=userRights,proto3" json:"user_rights,omitempty"`
+	Group         int32                  `protobuf:"varint,6,opt,name=group,proto3" json:"group,omitempty"`
+	GroupRights   *Rights                `protobuf:"bytes,7,opt,name=group_rights,json=groupRights,proto3" json:"group_rights,omitempty"`
+	OtherRights   *Rights                `protobuf:"bytes,8,opt,name=other_rights,json=otherRights,proto3" json:"other_rights,omitempty"`
+	IsSymLink     bool                   `protobuf:"varint,9,opt,name=is_sym_link,json=isSymLink,proto3" json:"is_sym_link,omitempty"`
+	SymLinkTarget string                 `protobuf:"bytes,10,opt,name=sym_link_target,json=symLinkTarget,proto3" json:"sym_link_target,omitempty"`
+	Children      []string               `protobuf:"bytes,11,rep,name=children,proto3" json:"children,omitempty"`
+	AddMeta       []byte                 `protobuf:"bytes,12,opt,name=add_meta,json=addMeta,proto3" json:"add_meta,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -253,13 +316,6 @@ func (x *StoredEntry) ProtoReflect() protoreflect.Message {
 // Deprecated: Use StoredEntry.ProtoReflect.Descriptor instead.
 func (*StoredEntry) Descriptor() ([]byte, []int) {
 	return file_grpc_opelog_proto_rawDescGZIP(), []int{1}
-}
-
-func (x *StoredEntry) GetIsPresent() bool {
-	if x != nil {
-		return x.IsPresent
-	}
-	return false
 }
 
 func (x *StoredEntry) GetIsDir() bool {
@@ -346,22 +402,66 @@ func (x *StoredEntry) GetAddMeta() []byte {
 	return nil
 }
 
+type TypedChecksum struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// first byte is HalgoCode, checksum comes after
+	Tcs           []byte `protobuf:"bytes,1,opt,name=tcs,proto3" json:"tcs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TypedChecksum) Reset() {
+	*x = TypedChecksum{}
+	mi := &file_grpc_opelog_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TypedChecksum) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TypedChecksum) ProtoMessage() {}
+
+func (x *TypedChecksum) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_opelog_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TypedChecksum.ProtoReflect.Descriptor instead.
+func (*TypedChecksum) Descriptor() ([]byte, []int) {
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *TypedChecksum) GetTcs() []byte {
+	if x != nil {
+		return x.Tcs
+	}
+	return nil
+}
+
 type Event struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Kind       EventCode              `protobuf:"varint,1,opt,name=kind,proto3,enum=opelog.EventCode" json:"kind,omitempty"`
-	Origin     OriginCode             `protobuf:"varint,2,opt,name=origin,proto3,enum=opelog.OriginCode" json:"origin,omitempty"`
-	TimeStamp  int64                  `protobuf:"varint,3,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
-	StateIndex int32                  `protobuf:"varint,4,opt,name=state_index,json=stateIndex,proto3" json:"state_index,omitempty"`
-	// comma-separated list algo:hexa-of-checksum
-	Checksums     string `protobuf:"bytes,5,opt,name=checksums,proto3" json:"checksums,omitempty"`
-	Error         string `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Kind      EventCode              `protobuf:"varint,1,opt,name=kind,proto3,enum=opelog.EventCode" json:"kind,omitempty"`
+	TimeStamp int64                  `protobuf:"varint,2,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
+	// negative number means no entry
+	SeNum         int32   `protobuf:"zigzag32,3,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
+	TcsNums       []int32 `protobuf:"zigzag32,4,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
+	Error         string  `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Event) Reset() {
 	*x = Event{}
-	mi := &file_grpc_opelog_proto_msgTypes[2]
+	mi := &file_grpc_opelog_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -373,7 +473,7 @@ func (x *Event) String() string {
 func (*Event) ProtoMessage() {}
 
 func (x *Event) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[2]
+	mi := &file_grpc_opelog_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -386,7 +486,7 @@ func (x *Event) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Event.ProtoReflect.Descriptor instead.
 func (*Event) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{2}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *Event) GetKind() EventCode {
@@ -396,13 +496,6 @@ func (x *Event) GetKind() EventCode {
 	return EventCode_EVT_UNSPECIFIED
 }
 
-func (x *Event) GetOrigin() OriginCode {
-	if x != nil {
-		return x.Origin
-	}
-	return OriginCode_ORI_UNSPECIFIED
-}
-
 func (x *Event) GetTimeStamp() int64 {
 	if x != nil {
 		return x.TimeStamp
@@ -410,91 +503,23 @@ func (x *Event) GetTimeStamp() int64 {
 	return 0
 }
 
-func (x *Event) GetStateIndex() int32 {
+func (x *Event) GetSeNum() int32 {
 	if x != nil {
-		return x.StateIndex
+		return x.SeNum
 	}
 	return 0
 }
 
-func (x *Event) GetChecksums() string {
+func (x *Event) GetTcsNums() []int32 {
 	if x != nil {
-		return x.Checksums
+		return x.TcsNums
 	}
-	return ""
+	return nil
 }
 
 func (x *Event) GetError() string {
 	if x != nil {
 		return x.Error
-	}
-	return ""
-}
-
-type Verification struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TimeStamp     int64                  `protobuf:"varint,1,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
-	WithChecksum  bool                   `protobuf:"varint,2,opt,name=with_checksum,json=withChecksum,proto3" json:"with_checksum,omitempty"`
-	NewStatus     *StoredEntry           `protobuf:"bytes,3,opt,name=new_status,json=newStatus,proto3" json:"new_status,omitempty"`
-	NewChecksums  string                 `protobuf:"bytes,4,opt,name=new_checksums,json=newChecksums,proto3" json:"new_checksums,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Verification) Reset() {
-	*x = Verification{}
-	mi := &file_grpc_opelog_proto_msgTypes[3]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Verification) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Verification) ProtoMessage() {}
-
-func (x *Verification) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[3]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Verification.ProtoReflect.Descriptor instead.
-func (*Verification) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{3}
-}
-
-func (x *Verification) GetTimeStamp() int64 {
-	if x != nil {
-		return x.TimeStamp
-	}
-	return 0
-}
-
-func (x *Verification) GetWithChecksum() bool {
-	if x != nil {
-		return x.WithChecksum
-	}
-	return false
-}
-
-func (x *Verification) GetNewStatus() *StoredEntry {
-	if x != nil {
-		return x.NewStatus
-	}
-	return nil
-}
-
-func (x *Verification) GetNewChecksums() string {
-	if x != nil {
-		return x.NewChecksums
 	}
 	return ""
 }
@@ -552,18 +577,20 @@ func (x *AggInfo) GetSize() int64 {
 }
 
 type ComputedStats struct {
-	state            protoimpl.MessageState `protogen:"open.v1"`
-	TimeStamp        int64                  `protobuf:"varint,1,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
-	SourceListOrStat *AggInfo               `protobuf:"bytes,2,opt,name=source_list_or_stat,json=sourceListOrStat,proto3" json:"source_list_or_stat,omitempty"`
-	TargetListOrStat *AggInfo               `protobuf:"bytes,3,opt,name=target_list_or_stat,json=targetListOrStat,proto3" json:"target_list_or_stat,omitempty"`
-	Read             *AggInfo               `protobuf:"bytes,4,opt,name=read,proto3" json:"read,omitempty"`
-	Create           *AggInfo               `protobuf:"bytes,5,opt,name=create,proto3" json:"create,omitempty"`
-	Update           *AggInfo               `protobuf:"bytes,6,opt,name=update,proto3" json:"update,omitempty"`
-	Remove           *AggInfo               `protobuf:"bytes,7,opt,name=remove,proto3" json:"remove,omitempty"`
-	ModChange        *AggInfo               `protobuf:"bytes,8,opt,name=mod_change,json=modChange,proto3" json:"mod_change,omitempty"`
-	Error            *AggInfo               `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
-	unknownFields    protoimpl.UnknownFields
-	sizeCache        protoimpl.SizeCache
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	TimeStamp int64                  `protobuf:"varint,1,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
+	// list for dirs, stats for others, performed both on source and target
+	SourceListOrStat *AggInfo `protobuf:"bytes,2,opt,name=source_list_or_stat,json=sourceListOrStat,proto3" json:"source_list_or_stat,omitempty"`
+	TargetListOrStat *AggInfo `protobuf:"bytes,3,opt,name=target_list_or_stat,json=targetListOrStat,proto3" json:"target_list_or_stat,omitempty"`
+	// other I/Os specific to source or to target
+	Read          *AggInfo `protobuf:"bytes,4,opt,name=read,proto3" json:"read,omitempty"`
+	Create        *AggInfo `protobuf:"bytes,5,opt,name=create,proto3" json:"create,omitempty"`
+	Update        *AggInfo `protobuf:"bytes,6,opt,name=update,proto3" json:"update,omitempty"`
+	Remove        *AggInfo `protobuf:"bytes,7,opt,name=remove,proto3" json:"remove,omitempty"`
+	MetaChange    *AggInfo `protobuf:"bytes,8,opt,name=meta_change,json=metaChange,proto3" json:"meta_change,omitempty"`
+	Error         *AggInfo `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ComputedStats) Reset() {
@@ -645,9 +672,9 @@ func (x *ComputedStats) GetRemove() *AggInfo {
 	return nil
 }
 
-func (x *ComputedStats) GetModChange() *AggInfo {
+func (x *ComputedStats) GetMetaChange() *AggInfo {
 	if x != nil {
-		return x.ModChange
+		return x.MetaChange
 	}
 	return nil
 }
@@ -660,21 +687,16 @@ func (x *ComputedStats) GetError() *AggInfo {
 }
 
 type LogicalEntry struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	InvState     *StoredEntry           `protobuf:"bytes,11,opt,name=inv_state,json=invState,proto3" json:"inv_state,omitempty"`
-	InvChecksums string                 `protobuf:"bytes,12,opt,name=inv_checksums,json=invChecksums,proto3" json:"inv_checksums,omitempty"`
-	// keeping source and target states out of event saves storage when unchanged
-	SourceStates  []*StoredEntry   `protobuf:"bytes,1,rep,name=source_states,json=sourceStates,proto3" json:"source_states,omitempty"`
-	SourceEvents  []*Event         `protobuf:"bytes,2,rep,name=source_events,json=sourceEvents,proto3" json:"source_events,omitempty"`
-	SourceVerif   *Verification    `protobuf:"bytes,3,opt,name=source_verif,json=sourceVerif,proto3" json:"source_verif,omitempty"`
-	TargetStates  []*StoredEntry   `protobuf:"bytes,4,rep,name=target_states,json=targetStates,proto3" json:"target_states,omitempty"`
-	DepCount      int32            `protobuf:"varint,10,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
-	DirUpdating   bool             `protobuf:"varint,13,opt,name=dir_updating,json=dirUpdating,proto3" json:"dir_updating,omitempty"`
-	DirupState    *StoredEntry     `protobuf:"bytes,5,opt,name=dirup_state,json=dirupState,proto3" json:"dirup_state,omitempty"`
-	DirupChildren []string         `protobuf:"bytes,6,rep,name=dirup_children,json=dirupChildren,proto3" json:"dirup_children,omitempty"`
-	TargetEvents  []*Event         `protobuf:"bytes,7,rep,name=target_events,json=targetEvents,proto3" json:"target_events,omitempty"`
-	TargetVerif   *Verification    `protobuf:"bytes,8,opt,name=target_verif,json=targetVerif,proto3" json:"target_verif,omitempty"`
-	StatsList     []*ComputedStats `protobuf:"bytes,9,rep,name=stats_list,json=statsList,proto3" json:"stats_list,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Checksums and stored entries are shared and referenced by index
+	SharedSes     []*StoredEntry   `protobuf:"bytes,1,rep,name=shared_ses,json=sharedSes,proto3" json:"shared_ses,omitempty"`
+	SharedTcss    []*TypedChecksum `protobuf:"bytes,2,rep,name=shared_tcss,json=sharedTcss,proto3" json:"shared_tcss,omitempty"`
+	SourcePrc     ProcessingCode   `protobuf:"varint,3,opt,name=source_prc,json=sourcePrc,proto3,enum=opelog.ProcessingCode" json:"source_prc,omitempty"`
+	SourceEvents  []*Event         `protobuf:"bytes,4,rep,name=source_events,json=sourceEvents,proto3" json:"source_events,omitempty"`
+	TargetPrc     ProcessingCode   `protobuf:"varint,5,opt,name=target_prc,json=targetPrc,proto3,enum=opelog.ProcessingCode" json:"target_prc,omitempty"`
+	TargetEvents  []*Event         `protobuf:"bytes,6,rep,name=target_events,json=targetEvents,proto3" json:"target_events,omitempty"`
+	DepCount      int32            `protobuf:"varint,7,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
+	StatsList     []*ComputedStats `protobuf:"bytes,8,rep,name=stats_list,json=statsList,proto3" json:"stats_list,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -709,25 +731,25 @@ func (*LogicalEntry) Descriptor() ([]byte, []int) {
 	return file_grpc_opelog_proto_rawDescGZIP(), []int{6}
 }
 
-func (x *LogicalEntry) GetInvState() *StoredEntry {
+func (x *LogicalEntry) GetSharedSes() []*StoredEntry {
 	if x != nil {
-		return x.InvState
+		return x.SharedSes
 	}
 	return nil
 }
 
-func (x *LogicalEntry) GetInvChecksums() string {
+func (x *LogicalEntry) GetSharedTcss() []*TypedChecksum {
 	if x != nil {
-		return x.InvChecksums
-	}
-	return ""
-}
-
-func (x *LogicalEntry) GetSourceStates() []*StoredEntry {
-	if x != nil {
-		return x.SourceStates
+		return x.SharedTcss
 	}
 	return nil
+}
+
+func (x *LogicalEntry) GetSourcePrc() ProcessingCode {
+	if x != nil {
+		return x.SourcePrc
+	}
+	return ProcessingCode_PRC_UNSPECIFIED
 }
 
 func (x *LogicalEntry) GetSourceEvents() []*Event {
@@ -737,46 +759,11 @@ func (x *LogicalEntry) GetSourceEvents() []*Event {
 	return nil
 }
 
-func (x *LogicalEntry) GetSourceVerif() *Verification {
+func (x *LogicalEntry) GetTargetPrc() ProcessingCode {
 	if x != nil {
-		return x.SourceVerif
+		return x.TargetPrc
 	}
-	return nil
-}
-
-func (x *LogicalEntry) GetTargetStates() []*StoredEntry {
-	if x != nil {
-		return x.TargetStates
-	}
-	return nil
-}
-
-func (x *LogicalEntry) GetDepCount() int32 {
-	if x != nil {
-		return x.DepCount
-	}
-	return 0
-}
-
-func (x *LogicalEntry) GetDirUpdating() bool {
-	if x != nil {
-		return x.DirUpdating
-	}
-	return false
-}
-
-func (x *LogicalEntry) GetDirupState() *StoredEntry {
-	if x != nil {
-		return x.DirupState
-	}
-	return nil
-}
-
-func (x *LogicalEntry) GetDirupChildren() []string {
-	if x != nil {
-		return x.DirupChildren
-	}
-	return nil
+	return ProcessingCode_PRC_UNSPECIFIED
 }
 
 func (x *LogicalEntry) GetTargetEvents() []*Event {
@@ -786,11 +773,11 @@ func (x *LogicalEntry) GetTargetEvents() []*Event {
 	return nil
 }
 
-func (x *LogicalEntry) GetTargetVerif() *Verification {
+func (x *LogicalEntry) GetDepCount() int32 {
 	if x != nil {
-		return x.TargetVerif
+		return x.DepCount
 	}
-	return nil
+	return 0
 }
 
 func (x *LogicalEntry) GetStatsList() []*ComputedStats {
@@ -870,43 +857,34 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x06Rights\x12\x12\n" +
 	"\x04read\x18\x01 \x01(\bR\x04read\x12\x14\n" +
 	"\x05write\x18\x02 \x01(\bR\x05write\x12\x18\n" +
-	"\aexecute\x18\x03 \x01(\bR\aexecute\"\xad\x03\n" +
-	"\vStoredEntry\x12\x1d\n" +
-	"\n" +
-	"is_present\x18\x01 \x01(\bR\tisPresent\x12\x15\n" +
-	"\x06is_dir\x18\x02 \x01(\bR\x05isDir\x12\x12\n" +
-	"\x04size\x18\x03 \x01(\x03R\x04size\x12\x14\n" +
-	"\x05mtime\x18\x04 \x01(\x03R\x05mtime\x12\x12\n" +
-	"\x04user\x18\x05 \x01(\x05R\x04user\x12/\n" +
-	"\vuser_rights\x18\x06 \x01(\v2\x0e.opelog.RightsR\n" +
+	"\aexecute\x18\x03 \x01(\bR\aexecute\"\x8e\x03\n" +
+	"\vStoredEntry\x12\x15\n" +
+	"\x06is_dir\x18\x01 \x01(\bR\x05isDir\x12\x12\n" +
+	"\x04size\x18\x02 \x01(\x03R\x04size\x12\x14\n" +
+	"\x05mtime\x18\x03 \x01(\x03R\x05mtime\x12\x12\n" +
+	"\x04user\x18\x04 \x01(\x05R\x04user\x12/\n" +
+	"\vuser_rights\x18\x05 \x01(\v2\x0e.opelog.RightsR\n" +
 	"userRights\x12\x14\n" +
-	"\x05group\x18\a \x01(\x05R\x05group\x121\n" +
-	"\fgroup_rights\x18\b \x01(\v2\x0e.opelog.RightsR\vgroupRights\x121\n" +
-	"\fother_rights\x18\t \x01(\v2\x0e.opelog.RightsR\votherRights\x12\x1e\n" +
-	"\vis_sym_link\x18\n" +
-	" \x01(\bR\tisSymLink\x12&\n" +
-	"\x0fsym_link_target\x18\v \x01(\tR\rsymLinkTarget\x12\x1a\n" +
-	"\bchildren\x18\f \x03(\tR\bchildren\x12\x19\n" +
-	"\badd_meta\x18\r \x01(\fR\aaddMeta\"\xce\x01\n" +
+	"\x05group\x18\x06 \x01(\x05R\x05group\x121\n" +
+	"\fgroup_rights\x18\a \x01(\v2\x0e.opelog.RightsR\vgroupRights\x121\n" +
+	"\fother_rights\x18\b \x01(\v2\x0e.opelog.RightsR\votherRights\x12\x1e\n" +
+	"\vis_sym_link\x18\t \x01(\bR\tisSymLink\x12&\n" +
+	"\x0fsym_link_target\x18\n" +
+	" \x01(\tR\rsymLinkTarget\x12\x1a\n" +
+	"\bchildren\x18\v \x03(\tR\bchildren\x12\x19\n" +
+	"\badd_meta\x18\f \x01(\fR\aaddMeta\"!\n" +
+	"\rTypedChecksum\x12\x10\n" +
+	"\x03tcs\x18\x01 \x01(\fR\x03tcs\"\x95\x01\n" +
 	"\x05Event\x12%\n" +
-	"\x04kind\x18\x01 \x01(\x0e2\x11.opelog.EventCodeR\x04kind\x12*\n" +
-	"\x06origin\x18\x02 \x01(\x0e2\x12.opelog.OriginCodeR\x06origin\x12\x1d\n" +
+	"\x04kind\x18\x01 \x01(\x0e2\x11.opelog.EventCodeR\x04kind\x12\x1d\n" +
 	"\n" +
-	"time_stamp\x18\x03 \x01(\x03R\ttimeStamp\x12\x1f\n" +
-	"\vstate_index\x18\x04 \x01(\x05R\n" +
-	"stateIndex\x12\x1c\n" +
-	"\tchecksums\x18\x05 \x01(\tR\tchecksums\x12\x14\n" +
-	"\x05error\x18\x06 \x01(\tR\x05error\"\xab\x01\n" +
-	"\fVerification\x12\x1d\n" +
-	"\n" +
-	"time_stamp\x18\x01 \x01(\x03R\ttimeStamp\x12#\n" +
-	"\rwith_checksum\x18\x02 \x01(\bR\fwithChecksum\x122\n" +
-	"\n" +
-	"new_status\x18\x03 \x01(\v2\x13.opelog.StoredEntryR\tnewStatus\x12#\n" +
-	"\rnew_checksums\x18\x04 \x01(\tR\fnewChecksums\"5\n" +
+	"time_stamp\x18\x02 \x01(\x03R\ttimeStamp\x12\x15\n" +
+	"\x06se_num\x18\x03 \x01(\x11R\x05seNum\x12\x19\n" +
+	"\btcs_nums\x18\x04 \x03(\x11R\atcsNums\x12\x14\n" +
+	"\x05error\x18\x05 \x01(\tR\x05error\"5\n" +
 	"\aAggInfo\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x12\n" +
-	"\x04size\x18\x02 \x01(\x03R\x04size\"\xa5\x03\n" +
+	"\x04size\x18\x02 \x01(\x03R\x04size\"\xa7\x03\n" +
 	"\rComputedStats\x12\x1d\n" +
 	"\n" +
 	"time_stamp\x18\x01 \x01(\x03R\ttimeStamp\x12>\n" +
@@ -915,27 +893,24 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x04read\x18\x04 \x01(\v2\x0f.opelog.AggInfoR\x04read\x12'\n" +
 	"\x06create\x18\x05 \x01(\v2\x0f.opelog.AggInfoR\x06create\x12'\n" +
 	"\x06update\x18\x06 \x01(\v2\x0f.opelog.AggInfoR\x06update\x12'\n" +
-	"\x06remove\x18\a \x01(\v2\x0f.opelog.AggInfoR\x06remove\x12.\n" +
+	"\x06remove\x18\a \x01(\v2\x0f.opelog.AggInfoR\x06remove\x120\n" +
+	"\vmeta_change\x18\b \x01(\v2\x0f.opelog.AggInfoR\n" +
+	"metaChange\x12%\n" +
+	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xa3\x03\n" +
+	"\fLogicalEntry\x122\n" +
 	"\n" +
-	"mod_change\x18\b \x01(\v2\x0f.opelog.AggInfoR\tmodChange\x12%\n" +
-	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"\x86\x05\n" +
-	"\fLogicalEntry\x120\n" +
-	"\tinv_state\x18\v \x01(\v2\x13.opelog.StoredEntryR\binvState\x12#\n" +
-	"\rinv_checksums\x18\f \x01(\tR\finvChecksums\x128\n" +
-	"\rsource_states\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\fsourceStates\x122\n" +
-	"\rsource_events\x18\x02 \x03(\v2\r.opelog.EventR\fsourceEvents\x127\n" +
-	"\fsource_verif\x18\x03 \x01(\v2\x14.opelog.VerificationR\vsourceVerif\x128\n" +
-	"\rtarget_states\x18\x04 \x03(\v2\x13.opelog.StoredEntryR\ftargetStates\x12\x1b\n" +
-	"\tdep_count\x18\n" +
-	" \x01(\x05R\bdepCount\x12!\n" +
-	"\fdir_updating\x18\r \x01(\bR\vdirUpdating\x124\n" +
-	"\vdirup_state\x18\x05 \x01(\v2\x13.opelog.StoredEntryR\n" +
-	"dirupState\x12%\n" +
-	"\x0edirup_children\x18\x06 \x03(\tR\rdirupChildren\x122\n" +
-	"\rtarget_events\x18\a \x03(\v2\r.opelog.EventR\ftargetEvents\x127\n" +
-	"\ftarget_verif\x18\b \x01(\v2\x14.opelog.VerificationR\vtargetVerif\x124\n" +
+	"shared_ses\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\tsharedSes\x126\n" +
+	"\vshared_tcss\x18\x02 \x03(\v2\x15.opelog.TypedChecksumR\n" +
+	"sharedTcss\x125\n" +
 	"\n" +
-	"stats_list\x18\t \x03(\v2\x15.opelog.ComputedStatsR\tstatsList\"\x80\x02\n" +
+	"source_prc\x18\x03 \x01(\x0e2\x16.opelog.ProcessingCodeR\tsourcePrc\x122\n" +
+	"\rsource_events\x18\x04 \x03(\v2\r.opelog.EventR\fsourceEvents\x125\n" +
+	"\n" +
+	"target_prc\x18\x05 \x01(\x0e2\x16.opelog.ProcessingCodeR\ttargetPrc\x122\n" +
+	"\rtarget_events\x18\x06 \x03(\v2\r.opelog.EventR\ftargetEvents\x12\x1b\n" +
+	"\tdep_count\x18\a \x01(\x05R\bdepCount\x124\n" +
+	"\n" +
+	"stats_list\x18\b \x03(\v2\x15.opelog.ComputedStatsR\tstatsList\"\x80\x02\n" +
 	"\x0eOpeLogAllInOne\x12\x1f\n" +
 	"\vsource_root\x18\x01 \x01(\tR\n" +
 	"sourceRoot\x12\x1f\n" +
@@ -944,27 +919,36 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x0flogical_entries\x18\x03 \x03(\v2*.opelog.OpeLogAllInOne.LogicalEntriesEntryR\x0elogicalEntries\x1aW\n" +
 	"\x13LogicalEntriesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
-	"\x05value\x18\x02 \x01(\v2\x14.opelog.LogicalEntryR\x05value:\x028\x01*\x86\x01\n" +
+	"\x05value\x18\x02 \x01(\v2\x14.opelog.LogicalEntryR\x05value:\x028\x01*q\n" +
+	"\tHalgoCode\x12\x13\n" +
+	"\x0fHAL_UNSPECIFIED\x10\x00\x12\v\n" +
+	"\aHAL_MD5\x10\x01\x12\x0e\n" +
+	"\n" +
+	"HAL_SHA256\x10\x02\x12\x0e\n" +
+	"\n" +
+	"HAL_SHA512\x10\x03\x12\x10\n" +
+	"\fHAL_SHA3_256\x10\x04\x12\x10\n" +
+	"\fHAL_SHA3_512\x10\x05*\xcf\x01\n" +
 	"\tEventCode\x12\x13\n" +
-	"\x0fEVT_UNSPECIFIED\x10\x00\x12\v\n" +
-	"\aEVT_ABS\x10\x01\x12\r\n" +
-	"\tEVT_EXIST\x10\x02\x12\x0e\n" +
+	"\x0fEVT_UNSPECIFIED\x10\x00\x12\x12\n" +
+	"\x0eEVT_INV_LOADED\x10\x01\x12\x0e\n" +
 	"\n" +
-	"EVT_CR_MOD\x10\x03\x12\x10\n" +
-	"\fEVT_ATTS_CHG\x10\x04\x12\x13\n" +
-	"\x0fEVT_START_DIRUP\x10\x05\x12\x11\n" +
-	"\rEVT_END_DIRUP\x10\x06*\x87\x01\n" +
-	"\n" +
-	"OriginCode\x12\x13\n" +
-	"\x0fORI_UNSPECIFIED\x10\x00\x12\f\n" +
-	"\bORI_LIST\x10\x01\x12\f\n" +
-	"\bORI_STAT\x10\x02\x12\f\n" +
-	"\bORI_READ\x10\x03\x12\r\n" +
-	"\tORI_MKDIR\x10\x04\x12\r\n" +
-	"\tORI_WRITE\x10\x05\x12\x10\n" +
-	"\fORI_SET_STAT\x10\x06\x12\n" +
-	"\n" +
-	"\x06ORI_RM\x10\aB\x0eZ\f./opeloggrpcb\x06proto3"
+	"EVT_LOADED\x10\x02\x12\x0f\n" +
+	"\vEVT_CREATED\x10\x03\x12\x0f\n" +
+	"\vEVT_REMOVED\x10\x04\x12\x0f\n" +
+	"\vEVT_UPDATED\x10\x05\x12\x14\n" +
+	"\x10EVT_META_CHANGED\x10\x06\x12\x14\n" +
+	"\x10EVT_VERIF_PASSED\x10\a\x12\x14\n" +
+	"\x10EVT_VERIF_FAILED\x10\b\x12\x14\n" +
+	"\x10EVT_ERROR_RAISED\x10\t*\x8d\x01\n" +
+	"\x0eProcessingCode\x12\x13\n" +
+	"\x0fPRC_UNSPECIFIED\x10\x00\x12\x0f\n" +
+	"\vPRC_LOADING\x10\x01\x12\x10\n" +
+	"\fPRC_CREATING\x10\x02\x12\x10\n" +
+	"\fPRC_REMOVING\x10\x03\x12\x10\n" +
+	"\fPRC_UPDATING\x10\x04\x12\x11\n" +
+	"\rPRC_VERIFYING\x10\x05\x12\f\n" +
+	"\bPRC_NONE\x10\x06B\x0eZ\f./opeloggrpcb\x06proto3"
 
 var (
 	file_grpc_opelog_proto_rawDescOnce sync.Once
@@ -978,52 +962,49 @@ func file_grpc_opelog_proto_rawDescGZIP() []byte {
 	return file_grpc_opelog_proto_rawDescData
 }
 
-var file_grpc_opelog_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_grpc_opelog_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
 var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
 var file_grpc_opelog_proto_goTypes = []any{
-	(EventCode)(0),         // 0: opelog.EventCode
-	(OriginCode)(0),        // 1: opelog.OriginCode
-	(*Rights)(nil),         // 2: opelog.Rights
-	(*StoredEntry)(nil),    // 3: opelog.StoredEntry
-	(*Event)(nil),          // 4: opelog.Event
-	(*Verification)(nil),   // 5: opelog.Verification
-	(*AggInfo)(nil),        // 6: opelog.AggInfo
-	(*ComputedStats)(nil),  // 7: opelog.ComputedStats
-	(*LogicalEntry)(nil),   // 8: opelog.LogicalEntry
-	(*OpeLogAllInOne)(nil), // 9: opelog.OpeLogAllInOne
-	nil,                    // 10: opelog.OpeLogAllInOne.LogicalEntriesEntry
+	(HalgoCode)(0),         // 0: opelog.HalgoCode
+	(EventCode)(0),         // 1: opelog.EventCode
+	(ProcessingCode)(0),    // 2: opelog.ProcessingCode
+	(*Rights)(nil),         // 3: opelog.Rights
+	(*StoredEntry)(nil),    // 4: opelog.StoredEntry
+	(*TypedChecksum)(nil),  // 5: opelog.TypedChecksum
+	(*Event)(nil),          // 6: opelog.Event
+	(*AggInfo)(nil),        // 7: opelog.AggInfo
+	(*ComputedStats)(nil),  // 8: opelog.ComputedStats
+	(*LogicalEntry)(nil),   // 9: opelog.LogicalEntry
+	(*OpeLogAllInOne)(nil), // 10: opelog.OpeLogAllInOne
+	nil,                    // 11: opelog.OpeLogAllInOne.LogicalEntriesEntry
 }
 var file_grpc_opelog_proto_depIdxs = []int32{
-	2,  // 0: opelog.StoredEntry.user_rights:type_name -> opelog.Rights
-	2,  // 1: opelog.StoredEntry.group_rights:type_name -> opelog.Rights
-	2,  // 2: opelog.StoredEntry.other_rights:type_name -> opelog.Rights
-	0,  // 3: opelog.Event.kind:type_name -> opelog.EventCode
-	1,  // 4: opelog.Event.origin:type_name -> opelog.OriginCode
-	3,  // 5: opelog.Verification.new_status:type_name -> opelog.StoredEntry
-	6,  // 6: opelog.ComputedStats.source_list_or_stat:type_name -> opelog.AggInfo
-	6,  // 7: opelog.ComputedStats.target_list_or_stat:type_name -> opelog.AggInfo
-	6,  // 8: opelog.ComputedStats.read:type_name -> opelog.AggInfo
-	6,  // 9: opelog.ComputedStats.create:type_name -> opelog.AggInfo
-	6,  // 10: opelog.ComputedStats.update:type_name -> opelog.AggInfo
-	6,  // 11: opelog.ComputedStats.remove:type_name -> opelog.AggInfo
-	6,  // 12: opelog.ComputedStats.mod_change:type_name -> opelog.AggInfo
-	6,  // 13: opelog.ComputedStats.error:type_name -> opelog.AggInfo
-	3,  // 14: opelog.LogicalEntry.inv_state:type_name -> opelog.StoredEntry
-	3,  // 15: opelog.LogicalEntry.source_states:type_name -> opelog.StoredEntry
-	4,  // 16: opelog.LogicalEntry.source_events:type_name -> opelog.Event
-	5,  // 17: opelog.LogicalEntry.source_verif:type_name -> opelog.Verification
-	3,  // 18: opelog.LogicalEntry.target_states:type_name -> opelog.StoredEntry
-	3,  // 19: opelog.LogicalEntry.dirup_state:type_name -> opelog.StoredEntry
-	4,  // 20: opelog.LogicalEntry.target_events:type_name -> opelog.Event
-	5,  // 21: opelog.LogicalEntry.target_verif:type_name -> opelog.Verification
-	7,  // 22: opelog.LogicalEntry.stats_list:type_name -> opelog.ComputedStats
-	10, // 23: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
-	8,  // 24: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
-	25, // [25:25] is the sub-list for method output_type
-	25, // [25:25] is the sub-list for method input_type
-	25, // [25:25] is the sub-list for extension type_name
-	25, // [25:25] is the sub-list for extension extendee
-	0,  // [0:25] is the sub-list for field type_name
+	3,  // 0: opelog.StoredEntry.user_rights:type_name -> opelog.Rights
+	3,  // 1: opelog.StoredEntry.group_rights:type_name -> opelog.Rights
+	3,  // 2: opelog.StoredEntry.other_rights:type_name -> opelog.Rights
+	1,  // 3: opelog.Event.kind:type_name -> opelog.EventCode
+	7,  // 4: opelog.ComputedStats.source_list_or_stat:type_name -> opelog.AggInfo
+	7,  // 5: opelog.ComputedStats.target_list_or_stat:type_name -> opelog.AggInfo
+	7,  // 6: opelog.ComputedStats.read:type_name -> opelog.AggInfo
+	7,  // 7: opelog.ComputedStats.create:type_name -> opelog.AggInfo
+	7,  // 8: opelog.ComputedStats.update:type_name -> opelog.AggInfo
+	7,  // 9: opelog.ComputedStats.remove:type_name -> opelog.AggInfo
+	7,  // 10: opelog.ComputedStats.meta_change:type_name -> opelog.AggInfo
+	7,  // 11: opelog.ComputedStats.error:type_name -> opelog.AggInfo
+	4,  // 12: opelog.LogicalEntry.shared_ses:type_name -> opelog.StoredEntry
+	5,  // 13: opelog.LogicalEntry.shared_tcss:type_name -> opelog.TypedChecksum
+	2,  // 14: opelog.LogicalEntry.source_prc:type_name -> opelog.ProcessingCode
+	6,  // 15: opelog.LogicalEntry.source_events:type_name -> opelog.Event
+	2,  // 16: opelog.LogicalEntry.target_prc:type_name -> opelog.ProcessingCode
+	6,  // 17: opelog.LogicalEntry.target_events:type_name -> opelog.Event
+	8,  // 18: opelog.LogicalEntry.stats_list:type_name -> opelog.ComputedStats
+	11, // 19: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
+	9,  // 20: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
+	21, // [21:21] is the sub-list for method output_type
+	21, // [21:21] is the sub-list for method input_type
+	21, // [21:21] is the sub-list for extension type_name
+	21, // [21:21] is the sub-list for extension extendee
+	0,  // [0:21] is the sub-list for field type_name
 }
 
 func init() { file_grpc_opelog_proto_init() }
@@ -1036,7 +1017,7 @@ func file_grpc_opelog_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_opelog_proto_rawDesc), len(file_grpc_opelog_proto_rawDesc)),
-			NumEnums:      2,
+			NumEnums:      3,
 			NumMessages:   9,
 			NumExtensions: 0,
 			NumServices:   0,

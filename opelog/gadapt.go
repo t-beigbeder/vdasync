@@ -19,7 +19,6 @@ func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 		return nil
 	}
 	return &StoredEntry{
-		IsPresent:     gse.IsPresent,
 		IsDir:         gse.IsDir,
 		Size:          gse.Size,
 		Mtime:         gse.Mtime,
@@ -51,12 +50,11 @@ func GrpcEvent2Event(ge *opeloggrpc.Event) *Event {
 		return nil
 	}
 	return &Event{
-		Kind:       EventCode(ge.Kind),
-		Origin:     OriginCode(ge.Origin),
-		TimeStamp:  ge.TimeStamp,
-		StateIndex: ge.StateIndex,
-		Checksums:  ge.Checksums,
-		Error:      ge.Error,
+		Kind:      EventCode(ge.Kind),
+		TimeStamp: ge.TimeStamp,
+		SeNum:     ge.SeNum,
+		TcsNums:   slices.Clone(ge.TcsNums),
+		Error:     ge.Error,
 	}
 }
 
@@ -69,18 +67,6 @@ func gevs2evs(gevs []*opeloggrpc.Event) []*Event {
 		evs[i] = GrpcEvent2Event(gev)
 	}
 	return evs
-}
-
-func gvr2vr(gvr *opeloggrpc.Verification) *Verification {
-	if gvr == nil {
-		return nil
-	}
-	return &Verification{
-		TimeStamp:    gvr.TimeStamp,
-		WithChecksum: gvr.WithChecksum,
-		NewStatus:    GrpcStoredEntry2StoredEntry(gvr.NewStatus),
-		NewChecksums: gvr.NewChecksums,
-	}
 }
 
 func gai2ai(gai *opeloggrpc.AggInfo) *AggInfo {
@@ -102,7 +88,7 @@ func GrpcComputedStats2ComputedStats(gcs *opeloggrpc.ComputedStats) *ComputedSta
 		Create:           gai2ai(gcs.Create),
 		Update:           gai2ai(gcs.Update),
 		Remove:           gai2ai(gcs.Remove),
-		ModChange:        gai2ai(gcs.ModChange),
+		MetaChange:       gai2ai(gcs.MetaChange),
 		Error:            gai2ai(gcs.Error),
 	}
 }
@@ -118,24 +104,30 @@ func gcss2css(gcss []*opeloggrpc.ComputedStats) []*ComputedStats {
 	return css
 }
 
+func gtcss2tcss(gtcss []*opeloggrpc.TypedChecksum) []*TypedChecksum {
+	if gtcss == nil {
+		return nil
+	}
+	tcss := make([]*TypedChecksum, len(gtcss))
+	for i, gtcs := range gtcss {
+		tcss[i].Tcs = bytes.Clone(gtcs.Tcs)
+	}
+	return tcss
+}
+
 func GrpcLogicalEntry2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 	if gle == nil {
 		return nil
 	}
 	return &LogicalEntry{
-		InvState:      GrpcStoredEntry2StoredEntry(gle.InvState),
-		InvChecksums:  gle.InvChecksums,
-		SourceStates:  gses2ses(gle.SourceStates),
-		SourceEvents:  gevs2evs(gle.SourceEvents),
-		SourceVerif:   gvr2vr(gle.SourceVerif),
-		TargetStates:  gses2ses(gle.TargetStates),
-		DepCount:      gle.DepCount,
-		DirUpdating:   gle.DirUpdating,
-		DirupState:    GrpcStoredEntry2StoredEntry(gle.DirupState),
-		DirupChildren: slices.Clone(gle.DirupChildren),
-		TargetEvents:  gevs2evs(gle.TargetEvents),
-		TargetVerif:   gvr2vr(gle.TargetVerif),
-		StatsList:     gcss2css(gle.StatsList),
+		SharedSes:    gses2ses(gle.SharedSes),
+		SharedTcss:   gtcss2tcss(gle.SharedTcss),
+		SourcePrc:    ProcessingCode(gle.SourcePrc),
+		SourceEvents: gevs2evs(gle.SourceEvents),
+		TargetPrc:    ProcessingCode(gle.TargetPrc),
+		TargetEvents: gevs2evs(gle.TargetEvents),
+		DepCount:     gle.DepCount,
+		StatsList:    gcss2css(gle.StatsList),
 	}
 }
 
@@ -151,7 +143,6 @@ func StoredEntry2GrpcStoredEntry(se *StoredEntry) *opeloggrpc.StoredEntry {
 		return nil
 	}
 	return &opeloggrpc.StoredEntry{
-		IsPresent:     se.IsPresent,
 		IsDir:         se.IsDir,
 		Size:          se.Size,
 		Mtime:         se.Mtime,
@@ -183,12 +174,11 @@ func Event2GrpcEvent(ev *Event) *opeloggrpc.Event {
 		return nil
 	}
 	return &opeloggrpc.Event{
-		Kind:       opeloggrpc.EventCode(ev.Kind),
-		Origin:     opeloggrpc.OriginCode(ev.Origin),
-		TimeStamp:  ev.TimeStamp,
-		StateIndex: ev.StateIndex,
-		Checksums:  ev.Checksums,
-		Error:      ev.Error,
+		Kind:      opeloggrpc.EventCode(ev.Kind),
+		TimeStamp: ev.TimeStamp,
+		SeNum:     ev.SeNum,
+		TcsNums:   slices.Clone(ev.TcsNums),
+		Error:     ev.Error,
 	}
 }
 
@@ -201,18 +191,6 @@ func evs2gevs(evs []*Event) []*opeloggrpc.Event {
 		gevs[i] = Event2GrpcEvent(ev)
 	}
 	return gevs
-}
-
-func vr2gvr(vr *Verification) *opeloggrpc.Verification {
-	if vr == nil {
-		return nil
-	}
-	return &opeloggrpc.Verification{
-		TimeStamp:    vr.TimeStamp,
-		WithChecksum: vr.WithChecksum,
-		NewStatus:    StoredEntry2GrpcStoredEntry(vr.NewStatus),
-		NewChecksums: vr.NewChecksums,
-	}
 }
 
 func ai2gai(ai *AggInfo) *opeloggrpc.AggInfo {
@@ -234,7 +212,7 @@ func ComputedStats2GrpcComputedStats(cs *ComputedStats) *opeloggrpc.ComputedStat
 		Create:           ai2gai(cs.Create),
 		Update:           ai2gai(cs.Update),
 		Remove:           ai2gai(cs.Remove),
-		ModChange:        ai2gai(cs.ModChange),
+		MetaChange:       ai2gai(cs.MetaChange),
 		Error:            ai2gai(cs.Error),
 	}
 }
@@ -250,23 +228,29 @@ func css2gcss(css []*ComputedStats) []*opeloggrpc.ComputedStats {
 	return gcss
 }
 
+func tcss2gtcss(tcss []*TypedChecksum) []*opeloggrpc.TypedChecksum {
+	if tcss == nil {
+		return nil
+	}
+	gtcss := make([]*opeloggrpc.TypedChecksum, len(tcss))
+	for i, tcs := range tcss {
+		gtcss[i].Tcs = bytes.Clone(tcs.Tcs)
+	}
+	return gtcss
+}
+
 func LogicalEntry2GrpcLogicalEntry(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 	if le == nil {
 		return nil
 	}
 	return &opeloggrpc.LogicalEntry{
-		InvState:      StoredEntry2GrpcStoredEntry(le.InvState),
-		InvChecksums:  le.InvChecksums,
-		SourceStates:  ses2gses(le.SourceStates),
-		SourceEvents:  evs2gevs(le.SourceEvents),
-		SourceVerif:   vr2gvr(le.SourceVerif),
-		TargetStates:  ses2gses(le.TargetStates),
-		DepCount:      le.DepCount,
-		DirUpdating:   le.DirUpdating,
-		DirupState:    StoredEntry2GrpcStoredEntry(le.DirupState),
-		DirupChildren: slices.Clone(le.DirupChildren),
-		TargetEvents:  evs2gevs(le.TargetEvents),
-		TargetVerif:   vr2gvr(le.TargetVerif),
-		StatsList:     css2gcss(le.StatsList),
+		SharedSes:    ses2gses(le.SharedSes),
+		SharedTcss:   tcss2gtcss(le.SharedTcss),
+		SourcePrc:    opeloggrpc.ProcessingCode(le.SourcePrc),
+		SourceEvents: evs2gevs(le.SourceEvents),
+		TargetPrc:    opeloggrpc.ProcessingCode(le.TargetPrc),
+		TargetEvents: evs2gevs(le.TargetEvents),
+		DepCount:     le.DepCount,
+		StatsList:    css2gcss(le.StatsList),
 	}
 }

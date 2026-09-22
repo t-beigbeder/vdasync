@@ -19,37 +19,38 @@ type OpeLogManager interface {
 	Walk(func(relPath string, ole *LogicalEntry) error) error
 }
 
+type HalgoCode opeloggrpc.HalgoCode
+
+const (
+	HAL_UNSPECIFIED           = HalgoCode(opeloggrpc.HalgoCode_HAL_UNSPECIFIED)
+	HAL_MD5                   = HalgoCode(opeloggrpc.HalgoCode_HAL_MD5)
+	HAL_UNSHAL_SHA256PECIFIED = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA256)
+	HAL_SHA512                = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA512)
+	HAL_SHA3_256              = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA3_256)
+	HAL_SHA3_512              = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA3_512)
+)
+
+func (hal HalgoCode) String() string {
+	return opeloggrpc.HalgoCode(hal).String()
+}
+
 type EventCode opeloggrpc.EventCode
 
 const (
-	EVT_UNSPECIFIED = EventCode(opeloggrpc.EventCode_EVT_UNSPECIFIED)
-	EVT_ABS         = EventCode(opeloggrpc.EventCode_EVT_ABS)
-	EVT_EXIST       = EventCode(opeloggrpc.EventCode_EVT_EXIST)
-	EVT_CR_MOD      = EventCode(opeloggrpc.EventCode_EVT_CR_MOD)
-	EVT_ATTS_CHG    = EventCode(opeloggrpc.EventCode_EVT_ATTS_CHG)
-	EVT_START_DIRUP = EventCode(opeloggrpc.EventCode_EVT_START_DIRUP)
-	EVT_END_DIRUP   = EventCode(opeloggrpc.EventCode_EVT_END_DIRUP)
+	EVT_UNSPECIFIED  = EventCode(opeloggrpc.EventCode_EVT_UNSPECIFIED)
+	EVT_INV_LOADED   = EventCode(opeloggrpc.EventCode_EVT_INV_LOADED)
+	EVT_LOADED       = EventCode(opeloggrpc.EventCode_EVT_LOADED)
+	EVT_CREATED      = EventCode(opeloggrpc.EventCode_EVT_CREATED)
+	EVT_REMOVED      = EventCode(opeloggrpc.EventCode_EVT_REMOVED)
+	EVT_UPDATED      = EventCode(opeloggrpc.EventCode_EVT_UPDATED)
+	EVT_META_CHANGED = EventCode(opeloggrpc.EventCode_EVT_META_CHANGED)
+	EVT_VERIF_PASSED = EventCode(opeloggrpc.EventCode_EVT_VERIF_PASSED)
+	EVT_VERIF_FAILED = EventCode(opeloggrpc.EventCode_EVT_VERIF_FAILED)
+	EVT_ERROR_RAISED = EventCode(opeloggrpc.EventCode_EVT_ERROR_RAISED)
 )
 
 func (ec EventCode) String() string {
 	return opeloggrpc.EventCode(ec).String()
-}
-
-type OriginCode opeloggrpc.OriginCode
-
-const (
-	ORI_UNSPECIFIED = OriginCode(opeloggrpc.OriginCode_ORI_UNSPECIFIED)
-	ORI_LIST        = OriginCode(opeloggrpc.OriginCode_ORI_LIST)
-	ORI_STAT        = OriginCode(opeloggrpc.OriginCode_ORI_STAT)
-	ORI_READ        = OriginCode(opeloggrpc.OriginCode_ORI_READ)
-	ORI_MKDIR       = OriginCode(opeloggrpc.OriginCode_ORI_MKDIR)
-	ORI_WRITE       = OriginCode(opeloggrpc.OriginCode_ORI_WRITE)
-	ORI_SET_STAT    = OriginCode(opeloggrpc.OriginCode_ORI_SET_STAT)
-	ORI_RM          = OriginCode(opeloggrpc.OriginCode_ORI_RM)
-)
-
-func (oc OriginCode) String() string {
-	return opeloggrpc.OriginCode(oc).String()
 }
 
 type Rights struct {
@@ -87,7 +88,6 @@ func cmpRights(nrp, orp **Rights) (result bool) {
 }
 
 type StoredEntry struct {
-	IsPresent     bool
 	IsDir         bool
 	Size          int64
 	Mtime         int64
@@ -111,9 +111,6 @@ func (nse *StoredEntry) Equal(ose *StoredEntry) (result bool) {
 		return true
 	}
 	if nse == nil || ose == nil {
-		return
-	}
-	if nse.IsPresent != ose.IsPresent {
 		return
 	}
 	if nse.IsDir != ose.IsDir {
@@ -203,9 +200,8 @@ func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 	}
 }
 
-func (ose *StoredEntry) CreatedFrom() *StoredEntry {
+func (ose *StoredEntry) BckCreatedFrom() *StoredEntry {
 	return &StoredEntry{
-		IsPresent:     ose.IsPresent,
 		IsDir:         ose.IsDir,
 		Size:          ose.Size,
 		Mtime:         time.Now().Unix(),
@@ -214,9 +210,8 @@ func (ose *StoredEntry) CreatedFrom() *StoredEntry {
 	}
 }
 
-func (ose *StoredEntry) CopiedFrom() *StoredEntry {
+func (ose *StoredEntry) BckCopiedFrom() *StoredEntry {
 	return &StoredEntry{
-		IsPresent:     ose.IsPresent,
 		IsDir:         ose.IsDir,
 		Size:          ose.Size,
 		Mtime:         ose.Mtime,
@@ -233,20 +228,11 @@ func (ose *StoredEntry) CopiedFrom() *StoredEntry {
 }
 
 type Event struct {
-	Kind       EventCode
-	Origin     OriginCode
-	TimeStamp  int64
-	StateIndex int32
-	// comma-separated list algo:hexa-of-checksum
-	Checksums string
+	Kind      EventCode
+	TimeStamp int64
+	SeNum     int32
+	TcsNums   []int32
 	Error     string
-}
-
-type Verification struct {
-	TimeStamp    int64
-	WithChecksum bool
-	NewStatus    *StoredEntry
-	NewChecksums string
 }
 
 type AggInfo struct {
@@ -262,25 +248,40 @@ type ComputedStats struct {
 	Create           *AggInfo
 	Update           *AggInfo
 	Remove           *AggInfo
-	ModChange        *AggInfo
+	MetaChange       *AggInfo
 	Error            *AggInfo
 }
 
+type ProcessingCode opeloggrpc.ProcessingCode
+
+const (
+	PRC_UNSPECIFIED = ProcessingCode(opeloggrpc.ProcessingCode_PRC_UNSPECIFIED)
+	PRC_LOADING     = ProcessingCode(opeloggrpc.ProcessingCode_PRC_LOADING)
+	PRC_CREATING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_CREATING)
+	PRC_REMOVING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_REMOVING)
+	PRC_UPDATING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_UPDATING)
+	PRC_VERIFYING   = ProcessingCode(opeloggrpc.ProcessingCode_PRC_VERIFYING)
+	PRC_NONE        = ProcessingCode(opeloggrpc.ProcessingCode_PRC_NONE)
+)
+
+func (prc ProcessingCode) String() string {
+	return opeloggrpc.ProcessingCode(prc).String()
+}
+
+type TypedChecksum struct {
+	// first byte is HalgoCode, checksum comes after
+	Tcs []byte
+}
+
 type LogicalEntry struct {
-	// keeping source and target states out of event saves storage when unchanged
-	InvState      *StoredEntry
-	InvChecksums  string
-	SourceStates  []*StoredEntry
-	SourceEvents  []*Event
-	SourceVerif   *Verification
-	TargetStates  []*StoredEntry
-	DepCount      int32
-	DirUpdating   bool
-	DirupState    *StoredEntry
-	DirupChildren []string // FIXME: needed?
-	TargetEvents  []*Event
-	TargetVerif   *Verification
-	StatsList     []*ComputedStats
+	SharedSes    []*StoredEntry
+	SharedTcss   []*TypedChecksum
+	SourcePrc    ProcessingCode
+	SourceEvents []*Event
+	TargetPrc    ProcessingCode
+	TargetEvents []*Event
+	DepCount     int32
+	StatsList    []*ComputedStats
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total

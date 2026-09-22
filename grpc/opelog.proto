@@ -11,57 +11,55 @@ message Rights {
 }
 
 message StoredEntry {
-    bool is_present = 1;
-    bool is_dir = 2;
-    int64 size = 3;
-    int64 mtime = 4;
-    int32 user = 5;
-    Rights user_rights = 6;
-    int32 group = 7;
-    Rights group_rights = 8;
-    Rights other_rights = 9;
-    bool is_sym_link = 10;
-    string sym_link_target = 11;
-    repeated string children = 12;
-    bytes add_meta = 13;
+    bool is_dir = 1;
+    int64 size = 2;
+    int64 mtime = 3;
+    int32 user = 4;
+    Rights user_rights = 5;
+    int32 group = 6;
+    Rights group_rights = 7;
+    Rights other_rights = 8;
+    bool is_sym_link = 9;
+    string sym_link_target = 10;
+    repeated string children = 11;
+    bytes add_meta = 12;
+}
+
+enum HalgoCode {
+    HAL_UNSPECIFIED = 0;
+    HAL_MD5 = 1;
+    HAL_SHA256 = 2;
+    HAL_SHA512 = 3;
+    HAL_SHA3_256 = 4;
+    HAL_SHA3_512 = 5;
+}
+
+message TypedChecksum {
+    // first byte is HalgoCode, checksum comes after
+    bytes tcs = 1;
 }
 
 enum EventCode {
    EVT_UNSPECIFIED = 0;
-   EVT_ABS = 1;
-   EVT_EXIST = 2;
-   EVT_CR_MOD = 3;
-   EVT_ATTS_CHG = 4;
-   EVT_START_DIRUP = 5;
-   EVT_END_DIRUP = 6;
+   EVT_INV_LOADED = 1;
+   EVT_LOADED = 2;
+   EVT_CREATED = 3;
+   EVT_REMOVED = 4;
+   EVT_UPDATED = 5;
+   EVT_META_CHANGED = 6;
+   EVT_VERIF_PASSED = 7;
+   EVT_VERIF_FAILED = 8;
+   EVT_ERROR_RAISED = 9;
 }
 
-enum OriginCode {
-   ORI_UNSPECIFIED = 0;
-   ORI_LIST = 1;
-   ORI_STAT = 2;
-   ORI_READ = 3;
-   ORI_MKDIR = 4;
-   ORI_WRITE = 5;
-   ORI_SET_STAT = 6;
-   ORI_RM = 7;
-}
 
 message Event {
     EventCode kind = 1;
-    OriginCode origin = 2;
-    int64 time_stamp = 3;
-    int32 state_index = 4;
-    // comma-separated list algo:hexa-of-checksum
-    string checksums = 5;
-    string error = 6;
-}
-
-message Verification {
-    int64 time_stamp = 1;
-    bool with_checksum = 2;
-    StoredEntry new_status = 3;
-    string new_checksums = 4;
+    int64 time_stamp = 2;
+    // negative number means no entry
+    sint32 se_num = 3;
+    repeated sint32 tcs_nums = 4;
+    string error = 5;
 }
 
 message AggInfo {
@@ -71,31 +69,38 @@ message AggInfo {
 
 message ComputedStats {
     int64 time_stamp = 1;
+    // list for dirs, stats for others, performed both on source and target
     AggInfo source_list_or_stat = 2;
     AggInfo target_list_or_stat = 3;
+    // other I/Os specific to source or to target
     AggInfo read = 4;
     AggInfo create = 5;
     AggInfo update = 6;
     AggInfo remove = 7;
-    AggInfo mod_change = 8;
+    AggInfo meta_change = 8;
     AggInfo error = 9;
 }
 
+enum ProcessingCode {
+    PRC_UNSPECIFIED = 0;
+    PRC_LOADING = 1;
+    PRC_CREATING = 2;
+    PRC_REMOVING = 3;
+    PRC_UPDATING = 4;
+    PRC_VERIFYING = 5;
+    PRC_NONE = 6;
+}
+
 message LogicalEntry {
-    StoredEntry inv_state = 11;
-    string inv_checksums = 12;
-    // keeping source and target states out of event saves storage when unchanged
-    repeated StoredEntry source_states = 1;
-    repeated Event source_events = 2;
-    Verification source_verif = 3;
-    repeated StoredEntry target_states = 4;
-    int32 dep_count = 10;
-    bool dir_updating = 13;
-    StoredEntry dirup_state = 5;
-    repeated string dirup_children = 6;
-    repeated Event target_events = 7;
-    Verification target_verif = 8;
-    repeated ComputedStats stats_list = 9;
+    // Checksums and stored entries are shared and referenced by index
+    repeated StoredEntry shared_ses = 1;
+    repeated TypedChecksum shared_tcss = 2;
+    ProcessingCode source_prc = 3;
+    repeated Event source_events = 4;
+    ProcessingCode target_prc = 5;
+    repeated Event target_events = 6;
+    int32 dep_count = 7;
+    repeated ComputedStats stats_list = 8;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total

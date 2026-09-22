@@ -5,13 +5,111 @@ import (
 	"crypto/sha256"
 	"crypto/sha3"
 	"crypto/sha512"
+	"encoding/hex"
 	"fmt"
 	"hash"
 	"io"
 	"os"
 	"slices"
 	"strings"
+
+	"github.com/t-beigbeder/vdasync/opeloggrpc"
 )
+
+type AlgoCode opeloggrpc.HalgoCode
+
+const (
+	HAL_UNSPECIFIED = AlgoCode(opeloggrpc.HalgoCode_HAL_UNSPECIFIED)
+	HAL_MD5         = AlgoCode(opeloggrpc.HalgoCode_HAL_MD5)
+	HAL_SHA256      = AlgoCode(opeloggrpc.HalgoCode_HAL_SHA256)
+	HAL_SHA512      = AlgoCode(opeloggrpc.HalgoCode_HAL_SHA512)
+	HAL_SHA3_256    = AlgoCode(opeloggrpc.HalgoCode_HAL_SHA3_256)
+	HAL_SHA3_512    = AlgoCode(opeloggrpc.HalgoCode_HAL_SHA3_512)
+)
+
+func (ac AlgoCode) String() string {
+	switch ac {
+	case HAL_MD5:
+		return "md5"
+	case HAL_SHA256:
+		return "sha256"
+	case HAL_SHA512:
+		return "sha512"
+	case HAL_SHA3_256:
+		return "sha3_256"
+	case HAL_SHA3_512:
+		return "sha3_512"
+	default:
+		return ""
+	}
+}
+
+func AlgoCodeFor(hName string) AlgoCode {
+	switch hName {
+	case "md5":
+		return HAL_MD5
+	case "sha256":
+		return HAL_SHA256
+	case "sha512":
+		return HAL_SHA512
+	case "sha3_256":
+		return HAL_SHA3_256
+	case "sha3_512":
+		return HAL_SHA3_512
+	default:
+		return HAL_UNSPECIFIED
+	}
+}
+
+func TypedChecksums2Checksums(tcss [][]byte) (string, error) {
+	if len(tcss) == 0 {
+		return "", nil
+	}
+	cs := []string{}
+	for _, tcs := range tcss {
+		if len(tcs) == 0 || AlgoCode(tcs[0]).String() == "" {
+			ac := byte(0)
+			if len(tcs) > 0 {
+				ac = tcs[0]
+			}
+			return "", fmt.Errorf("bad hash algo code %v", ac)
+		}
+		fmt_ := fmt.Sprintf("%%0%dx", len(tcs)-1)
+		cs = append(cs, fmt.Sprintf("%s:%s", AlgoCode(tcs[0]).String(), fmt.Sprintf(fmt_, tcs[1:])))
+	}
+	return strings.Join(cs, ","), nil
+}
+
+func Checksums2TypedChecksums(hcss string) ([][]byte, error) {
+	if hcss == "" {
+		return nil, nil
+	}
+	tcss := [][]byte{}
+	for _, hcs := range strings.Split(hcss, ",") {
+		hcsSl := strings.Split(hcs, ":")
+		if len(hcsSl) != 2 {
+			continue
+		}
+		hName := hcsSl[0]
+		scs := hcsSl[1]
+		h, err := HashFactory(hName)
+		if err != nil {
+			return nil, err
+		}
+		tcs := make([]byte, h.Size()+1)
+		tcs[0] = byte(AlgoCodeFor(hName))
+		bs, err := hex.DecodeString(scs)
+		if err != nil {
+			return nil, err
+		}
+		if len(bs) != h.Size() {
+			return nil, fmt.Errorf("checksum size %d for algo %s (%d)", len(bs), hName, h.Size())
+		}
+		copy(tcs[1:], bs)
+		tcss = append(tcss, tcs)
+	}
+	return tcss, nil
+}
 
 func AddAlgos(algos, added string) string {
 	if added == "" {
@@ -162,12 +260,29 @@ func FileChecksum(path_ string, algos string) (string, error) {
 type ChecksumsReader interface {
 	io.Reader
 	Checksums() string
+	// first byte is AlgoCode, checksum comes after
+	TypedChecksums() [][]byte
 }
 
 type cssReader struct {
 	rdr    io.Reader
 	algoss []string
 	hs     []hash.Hash
+}
+
+// TypedChecksums implements [ChecksumsReader].
+func (cssr *cssReader) TypedChecksums() [][]byte {
+	if len(cssr.algoss) == 0 {
+		return nil
+	}
+	tcss := [][]byte{}
+	for ix, h := range cssr.hs {
+		tcs := make([]byte, h.Size()+1)
+		tcs[0] = byte(AlgoCodeFor(cssr.algoss[ix]))
+		copy(tcs[1:], h.Sum(nil))
+		tcss = append(tcss, tcs)
+	}
+	return tcss
 }
 
 // Checksums implements [ChecksumsReader].
