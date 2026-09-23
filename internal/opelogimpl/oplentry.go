@@ -87,29 +87,32 @@ func (ose *oplStoredEntry) events() (evs *[]*opelog.Event) {
 	return
 }
 
-func (ose *oplStoredEntry) currentEvent() *opelog.Event {
-	evs := ose.events()
-	if len(*evs) == 0 {
-		return nil
-	}
-	return (*evs)[len(*evs)-1]
+func (ose *oplStoredEntry) bckCurrentEvent() *opelog.Event { //FIXME
+	return nil
+	// evs := ose.events()
+	// if len(*evs) == 0 {
+	// 	return nil
+	// }
+	// return (*evs)[len(*evs)-1]
 }
 
-func (ose *oplStoredEntry) states() (sts *[]*opelog.StoredEntry) {
-	if ose.isTarget {
-		sts = &ose.le.TargetStates
-	} else {
-		sts = &ose.le.SourceStates
-	}
-	return
+func (ose *oplStoredEntry) bckStates() (sts *[]*opelog.StoredEntry) { //FIXME
+	return nil
+	// if ose.isTarget {
+	// 	sts = &ose.le.TargetStates
+	// } else {
+	// 	sts = &ose.le.SourceStates
+	// }
+	// return
 }
 
-func (ose *oplStoredEntry) currentState() *opelog.StoredEntry {
-	sts := ose.states()
-	if len(*sts) == 0 {
-		return nil
-	}
-	return (*sts)[len(*sts)-1]
+func (ose *oplStoredEntry) bckCurrentState() *opelog.StoredEntry { //FIXME
+	return nil
+	// sts := ose.states()
+	// if len(*sts) == 0 {
+	// 	return nil
+	// }
+	// return (*sts)[len(*sts)-1]
 }
 
 func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {

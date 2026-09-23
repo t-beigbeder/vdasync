@@ -1,7 +1,6 @@
 package opelog
 
 import (
-	"bufio"
 	"bytes"
 	"slices"
 	"time"
@@ -18,40 +17,6 @@ type OpeLogManager interface {
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
 	Walk(func(relPath string, ole *LogicalEntry) error) error
-}
-
-type HalgoCode opeloggrpc.HalgoCode
-
-const (
-	HAL_UNSPECIFIED           = HalgoCode(opeloggrpc.HalgoCode_HAL_UNSPECIFIED)
-	HAL_MD5                   = HalgoCode(opeloggrpc.HalgoCode_HAL_MD5)
-	HAL_UNSHAL_SHA256PECIFIED = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA256)
-	HAL_SHA512                = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA512)
-	HAL_SHA3_256              = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA3_256)
-	HAL_SHA3_512              = HalgoCode(opeloggrpc.HalgoCode_HAL_SHA3_512)
-)
-
-func (hal HalgoCode) String() string {
-	return opeloggrpc.HalgoCode(hal).String()
-}
-
-type EventCode opeloggrpc.EventCode
-
-const (
-	EVT_UNSPECIFIED  = EventCode(opeloggrpc.EventCode_EVT_UNSPECIFIED)
-	EVT_INV_LOADED   = EventCode(opeloggrpc.EventCode_EVT_INV_LOADED)
-	EVT_LOADED       = EventCode(opeloggrpc.EventCode_EVT_LOADED)
-	EVT_CREATED      = EventCode(opeloggrpc.EventCode_EVT_CREATED)
-	EVT_REMOVED      = EventCode(opeloggrpc.EventCode_EVT_REMOVED)
-	EVT_UPDATED      = EventCode(opeloggrpc.EventCode_EVT_UPDATED)
-	EVT_META_CHANGED = EventCode(opeloggrpc.EventCode_EVT_META_CHANGED)
-	EVT_VERIF_PASSED = EventCode(opeloggrpc.EventCode_EVT_VERIF_PASSED)
-	EVT_VERIF_FAILED = EventCode(opeloggrpc.EventCode_EVT_VERIF_FAILED)
-	EVT_ERROR_RAISED = EventCode(opeloggrpc.EventCode_EVT_ERROR_RAISED)
-)
-
-func (ec EventCode) String() string {
-	return opeloggrpc.EventCode(ec).String()
 }
 
 type Rights struct {
@@ -201,7 +166,7 @@ func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 	}
 }
 
-func (ose *StoredEntry) BckCreatedFrom() *StoredEntry {
+func (ose *StoredEntry) BckCreatedFrom() *StoredEntry { //FIXME
 	return &StoredEntry{
 		IsDir:         ose.IsDir,
 		Size:          ose.Size,
@@ -211,7 +176,7 @@ func (ose *StoredEntry) BckCreatedFrom() *StoredEntry {
 	}
 }
 
-func (ose *StoredEntry) BckCopiedFrom() *StoredEntry {
+func (ose *StoredEntry) BckCopiedFrom() *StoredEntry { //FIXME
 	return &StoredEntry{
 		IsDir:         ose.IsDir,
 		Size:          ose.Size,
@@ -226,6 +191,25 @@ func (ose *StoredEntry) BckCopiedFrom() *StoredEntry {
 		Children:      slices.Clone(ose.Children),
 		AddMeta:       bytes.Clone(ose.AddMeta),
 	}
+}
+
+type EventCode opeloggrpc.EventCode
+
+const (
+	EVT_UNSPECIFIED  = EventCode(opeloggrpc.EventCode_EVT_UNSPECIFIED)
+	EVT_INV_LOADED   = EventCode(opeloggrpc.EventCode_EVT_INV_LOADED)
+	EVT_LOADED       = EventCode(opeloggrpc.EventCode_EVT_LOADED)
+	EVT_CREATED      = EventCode(opeloggrpc.EventCode_EVT_CREATED)
+	EVT_REMOVED      = EventCode(opeloggrpc.EventCode_EVT_REMOVED)
+	EVT_UPDATED      = EventCode(opeloggrpc.EventCode_EVT_UPDATED)
+	EVT_META_CHANGED = EventCode(opeloggrpc.EventCode_EVT_META_CHANGED)
+	EVT_VERIF_PASSED = EventCode(opeloggrpc.EventCode_EVT_VERIF_PASSED)
+	EVT_VERIF_FAILED = EventCode(opeloggrpc.EventCode_EVT_VERIF_FAILED)
+	EVT_ERROR_RAISED = EventCode(opeloggrpc.EventCode_EVT_ERROR_RAISED)
+)
+
+func (ec EventCode) String() string {
+	return opeloggrpc.EventCode(ec).String()
 }
 
 type Event struct {
