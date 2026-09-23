@@ -88,7 +88,8 @@ enum ProcessingCode {
     PRC_REMOVING = 3;
     PRC_UPDATING = 4;
     PRC_VERIFYING = 5;
-    PRC_NONE = 6;
+    PRC_PRESENT = 6;
+    PRC_ABSENT = 7;
 }
 
 message LogicalEntry {

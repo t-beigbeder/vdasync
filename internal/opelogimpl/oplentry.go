@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"log/slog"
 	"path"
+	"slices"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/opelog"
@@ -72,6 +73,13 @@ func (ose *oplStoredEntry) fullPath() string {
 	return path.Join(ose.root(), ose.relPath)
 }
 
+func (ose *oplStoredEntry) prc() *opelog.ProcessingCode {
+	if ose.isTarget {
+		return &ose.le.TargetPrc
+	}
+	return &ose.le.SourcePrc
+}
+
 func (ose *oplStoredEntry) events() (evs *[]*opelog.Event) {
 	if ose.isTarget {
 		if ose.le.TargetEvents == nil {
@@ -87,32 +95,30 @@ func (ose *oplStoredEntry) events() (evs *[]*opelog.Event) {
 	return
 }
 
-func (ose *oplStoredEntry) bckCurrentEvent() *opelog.Event { //FIXME
-	return nil
-	// evs := ose.events()
-	// if len(*evs) == 0 {
-	// 	return nil
-	// }
-	// return (*evs)[len(*evs)-1]
+func (ose *oplStoredEntry) lastInvEvent() (*opelog.Event, *opelog.StoredEntry) {
+	for _, ev := range slices.Backward(*ose.events()) {
+		if ev.Kind != opelog.EVT_INV_LOADED {
+			continue
+		}
+		if ev.SeNum < 0 {
+			return ev, nil
+		}
+		return ev, ose.le.SharedSes[ev.SeNum]
+	}
+	return nil, nil
 }
 
-func (ose *oplStoredEntry) bckStates() (sts *[]*opelog.StoredEntry) { //FIXME
-	return nil
-	// if ose.isTarget {
-	// 	sts = &ose.le.TargetStates
-	// } else {
-	// 	sts = &ose.le.SourceStates
-	// }
-	// return
-}
-
-func (ose *oplStoredEntry) bckCurrentState() *opelog.StoredEntry { //FIXME
-	return nil
-	// sts := ose.states()
-	// if len(*sts) == 0 {
-	// 	return nil
-	// }
-	// return (*sts)[len(*sts)-1]
+func (ose *oplStoredEntry) lastStateEvent() (*opelog.Event, *opelog.StoredEntry) {
+	for _, ev := range slices.Backward(*ose.events()) {
+		if !ev.HasState() {
+			continue
+		}
+		if ev.SeNum < 0 {
+			return ev, nil
+		}
+		return ev, ose.le.SharedSes[ev.SeNum]
+	}
+	return nil, nil
 }
 
 func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {

@@ -166,33 +166,6 @@ func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 	}
 }
 
-func (ose *StoredEntry) BckCreatedFrom() *StoredEntry { //FIXME
-	return &StoredEntry{
-		IsDir:         ose.IsDir,
-		Size:          ose.Size,
-		Mtime:         time.Now().Unix(),
-		IsSymLink:     ose.IsSymLink,
-		SymLinkTarget: ose.SymLinkTarget,
-	}
-}
-
-func (ose *StoredEntry) BckCopiedFrom() *StoredEntry { //FIXME
-	return &StoredEntry{
-		IsDir:         ose.IsDir,
-		Size:          ose.Size,
-		Mtime:         ose.Mtime,
-		User:          ose.User,
-		UserRights:    ose.UserRights.Clone(),
-		Group:         ose.Group,
-		GroupRights:   ose.GroupRights.Clone(),
-		OtherRights:   ose.OtherRights.Clone(),
-		IsSymLink:     ose.IsSymLink,
-		SymLinkTarget: ose.SymLinkTarget,
-		Children:      slices.Clone(ose.Children),
-		AddMeta:       bytes.Clone(ose.AddMeta),
-	}
-}
-
 type EventCode opeloggrpc.EventCode
 
 const (
@@ -218,6 +191,23 @@ type Event struct {
 	SeNum     int32
 	TcsNums   []int32
 	Error     string
+}
+
+func (ev *Event) HasState() bool {
+	switch ev.Kind {
+	case EVT_LOADED:
+		return true
+	case EVT_CREATED:
+		return true
+	case EVT_REMOVED:
+		return true
+	case EVT_UPDATED:
+		return true
+	case EVT_META_CHANGED:
+		return true
+	default:
+		return false
+	}
 }
 
 type AggInfo struct {
@@ -246,7 +236,8 @@ const (
 	PRC_REMOVING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_REMOVING)
 	PRC_UPDATING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_UPDATING)
 	PRC_VERIFYING   = ProcessingCode(opeloggrpc.ProcessingCode_PRC_VERIFYING)
-	PRC_NONE        = ProcessingCode(opeloggrpc.ProcessingCode_PRC_NONE)
+	PRC_PRESENT     = ProcessingCode(opeloggrpc.ProcessingCode_PRC_PRESENT)
+	PRC_ABSENT      = ProcessingCode(opeloggrpc.ProcessingCode_PRC_ABSENT)
 )
 
 func (prc ProcessingCode) String() string {
@@ -293,6 +284,28 @@ func (le *LogicalEntry) AddOrShareTcs(tcs []byte) int32 {
 	}
 	le.SharedTcss = append(le.SharedTcss, &TypedChecksum{Tcs: bytes.Clone(tcs)})
 	return int32(len(le.SharedTcss) - 1)
+}
+
+func (le *LogicalEntry) GetTcssFor(ev *Event) [][]byte {
+	if len(ev.TcsNums) == 0 {
+		return nil
+	}
+	tcss := make([][]byte, len(ev.TcsNums))
+	for i := range ev.TcsNums {
+		tcss[i] = bytes.Clone(le.SharedTcss[i].Tcs)
+	}
+	return tcss
+}
+
+func (le *LogicalEntry) AddOrShareTcss(tcss [][]byte) []int32 {
+	if tcss == nil {
+		return nil
+	}
+	tcssNums := make([]int32, len(tcss))
+	for i := range len(tcss) {
+		tcssNums[i] = le.AddOrShareTcs(tcss[i])
+	}
+	return tcssNums
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total

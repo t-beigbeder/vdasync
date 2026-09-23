@@ -104,10 +104,10 @@ func (ole *oplLogicalEntry) computeNext() error {
 
 func (ole *oplLogicalEntry) load() error {
 	ole.detail("load: start")
-	if err := ole.source().load(); err != nil {
+	if err := ole.source().seLoad(); err != nil {
 		return err
 	}
-	if err := ole.target().load(); err != nil {
+	if err := ole.target().seLoad(); err != nil {
 		return err
 	}
 	if err := ole.source().checkInventory(); err != nil {
@@ -122,7 +122,7 @@ func (ole *oplLogicalEntry) create() error {
 	if !ole.source().isPresent() || !ole.target().isAbsent() {
 		return nil
 	}
-	return ole.target().create()
+	return ole.target().seCreate()
 }
 
 func (ole *oplLogicalEntry) process() error {

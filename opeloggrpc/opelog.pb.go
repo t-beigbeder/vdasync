@@ -158,7 +158,8 @@ const (
 	ProcessingCode_PRC_REMOVING    ProcessingCode = 3
 	ProcessingCode_PRC_UPDATING    ProcessingCode = 4
 	ProcessingCode_PRC_VERIFYING   ProcessingCode = 5
-	ProcessingCode_PRC_NONE        ProcessingCode = 6
+	ProcessingCode_PRC_PRESENT     ProcessingCode = 6
+	ProcessingCode_PRC_ABSENT      ProcessingCode = 7
 )
 
 // Enum value maps for ProcessingCode.
@@ -170,7 +171,8 @@ var (
 		3: "PRC_REMOVING",
 		4: "PRC_UPDATING",
 		5: "PRC_VERIFYING",
-		6: "PRC_NONE",
+		6: "PRC_PRESENT",
+		7: "PRC_ABSENT",
 	}
 	ProcessingCode_value = map[string]int32{
 		"PRC_UNSPECIFIED": 0,
@@ -179,7 +181,8 @@ var (
 		"PRC_REMOVING":    3,
 		"PRC_UPDATING":    4,
 		"PRC_VERIFYING":   5,
-		"PRC_NONE":        6,
+		"PRC_PRESENT":     6,
+		"PRC_ABSENT":      7,
 	}
 )
 
@@ -940,15 +943,17 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x10EVT_META_CHANGED\x10\x06\x12\x14\n" +
 	"\x10EVT_VERIF_PASSED\x10\a\x12\x14\n" +
 	"\x10EVT_VERIF_FAILED\x10\b\x12\x14\n" +
-	"\x10EVT_ERROR_RAISED\x10\t*\x8d\x01\n" +
+	"\x10EVT_ERROR_RAISED\x10\t*\xa0\x01\n" +
 	"\x0eProcessingCode\x12\x13\n" +
 	"\x0fPRC_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vPRC_LOADING\x10\x01\x12\x10\n" +
 	"\fPRC_CREATING\x10\x02\x12\x10\n" +
 	"\fPRC_REMOVING\x10\x03\x12\x10\n" +
 	"\fPRC_UPDATING\x10\x04\x12\x11\n" +
-	"\rPRC_VERIFYING\x10\x05\x12\f\n" +
-	"\bPRC_NONE\x10\x06B\x0eZ\f./opeloggrpcb\x06proto3"
+	"\rPRC_VERIFYING\x10\x05\x12\x0f\n" +
+	"\vPRC_PRESENT\x10\x06\x12\x0e\n" +
+	"\n" +
+	"PRC_ABSENT\x10\aB\x0eZ\f./opeloggrpcb\x06proto3"
 
 var (
 	file_grpc_opelog_proto_rawDescOnce sync.Once

@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
@@ -69,9 +71,26 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, csvPath string, algos string)
 			}
 			sCss = append(sCss, fmt.Sprintf("%s:%s", sAlgos[i], cCols[ix]))
 		}
-		le := &opelog.LogicalEntry{
-			InvChecksums: strings.Join(sCss, ","),
+		le, err := oplm.GetLogicalEntry(relPath)
+		if err != nil {
+			return err
 		}
+		if le == nil {
+			le = &opelog.LogicalEntry{}
+		}
+		seNum := le.AddOrShareSe(&opelog.StoredEntry{})
+		tcss, err := common.Checksums2TypedChecksums(strings.Join(sCss, ","))
+		if err != nil {
+			return err
+		}
+		var tcsNums []int32
+		for _, tcs := range tcss {
+			tcsNums = append(tcsNums, le.AddOrShareTcs(tcs))
+		}
+		le.SourceEvents = append(le.SourceEvents,
+			&opelog.Event{
+				Kind: opelog.EVT_INV_LOADED, TimeStamp: time.Now().Unix(),
+				SeNum: seNum, TcsNums: tcsNums})
 		if err = oplm.PutLogicalEntry(relPath, le); err != nil {
 			return err
 		}
