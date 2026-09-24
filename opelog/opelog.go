@@ -3,7 +3,6 @@ package opelog
 import (
 	"bytes"
 	"slices"
-	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/opeloggrpc"
@@ -169,16 +168,17 @@ func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 type EventCode opeloggrpc.EventCode
 
 const (
-	EVT_UNSPECIFIED  = EventCode(opeloggrpc.EventCode_EVT_UNSPECIFIED)
-	EVT_INV_LOADED   = EventCode(opeloggrpc.EventCode_EVT_INV_LOADED)
-	EVT_LOADED       = EventCode(opeloggrpc.EventCode_EVT_LOADED)
-	EVT_CREATED      = EventCode(opeloggrpc.EventCode_EVT_CREATED)
-	EVT_REMOVED      = EventCode(opeloggrpc.EventCode_EVT_REMOVED)
-	EVT_UPDATED      = EventCode(opeloggrpc.EventCode_EVT_UPDATED)
-	EVT_META_CHANGED = EventCode(opeloggrpc.EventCode_EVT_META_CHANGED)
-	EVT_VERIF_PASSED = EventCode(opeloggrpc.EventCode_EVT_VERIF_PASSED)
-	EVT_VERIF_FAILED = EventCode(opeloggrpc.EventCode_EVT_VERIF_FAILED)
-	EVT_ERROR_RAISED = EventCode(opeloggrpc.EventCode_EVT_ERROR_RAISED)
+	EVT_UNSPECIFIED      = EventCode(opeloggrpc.EventCode_EVT_UNSPECIFIED)
+	EVT_INV_LOADED       = EventCode(opeloggrpc.EventCode_EVT_INV_LOADED)
+	EVT_LOADED           = EventCode(opeloggrpc.EventCode_EVT_LOADED)
+	EVT_CREATED          = EventCode(opeloggrpc.EventCode_EVT_CREATED)
+	EVT_REMOVED          = EventCode(opeloggrpc.EventCode_EVT_REMOVED)
+	EVT_UPDATED          = EventCode(opeloggrpc.EventCode_EVT_UPDATED)
+	EVT_META_CHANGED     = EventCode(opeloggrpc.EventCode_EVT_META_CHANGED)
+	EVT_VERIF_PASSED     = EventCode(opeloggrpc.EventCode_EVT_VERIF_PASSED)
+	EVT_VERIF_FAILED     = EventCode(opeloggrpc.EventCode_EVT_VERIF_FAILED)
+	EVT_STE_ERR_RAISED   = EventCode(opeloggrpc.EventCode_EVT_STE_ERR_RAISED)
+	EVT_OTHER_ERR_RAISED = EventCode(opeloggrpc.EventCode_EVT_OTHER_ERR_RAISED)
 )
 
 func (ec EventCode) String() string {
@@ -188,9 +188,11 @@ func (ec EventCode) String() string {
 type Event struct {
 	Kind      EventCode
 	TimeStamp int64
-	SeNum     int32
-	TcsNums   []int32
-	Error     string
+	// this should refer to a timestamped_action
+	VerifiedOn int64
+	SeNum      int32
+	TcsNums    []int32
+	Error      string
 }
 
 func (ev *Event) HasState() bool {
@@ -314,4 +316,6 @@ type OpeLogAllInOne struct {
 	TargetRoot string
 	// the key is the relative path
 	LogicalEntries map[string]*LogicalEntry
+	// the key is a label that may be used to reference existing actions
+	TimestampedActions map[string]int64
 }

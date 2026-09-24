@@ -69,7 +69,9 @@ func (ole *oplLogicalEntry) computeNext() error {
 	if !ole.source().isKnown() || !ole.target().isKnown() || ole.le.DepCount != 0 {
 		return nil
 	}
-	if ole.le.DirUpdating {
+	// source is dir and creating/updating target has all its children done
+	
+	if *ole.source().prc() == 0 {
 		ole.le.DirUpdating = false
 		if err := ole.copyStat(); err != nil {
 			return nil

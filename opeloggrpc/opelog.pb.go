@@ -82,43 +82,46 @@ func (HalgoCode) EnumDescriptor() ([]byte, []int) {
 type EventCode int32
 
 const (
-	EventCode_EVT_UNSPECIFIED  EventCode = 0
-	EventCode_EVT_INV_LOADED   EventCode = 1
-	EventCode_EVT_LOADED       EventCode = 2
-	EventCode_EVT_CREATED      EventCode = 3
-	EventCode_EVT_REMOVED      EventCode = 4
-	EventCode_EVT_UPDATED      EventCode = 5
-	EventCode_EVT_META_CHANGED EventCode = 6
-	EventCode_EVT_VERIF_PASSED EventCode = 7
-	EventCode_EVT_VERIF_FAILED EventCode = 8
-	EventCode_EVT_ERROR_RAISED EventCode = 9
+	EventCode_EVT_UNSPECIFIED      EventCode = 0
+	EventCode_EVT_INV_LOADED       EventCode = 1
+	EventCode_EVT_LOADED           EventCode = 2
+	EventCode_EVT_CREATED          EventCode = 3
+	EventCode_EVT_REMOVED          EventCode = 4
+	EventCode_EVT_UPDATED          EventCode = 5
+	EventCode_EVT_META_CHANGED     EventCode = 6
+	EventCode_EVT_VERIF_PASSED     EventCode = 7
+	EventCode_EVT_VERIF_FAILED     EventCode = 8
+	EventCode_EVT_STE_ERR_RAISED   EventCode = 9
+	EventCode_EVT_OTHER_ERR_RAISED EventCode = 10
 )
 
 // Enum value maps for EventCode.
 var (
 	EventCode_name = map[int32]string{
-		0: "EVT_UNSPECIFIED",
-		1: "EVT_INV_LOADED",
-		2: "EVT_LOADED",
-		3: "EVT_CREATED",
-		4: "EVT_REMOVED",
-		5: "EVT_UPDATED",
-		6: "EVT_META_CHANGED",
-		7: "EVT_VERIF_PASSED",
-		8: "EVT_VERIF_FAILED",
-		9: "EVT_ERROR_RAISED",
+		0:  "EVT_UNSPECIFIED",
+		1:  "EVT_INV_LOADED",
+		2:  "EVT_LOADED",
+		3:  "EVT_CREATED",
+		4:  "EVT_REMOVED",
+		5:  "EVT_UPDATED",
+		6:  "EVT_META_CHANGED",
+		7:  "EVT_VERIF_PASSED",
+		8:  "EVT_VERIF_FAILED",
+		9:  "EVT_STE_ERR_RAISED",
+		10: "EVT_OTHER_ERR_RAISED",
 	}
 	EventCode_value = map[string]int32{
-		"EVT_UNSPECIFIED":  0,
-		"EVT_INV_LOADED":   1,
-		"EVT_LOADED":       2,
-		"EVT_CREATED":      3,
-		"EVT_REMOVED":      4,
-		"EVT_UPDATED":      5,
-		"EVT_META_CHANGED": 6,
-		"EVT_VERIF_PASSED": 7,
-		"EVT_VERIF_FAILED": 8,
-		"EVT_ERROR_RAISED": 9,
+		"EVT_UNSPECIFIED":      0,
+		"EVT_INV_LOADED":       1,
+		"EVT_LOADED":           2,
+		"EVT_CREATED":          3,
+		"EVT_REMOVED":          4,
+		"EVT_UPDATED":          5,
+		"EVT_META_CHANGED":     6,
+		"EVT_VERIF_PASSED":     7,
+		"EVT_VERIF_FAILED":     8,
+		"EVT_STE_ERR_RAISED":   9,
+		"EVT_OTHER_ERR_RAISED": 10,
 	}
 )
 
@@ -454,10 +457,12 @@ type Event struct {
 	state     protoimpl.MessageState `protogen:"open.v1"`
 	Kind      EventCode              `protobuf:"varint,1,opt,name=kind,proto3,enum=opelog.EventCode" json:"kind,omitempty"`
 	TimeStamp int64                  `protobuf:"varint,2,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
+	// this should refer to a timestamped_action
+	VerifiedOn int64 `protobuf:"varint,3,opt,name=verified_on,json=verifiedOn,proto3" json:"verified_on,omitempty"`
 	// negative number means no entry
-	SeNum         int32   `protobuf:"zigzag32,3,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
-	TcsNums       []int32 `protobuf:"zigzag32,4,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
-	Error         string  `protobuf:"bytes,5,opt,name=error,proto3" json:"error,omitempty"`
+	SeNum         int32   `protobuf:"zigzag32,4,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
+	TcsNums       []int32 `protobuf:"zigzag32,5,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
+	Error         string  `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -502,6 +507,13 @@ func (x *Event) GetKind() EventCode {
 func (x *Event) GetTimeStamp() int64 {
 	if x != nil {
 		return x.TimeStamp
+	}
+	return 0
+}
+
+func (x *Event) GetVerifiedOn() int64 {
+	if x != nil {
+		return x.VerifiedOn
 	}
 	return 0
 }
@@ -797,8 +809,10 @@ type OpeLogAllInOne struct {
 	TargetRoot string                 `protobuf:"bytes,2,opt,name=target_root,json=targetRoot,proto3" json:"target_root,omitempty"`
 	// the key is the relative path
 	LogicalEntries map[string]*LogicalEntry `protobuf:"bytes,3,rep,name=logical_entries,json=logicalEntries,proto3" json:"logical_entries,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// the key is a label that may be used to reference existing actions
+	TimestampedActions map[string]int64 `protobuf:"bytes,4,rep,name=timestamped_actions,json=timestampedActions,proto3" json:"timestamped_actions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *OpeLogAllInOne) Reset() {
@@ -852,6 +866,13 @@ func (x *OpeLogAllInOne) GetLogicalEntries() map[string]*LogicalEntry {
 	return nil
 }
 
+func (x *OpeLogAllInOne) GetTimestampedActions() map[string]int64 {
+	if x != nil {
+		return x.TimestampedActions
+	}
+	return nil
+}
+
 var File_grpc_opelog_proto protoreflect.FileDescriptor
 
 const file_grpc_opelog_proto_rawDesc = "" +
@@ -877,14 +898,16 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\bchildren\x18\v \x03(\tR\bchildren\x12\x19\n" +
 	"\badd_meta\x18\f \x01(\fR\aaddMeta\"!\n" +
 	"\rTypedChecksum\x12\x10\n" +
-	"\x03tcs\x18\x01 \x01(\fR\x03tcs\"\x95\x01\n" +
+	"\x03tcs\x18\x01 \x01(\fR\x03tcs\"\xb6\x01\n" +
 	"\x05Event\x12%\n" +
 	"\x04kind\x18\x01 \x01(\x0e2\x11.opelog.EventCodeR\x04kind\x12\x1d\n" +
 	"\n" +
-	"time_stamp\x18\x02 \x01(\x03R\ttimeStamp\x12\x15\n" +
-	"\x06se_num\x18\x03 \x01(\x11R\x05seNum\x12\x19\n" +
-	"\btcs_nums\x18\x04 \x03(\x11R\atcsNums\x12\x14\n" +
-	"\x05error\x18\x05 \x01(\tR\x05error\"5\n" +
+	"time_stamp\x18\x02 \x01(\x03R\ttimeStamp\x12\x1f\n" +
+	"\vverified_on\x18\x03 \x01(\x03R\n" +
+	"verifiedOn\x12\x15\n" +
+	"\x06se_num\x18\x04 \x01(\x11R\x05seNum\x12\x19\n" +
+	"\btcs_nums\x18\x05 \x03(\x11R\atcsNums\x12\x14\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error\"5\n" +
 	"\aAggInfo\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x12\n" +
 	"\x04size\x18\x02 \x01(\x03R\x04size\"\xa7\x03\n" +
@@ -913,16 +936,20 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\rtarget_events\x18\x06 \x03(\v2\r.opelog.EventR\ftargetEvents\x12\x1b\n" +
 	"\tdep_count\x18\a \x01(\x05R\bdepCount\x124\n" +
 	"\n" +
-	"stats_list\x18\b \x03(\v2\x15.opelog.ComputedStatsR\tstatsList\"\x80\x02\n" +
+	"stats_list\x18\b \x03(\v2\x15.opelog.ComputedStatsR\tstatsList\"\xa8\x03\n" +
 	"\x0eOpeLogAllInOne\x12\x1f\n" +
 	"\vsource_root\x18\x01 \x01(\tR\n" +
 	"sourceRoot\x12\x1f\n" +
 	"\vtarget_root\x18\x02 \x01(\tR\n" +
 	"targetRoot\x12S\n" +
-	"\x0flogical_entries\x18\x03 \x03(\v2*.opelog.OpeLogAllInOne.LogicalEntriesEntryR\x0elogicalEntries\x1aW\n" +
+	"\x0flogical_entries\x18\x03 \x03(\v2*.opelog.OpeLogAllInOne.LogicalEntriesEntryR\x0elogicalEntries\x12_\n" +
+	"\x13timestamped_actions\x18\x04 \x03(\v2..opelog.OpeLogAllInOne.TimestampedActionsEntryR\x12timestampedActions\x1aW\n" +
 	"\x13LogicalEntriesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12*\n" +
-	"\x05value\x18\x02 \x01(\v2\x14.opelog.LogicalEntryR\x05value:\x028\x01*q\n" +
+	"\x05value\x18\x02 \x01(\v2\x14.opelog.LogicalEntryR\x05value:\x028\x01\x1aE\n" +
+	"\x17TimestampedActionsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\x03R\x05value:\x028\x01*q\n" +
 	"\tHalgoCode\x12\x13\n" +
 	"\x0fHAL_UNSPECIFIED\x10\x00\x12\v\n" +
 	"\aHAL_MD5\x10\x01\x12\x0e\n" +
@@ -931,7 +958,7 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\n" +
 	"HAL_SHA512\x10\x03\x12\x10\n" +
 	"\fHAL_SHA3_256\x10\x04\x12\x10\n" +
-	"\fHAL_SHA3_512\x10\x05*\xcf\x01\n" +
+	"\fHAL_SHA3_512\x10\x05*\xeb\x01\n" +
 	"\tEventCode\x12\x13\n" +
 	"\x0fEVT_UNSPECIFIED\x10\x00\x12\x12\n" +
 	"\x0eEVT_INV_LOADED\x10\x01\x12\x0e\n" +
@@ -942,8 +969,10 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\vEVT_UPDATED\x10\x05\x12\x14\n" +
 	"\x10EVT_META_CHANGED\x10\x06\x12\x14\n" +
 	"\x10EVT_VERIF_PASSED\x10\a\x12\x14\n" +
-	"\x10EVT_VERIF_FAILED\x10\b\x12\x14\n" +
-	"\x10EVT_ERROR_RAISED\x10\t*\xa0\x01\n" +
+	"\x10EVT_VERIF_FAILED\x10\b\x12\x16\n" +
+	"\x12EVT_STE_ERR_RAISED\x10\t\x12\x18\n" +
+	"\x14EVT_OTHER_ERR_RAISED\x10\n" +
+	"*\xa0\x01\n" +
 	"\x0eProcessingCode\x12\x13\n" +
 	"\x0fPRC_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vPRC_LOADING\x10\x01\x12\x10\n" +
@@ -968,7 +997,7 @@ func file_grpc_opelog_proto_rawDescGZIP() []byte {
 }
 
 var file_grpc_opelog_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_grpc_opelog_proto_goTypes = []any{
 	(HalgoCode)(0),         // 0: opelog.HalgoCode
 	(EventCode)(0),         // 1: opelog.EventCode
@@ -982,6 +1011,7 @@ var file_grpc_opelog_proto_goTypes = []any{
 	(*LogicalEntry)(nil),   // 9: opelog.LogicalEntry
 	(*OpeLogAllInOne)(nil), // 10: opelog.OpeLogAllInOne
 	nil,                    // 11: opelog.OpeLogAllInOne.LogicalEntriesEntry
+	nil,                    // 12: opelog.OpeLogAllInOne.TimestampedActionsEntry
 }
 var file_grpc_opelog_proto_depIdxs = []int32{
 	3,  // 0: opelog.StoredEntry.user_rights:type_name -> opelog.Rights
@@ -1004,12 +1034,13 @@ var file_grpc_opelog_proto_depIdxs = []int32{
 	6,  // 17: opelog.LogicalEntry.target_events:type_name -> opelog.Event
 	8,  // 18: opelog.LogicalEntry.stats_list:type_name -> opelog.ComputedStats
 	11, // 19: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
-	9,  // 20: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
-	21, // [21:21] is the sub-list for method output_type
-	21, // [21:21] is the sub-list for method input_type
-	21, // [21:21] is the sub-list for extension type_name
-	21, // [21:21] is the sub-list for extension extendee
-	0,  // [0:21] is the sub-list for field type_name
+	12, // 20: opelog.OpeLogAllInOne.timestamped_actions:type_name -> opelog.OpeLogAllInOne.TimestampedActionsEntry
+	9,  // 21: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
+	22, // [22:22] is the sub-list for method output_type
+	22, // [22:22] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_grpc_opelog_proto_init() }
@@ -1023,7 +1054,7 @@ func file_grpc_opelog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_opelog_proto_rawDesc), len(file_grpc_opelog_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   9,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

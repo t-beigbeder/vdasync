@@ -49,17 +49,20 @@ enum EventCode {
    EVT_META_CHANGED = 6;
    EVT_VERIF_PASSED = 7;
    EVT_VERIF_FAILED = 8;
-   EVT_ERROR_RAISED = 9;
+   EVT_STE_ERR_RAISED = 9;
+   EVT_OTHER_ERR_RAISED = 10;
 }
 
 
 message Event {
     EventCode kind = 1;
     int64 time_stamp = 2;
+    // this should refer to a timestamped_action
+    int64 verified_on = 3;
     // negative number means no entry
-    sint32 se_num = 3;
-    repeated sint32 tcs_nums = 4;
-    string error = 5;
+    sint32 se_num = 4;
+    repeated sint32 tcs_nums = 5;
+    string error = 6;
 }
 
 message AggInfo {
@@ -110,4 +113,6 @@ message OpeLogAllInOne {
     string target_root = 2;
     // the key is the relative path
     map<string,LogicalEntry> logical_entries = 3;
+    // the key is a label that may be used to reference existing actions
+    map<string,int64> timestamped_actions = 4;
 }

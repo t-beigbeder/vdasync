@@ -17,6 +17,12 @@ func (ose *oplStoredEntry) isAbsent() bool {
 	return *ose.prc() == opelog.PRC_ABSENT
 }
 
+func (ose *oplStoredEntry) isKnown() bool {
+	ev, _ := ose.lastEventFor(func(ev *opelog.Event) bool { return ev.HasState() || ev.Kind == opelog.EVT_STE_ERR_RAISED },
+		ose.owi.loadTime)
+	return ev != nil
+}
+
 func (ose *oplStoredEntry) newEvent(
 	kind opelog.EventCode,
 	se *opelog.StoredEntry,
@@ -36,7 +42,7 @@ func (ose *oplStoredEntry) newEvent(
 }
 
 func (ose *oplStoredEntry) seLoad() error {
-	return errors.ErrUnsupported
+	return errors.ErrUnsupported // FIXME
 }
 
 func (ose *oplStoredEntry) checkInventory() error {
@@ -62,28 +68,28 @@ func (ose *oplStoredEntry) checkInventory() error {
 	ose.detail("dss.GetReadCloser", "path", ose.fullPath(), "algos", ose.owi.owo.InvCsAlgos)
 	rr, err := ose.dss().GetReadCloser(ose.fullPath())
 	if err != nil {
-		ose.newEvent(opelog.EVT_ERROR_RAISED, nil, nil, err.Error())
+		ose.newEvent(opelog.EVT_STE_ERR_RAISED, nil, nil, err.Error())
 		return nil
 	}
 	defer rr.Close()
 	rCss, err := common.ReaderChecksum(rr, ose.owi.owo.InvCsAlgos)
 	if err != nil {
-		ose.newEvent(opelog.EVT_ERROR_RAISED, nil, nil, err.Error())
+		ose.newEvent(opelog.EVT_STE_ERR_RAISED, nil, nil, err.Error())
 		return nil
 	}
 	iCss, err := common.TypedChecksums2Checksums(ose.le.GetTcssFor(iev))
 	if err != nil {
-		ose.newEvent(opelog.EVT_ERROR_RAISED, nil, nil, err.Error())
+		ose.newEvent(opelog.EVT_STE_ERR_RAISED, nil, nil, err.Error())
 		return nil
 	}
 	if rCss != iCss {
 		err := fmt.Errorf("inventory checksum failed: inv %s actual %s", iCss, rCss)
-		ose.newEvent(opelog.EVT_ERROR_RAISED, nil, nil, err.Error())
+		ose.newEvent(opelog.EVT_STE_ERR_RAISED, nil, nil, err.Error())
 		return nil
 	}
 	return nil
 }
 
 func (ose *oplStoredEntry) seCreate() error {
-	return errors.ErrUnsupported
+	return errors.ErrUnsupported // FIXME
 }

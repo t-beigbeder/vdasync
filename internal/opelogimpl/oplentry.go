@@ -95,9 +95,20 @@ func (ose *oplStoredEntry) events() (evs *[]*opelog.Event) {
 	return
 }
 
-func (ose *oplStoredEntry) lastInvEvent() (*opelog.Event, *opelog.StoredEntry) {
+func (ose *oplStoredEntry) lastEventFor(
+	predicate func(ev *opelog.Event) bool,
+	after int64,
+) (*opelog.Event, *opelog.StoredEntry) {
 	for _, ev := range slices.Backward(*ose.events()) {
-		if ev.Kind != opelog.EVT_INV_LOADED {
+		if !predicate(ev) {
+			continue
+		}
+		if ev.VerifiedOn == 0 && ev.TimeStamp < after {
+			// event expired
+			continue
+		}
+		if ev.VerifiedOn > 0 && ev.VerifiedOn < after {
+			// event expired after update
 			continue
 		}
 		if ev.SeNum < 0 {
@@ -108,17 +119,18 @@ func (ose *oplStoredEntry) lastInvEvent() (*opelog.Event, *opelog.StoredEntry) {
 	return nil, nil
 }
 
+func (ose *oplStoredEntry) lastInvEvent() (*opelog.Event, *opelog.StoredEntry) {
+	return ose.lastEventFor(
+		func(ev *opelog.Event) bool { return ev.Kind == opelog.EVT_INV_LOADED },
+		ose.owi.invTime,
+	)
+}
+
 func (ose *oplStoredEntry) lastStateEvent() (*opelog.Event, *opelog.StoredEntry) {
-	for _, ev := range slices.Backward(*ose.events()) {
-		if !ev.HasState() {
-			continue
-		}
-		if ev.SeNum < 0 {
-			return ev, nil
-		}
-		return ev, ose.le.SharedSes[ev.SeNum]
-	}
-	return nil, nil
+	return ose.lastEventFor(
+		func(ev *opelog.Event) bool { return ev.HasState() },
+		ose.owi.loadTime,
+	)
 }
 
 func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {

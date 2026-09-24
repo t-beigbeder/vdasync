@@ -30,6 +30,8 @@ type oplWalkerImpl struct {
 	tds        dssa.Dssa
 	sRoot      string
 	tRoot      string
+	invTime    int64
+	loadTime   int64
 	gErrs      []error
 	syncTicker *time.Ticker
 	bg         context.Context
@@ -174,10 +176,12 @@ func NewOplWalker(lgr *slog.Logger, conc int,
 	if oplq == nil {
 		oplq = NewMemQueue()
 	}
+
 	return &oplWalkerImpl{
 		lgr:  lgr,
 		conc: conc, oplq: oplq, oplm: oplm, owo: owo,
 		sds: sds, tds: tds, sRoot: sRoot, tRoot: tRoot,
+		invTime: 0, loadTime: 0, // TODO: manage inventory and load minimal timestamps
 		bg: context.Background(),
 	}
 }
