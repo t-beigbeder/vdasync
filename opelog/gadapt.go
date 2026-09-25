@@ -2,6 +2,7 @@ package opelog
 
 import (
 	"bytes"
+	"maps"
 	"slices"
 
 	"github.com/t-beigbeder/vdasync/opeloggrpc"
@@ -35,9 +36,6 @@ func GrpcStoredEntry2StoredEntry(gse *opeloggrpc.StoredEntry) *StoredEntry {
 }
 
 func gses2ses(gses []*opeloggrpc.StoredEntry) []*StoredEntry {
-	if gses == nil {
-		return nil
-	}
 	ses := make([]*StoredEntry, len(gses))
 	for i, gse := range gses {
 		ses[i] = GrpcStoredEntry2StoredEntry(gse)
@@ -50,18 +48,15 @@ func GrpcEvent2Event(ge *opeloggrpc.Event) *Event {
 		return nil
 	}
 	return &Event{
-		Kind:      EventCode(ge.Kind),
-		TimeStamp: ge.TimeStamp,
-		SeNum:     ge.SeNum,
-		TcsNums:   slices.Clone(ge.TcsNums),
-		Error:     ge.Error,
+		Kind:        EventCode(ge.Kind),
+		SessionTime: ge.SessionTime,
+		TimeStamp:   ge.TimeStamp,
+		SeNum:       ge.SeNum,
+		TcsNums:     slices.Clone(ge.TcsNums),
 	}
 }
 
 func gevs2evs(gevs []*opeloggrpc.Event) []*Event {
-	if gevs == nil {
-		return nil
-	}
 	evs := make([]*Event, len(gevs))
 	for i, gev := range gevs {
 		evs[i] = GrpcEvent2Event(gev)
@@ -94,9 +89,6 @@ func GrpcComputedStats2ComputedStats(gcs *opeloggrpc.ComputedStats) *ComputedSta
 }
 
 func gcss2css(gcss []*opeloggrpc.ComputedStats) []*ComputedStats {
-	if gcss == nil {
-		return nil
-	}
 	css := make([]*ComputedStats, len(gcss))
 	for i, gcs := range gcss {
 		css[i] = GrpcComputedStats2ComputedStats(gcs)
@@ -105,14 +97,31 @@ func gcss2css(gcss []*opeloggrpc.ComputedStats) []*ComputedStats {
 }
 
 func gtcss2tcss(gtcss []*opeloggrpc.TypedChecksum) []*TypedChecksum {
-	if gtcss == nil {
-		return nil
-	}
 	tcss := make([]*TypedChecksum, len(gtcss))
 	for i, gtcs := range gtcss {
 		tcss[i].Tcs = bytes.Clone(gtcs.Tcs)
 	}
 	return tcss
+}
+
+func GrpcState2State(gst *opeloggrpc.State) *State {
+	if gst == nil {
+		return nil
+	}
+	return &State{
+		Stc:      StateCode(gst.Stc),
+		SeNum:    gst.SeNum,
+		TcsNums:  slices.Clone(gst.TcsNums),
+		DepCount: gst.DepCount,
+	}
+}
+
+func gsts2sts(gsts map[int64]*opeloggrpc.State) map[int64]*State {
+	sts := make(map[int64]*State, len(gsts))
+	for k, v := range maps.All(gsts) {
+		sts[k] = GrpcState2State(v)
+	}
+	return sts
 }
 
 func GrpcLogicalEntry2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
@@ -122,11 +131,11 @@ func GrpcLogicalEntry2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 	return &LogicalEntry{
 		SharedSes:    gses2ses(gle.SharedSes),
 		SharedTcss:   gtcss2tcss(gle.SharedTcss),
-		SourcePrc:    ProcessingCode(gle.SourcePrc),
+		SourceStates: gsts2sts(gle.SourceStates),
 		SourceEvents: gevs2evs(gle.SourceEvents),
-		TargetPrc:    ProcessingCode(gle.TargetPrc),
+		TargetStates: gsts2sts(gle.TargetStates),
 		TargetEvents: gevs2evs(gle.TargetEvents),
-		DepCount:     gle.DepCount,
+		LastSession:  gle.LastSession,
 		StatsList:    gcss2css(gle.StatsList),
 	}
 }
@@ -174,11 +183,11 @@ func Event2GrpcEvent(ev *Event) *opeloggrpc.Event {
 		return nil
 	}
 	return &opeloggrpc.Event{
-		Kind:      opeloggrpc.EventCode(ev.Kind),
-		TimeStamp: ev.TimeStamp,
-		SeNum:     ev.SeNum,
-		TcsNums:   slices.Clone(ev.TcsNums),
-		Error:     ev.Error,
+		Kind:        opeloggrpc.EventCode(ev.Kind),
+		SessionTime: ev.SessionTime,
+		TimeStamp:   ev.TimeStamp,
+		SeNum:       ev.SeNum,
+		TcsNums:     slices.Clone(ev.TcsNums),
 	}
 }
 
@@ -239,6 +248,29 @@ func tcss2gtcss(tcss []*TypedChecksum) []*opeloggrpc.TypedChecksum {
 	return gtcss
 }
 
+func State2GrpcState(st *State) *opeloggrpc.State {
+	if st == nil {
+		return nil
+	}
+	return &opeloggrpc.State{
+		Stc:      opeloggrpc.StateCode(st.Stc),
+		SeNum:    st.SeNum,
+		TcsNums:  slices.Clone(st.TcsNums),
+		DepCount: st.DepCount,
+	}
+}
+
+func sts2gsts(sts map[int64]*State) map[int64]*opeloggrpc.State {
+	if sts == nil {
+		return nil
+	}
+	gsts := make(map[int64]*opeloggrpc.State, len(sts))
+	for k, v := range maps.All(sts) {
+		gsts[k] = State2GrpcState(v)
+	}
+	return gsts
+}
+
 func LogicalEntry2GrpcLogicalEntry(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 	if le == nil {
 		return nil
@@ -246,11 +278,11 @@ func LogicalEntry2GrpcLogicalEntry(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 	return &opeloggrpc.LogicalEntry{
 		SharedSes:    ses2gses(le.SharedSes),
 		SharedTcss:   tcss2gtcss(le.SharedTcss),
-		SourcePrc:    opeloggrpc.ProcessingCode(le.SourcePrc),
+		SourceStates: sts2gsts(le.SourceStates),
 		SourceEvents: evs2gevs(le.SourceEvents),
-		TargetPrc:    opeloggrpc.ProcessingCode(le.TargetPrc),
+		TargetStates: sts2gsts(le.TargetStates),
 		TargetEvents: evs2gevs(le.TargetEvents),
-		DepCount:     le.DepCount,
+		LastSession:  le.LastSession,
 		StatsList:    css2gcss(le.StatsList),
 	}
 }

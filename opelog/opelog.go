@@ -9,8 +9,10 @@ import (
 )
 
 type OpeLogManager interface {
-	Create(source, target string) error
-	Open(readOnly bool) error
+	Create(session, inventory, source, target string) (int64, int64, error)
+	AddSession(label string) (int64, error)
+	AddInventory(label string) (int64, error)
+	Open(session, inventory string, readOnly bool) (int64, int64, error)
 	Sync() error
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
@@ -173,17 +175,12 @@ type TypedChecksum struct {
 type EventCode opeloggrpc.EventCode
 
 const (
-	EVT_UNSPECIFIED      = EventCode(opeloggrpc.EventCode_EVT_UNSPECIFIED)
-	EVT_INV_LOADED       = EventCode(opeloggrpc.EventCode_EVT_INV_LOADED)
-	EVT_LOADED           = EventCode(opeloggrpc.EventCode_EVT_LOADED)
-	EVT_CREATED          = EventCode(opeloggrpc.EventCode_EVT_CREATED)
-	EVT_REMOVED          = EventCode(opeloggrpc.EventCode_EVT_REMOVED)
-	EVT_UPDATED          = EventCode(opeloggrpc.EventCode_EVT_UPDATED)
-	EVT_META_CHANGED     = EventCode(opeloggrpc.EventCode_EVT_META_CHANGED)
-	EVT_VERIF_PASSED     = EventCode(opeloggrpc.EventCode_EVT_VERIF_PASSED)
-	EVT_VERIF_FAILED     = EventCode(opeloggrpc.EventCode_EVT_VERIF_FAILED)
-	EVT_STE_ERR_RAISED   = EventCode(opeloggrpc.EventCode_EVT_STE_ERR_RAISED)
-	EVT_OTHER_ERR_RAISED = EventCode(opeloggrpc.EventCode_EVT_OTHER_ERR_RAISED)
+	EVC_UNSPECIFIED  = EventCode(opeloggrpc.EventCode_EVC_UNSPECIFIED)
+	EVC_LOADED       = EventCode(opeloggrpc.EventCode_EVC_LOADED)
+	EVC_REMOVED      = EventCode(opeloggrpc.EventCode_EVC_REMOVED)
+	EVC_CREATED      = EventCode(opeloggrpc.EventCode_EVC_CREATED)
+	EVC_UPDATED      = EventCode(opeloggrpc.EventCode_EVC_UPDATED)
+	EVC_META_CHANGED = EventCode(opeloggrpc.EventCode_EVC_META_CHANGED)
 )
 
 func (ec EventCode) String() string {
@@ -191,30 +188,12 @@ func (ec EventCode) String() string {
 }
 
 type Event struct {
-	Kind      EventCode
-	TimeStamp int64
-	// this should refer to a timestamped_action
-	VerifiedOn int64
-	SeNum      int32
-	TcsNums    []int32
-	Error      string
-}
-
-func (ev *Event) HasState() bool {
-	switch ev.Kind {
-	case EVT_LOADED:
-		return true
-	case EVT_CREATED:
-		return true
-	case EVT_REMOVED:
-		return true
-	case EVT_UPDATED:
-		return true
-	case EVT_META_CHANGED:
-		return true
-	default:
-		return false
-	}
+	Kind        EventCode
+	SessionTime int64
+	TimeStamp   int64
+	// negative number means no entry
+	SeNum   int32
+	TcsNums []int32
 }
 
 type AggInfo struct {
@@ -234,33 +213,44 @@ type ComputedStats struct {
 	Error            *AggInfo
 }
 
-type ProcessingCode opeloggrpc.ProcessingCode
+type StateCode opeloggrpc.StateCode
 
 const (
-	PRC_UNSPECIFIED = ProcessingCode(opeloggrpc.ProcessingCode_PRC_UNSPECIFIED)
-	PRC_LOADING     = ProcessingCode(opeloggrpc.ProcessingCode_PRC_LOADING)
-	PRC_CREATING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_CREATING)
-	PRC_REMOVING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_REMOVING)
-	PRC_UPDATING    = ProcessingCode(opeloggrpc.ProcessingCode_PRC_UPDATING)
-	PRC_VERIFYING   = ProcessingCode(opeloggrpc.ProcessingCode_PRC_VERIFYING)
-	PRC_PRESENT     = ProcessingCode(opeloggrpc.ProcessingCode_PRC_PRESENT)
-	PRC_ABSENT      = ProcessingCode(opeloggrpc.ProcessingCode_PRC_ABSENT)
+	STC_UNSPECIFIED  = StateCode(opeloggrpc.StateCode_STC_UNSPECIFIED)
+	STC_DONE_ABSENT  = StateCode(opeloggrpc.StateCode_STC_DONE_ABSENT)
+	STC_DONE_PRESENT = StateCode(opeloggrpc.StateCode_STC_DONE_PRESENT)
+	STC_DIR_LOAD     = StateCode(opeloggrpc.StateCode_STC_DIR_LOAD)
+	STC_DIR_RM       = StateCode(opeloggrpc.StateCode_STC_DIR_RM)
+	STC_DIR_CHANGE   = StateCode(opeloggrpc.StateCode_STC_DIR_CHANGE)
+	STC_SE_ERROR     = StateCode(opeloggrpc.StateCode_STC_SE_ERROR)
+	// error from descendants are propagated, loading is partial, modification is blocked
+	// redo will retry required actions
+	STC_DESC_ERROR = StateCode(opeloggrpc.StateCode_STC_DESC_ERROR)
 )
 
-func (prc ProcessingCode) String() string {
-	return opeloggrpc.ProcessingCode(prc).String()
+func (sc StateCode) String() string {
+	return opeloggrpc.StateCode(sc).String()
+}
+
+type State struct {
+	Stc StateCode
+	// values shared by index, negative index means no value
+	SeNum    int32
+	TcsNums  []int32
+	DepCount int32
 }
 
 type LogicalEntry struct {
-	SharedSes      []*StoredEntry
-	SharedTcss     []*TypedChecksum
-	SourcePrc      ProcessingCode
-	SourceEvents   []*Event
-	SourceDepCount int32
-	TargetPrc      ProcessingCode
-	TargetEvents   []*Event
-	TargetDepCount int32
-	StatsList      []*ComputedStats
+	// Checksums and stored entries are shared and referenced by index
+	SharedSes    []*StoredEntry
+	SharedTcss   []*TypedChecksum
+	SourceStates map[int64]*State
+	SourceEvents []*Event
+	TargetStates map[int64]*State
+	TargetEvents []*Event
+	// when last_session changes, on-going dir states need to be recomputed
+	LastSession int64
+	StatsList   []*ComputedStats
 }
 
 func (le *LogicalEntry) AddOrShareSe(se *StoredEntry) int32 {
@@ -317,6 +307,7 @@ type OpeLogAllInOne struct {
 	TargetRoot string
 	// the key is the relative path
 	LogicalEntries map[string]*LogicalEntry
-	// the key is a label that may be used to reference existing actions
-	TimestampedActions map[string]int64
+	// the key is the session label the value is its start time
+	Sessions    map[string]int64
+	Inventories map[string]int64
 }

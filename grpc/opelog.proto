@@ -55,7 +55,6 @@ message Event {
     // negative number means no entry
     sint32 se_num = 4;
     repeated sint32 tcs_nums = 5;
-    string error = 6;
 }
 
 message AggInfo {
@@ -85,22 +84,30 @@ enum StateCode {
    STC_DIR_RM = 4;
    STC_DIR_CHANGE = 5;
    STC_SE_ERROR = 6;
-   STC_CHILD_ERROR = 7;
+   // error from descendants are propagated, loading is partial, modification is blocked
+   // redo will retry required actions
+   STC_DESC_ERROR = 7;
+}
+
+message State {
+    StateCode stc = 1;
+    // values shared by index, negative index means no value
+    sint32 se_num = 2;
+    repeated sint32 tcs_nums = 3;
+    int32 dep_count = 4;
 }
 
 message LogicalEntry {
     // Checksums and stored entries are shared and referenced by index
     repeated StoredEntry shared_ses = 1;
     repeated TypedChecksum shared_tcss = 2;
-    map<int64,StateCode> source_states = 3;
-    repeated Event source_events = 5;
-    map<int64,StateCode> target_states = 6;
-    repeated Event target_events = 7;
-    repeated ComputedStats stats_list = 9;
-    // if current_session changed, on-going 
-    int64 last_session
-    int32 source_dep_count
-    int32 target_dep_count
+    map<int64,State> source_states = 3;
+    repeated Event source_events = 4;
+    map<int64,State> target_states = 5;
+    repeated Event target_events = 6;
+    // when last_session changes, on-going dir states need to be recomputed
+    int64 last_session = 7;
+    repeated ComputedStats stats_list = 8;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
@@ -111,4 +118,5 @@ message OpeLogAllInOne {
     map<string,LogicalEntry> logical_entries = 3;
     // the key is the session label the value is its start time
     map<string,int64> sessions = 4;
+    map<string,int64> inventories = 5;
 }
