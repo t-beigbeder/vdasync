@@ -165,6 +165,11 @@ func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 	}
 }
 
+type TypedChecksum struct {
+	// first byte is HalgoCode, checksum comes after
+	Tcs []byte
+}
+
 type EventCode opeloggrpc.EventCode
 
 const (
@@ -246,20 +251,16 @@ func (prc ProcessingCode) String() string {
 	return opeloggrpc.ProcessingCode(prc).String()
 }
 
-type TypedChecksum struct {
-	// first byte is HalgoCode, checksum comes after
-	Tcs []byte
-}
-
 type LogicalEntry struct {
-	SharedSes    []*StoredEntry
-	SharedTcss   []*TypedChecksum
-	SourcePrc    ProcessingCode
-	SourceEvents []*Event
-	TargetPrc    ProcessingCode
-	TargetEvents []*Event
-	DepCount     int32
-	StatsList    []*ComputedStats
+	SharedSes      []*StoredEntry
+	SharedTcss     []*TypedChecksum
+	SourcePrc      ProcessingCode
+	SourceEvents   []*Event
+	SourceDepCount int32
+	TargetPrc      ProcessingCode
+	TargetEvents   []*Event
+	TargetDepCount int32
+	StatsList      []*ComputedStats
 }
 
 func (le *LogicalEntry) AddOrShareSe(se *StoredEntry) int32 {

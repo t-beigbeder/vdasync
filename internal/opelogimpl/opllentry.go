@@ -70,7 +70,7 @@ func (ole *oplLogicalEntry) computeNext() error {
 		return nil
 	}
 	// source is dir and creating/updating target has all its children done
-	
+
 	if *ole.source().prc() == 0 {
 		ole.le.DirUpdating = false
 		if err := ole.copyStat(); err != nil {

@@ -40,25 +40,18 @@ message TypedChecksum {
 }
 
 enum EventCode {
-   EVT_UNSPECIFIED = 0;
-   EVT_INV_LOADED = 1;
-   EVT_LOADED = 2;
-   EVT_CREATED = 3;
-   EVT_REMOVED = 4;
-   EVT_UPDATED = 5;
-   EVT_META_CHANGED = 6;
-   EVT_VERIF_PASSED = 7;
-   EVT_VERIF_FAILED = 8;
-   EVT_STE_ERR_RAISED = 9;
-   EVT_OTHER_ERR_RAISED = 10;
+   EVC_UNSPECIFIED = 0;
+   EVC_LOADED = 1;
+   EVC_REMOVED = 2;
+   EVC_CREATED = 3;
+   EVC_UPDATED = 4;
+   EVC_META_CHANGED = 5;
 }
-
 
 message Event {
     EventCode kind = 1;
-    int64 time_stamp = 2;
-    // this should refer to a timestamped_action
-    int64 verified_on = 3;
+    int64 session_time = 2;
+    int64 time_stamp = 3;
     // negative number means no entry
     sint32 se_num = 4;
     repeated sint32 tcs_nums = 5;
@@ -84,27 +77,30 @@ message ComputedStats {
     AggInfo error = 9;
 }
 
-enum ProcessingCode {
-    PRC_UNSPECIFIED = 0;
-    PRC_LOADING = 1;
-    PRC_CREATING = 2;
-    PRC_REMOVING = 3;
-    PRC_UPDATING = 4;
-    PRC_VERIFYING = 5;
-    PRC_PRESENT = 6;
-    PRC_ABSENT = 7;
+enum StateCode {
+   STC_UNSPECIFIED = 0;
+   STC_DONE_ABSENT = 1;
+   STC_DONE_PRESENT = 2;
+   STC_DIR_LOAD = 3;
+   STC_DIR_RM = 4;
+   STC_DIR_CHANGE = 5;
+   STC_SE_ERROR = 6;
+   STC_CHILD_ERROR = 7;
 }
 
 message LogicalEntry {
     // Checksums and stored entries are shared and referenced by index
     repeated StoredEntry shared_ses = 1;
     repeated TypedChecksum shared_tcss = 2;
-    ProcessingCode source_prc = 3;
-    repeated Event source_events = 4;
-    ProcessingCode target_prc = 5;
-    repeated Event target_events = 6;
-    int32 dep_count = 7;
-    repeated ComputedStats stats_list = 8;
+    map<int64,StateCode> source_states = 3;
+    repeated Event source_events = 5;
+    map<int64,StateCode> target_states = 6;
+    repeated Event target_events = 7;
+    repeated ComputedStats stats_list = 9;
+    // if current_session changed, on-going 
+    int64 last_session
+    int32 source_dep_count
+    int32 target_dep_count
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
@@ -113,6 +109,6 @@ message OpeLogAllInOne {
     string target_root = 2;
     // the key is the relative path
     map<string,LogicalEntry> logical_entries = 3;
-    // the key is a label that may be used to reference existing actions
-    map<string,int64> timestamped_actions = 4;
+    // the key is the session label the value is its start time
+    map<string,int64> sessions = 4;
 }
