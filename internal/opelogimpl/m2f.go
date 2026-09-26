@@ -36,7 +36,7 @@ func (m *m2fMng) save() error {
 		Inventories:    maps.Clone(m.inventories),
 	}
 	for rp, le := range m.les {
-		aio.LogicalEntries[rp] = opelog.LogicalEntry2GrpcLogicalEntry(le)
+		aio.LogicalEntries[rp] = opelog.LogicalEntry2ProtoBuf(le)
 	}
 	bs, err := proto.Marshal(&aio)
 	if err != nil {
@@ -224,7 +224,7 @@ func (m *m2fMng) Open(session, inventory string, readOnly bool) (int64, int64, e
 	}
 	m.les = make(map[string]*opelog.LogicalEntry, len(aio.LogicalEntries))
 	for rp, gle := range aio.LogicalEntries {
-		m.les[rp] = opelog.GrpcLogicalEntry2LogicalEntry(gle)
+		m.les[rp] = opelog.ProtoBuf2LogicalEntry(gle)
 	}
 	if !readOnly {
 		if err := common.WriteFile(lock, []byte{}); err != nil {
