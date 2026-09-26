@@ -441,11 +441,11 @@ func (x *TypedChecksum) GetTcs() []byte {
 }
 
 type Event struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	Kind        EventCode              `protobuf:"varint,1,opt,name=kind,proto3,enum=opelog.EventCode" json:"kind,omitempty"`
-	SessionTime int64                  `protobuf:"varint,2,opt,name=session_time,json=sessionTime,proto3" json:"session_time,omitempty"`
-	TimeStamp   int64                  `protobuf:"varint,3,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
-	// negative number means no entry
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	IsTarget  bool                   `protobuf:"varint,1,opt,name=is_target,json=isTarget,proto3" json:"is_target,omitempty"`
+	Kind      EventCode              `protobuf:"varint,2,opt,name=kind,proto3,enum=opelog.EventCode" json:"kind,omitempty"`
+	TimeStamp int64                  `protobuf:"varint,3,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
+	// values shared by index, negative index means no value
 	SeNum         int32   `protobuf:"zigzag32,4,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
 	TcsNums       []int32 `protobuf:"zigzag32,5,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -482,18 +482,18 @@ func (*Event) Descriptor() ([]byte, []int) {
 	return file_grpc_opelog_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *Event) GetIsTarget() bool {
+	if x != nil {
+		return x.IsTarget
+	}
+	return false
+}
+
 func (x *Event) GetKind() EventCode {
 	if x != nil {
 		return x.Kind
 	}
 	return EventCode_EVC_UNSPECIFIED
-}
-
-func (x *Event) GetSessionTime() int64 {
-	if x != nil {
-		return x.SessionTime
-	}
-	return 0
 }
 
 func (x *Event) GetTimeStamp() int64 {
@@ -517,6 +517,50 @@ func (x *Event) GetTcsNums() []int32 {
 	return nil
 }
 
+type Events struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	EventsList    []*Event               `protobuf:"bytes,1,rep,name=events_list,json=eventsList,proto3" json:"events_list,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Events) Reset() {
+	*x = Events{}
+	mi := &file_grpc_opelog_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Events) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Events) ProtoMessage() {}
+
+func (x *Events) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_opelog_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Events.ProtoReflect.Descriptor instead.
+func (*Events) Descriptor() ([]byte, []int) {
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *Events) GetEventsList() []*Event {
+	if x != nil {
+		return x.EventsList
+	}
+	return nil
+}
+
 type AggInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Number        int64                  `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
@@ -527,7 +571,7 @@ type AggInfo struct {
 
 func (x *AggInfo) Reset() {
 	*x = AggInfo{}
-	mi := &file_grpc_opelog_proto_msgTypes[4]
+	mi := &file_grpc_opelog_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -539,7 +583,7 @@ func (x *AggInfo) String() string {
 func (*AggInfo) ProtoMessage() {}
 
 func (x *AggInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[4]
+	mi := &file_grpc_opelog_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -552,7 +596,7 @@ func (x *AggInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AggInfo.ProtoReflect.Descriptor instead.
 func (*AggInfo) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{4}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *AggInfo) GetNumber() int64 {
@@ -570,25 +614,24 @@ func (x *AggInfo) GetSize() int64 {
 }
 
 type ComputedStats struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	TimeStamp int64                  `protobuf:"varint,1,opt,name=time_stamp,json=timeStamp,proto3" json:"time_stamp,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
 	// list for dirs, stats for others, performed both on source and target
-	SourceListOrStat *AggInfo `protobuf:"bytes,2,opt,name=source_list_or_stat,json=sourceListOrStat,proto3" json:"source_list_or_stat,omitempty"`
-	TargetListOrStat *AggInfo `protobuf:"bytes,3,opt,name=target_list_or_stat,json=targetListOrStat,proto3" json:"target_list_or_stat,omitempty"`
+	SourceListOrStat *AggInfo `protobuf:"bytes,1,opt,name=source_list_or_stat,json=sourceListOrStat,proto3" json:"source_list_or_stat,omitempty"`
+	TargetListOrStat *AggInfo `protobuf:"bytes,2,opt,name=target_list_or_stat,json=targetListOrStat,proto3" json:"target_list_or_stat,omitempty"`
 	// other I/Os specific to source or to target
-	Read          *AggInfo `protobuf:"bytes,4,opt,name=read,proto3" json:"read,omitempty"`
-	Create        *AggInfo `protobuf:"bytes,5,opt,name=create,proto3" json:"create,omitempty"`
-	Update        *AggInfo `protobuf:"bytes,6,opt,name=update,proto3" json:"update,omitempty"`
-	Remove        *AggInfo `protobuf:"bytes,7,opt,name=remove,proto3" json:"remove,omitempty"`
-	MetaChange    *AggInfo `protobuf:"bytes,8,opt,name=meta_change,json=metaChange,proto3" json:"meta_change,omitempty"`
-	Error         *AggInfo `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
+	Read          *AggInfo `protobuf:"bytes,3,opt,name=read,proto3" json:"read,omitempty"`
+	Create        *AggInfo `protobuf:"bytes,4,opt,name=create,proto3" json:"create,omitempty"`
+	Update        *AggInfo `protobuf:"bytes,5,opt,name=update,proto3" json:"update,omitempty"`
+	Remove        *AggInfo `protobuf:"bytes,6,opt,name=remove,proto3" json:"remove,omitempty"`
+	MetaChange    *AggInfo `protobuf:"bytes,7,opt,name=meta_change,json=metaChange,proto3" json:"meta_change,omitempty"`
+	Error         *AggInfo `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ComputedStats) Reset() {
 	*x = ComputedStats{}
-	mi := &file_grpc_opelog_proto_msgTypes[5]
+	mi := &file_grpc_opelog_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -600,7 +643,7 @@ func (x *ComputedStats) String() string {
 func (*ComputedStats) ProtoMessage() {}
 
 func (x *ComputedStats) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[5]
+	mi := &file_grpc_opelog_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -613,14 +656,7 @@ func (x *ComputedStats) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ComputedStats.ProtoReflect.Descriptor instead.
 func (*ComputedStats) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *ComputedStats) GetTimeStamp() int64 {
-	if x != nil {
-		return x.TimeStamp
-	}
-	return 0
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ComputedStats) GetSourceListOrStat() *AggInfo {
@@ -680,19 +716,20 @@ func (x *ComputedStats) GetError() *AggInfo {
 }
 
 type State struct {
-	state protoimpl.MessageState `protogen:"open.v1"`
-	Stc   StateCode              `protobuf:"varint,1,opt,name=stc,proto3,enum=opelog.StateCode" json:"stc,omitempty"`
+	state    protoimpl.MessageState `protogen:"open.v1"`
+	IsTarget bool                   `protobuf:"varint,1,opt,name=is_target,json=isTarget,proto3" json:"is_target,omitempty"`
+	Stc      StateCode              `protobuf:"varint,2,opt,name=stc,proto3,enum=opelog.StateCode" json:"stc,omitempty"`
 	// values shared by index, negative index means no value
-	SeNum         int32   `protobuf:"zigzag32,2,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
-	TcsNums       []int32 `protobuf:"zigzag32,3,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
-	DepCount      int32   `protobuf:"varint,4,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
+	SeNum         int32   `protobuf:"zigzag32,3,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
+	TcsNums       []int32 `protobuf:"zigzag32,4,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
+	DepCount      int32   `protobuf:"varint,5,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *State) Reset() {
 	*x = State{}
-	mi := &file_grpc_opelog_proto_msgTypes[6]
+	mi := &file_grpc_opelog_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -704,7 +741,7 @@ func (x *State) String() string {
 func (*State) ProtoMessage() {}
 
 func (x *State) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[6]
+	mi := &file_grpc_opelog_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -717,7 +754,14 @@ func (x *State) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use State.ProtoReflect.Descriptor instead.
 func (*State) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{6}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *State) GetIsTarget() bool {
+	if x != nil {
+		return x.IsTarget
+	}
+	return false
 }
 
 func (x *State) GetStc() StateCode {
@@ -751,22 +795,22 @@ func (x *State) GetDepCount() int32 {
 type LogicalEntry struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Checksums and stored entries are shared and referenced by index
-	SharedSes    []*StoredEntry   `protobuf:"bytes,1,rep,name=shared_ses,json=sharedSes,proto3" json:"shared_ses,omitempty"`
-	SharedTcss   []*TypedChecksum `protobuf:"bytes,2,rep,name=shared_tcss,json=sharedTcss,proto3" json:"shared_tcss,omitempty"`
+	SharedSes  []*StoredEntry   `protobuf:"bytes,1,rep,name=shared_ses,json=sharedSes,proto3" json:"shared_ses,omitempty"`
+	SharedTcss []*TypedChecksum `protobuf:"bytes,2,rep,name=shared_tcss,json=sharedTcss,proto3" json:"shared_tcss,omitempty"`
+	// states relate to one session or to one inventory
 	SourceStates map[int64]*State `protobuf:"bytes,3,rep,name=source_states,json=sourceStates,proto3" json:"source_states,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	SourceEvents []*Event         `protobuf:"bytes,4,rep,name=source_events,json=sourceEvents,proto3" json:"source_events,omitempty"`
-	TargetStates map[int64]*State `protobuf:"bytes,5,rep,name=target_states,json=targetStates,proto3" json:"target_states,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	TargetEvents []*Event         `protobuf:"bytes,6,rep,name=target_events,json=targetEvents,proto3" json:"target_events,omitempty"`
-	// when last_session changes, on-going dir states need to be recomputed
-	LastSession   int64            `protobuf:"varint,7,opt,name=last_session,json=lastSession,proto3" json:"last_session,omitempty"`
-	StatsList     []*ComputedStats `protobuf:"bytes,8,rep,name=stats_list,json=statsList,proto3" json:"stats_list,omitempty"`
+	TargetStates map[int64]*State `protobuf:"bytes,4,rep,name=target_states,json=targetStates,proto3" json:"target_states,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// events relate to one session
+	EventsLists map[int64]*Events `protobuf:"bytes,5,rep,name=eventsLists,proto3" json:"eventsLists,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	// stats relate to one session
+	Stats         map[int64]*ComputedStats `protobuf:"bytes,6,rep,name=stats,proto3" json:"stats,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *LogicalEntry) Reset() {
 	*x = LogicalEntry{}
-	mi := &file_grpc_opelog_proto_msgTypes[7]
+	mi := &file_grpc_opelog_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -778,7 +822,7 @@ func (x *LogicalEntry) String() string {
 func (*LogicalEntry) ProtoMessage() {}
 
 func (x *LogicalEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[7]
+	mi := &file_grpc_opelog_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -791,7 +835,7 @@ func (x *LogicalEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogicalEntry.ProtoReflect.Descriptor instead.
 func (*LogicalEntry) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{7}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *LogicalEntry) GetSharedSes() []*StoredEntry {
@@ -815,13 +859,6 @@ func (x *LogicalEntry) GetSourceStates() map[int64]*State {
 	return nil
 }
 
-func (x *LogicalEntry) GetSourceEvents() []*Event {
-	if x != nil {
-		return x.SourceEvents
-	}
-	return nil
-}
-
 func (x *LogicalEntry) GetTargetStates() map[int64]*State {
 	if x != nil {
 		return x.TargetStates
@@ -829,23 +866,16 @@ func (x *LogicalEntry) GetTargetStates() map[int64]*State {
 	return nil
 }
 
-func (x *LogicalEntry) GetTargetEvents() []*Event {
+func (x *LogicalEntry) GetEventsLists() map[int64]*Events {
 	if x != nil {
-		return x.TargetEvents
+		return x.EventsLists
 	}
 	return nil
 }
 
-func (x *LogicalEntry) GetLastSession() int64 {
+func (x *LogicalEntry) GetStats() map[int64]*ComputedStats {
 	if x != nil {
-		return x.LastSession
-	}
-	return 0
-}
-
-func (x *LogicalEntry) GetStatsList() []*ComputedStats {
-	if x != nil {
-		return x.StatsList
+		return x.Stats
 	}
 	return nil
 }
@@ -857,8 +887,9 @@ type OpeLogAllInOne struct {
 	TargetRoot string                 `protobuf:"bytes,2,opt,name=target_root,json=targetRoot,proto3" json:"target_root,omitempty"`
 	// the key is the relative path
 	LogicalEntries map[string]*LogicalEntry `protobuf:"bytes,3,rep,name=logical_entries,json=logicalEntries,proto3" json:"logical_entries,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
-	// the key is the session label the value is its start time
-	Sessions      map[string]int64 `protobuf:"bytes,4,rep,name=sessions,proto3" json:"sessions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	// the key is the session label the value is its unique reference time
+	Sessions map[string]int64 `protobuf:"bytes,4,rep,name=sessions,proto3" json:"sessions,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
+	// the key is the inventory label the value is its unique reference time
 	Inventories   map[string]int64 `protobuf:"bytes,5,rep,name=inventories,proto3" json:"inventories,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"varint,2,opt,name=value"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -866,7 +897,7 @@ type OpeLogAllInOne struct {
 
 func (x *OpeLogAllInOne) Reset() {
 	*x = OpeLogAllInOne{}
-	mi := &file_grpc_opelog_proto_msgTypes[8]
+	mi := &file_grpc_opelog_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -878,7 +909,7 @@ func (x *OpeLogAllInOne) String() string {
 func (*OpeLogAllInOne) ProtoMessage() {}
 
 func (x *OpeLogAllInOne) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[8]
+	mi := &file_grpc_opelog_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -891,7 +922,7 @@ func (x *OpeLogAllInOne) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpeLogAllInOne.ProtoReflect.Descriptor instead.
 func (*OpeLogAllInOne) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{8}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *OpeLogAllInOne) GetSourceRoot() string {
@@ -954,52 +985,58 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\bchildren\x18\v \x03(\tR\bchildren\x12\x19\n" +
 	"\badd_meta\x18\f \x01(\fR\aaddMeta\"!\n" +
 	"\rTypedChecksum\x12\x10\n" +
-	"\x03tcs\x18\x01 \x01(\fR\x03tcs\"\xa2\x01\n" +
-	"\x05Event\x12%\n" +
-	"\x04kind\x18\x01 \x01(\x0e2\x11.opelog.EventCodeR\x04kind\x12!\n" +
-	"\fsession_time\x18\x02 \x01(\x03R\vsessionTime\x12\x1d\n" +
+	"\x03tcs\x18\x01 \x01(\fR\x03tcs\"\x9c\x01\n" +
+	"\x05Event\x12\x1b\n" +
+	"\tis_target\x18\x01 \x01(\bR\bisTarget\x12%\n" +
+	"\x04kind\x18\x02 \x01(\x0e2\x11.opelog.EventCodeR\x04kind\x12\x1d\n" +
 	"\n" +
 	"time_stamp\x18\x03 \x01(\x03R\ttimeStamp\x12\x15\n" +
 	"\x06se_num\x18\x04 \x01(\x11R\x05seNum\x12\x19\n" +
-	"\btcs_nums\x18\x05 \x03(\x11R\atcsNums\"5\n" +
+	"\btcs_nums\x18\x05 \x03(\x11R\atcsNums\"8\n" +
+	"\x06Events\x12.\n" +
+	"\vevents_list\x18\x01 \x03(\v2\r.opelog.EventR\n" +
+	"eventsList\"5\n" +
 	"\aAggInfo\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x12\n" +
-	"\x04size\x18\x02 \x01(\x03R\x04size\"\xa7\x03\n" +
-	"\rComputedStats\x12\x1d\n" +
-	"\n" +
-	"time_stamp\x18\x01 \x01(\x03R\ttimeStamp\x12>\n" +
-	"\x13source_list_or_stat\x18\x02 \x01(\v2\x0f.opelog.AggInfoR\x10sourceListOrStat\x12>\n" +
-	"\x13target_list_or_stat\x18\x03 \x01(\v2\x0f.opelog.AggInfoR\x10targetListOrStat\x12#\n" +
-	"\x04read\x18\x04 \x01(\v2\x0f.opelog.AggInfoR\x04read\x12'\n" +
-	"\x06create\x18\x05 \x01(\v2\x0f.opelog.AggInfoR\x06create\x12'\n" +
-	"\x06update\x18\x06 \x01(\v2\x0f.opelog.AggInfoR\x06update\x12'\n" +
-	"\x06remove\x18\a \x01(\v2\x0f.opelog.AggInfoR\x06remove\x120\n" +
-	"\vmeta_change\x18\b \x01(\v2\x0f.opelog.AggInfoR\n" +
+	"\x04size\x18\x02 \x01(\x03R\x04size\"\x88\x03\n" +
+	"\rComputedStats\x12>\n" +
+	"\x13source_list_or_stat\x18\x01 \x01(\v2\x0f.opelog.AggInfoR\x10sourceListOrStat\x12>\n" +
+	"\x13target_list_or_stat\x18\x02 \x01(\v2\x0f.opelog.AggInfoR\x10targetListOrStat\x12#\n" +
+	"\x04read\x18\x03 \x01(\v2\x0f.opelog.AggInfoR\x04read\x12'\n" +
+	"\x06create\x18\x04 \x01(\v2\x0f.opelog.AggInfoR\x06create\x12'\n" +
+	"\x06update\x18\x05 \x01(\v2\x0f.opelog.AggInfoR\x06update\x12'\n" +
+	"\x06remove\x18\x06 \x01(\v2\x0f.opelog.AggInfoR\x06remove\x120\n" +
+	"\vmeta_change\x18\a \x01(\v2\x0f.opelog.AggInfoR\n" +
 	"metaChange\x12%\n" +
-	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"{\n" +
-	"\x05State\x12#\n" +
-	"\x03stc\x18\x01 \x01(\x0e2\x11.opelog.StateCodeR\x03stc\x12\x15\n" +
-	"\x06se_num\x18\x02 \x01(\x11R\x05seNum\x12\x19\n" +
-	"\btcs_nums\x18\x03 \x03(\x11R\atcsNums\x12\x1b\n" +
-	"\tdep_count\x18\x04 \x01(\x05R\bdepCount\"\xf5\x04\n" +
+	"\x05error\x18\b \x01(\v2\x0f.opelog.AggInfoR\x05error\"\x98\x01\n" +
+	"\x05State\x12\x1b\n" +
+	"\tis_target\x18\x01 \x01(\bR\bisTarget\x12#\n" +
+	"\x03stc\x18\x02 \x01(\x0e2\x11.opelog.StateCodeR\x03stc\x12\x15\n" +
+	"\x06se_num\x18\x03 \x01(\x11R\x05seNum\x12\x19\n" +
+	"\btcs_nums\x18\x04 \x03(\x11R\atcsNums\x12\x1b\n" +
+	"\tdep_count\x18\x05 \x01(\x05R\bdepCount\"\xd5\x05\n" +
 	"\fLogicalEntry\x122\n" +
 	"\n" +
 	"shared_ses\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\tsharedSes\x126\n" +
 	"\vshared_tcss\x18\x02 \x03(\v2\x15.opelog.TypedChecksumR\n" +
 	"sharedTcss\x12K\n" +
-	"\rsource_states\x18\x03 \x03(\v2&.opelog.LogicalEntry.SourceStatesEntryR\fsourceStates\x122\n" +
-	"\rsource_events\x18\x04 \x03(\v2\r.opelog.EventR\fsourceEvents\x12K\n" +
-	"\rtarget_states\x18\x05 \x03(\v2&.opelog.LogicalEntry.TargetStatesEntryR\ftargetStates\x122\n" +
-	"\rtarget_events\x18\x06 \x03(\v2\r.opelog.EventR\ftargetEvents\x12!\n" +
-	"\flast_session\x18\a \x01(\x03R\vlastSession\x124\n" +
-	"\n" +
-	"stats_list\x18\b \x03(\v2\x15.opelog.ComputedStatsR\tstatsList\x1aN\n" +
+	"\rsource_states\x18\x03 \x03(\v2&.opelog.LogicalEntry.SourceStatesEntryR\fsourceStates\x12K\n" +
+	"\rtarget_states\x18\x04 \x03(\v2&.opelog.LogicalEntry.TargetStatesEntryR\ftargetStates\x12G\n" +
+	"\veventsLists\x18\x05 \x03(\v2%.opelog.LogicalEntry.EventsListsEntryR\veventsLists\x125\n" +
+	"\x05stats\x18\x06 \x03(\v2\x1f.opelog.LogicalEntry.StatsEntryR\x05stats\x1aN\n" +
 	"\x11SourceStatesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\x03R\x03key\x12#\n" +
 	"\x05value\x18\x02 \x01(\v2\r.opelog.StateR\x05value:\x028\x01\x1aN\n" +
 	"\x11TargetStatesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\x03R\x03key\x12#\n" +
-	"\x05value\x18\x02 \x01(\v2\r.opelog.StateR\x05value:\x028\x01\"\x8a\x04\n" +
+	"\x05value\x18\x02 \x01(\v2\r.opelog.StateR\x05value:\x028\x01\x1aN\n" +
+	"\x10EventsListsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\x03R\x03key\x12$\n" +
+	"\x05value\x18\x02 \x01(\v2\x0e.opelog.EventsR\x05value:\x028\x01\x1aO\n" +
+	"\n" +
+	"StatsEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\x03R\x03key\x12+\n" +
+	"\x05value\x18\x02 \x01(\v2\x15.opelog.ComputedStatsR\x05value:\x028\x01\"\x8a\x04\n" +
 	"\x0eOpeLogAllInOne\x12\x1f\n" +
 	"\vsource_root\x18\x01 \x01(\tR\n" +
 	"sourceRoot\x12\x1f\n" +
@@ -1058,7 +1095,7 @@ func file_grpc_opelog_proto_rawDescGZIP() []byte {
 }
 
 var file_grpc_opelog_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
 var file_grpc_opelog_proto_goTypes = []any{
 	(HalgoCode)(0),         // 0: opelog.HalgoCode
 	(EventCode)(0),         // 1: opelog.EventCode
@@ -1067,49 +1104,54 @@ var file_grpc_opelog_proto_goTypes = []any{
 	(*StoredEntry)(nil),    // 4: opelog.StoredEntry
 	(*TypedChecksum)(nil),  // 5: opelog.TypedChecksum
 	(*Event)(nil),          // 6: opelog.Event
-	(*AggInfo)(nil),        // 7: opelog.AggInfo
-	(*ComputedStats)(nil),  // 8: opelog.ComputedStats
-	(*State)(nil),          // 9: opelog.State
-	(*LogicalEntry)(nil),   // 10: opelog.LogicalEntry
-	(*OpeLogAllInOne)(nil), // 11: opelog.OpeLogAllInOne
-	nil,                    // 12: opelog.LogicalEntry.SourceStatesEntry
-	nil,                    // 13: opelog.LogicalEntry.TargetStatesEntry
-	nil,                    // 14: opelog.OpeLogAllInOne.LogicalEntriesEntry
-	nil,                    // 15: opelog.OpeLogAllInOne.SessionsEntry
-	nil,                    // 16: opelog.OpeLogAllInOne.InventoriesEntry
+	(*Events)(nil),         // 7: opelog.Events
+	(*AggInfo)(nil),        // 8: opelog.AggInfo
+	(*ComputedStats)(nil),  // 9: opelog.ComputedStats
+	(*State)(nil),          // 10: opelog.State
+	(*LogicalEntry)(nil),   // 11: opelog.LogicalEntry
+	(*OpeLogAllInOne)(nil), // 12: opelog.OpeLogAllInOne
+	nil,                    // 13: opelog.LogicalEntry.SourceStatesEntry
+	nil,                    // 14: opelog.LogicalEntry.TargetStatesEntry
+	nil,                    // 15: opelog.LogicalEntry.EventsListsEntry
+	nil,                    // 16: opelog.LogicalEntry.StatsEntry
+	nil,                    // 17: opelog.OpeLogAllInOne.LogicalEntriesEntry
+	nil,                    // 18: opelog.OpeLogAllInOne.SessionsEntry
+	nil,                    // 19: opelog.OpeLogAllInOne.InventoriesEntry
 }
 var file_grpc_opelog_proto_depIdxs = []int32{
 	3,  // 0: opelog.StoredEntry.user_rights:type_name -> opelog.Rights
 	3,  // 1: opelog.StoredEntry.group_rights:type_name -> opelog.Rights
 	3,  // 2: opelog.StoredEntry.other_rights:type_name -> opelog.Rights
 	1,  // 3: opelog.Event.kind:type_name -> opelog.EventCode
-	7,  // 4: opelog.ComputedStats.source_list_or_stat:type_name -> opelog.AggInfo
-	7,  // 5: opelog.ComputedStats.target_list_or_stat:type_name -> opelog.AggInfo
-	7,  // 6: opelog.ComputedStats.read:type_name -> opelog.AggInfo
-	7,  // 7: opelog.ComputedStats.create:type_name -> opelog.AggInfo
-	7,  // 8: opelog.ComputedStats.update:type_name -> opelog.AggInfo
-	7,  // 9: opelog.ComputedStats.remove:type_name -> opelog.AggInfo
-	7,  // 10: opelog.ComputedStats.meta_change:type_name -> opelog.AggInfo
-	7,  // 11: opelog.ComputedStats.error:type_name -> opelog.AggInfo
-	2,  // 12: opelog.State.stc:type_name -> opelog.StateCode
-	4,  // 13: opelog.LogicalEntry.shared_ses:type_name -> opelog.StoredEntry
-	5,  // 14: opelog.LogicalEntry.shared_tcss:type_name -> opelog.TypedChecksum
-	12, // 15: opelog.LogicalEntry.source_states:type_name -> opelog.LogicalEntry.SourceStatesEntry
-	6,  // 16: opelog.LogicalEntry.source_events:type_name -> opelog.Event
-	13, // 17: opelog.LogicalEntry.target_states:type_name -> opelog.LogicalEntry.TargetStatesEntry
-	6,  // 18: opelog.LogicalEntry.target_events:type_name -> opelog.Event
-	8,  // 19: opelog.LogicalEntry.stats_list:type_name -> opelog.ComputedStats
-	14, // 20: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
-	15, // 21: opelog.OpeLogAllInOne.sessions:type_name -> opelog.OpeLogAllInOne.SessionsEntry
-	16, // 22: opelog.OpeLogAllInOne.inventories:type_name -> opelog.OpeLogAllInOne.InventoriesEntry
-	9,  // 23: opelog.LogicalEntry.SourceStatesEntry.value:type_name -> opelog.State
-	9,  // 24: opelog.LogicalEntry.TargetStatesEntry.value:type_name -> opelog.State
-	10, // 25: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
-	26, // [26:26] is the sub-list for method output_type
-	26, // [26:26] is the sub-list for method input_type
-	26, // [26:26] is the sub-list for extension type_name
-	26, // [26:26] is the sub-list for extension extendee
-	0,  // [0:26] is the sub-list for field type_name
+	6,  // 4: opelog.Events.events_list:type_name -> opelog.Event
+	8,  // 5: opelog.ComputedStats.source_list_or_stat:type_name -> opelog.AggInfo
+	8,  // 6: opelog.ComputedStats.target_list_or_stat:type_name -> opelog.AggInfo
+	8,  // 7: opelog.ComputedStats.read:type_name -> opelog.AggInfo
+	8,  // 8: opelog.ComputedStats.create:type_name -> opelog.AggInfo
+	8,  // 9: opelog.ComputedStats.update:type_name -> opelog.AggInfo
+	8,  // 10: opelog.ComputedStats.remove:type_name -> opelog.AggInfo
+	8,  // 11: opelog.ComputedStats.meta_change:type_name -> opelog.AggInfo
+	8,  // 12: opelog.ComputedStats.error:type_name -> opelog.AggInfo
+	2,  // 13: opelog.State.stc:type_name -> opelog.StateCode
+	4,  // 14: opelog.LogicalEntry.shared_ses:type_name -> opelog.StoredEntry
+	5,  // 15: opelog.LogicalEntry.shared_tcss:type_name -> opelog.TypedChecksum
+	13, // 16: opelog.LogicalEntry.source_states:type_name -> opelog.LogicalEntry.SourceStatesEntry
+	14, // 17: opelog.LogicalEntry.target_states:type_name -> opelog.LogicalEntry.TargetStatesEntry
+	15, // 18: opelog.LogicalEntry.eventsLists:type_name -> opelog.LogicalEntry.EventsListsEntry
+	16, // 19: opelog.LogicalEntry.stats:type_name -> opelog.LogicalEntry.StatsEntry
+	17, // 20: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
+	18, // 21: opelog.OpeLogAllInOne.sessions:type_name -> opelog.OpeLogAllInOne.SessionsEntry
+	19, // 22: opelog.OpeLogAllInOne.inventories:type_name -> opelog.OpeLogAllInOne.InventoriesEntry
+	10, // 23: opelog.LogicalEntry.SourceStatesEntry.value:type_name -> opelog.State
+	10, // 24: opelog.LogicalEntry.TargetStatesEntry.value:type_name -> opelog.State
+	7,  // 25: opelog.LogicalEntry.EventsListsEntry.value:type_name -> opelog.Events
+	9,  // 26: opelog.LogicalEntry.StatsEntry.value:type_name -> opelog.ComputedStats
+	11, // 27: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
+	28, // [28:28] is the sub-list for method output_type
+	28, // [28:28] is the sub-list for method input_type
+	28, // [28:28] is the sub-list for extension type_name
+	28, // [28:28] is the sub-list for extension extendee
+	0,  // [0:28] is the sub-list for field type_name
 }
 
 func init() { file_grpc_opelog_proto_init() }
@@ -1123,7 +1165,7 @@ func file_grpc_opelog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_opelog_proto_rawDesc), len(file_grpc_opelog_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   14,
+			NumMessages:   17,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

@@ -2,9 +2,12 @@ package opelog
 
 import (
 	"bytes"
+	"maps"
 	"slices"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opeloggrpc"
 )
 
@@ -67,6 +70,23 @@ type StoredEntry struct {
 	SymLinkTarget string
 	Children      []string
 	AddMeta       []byte
+}
+
+func (ose *StoredEntry) Clone() *StoredEntry {
+	return &StoredEntry{
+		IsDir:         ose.IsDir,
+		Size:          ose.Size,
+		Mtime:         ose.Mtime,
+		User:          int32(ose.User),
+		UserRights:    ose.UserRights.Clone(),
+		Group:         int32(ose.Group),
+		GroupRights:   ose.GroupRights.Clone(),
+		OtherRights:   ose.OtherRights.Clone(),
+		IsSymLink:     ose.IsSymLink,
+		SymLinkTarget: ose.SymLinkTarget,
+		Children:      slices.Clone(ose.Children),
+		AddMeta:       bytes.Clone(ose.AddMeta),
+	}
 }
 
 func (se *StoredEntry) HasChild(cChild string) bool {
@@ -172,6 +192,10 @@ type TypedChecksum struct {
 	Tcs []byte
 }
 
+func (tcs *TypedChecksum) Clone() *TypedChecksum {
+	return &TypedChecksum{bytes.Clone(tcs.Tcs)}
+}
+
 type EventCode opeloggrpc.EventCode
 
 const (
@@ -188,12 +212,14 @@ func (ec EventCode) String() string {
 }
 
 type Event struct {
-	Kind        EventCode
-	SessionTime int64
-	TimeStamp   int64
-	// negative number means no entry
-	SeNum   int32
-	TcsNums []int32
+	IsTarget  bool
+	Kind      EventCode
+	TimeStamp int64
+	Se        *StoredEntry
+	Tcss      [][]byte
+	// values shared by index, negative index means no value
+	seNum   int32
+	tcsNums []int32
 }
 
 type AggInfo struct {
@@ -202,7 +228,6 @@ type AggInfo struct {
 }
 
 type ComputedStats struct {
-	TimeStamp        int64
 	SourceListOrStat *AggInfo
 	TargetListOrStat *AggInfo
 	Read             *AggInfo
@@ -233,70 +258,152 @@ func (sc StateCode) String() string {
 }
 
 type State struct {
-	Stc StateCode
-	// values shared by index, negative index means no value
-	SeNum    int32
-	TcsNums  []int32
+	Stc      StateCode
+	Se       *StoredEntry
+	Tcss     [][]byte
 	DepCount int32
+	// values shared by index, negative index means no value
+	seNum   int32
+	tcsNums []int32
 }
 
 type LogicalEntry struct {
 	// Checksums and stored entries are shared and referenced by index
-	SharedSes    []*StoredEntry
-	SharedTcss   []*TypedChecksum
-	SourceStates map[int64]*State
-	SourceEvents []*Event
-	TargetStates map[int64]*State
-	TargetEvents []*Event
-	// when last_session changes, on-going dir states need to be recomputed
-	LastSession int64
-	StatsList   []*ComputedStats
+	sharedSes    []*StoredEntry
+	sharedTcss   []*TypedChecksum
+	sourceStates map[int64]*State
+	targetStates map[int64]*State
+	eventsLists  map[int64][]*Event
+	stats        map[int64]*ComputedStats
 }
 
-func (le *LogicalEntry) AddOrShareSe(se *StoredEntry) int32 {
+func NewLogicalEntry() *LogicalEntry {
+	return new(LogicalEntry(LogicalEntry{
+		sourceStates: map[int64]*State{},
+		targetStates: map[int64]*State{},
+		eventsLists:  map[int64][]*Event{},
+		stats:        map[int64]*ComputedStats{},
+	}))
+}
+
+func (le *LogicalEntry) CreateEvent(sessionTs int64, isTarget bool, kind EventCode, se *StoredEntry, tcss [][]byte) *Event {
+	evs, _ := le.eventsLists[sessionTs]
+	ev := &Event{
+		IsTarget:  isTarget,
+		Kind:      kind,
+		TimeStamp: time.Now().Unix(),
+		Se:        se,
+		Tcss:      tcss,
+		seNum:     le.addOrShareSe(se),
+		tcsNums:   le.addOrShareTcss(tcss),
+	}
+	le.eventsLists[sessionTs] = append(evs, ev)
+	return ev
+}
+
+func (le *LogicalEntry) setupLoadedEvents() {
+	for evs := range maps.Values(le.eventsLists) {
+		for _, ev := range evs {
+			if ev.seNum != -1 {
+				ev.Se = le.sharedSes[ev.seNum].Clone()
+			}
+			for _, tcsNum := range ev.tcsNums {
+				ev.Tcss = append(ev.Tcss, le.sharedTcss[tcsNum].Clone().Tcs)
+			}
+		}
+	}
+}
+
+func (le *LogicalEntry) GetEvents(sessionTs int64, isTarget bool) (res []*Event) {
+	evs, ok := le.eventsLists[sessionTs]
+	if !ok {
+		return nil
+	}
+	for _, ev := range evs {
+		if ev.IsTarget == isTarget {
+			res = append(res, ev)
+		}
+	}
+	return
+}
+
+func (le *LogicalEntry) SetState(sessInvTs int64, isTarget bool, stc StateCode, se *StoredEntry, tcss [][]byte, depCount int) *State {
+	st := &State{
+		Stc:      stc,
+		Se:       se,
+		Tcss:     tcss,
+		DepCount: int32(depCount),
+		seNum:    le.addOrShareSe(se),
+		tcsNums:  le.addOrShareTcss(tcss),
+	}
+	if isTarget {
+		le.targetStates[sessInvTs] = st
+	} else {
+		le.sourceStates[sessInvTs] = st
+	}
+	return st
+}
+
+func (le *LogicalEntry) setupLoadedStates() {
+	for st := range common.Concat(maps.Values(le.sourceStates), maps.Values(le.targetStates)) {
+		if st.seNum != -1 {
+			st.Se = le.sharedSes[st.seNum].Clone()
+		}
+		for _, tcsNum := range st.tcsNums {
+			st.Tcss = append(st.Tcss, le.sharedTcss[tcsNum].Clone().Tcs)
+		}
+	}
+}
+
+func (le *LogicalEntry) GetState(sessionTs int64, isTarget bool) *State {
+	var (
+		st *State
+		ok bool
+	)
+	if isTarget {
+		st, ok = le.targetStates[sessionTs]
+	} else {
+		st, ok = le.sourceStates[sessionTs]
+	}
+	if !ok {
+		return nil
+	}
+	return st
+}
+
+func (le *LogicalEntry) addOrShareSe(se *StoredEntry) int32 {
 	if se == nil {
 		return -1
 	}
-	for i, exSe := range slices.Backward(le.SharedSes) {
+	for i, exSe := range slices.Backward(le.sharedSes) {
 		if se.Equal(exSe) {
 			return int32(i)
 		}
 	}
-	le.SharedSes = append(le.SharedSes, se)
-	return int32(len(le.SharedSes) - 1)
+	le.sharedSes = append(le.sharedSes, se)
+	return int32(len(le.sharedSes) - 1)
 }
 
-func (le *LogicalEntry) AddOrShareTcs(tcs []byte) int32 {
+func (le *LogicalEntry) addOrShareTcs(tcs []byte) int32 {
 	if tcs == nil {
 		return -1
 	}
-	for i, exTcs := range slices.Backward(le.SharedTcss) {
+	for i, exTcs := range slices.Backward(le.sharedTcss) {
 		if bytes.Equal(tcs, exTcs.Tcs) {
 			return int32(i)
 		}
 	}
-	le.SharedTcss = append(le.SharedTcss, &TypedChecksum{Tcs: bytes.Clone(tcs)})
-	return int32(len(le.SharedTcss) - 1)
+	le.sharedTcss = append(le.sharedTcss, &TypedChecksum{Tcs: bytes.Clone(tcs)})
+	return int32(len(le.sharedTcss) - 1)
 }
 
-func (le *LogicalEntry) GetTcssFor(ev *Event) [][]byte {
-	if len(ev.TcsNums) == 0 {
-		return nil
-	}
-	tcss := make([][]byte, len(ev.TcsNums))
-	for i := range ev.TcsNums {
-		tcss[i] = bytes.Clone(le.SharedTcss[i].Tcs)
-	}
-	return tcss
-}
-
-func (le *LogicalEntry) AddOrShareTcss(tcss [][]byte) []int32 {
+func (le *LogicalEntry) addOrShareTcss(tcss [][]byte) []int32 {
 	if tcss == nil {
 		return nil
 	}
 	tcssNums := make([]int32, len(tcss))
 	for i := range len(tcss) {
-		tcssNums[i] = le.AddOrShareTcs(tcss[i])
+		tcssNums[i] = le.addOrShareTcs(tcss[i])
 	}
 	return tcssNums
 }
@@ -307,7 +414,8 @@ type OpeLogAllInOne struct {
 	TargetRoot string
 	// the key is the relative path
 	LogicalEntries map[string]*LogicalEntry
-	// the key is the session label the value is its start time
-	Sessions    map[string]int64
+	// the key is the session label the value is its unique reference time
+	Sessions map[string]int64
+	// the key is the inventory label the value is its unique reference time
 	Inventories map[string]int64
 }

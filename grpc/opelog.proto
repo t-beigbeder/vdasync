@@ -49,12 +49,16 @@ enum EventCode {
 }
 
 message Event {
-    EventCode kind = 1;
-    int64 session_time = 2;
+    bool is_target = 1;
+    EventCode kind = 2;
     int64 time_stamp = 3;
-    // negative number means no entry
+    // values shared by index, negative index means no value
     sint32 se_num = 4;
     repeated sint32 tcs_nums = 5;
+}
+
+message Events {
+    repeated Event events_list = 1;
 }
 
 message AggInfo {
@@ -63,17 +67,16 @@ message AggInfo {
 }
 
 message ComputedStats {
-    int64 time_stamp = 1;
     // list for dirs, stats for others, performed both on source and target
-    AggInfo source_list_or_stat = 2;
-    AggInfo target_list_or_stat = 3;
+    AggInfo source_list_or_stat = 1;
+    AggInfo target_list_or_stat = 2;
     // other I/Os specific to source or to target
-    AggInfo read = 4;
-    AggInfo create = 5;
-    AggInfo update = 6;
-    AggInfo remove = 7;
-    AggInfo meta_change = 8;
-    AggInfo error = 9;
+    AggInfo read = 3;
+    AggInfo create = 4;
+    AggInfo update = 5;
+    AggInfo remove = 6;
+    AggInfo meta_change = 7;
+    AggInfo error = 8;
 }
 
 enum StateCode {
@@ -101,13 +104,13 @@ message LogicalEntry {
     // Checksums and stored entries are shared and referenced by index
     repeated StoredEntry shared_ses = 1;
     repeated TypedChecksum shared_tcss = 2;
+    // states relate to one session or to one inventory
     map<int64,State> source_states = 3;
-    repeated Event source_events = 4;
-    map<int64,State> target_states = 5;
-    repeated Event target_events = 6;
-    // when last_session changes, on-going dir states need to be recomputed
-    int64 last_session = 7;
-    repeated ComputedStats stats_list = 8;
+    map<int64,State> target_states = 4;
+    // events relate to one session
+    map<int64,Events> eventsLists = 5;
+    // stats relate to one session
+    map<int64,ComputedStats> stats = 6;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
@@ -116,7 +119,8 @@ message OpeLogAllInOne {
     string target_root = 2;
     // the key is the relative path
     map<string,LogicalEntry> logical_entries = 3;
-    // the key is the session label the value is its start time
+    // the key is the session label the value is its unique reference time
     map<string,int64> sessions = 4;
+    // the key is the inventory label the value is its unique reference time
     map<string,int64> inventories = 5;
 }
