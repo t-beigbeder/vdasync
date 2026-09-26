@@ -75,7 +75,7 @@ func protoBuf2EventsLists(gevsLs map[int64]*opeloggrpc.Events) map[int64][]*Even
 func protoBuf2Tcss(gtcss []*opeloggrpc.TypedChecksum) []*TypedChecksum {
 	tcss := make([]*TypedChecksum, len(gtcss))
 	for i, tcs := range gtcss {
-		tcss[i].Tcs = bytes.Clone(tcs.Tcs)
+		tcss[i] = &TypedChecksum{Tcs: bytes.Clone(tcs.Tcs)}
 	}
 	return tcss
 }
@@ -104,9 +104,6 @@ func protoBuf2ComputedStats(gcs *opeloggrpc.ComputedStats) *ComputedStats {
 }
 
 func protoBuf2ComputedStatsMap(gcss map[int64]*opeloggrpc.ComputedStats) map[int64]*ComputedStats {
-	if gcss == nil {
-		return nil
-	}
 	css := make(map[int64]*ComputedStats, len(gcss))
 	for k, v := range maps.All(gcss) {
 		css[k] = protoBuf2ComputedStats(v)
@@ -127,9 +124,6 @@ func protoBuf2State(gst *opeloggrpc.State) *State {
 }
 
 func protoBuf2States(gsts map[int64]*opeloggrpc.State) map[int64]*State {
-	if gsts == nil {
-		return nil
-	}
 	sts := make(map[int64]*State, len(gsts))
 	for k, v := range maps.All(gsts) {
 		sts[k] = protoBuf2State(v)
@@ -234,7 +228,7 @@ func tcss2ProtoBuf(tcss []*TypedChecksum) []*opeloggrpc.TypedChecksum {
 	}
 	gtcss := make([]*opeloggrpc.TypedChecksum, len(tcss))
 	for i, tcs := range tcss {
-		gtcss[i].Tcs = bytes.Clone(tcs.Tcs)
+		gtcss[i] = &opeloggrpc.TypedChecksum{Tcs: bytes.Clone(tcs.Tcs)}
 	}
 	return gtcss
 }

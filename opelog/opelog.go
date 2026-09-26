@@ -72,16 +72,23 @@ type StoredEntry struct {
 	AddMeta       []byte
 }
 
+func cloneRights(or *Rights) *Rights {
+	if or == nil {
+		return nil
+	}
+	return or.Clone()
+}
+
 func (ose *StoredEntry) Clone() *StoredEntry {
 	return &StoredEntry{
 		IsDir:         ose.IsDir,
 		Size:          ose.Size,
 		Mtime:         ose.Mtime,
 		User:          int32(ose.User),
-		UserRights:    ose.UserRights.Clone(),
+		UserRights:    cloneRights(ose.UserRights),
 		Group:         int32(ose.Group),
-		GroupRights:   ose.GroupRights.Clone(),
-		OtherRights:   ose.OtherRights.Clone(),
+		GroupRights:   cloneRights(ose.GroupRights),
+		OtherRights:   cloneRights(ose.OtherRights),
 		IsSymLink:     ose.IsSymLink,
 		SymLinkTarget: ose.SymLinkTarget,
 		Children:      slices.Clone(ose.Children),
