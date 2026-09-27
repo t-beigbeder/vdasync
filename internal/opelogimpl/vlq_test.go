@@ -10,12 +10,12 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
-func TestLargeqSimple(t *testing.T) {
+func TestVlqSimple(t *testing.T) {
 	// t.Skip("won't work")
 	const conc = 4
 	lgr := common.GetLogger()
 	td := t.TempDir()
-	lq, err := NewLargeQ(lgr, td, 10000)
+	lq, err := MakeVeryLongQueue(lgr, td, 10000)
 	require.NoError(t, err)
 	var wg sync.WaitGroup
 	wg.Add(1)

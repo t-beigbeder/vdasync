@@ -196,7 +196,7 @@ func TestQueuesSimple(t *testing.T) {
 		case "MemQueue":
 			tq = NewMemQueue()
 		case "LargeQueue":
-			tq, err = NewLargeQ(test.lgr, td, test.segSize)
+			tq, err = MakeVeryLongQueue(test.lgr, td, test.segSize)
 		}
 		require.NoError(t, err)
 		if skipped && !test.unSkipped {
