@@ -19,6 +19,11 @@ type OplWalker interface {
 	Run() error
 }
 
+type workerNotif struct {
+	wkn     int
+	isStart bool
+}
+
 type oplWalkerImpl struct {
 	mx            sync.Mutex
 	lgr           *slog.Logger
@@ -37,6 +42,7 @@ type oplWalkerImpl struct {
 	invTime       int64
 	gErrs         []error
 	syncTicker    *time.Ticker
+	wkNtfChan     chan workerNotif
 	bg            context.Context
 }
 
@@ -79,12 +85,45 @@ func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
 
 func (ow *oplWalkerImpl) oplmSync() {
 	lgr := ow.lgr.With("worker", "oplmSync")
-	lgr.Debug("oplWalkerImpl.oplmSync: start")
+	lgr.Debug("oplWalkerImpl", "start", true)
 
 	for tick := range ow.syncTicker.C {
-		lgr.Info("oplWalkerImpl.oplmSync: tick", "tick", tick)
+		lgr.Info("oplWalkerImpl", "tick", tick)
 		if err := ow.oplm.Sync(); err != nil {
 			ow.owErr(lgr, "failed to synchronize logs", err)
+		}
+	}
+}
+
+func (ow *oplWalkerImpl) workerController() {
+	lgr := ow.lgr.With("worker", "workerController")
+	stoppedWkNum := ow.conc
+	lgr.Debug("oplWalkerImpl", "start", true)
+	rsTo := ow.owo.ResetTimeout * int64(time.Second)
+	hasTo := true
+	if rsTo == 0 {
+		rsTo = int64(60 * time.Second)
+		hasTo = false
+	}
+	ticker := time.NewTicker(time.Duration(rsTo))
+
+	for {
+		select {
+		case notif := <-ow.wkNtfChan:
+			if notif.isStart {
+				ticker.Reset(time.Duration(rsTo))
+				stoppedWkNum--
+			} else {
+				stoppedWkNum++
+			}
+			lgr.Debug("oplWalkerImpl", "wkn", notif.wkn, "isStart", notif.isStart, "stoppedWkNum", stoppedWkNum)
+		case <-ticker.C:
+			ticker.Reset(time.Duration(rsTo))
+			lgr.Debug("oplWalkerImpl", "hasTo", hasTo, "stoppedWkNum", stoppedWkNum)
+			if hasTo && stoppedWkNum == ow.conc { // TODO: option to stop on queue empty
+				// restart walker
+				ow.oplq.Put("11")
+			}
 		}
 	}
 }
@@ -143,6 +182,8 @@ func (ow *oplWalkerImpl) Run() error {
 	}
 	ow.sessionTime, ow.invTime = sTs, iTs
 	ow.toolStartTime = time.Now().Unix()
+	ow.wkNtfChan = make(chan workerNotif)
+
 	var wg sync.WaitGroup
 	for wkn := range ow.conc {
 		wg.Add(1)
@@ -152,6 +193,7 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.syncTicker = time.NewTicker(time.Duration(ow.owo.SyncPeriod))
 		go ow.oplmSync()
 	}
+	// start walker
 	ow.oplq.Put("11")
 	wg.Wait()
 	if ow.owo.SyncPeriod != 0 {

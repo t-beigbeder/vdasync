@@ -51,8 +51,8 @@ type OpeLogOptionsType struct {
 	Goals           string `yaml:"goals"`
 	NoInvCheck      bool   `yaml:"noInvCheck"`
 	InvCsAlgos      string `yaml:"invCsAlgos"`
-	StatsTime       int64  `yaml:"statsTime"`
 	SyncPeriod      int64  `yaml:"syncPeriod"`
+	ResetTimeout    int64  `yaml:"resetTimeout"`
 }
 
 type SftpServerType struct {
