@@ -94,10 +94,13 @@ enum StateCode {
 
 message State {
     StateCode stc = 1;
+    // after tool (re)start, entry with on-going STC_DIR state
+    // needs children requeuing after proper evaluation
+    int64 tool_start_time = 2;
     // values shared by index, negative index means no value
-    sint32 se_num = 2;
-    repeated sint32 tcs_nums = 3;
-    int32 dep_count = 4;
+    sint32 se_num = 3;
+    repeated sint32 tcs_nums = 4;
+    int32 dep_count = 5;
 }
 
 message LogicalEntry {
