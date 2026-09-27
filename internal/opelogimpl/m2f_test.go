@@ -5,6 +5,7 @@ import (
 	"path"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -57,11 +58,12 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 	require.NoError(t, err)
 	_, _, err = olm.Open("ds", "di", false)
 	require.NoError(t, err)
+	tSt := time.Now().Unix()
 	err = filepath.Walk(std, func(path string, info fs.FileInfo, err error) error {
 		le := opelog.NewLogicalEntry()
 		se := &opelog.StoredEntry{IsDir: info.IsDir(), Mtime: info.ModTime().Unix()}
 		le.CreateEvent(sTs, false, opelog.EVC_LOADED, se, nil)
-		le.SetState(sTs, false, opelog.STC_DONE_PRESENT, se, nil, 0)
+		le.SetState(tSt, sTs, false, opelog.STC_DONE_PRESENT, se, nil, 0)
 		return olm.PutLogicalEntry(path, le)
 	})
 	require.NoError(t, err)

@@ -265,10 +265,13 @@ func (sc StateCode) String() string {
 }
 
 type State struct {
-	Stc      StateCode
-	Se       *StoredEntry
-	Tcss     [][]byte
-	DepCount int32
+	Stc StateCode
+	// after tool (re)start, entry with on-going STC_DIR state
+	// needs children requeuing after proper evaluation
+	ToolStartTime int64
+	Se            *StoredEntry
+	Tcss          [][]byte
+	DepCount      int32
 	// values shared by index, negative index means no value
 	seNum   int32
 	tcsNums []int32
@@ -334,14 +337,15 @@ func (le *LogicalEntry) GetEvents(sessionTs int64, isTarget bool) (res []*Event)
 	return
 }
 
-func (le *LogicalEntry) SetState(sessInvTs int64, isTarget bool, stc StateCode, se *StoredEntry, tcss [][]byte, depCount int) *State {
+func (le *LogicalEntry) SetState(toolStartTime, sessInvTs int64, isTarget bool, stc StateCode, se *StoredEntry, tcss [][]byte, depCount int) *State {
 	st := &State{
-		Stc:      stc,
-		Se:       se,
-		Tcss:     tcss,
-		DepCount: int32(depCount),
-		seNum:    le.addOrShareSe(se),
-		tcsNums:  le.addOrShareTcss(tcss),
+		Stc:           stc,
+		ToolStartTime: toolStartTime,
+		Se:            se,
+		Tcss:          tcss,
+		DepCount:      int32(depCount),
+		seNum:         le.addOrShareSe(se),
+		tcsNums:       le.addOrShareTcss(tcss),
 	}
 	if isTarget {
 		le.targetStates[sessInvTs] = st
