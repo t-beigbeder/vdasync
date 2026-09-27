@@ -3,6 +3,7 @@ package opelog
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -16,6 +17,7 @@ func TestEnum(t *testing.T) {
 }
 
 func TestBackAndForth(t *testing.T) {
+	tSt := time.Now().Unix()
 	le := NewLogicalEntry()
 	h1 := "sha256:0b3b26c3b2e9c20ffa068810ed8badab23d77a423619c698d0ba96787ed83051"
 	h2 := "md5:6ced4125b87379848fd3807d129b3dca"
@@ -26,8 +28,8 @@ func TestBackAndForth(t *testing.T) {
 	le.CreateEvent(1, false, EVC_LOADED, &StoredEntry{IsDir: true}, bss12)
 	le.CreateEvent(1, true, EVC_LOADED, &StoredEntry{IsDir: true}, bss12)
 	le.CreateEvent(1, true, EVC_CREATED, &StoredEntry{IsDir: true}, bss21)
-	le.SetState(1, false, STC_DONE_PRESENT, &StoredEntry{Size: 256}, bss12, 0)
-	le.SetState(1, true, STC_DONE_PRESENT, &StoredEntry{Size: 256}, bss12, 0)
+	le.SetState(tSt, 1, false, STC_DONE_PRESENT, &StoredEntry{Size: 256}, bss12, 0)
+	le.SetState(tSt, 1, true, STC_DONE_PRESENT, &StoredEntry{Size: 256}, bss12, 0)
 	pbLe := LogicalEntry2ProtoBuf(le)
 	leBack := ProtoBuf2LogicalEntry(pbLe)
 	evsSource := leBack.GetEvents(1, false)
