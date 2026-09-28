@@ -97,7 +97,7 @@ func (ow *oplWalkerImpl) oplmSync() {
 
 func (ow *oplWalkerImpl) startOrRestart() {
 	ow.toolStartTime = time.Now().Unix()
-	ow.oplq.Put("11")
+	ow.oplq.Put("")
 }
 
 func (ow *oplWalkerImpl) workerController() {
@@ -137,56 +137,57 @@ func (ow *oplWalkerImpl) workerController() {
 	}
 }
 
+func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string) {
+	ow.wkNtfChan <- workerNotif{wkn: wkn, isStart: true}
+	defer func() {
+		ow.wkNtfChan <- workerNotif{wkn: wkn}
+	}()
+	ow.detail(ow.lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
+	le, err := ow.oplm.GetLogicalEntry(relPath)
+	if err != nil {
+		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry", err)
+		return
+	}
+	ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le}
+	if le == nil {
+		ole.le = &opelog.LogicalEntry{}
+		ole.hasChanges = true
+	}
+	if err := ole.process(); err != nil {
+		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
+		ow.owErr(lgr, "oplWalkerImpl: process entry", err)
+		return
+	}
+	if ole.hasChanges {
+		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
+			ow.owErr(lgr, "oplWalkerImpl: process entry", err)
+			return
+		}
+	}
+}
+
 func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 	defer wg.Done()
 	lgr := ow.lgr.With("worker", wkn)
-	lgr.Debug("oplWalkerImpl.work: start")
+	lgr.Debug("oplWalkerImpl: start")
 	for {
-		pfxRelPath, err := ow.oplq.Get()
+		relPath, err := ow.oplq.Get()
 		if err != nil {
 			if err != common.ErrReadClosedQueue {
-				ow.owErr(lgr, "oplWalkerImpl.work", err)
+				ow.owErr(lgr, "oplWalkerImpl", err)
 			}
 			break
 		}
-		if len(pfxRelPath) < 2 {
-			ow.owErr(lgr, "oplWalkerImpl.work", fmt.Errorf("badly prefixed relPath from queue: %s", pfxRelPath))
-			break
-		}
-		sHasP := string(pfxRelPath[0]) == "1"
-		tHasP := string(pfxRelPath[1]) == "1"
-		relPath := pfxRelPath[2:]
-		ow.detail(ow.lgr, "oplWalkerImpl.work", "worker", wkn, "readPathFromQueue", relPath, "sHasParent", sHasP, "tHasParent", tHasP)
-		le, err := ow.oplm.GetLogicalEntry(relPath)
-		if err != nil {
-			ow.owErr(lgr, "oplWalkerImpl.work: GetLogicalEntry", err)
-			continue
-		}
-		ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le, sHasParent: sHasP, tHasParent: tHasP}
-		if le == nil {
-			ole.le = &opelog.LogicalEntry{}
-			ole.hasChanges = true
-		}
-		if err := ole.process(); err != nil {
-			_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
-			ow.owErr(lgr, "oplWalkerImpl.work: process entry", err)
-			continue
-		}
-		if ole.hasChanges {
-			if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
-				ow.owErr(lgr, "oplWalkerImpl.work: process entry", err)
-				continue
-			}
-		}
+		ow.processEntry(lgr.With("relPath", relPath), wkn, relPath)
 	}
-	lgr.Debug("oplWalkerImpl.work: stop")
+	lgr.Debug("oplWalkerImpl: stop")
 }
 
 func (ow *oplWalkerImpl) Run() error {
-	ow.lgr.Info("oplWalkerImpl.Run: start")
+	ow.lgr.Info("oplWalkerImpl: Run")
 	sTs, iTs, err := ow.oplm.Open(ow.session, ow.inventory, false)
 	if err != nil {
-		ow.lgr.Error("oplWalkerImpl.Run: open logs", "err", err)
+		ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
 		return err
 	}
 	ow.sessionTime, ow.invTime = sTs, iTs
@@ -208,14 +209,14 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.syncTicker.Stop()
 	}
 	if err := ow.oplm.Close(); err != nil {
-		ow.lgr.Error("oplWalkerImpl.Run: close logs", "err", err)
+		ow.lgr.Error("oplWalkerImpl: Run: close logs", "err", err)
 		return err
 	}
-	ow.lgr.Info("oplWalkerImpl.Run: end")
+	ow.lgr.Info("oplWalkerImpl: Run: end")
 	if len(ow.gErrs) > 0 {
 		err := fmt.Errorf("walker %d errors occured", len(ow.gErrs))
-		ow.lgr.Error("oplWalkerImpl.Run:", "err", err)
-		ow.detail(ow.lgr, "oplWalkerImpl.Run:", "err", err, "details", ow.gErrs)
+		ow.lgr.Error("oplWalkerImpl: Run:", "err", err)
+		ow.detail(ow.lgr, "oplWalkerImpl: Run:", "err", err, "details", ow.gErrs)
 		return err
 	}
 	return nil

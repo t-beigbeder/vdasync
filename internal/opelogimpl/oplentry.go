@@ -11,6 +11,7 @@ import (
 
 // This file is about low-level structure for logical and stored entries
 // Higher order services are either in opllentry (logical) or in oplsentry (stored)
+// Common dss related services are in opldss
 
 type oplLogicalEntry struct {
 	hasChanges bool
@@ -18,15 +19,9 @@ type oplLogicalEntry struct {
 	plgr       *slog.Logger
 	owi        *oplWalkerImpl
 	le         *opelog.LogicalEntry
-	sHasParent bool
-	sChildrenQ []string
-	tHasParent bool
-	tChildrenQ []string
 }
 
-func (ole *oplLogicalEntry) lgr() *slog.Logger {
-	return ole.plgr.With("relPath", ole.relPath)
-}
+func (ole *oplLogicalEntry) lgr() *slog.Logger { return ole.plgr.With("relPath", ole.relPath) }
 
 func (ole *oplLogicalEntry) detail(msg string, args ...any) {
 	ole.lgr().Log(ole.owi.bg, slog.LevelDebug+2, msg, args...)
@@ -44,6 +39,10 @@ func (ole *oplLogicalEntry) source() *oplStoredEntry {
 
 func (ole *oplLogicalEntry) target() *oplStoredEntry {
 	return &oplStoredEntry{ole: ole, isTarget: true}
+}
+
+func (ole *oplLogicalEntry) owErr(msg string, err error) error {
+	return ole.owi.owErr(ole.lgr(), msg, err)
 }
 
 type oplStoredEntry struct {
@@ -65,6 +64,10 @@ func (ose *oplStoredEntry) lgr() *slog.Logger {
 
 func (ose *oplStoredEntry) detail(msg string, args ...any) {
 	ose.lgr().Log(ose.ole.owi.bg, slog.LevelDebug+2, msg, args...)
+}
+
+func (ose *oplStoredEntry) owErr(msg string, err error) error {
+	return ose.ole.owi.owErr(ose.lgr(), msg, err)
 }
 
 func (ose *oplStoredEntry) owo() *config.OpeLogOptionsType { return ose.ole.owi.owo }
@@ -92,4 +95,9 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 		ds = ose.ole.owi.sds
 	}
 	return
+}
+
+// may be nil or Se may be nil meaning simply listed by parent
+func (ose *oplStoredEntry) getState() *opelog.State {
+	return ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
 }
