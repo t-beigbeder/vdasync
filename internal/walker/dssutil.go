@@ -2,6 +2,8 @@ package walker
 
 import "github.com/t-beigbeder/vdasync/dssa"
 
+// noLstatOnList can be activated for clients that don't need Lstat information
+// when Dss implementation doesn't provide it (currentcly sftpc)
 func DssList(dss dssa.Dssa, path_ string, noLstatOnList bool) ([]*dssa.DataEntry, error) {
 	des, err := dss.List(path_)
 	if err != nil {

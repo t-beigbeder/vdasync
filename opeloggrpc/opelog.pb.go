@@ -140,8 +140,9 @@ func (EventCode) EnumDescriptor() ([]byte, []int) {
 type StateCode int32
 
 const (
-	StateCode_STC_UNSPECIFIED  StateCode = 0
-	StateCode_STC_DONE_ABSENT  StateCode = 1
+	StateCode_STC_UNSPECIFIED StateCode = 0
+	StateCode_STC_DONE_ABSENT StateCode = 1
+	// state present without se_num means just listed by parent
 	StateCode_STC_DONE_PRESENT StateCode = 2
 	StateCode_STC_DIR_LOAD     StateCode = 3
 	StateCode_STC_DIR_RM       StateCode = 4

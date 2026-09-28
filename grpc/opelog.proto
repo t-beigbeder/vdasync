@@ -82,6 +82,7 @@ message ComputedStats {
 enum StateCode {
    STC_UNSPECIFIED = 0;
    STC_DONE_ABSENT = 1;
+   // state present without se_num means just listed by parent
    STC_DONE_PRESENT = 2;
    STC_DIR_LOAD = 3;
    STC_DIR_RM = 4;
