@@ -97,7 +97,15 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 	return
 }
 
-// may be nil or Se may be nil meaning simply listed by parent
+// getState may be nil or Se may be nil meaning simply listed by parent
 func (ose *oplStoredEntry) getState() *opelog.State {
 	return ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
+}
+
+func (ose *oplStoredEntry) setState(isInv bool, isTarget bool, stc opelog.StateCode, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
+	sessInvTs := ose.ole.owi.sessionTime
+	if isInv {
+		sessInvTs = ose.ole.owi.invTime
+	}
+	ose.ole.le.SetState(ose.ole.owi.toolStartTime, sessInvTs, ose.isTarget, stc, se, tcss, depCount)
 }

@@ -1,29 +1,30 @@
 package opelogimpl
 
 import (
-	"errors"
+	"path"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 func (ose *oplStoredEntry) dssStat() (*dssa.DataEntry, error) {
+	ose.detail("dss stat")
 	de, err := ose.dss().Stat(ose.fullPath())
 	if err != nil {
-		return nil, ose.owErr("dssStat", err)
+		return nil, ose.owErr("dss stat", err)
 	}
 	return de, nil
 }
 
-func (ose *oplStoredEntry) dssList() (*dssa.DataEntry, error) {
+func (ose *oplStoredEntry) dssList() ([]*dssa.DataEntry, error) {
+	ose.detail("dss list")
 	des, err := ose.dss().List(ose.fullPath())
 	if err != nil {
-		return nil, ose.owErr("dssStat", err)
+		return nil, ose.owErr("dss list", err)
 	}
-	return de, nil
+	return des, nil
 }
 
-// noLstatOnList bool
 func (ose *oplStoredEntry) dssStatAndList() (*opelog.StoredEntry, error) {
 	de, err := ose.dssStat()
 	if err != nil {
@@ -32,5 +33,10 @@ func (ose *oplStoredEntry) dssStatAndList() (*opelog.StoredEntry, error) {
 	if !de.IsDir {
 		return opelog.FromDataEntry(de, nil), nil
 	}
-	opelog.FromDataEntry(de, nil)
+	des, err := ose.dssList()
+	chs := make([]string, len(des))
+	for i := range des {
+		chs[i] = path.Base(des[i].Path)
+	}
+	return opelog.FromDataEntry(de, chs), nil
 }
