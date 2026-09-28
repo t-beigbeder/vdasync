@@ -53,6 +53,7 @@ type OpeLogOptionsType struct {
 	InvCsAlgos      string `yaml:"invCsAlgos"`
 	SyncPeriod      int64  `yaml:"syncPeriod"`
 	ResetTimeout    int64  `yaml:"resetTimeout"`
+	EnableRestart   bool   `yaml:"enableRestart"`
 }
 
 type SftpServerType struct {

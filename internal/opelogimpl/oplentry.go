@@ -4,12 +4,13 @@ import (
 	"log/slog"
 	"path"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 // This file is about low-level structure for logical and stored entries
-// Higer order services are either in opllentry (logical) or in oplsentry (stored)
+// Higher order services are either in opllentry (logical) or in oplsentry (stored)
 
 type oplLogicalEntry struct {
 	hasChanges bool
@@ -30,6 +31,12 @@ func (ole *oplLogicalEntry) lgr() *slog.Logger {
 func (ole *oplLogicalEntry) detail(msg string, args ...any) {
 	ole.lgr().Log(ole.owi.bg, slog.LevelDebug+2, msg, args...)
 }
+
+func (ole *oplLogicalEntry) owo() *config.OpeLogOptionsType { return ole.owi.owo }
+
+func (ole *oplLogicalEntry) oplq() opelog.Queue { return ole.owi.oplq }
+
+func (ole *oplLogicalEntry) oplm() opelog.OpeLogManager { return ole.owi.oplm }
 
 func (ole *oplLogicalEntry) source() *oplStoredEntry {
 	return &oplStoredEntry{ole: ole}
@@ -59,6 +66,12 @@ func (ose *oplStoredEntry) lgr() *slog.Logger {
 func (ose *oplStoredEntry) detail(msg string, args ...any) {
 	ose.lgr().Log(ose.ole.owi.bg, slog.LevelDebug+2, msg, args...)
 }
+
+func (ose *oplStoredEntry) owo() *config.OpeLogOptionsType { return ose.ole.owi.owo }
+
+func (ose *oplStoredEntry) oplq() opelog.Queue { return ose.ole.owi.oplq }
+
+func (ose *oplStoredEntry) oplm() opelog.OpeLogManager { return ose.ole.owi.oplm }
 
 func (ose *oplStoredEntry) root() string {
 	if ose.isTarget {

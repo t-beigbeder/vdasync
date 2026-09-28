@@ -95,6 +95,11 @@ func (ow *oplWalkerImpl) oplmSync() {
 	}
 }
 
+func (ow *oplWalkerImpl) startOrRestart() {
+	ow.toolStartTime = time.Now().Unix()
+	ow.oplq.Put("11")
+}
+
 func (ow *oplWalkerImpl) workerController() {
 	lgr := ow.lgr.With("worker", "workerController")
 	stoppedWkNum := ow.conc
@@ -120,9 +125,13 @@ func (ow *oplWalkerImpl) workerController() {
 		case <-ticker.C:
 			ticker.Reset(time.Duration(rsTo))
 			lgr.Debug("oplWalkerImpl", "hasTo", hasTo, "stoppedWkNum", stoppedWkNum)
-			if hasTo && stoppedWkNum == ow.conc { // TODO: option to stop on queue empty
-				// restart walker
-				ow.oplq.Put("11")
+			if hasTo && stoppedWkNum == ow.conc {
+				if ow.owo.EnableRestart {
+					ow.startOrRestart()
+				} else {
+					// will interrup all workers
+					ow.oplq.Close()
+				}
 			}
 		}
 	}
@@ -181,7 +190,6 @@ func (ow *oplWalkerImpl) Run() error {
 		return err
 	}
 	ow.sessionTime, ow.invTime = sTs, iTs
-	ow.toolStartTime = time.Now().Unix()
 	ow.wkNtfChan = make(chan workerNotif)
 
 	var wg sync.WaitGroup
@@ -194,7 +202,7 @@ func (ow *oplWalkerImpl) Run() error {
 		go ow.oplmSync()
 	}
 	// start walker
-	ow.oplq.Put("11")
+	ow.startOrRestart()
 	wg.Wait()
 	if ow.owo.SyncPeriod != 0 {
 		ow.syncTicker.Stop()
