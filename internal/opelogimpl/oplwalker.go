@@ -153,7 +153,9 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 		ole.le = &opelog.LogicalEntry{}
 		ole.hasChanges = true
 	}
+	//------------
 	// here it is!
+	//------------
 	if err := ole.process(); err != nil {
 		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
 		ow.owErr(lgr, "oplWalkerImpl: process entry", err)

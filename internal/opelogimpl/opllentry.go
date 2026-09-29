@@ -47,10 +47,29 @@ import ()
 // 	}
 // }
 
+func (ole *oplLogicalEntry) tryChange() (bool, error) {
+	updAble, creAble := ole.owi.impliesGoal("update"), ole.owi.impliesGoal("create")
+	if ole.source().hasError() || ole.target().hasError() {
+		return false, nil
+	}
+	if ole.source().isPresent() && ole.target().isPresent() {
+		if ole.equalType() {
+			
+		}
+	}
+}
+
+// process evaluates current states of source and target wrt the context
+// and performs required actions.
+//
+// Only errors concerning the walker are notified, stored entry level errors are silenced.
 func (ole *oplLogicalEntry) process() error {
 	ole.lgr().Debug("process: start")
-	sErr := ole.source().load()
-	tErr := ole.target().load()
-	_, _ = sErr, tErr
+	_ = ole.source().load()
+	_ = ole.target().load()
+	done, err := ole.tryChange()
+	if done || err != nil {
+		return nil
+	}
 	return nil
 }

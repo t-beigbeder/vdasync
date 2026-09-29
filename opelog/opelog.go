@@ -96,15 +96,12 @@ func (ose *StoredEntry) Clone() *StoredEntry {
 	}
 }
 
-func (se *StoredEntry) HasChild(cChild string) bool {
-	return slices.Contains(se.Children, cChild)
+func (se *StoredEntry) HasChild(child string) bool {
+	return slices.Contains(se.Children, child)
 }
 
 func (nse *StoredEntry) Equal(ose *StoredEntry) (result bool) {
-	if nse == nil && ose == nil {
-		return true
-	}
-	if nse == nil || ose == nil {
+	if ose == nil {
 		return
 	}
 	if nse.IsDir != ose.IsDir {
@@ -150,6 +147,13 @@ func (nse *StoredEntry) Equal(ose *StoredEntry) (result bool) {
 	}
 	result = true
 	return
+}
+
+func (nse *StoredEntry) EqualType(ose *StoredEntry) bool {
+	if ose == nil {
+		return false
+	}
+	return nse.IsDir == ose.IsDir && nse.IsSymLink == ose.IsSymLink
 }
 
 func dr2r(dr *dssa.Rights) *Rights {

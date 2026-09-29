@@ -73,6 +73,13 @@ func (ole *oplLogicalEntry) logErr(msg string, err error) error {
 	return err
 }
 
+func (ole *oplLogicalEntry) equalType() bool {
+	if ole.target().se() == nil{
+		return false
+	}
+	return ole.target().se().EqualType(ole.source().se())
+}
+
 // oplStoredEntry groups operations relevant either for source or for target
 //
 // errors returned by its services are logged but are only relevant to oplLogicalEntry
@@ -124,6 +131,70 @@ func (ose *oplStoredEntry) root() string {
 	}
 }
 
+func (ose *oplStoredEntry) hasChild(child string) bool {
+	st := ose.getState()
+	if st == nil || st.Se == nil {
+		return false
+	}
+	return st.Se.HasChild(child)
+}
+
+func (ose *oplStoredEntry) hasError() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR
+}
+
+func (ose *oplStoredEntry) isPresent() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc != opelog.STC_DONE_ABSENT
+}
+
+func (ose *oplStoredEntry) isAbsent() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc == opelog.STC_DONE_ABSENT
+}
+
+func (ose *oplStoredEntry) se() *opelog.StoredEntry {
+	st := ose.getState()
+	if st == nil {
+		return nil
+	}
+	return st.Se
+}
+
+func (ose *oplStoredEntry) isDir() bool {
+	se := ose.se()
+	if se == nil {
+		return false
+	}
+	return se.IsDir
+}
+
+func (ose *oplStoredEntry) isSymLink() bool {
+	se := ose.se()
+	if se == nil {
+		return false
+	}
+	return se.IsSymLink
+}
+
+func (ose *oplStoredEntry) isRegularFile() bool {
+	se := ose.se()
+	if se == nil {
+		return false
+	}
+	return !se.IsDir && !se.IsSymLink
+}
+
 func (ose *oplStoredEntry) fullPath() string {
 	return path.Join(ose.root(), ose.ole.relPath)
 }
@@ -139,6 +210,7 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 
 func (ose *oplStoredEntry) createEvent(kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
 	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ose.isTarget, kind, se, tcss)
+	ose.ole.hasChanges = true
 }
 
 func (ose *oplStoredEntry) getEvents(sessionTs int64) []*opelog.Event {
@@ -151,6 +223,7 @@ func (ose *oplStoredEntry) setState(isInv bool, stc opelog.StateCode, sErr strin
 		sessInvTs = ose.ole.owi.invTime
 	}
 	ose.ole.le.SetState(ose.ole.owi.toolStartTime, sessInvTs, ose.isTarget, stc, sErr, se, tcss, depCount)
+	ose.ole.hasChanges = true
 }
 
 // getState may be nil or Se may be nil meaning simply listed by parent
