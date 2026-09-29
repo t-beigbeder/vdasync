@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"fmt"
 	"log/slog"
 	"path"
 
@@ -13,6 +14,32 @@ import (
 // Higher order services are either in opllentry (logical) or in oplsentry (stored)
 // Common dss related services are in opldss
 
+// LeError may group one or two errors on source and/or target stored entry
+type LeError struct {
+	source error
+	target error
+}
+
+func (e *LeError) Error() string {
+	s := ""
+	if e.source != nil {
+		s += fmt.Sprintf("source %s", e.source.Error())
+	}
+	if e.target != nil {
+		if s != "" {
+			s += " - "
+		}
+		s += fmt.Sprintf("target %s", e.target.Error())
+	}
+	return s
+}
+
+// oplLogicalEntry groups operations on both source and target (oplStoredEntry)
+//
+// Its services notifies errors that are meaningful from walker point of view,
+// for instance regarding parent-child communication.
+// oplStoredEntry-related errors on the other hand are only meaningful
+// at the logical entry level and may be kept silent from its services.
 type oplLogicalEntry struct {
 	hasChanges bool
 	relPath    string
@@ -41,10 +68,15 @@ func (ole *oplLogicalEntry) target() *oplStoredEntry {
 	return &oplStoredEntry{ole: ole, isTarget: true}
 }
 
-func (ole *oplLogicalEntry) owErr(msg string, err error) error {
-	return ole.owi.owErr(ole.lgr(), msg, err)
+func (ole *oplLogicalEntry) logErr(msg string, err error) error {
+	ole.lgr().Error(msg, "err", err)
+	return err
 }
 
+// oplStoredEntry groups operations relevant either for source or for target
+//
+// errors returned by its services are logged but are only relevant to oplLogicalEntry
+// that may keep them silent
 type oplStoredEntry struct {
 	ole      *oplLogicalEntry
 	isTarget bool
@@ -66,8 +98,9 @@ func (ose *oplStoredEntry) detail(msg string, args ...any) {
 	ose.lgr().Log(ose.ole.owi.bg, slog.LevelDebug+2, msg, args...)
 }
 
-func (ose *oplStoredEntry) owErr(msg string, err error) error {
-	return ose.ole.owi.owErr(ose.lgr(), msg, err)
+func (ose *oplStoredEntry) logErr(msg string, err error) error {
+	ose.lgr().Error(msg, "err", err)
+	return err
 }
 
 func (ose *oplStoredEntry) owo() *config.OpeLogOptionsType { return ose.ole.owi.owo }

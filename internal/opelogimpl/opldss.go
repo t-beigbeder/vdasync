@@ -11,7 +11,7 @@ func (ose *oplStoredEntry) dssStat() (*dssa.DataEntry, error) {
 	ose.detail("dss stat")
 	de, err := ose.dss().Stat(ose.fullPath())
 	if err != nil {
-		return nil, ose.owErr("dss stat", err)
+		return nil, ose.logErr("dss stat", err)
 	}
 	return de, nil
 }
@@ -20,7 +20,7 @@ func (ose *oplStoredEntry) dssList() ([]*dssa.DataEntry, error) {
 	ose.detail("dss list")
 	des, err := ose.dss().List(ose.fullPath())
 	if err != nil {
-		return nil, ose.owErr("dss list", err)
+		return nil, ose.logErr("dss list", err)
 	}
 	return des, nil
 }

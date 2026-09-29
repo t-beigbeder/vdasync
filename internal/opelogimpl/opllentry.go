@@ -7,33 +7,35 @@ import (
 
 // This file is about high order services for logical entries
 
-func (ole *oplLogicalEntry) load() error {
+func (ole *oplLogicalEntry) load() (leErr *LeError, err error) {
 	ole.detail("load: start")
-	if err := ole.source().load(); err != nil {
-		return err
+	var (
+		sErr, tErr error
+	)
+	sErr = ole.source().load()
+	tErr = ole.target().load()
+	if sErr == nil {
+		sErr = ole.source().checkInventory()
 	}
-	if err := ole.target().load(); err != nil {
-		return err
+	if sErr != nil || tErr != nil {
+		leErr = &LeError{source: sErr, target: tErr}
 	}
-	if err := ole.source().checkInventory(); err != nil {
-		return err
-	}
-
-	return nil
+	return
 }
 
 func (ole *oplLogicalEntry) process() error {
-	var err error
+	var (
+		leErr, err error
+	)
 	ole.lgr().Debug("process: start")
-
-	for goal := range strings.SplitSeq("verify,update,create,load", ",") {
+	// TODO: manage restart on source and target state
+	for goal := range strings.SplitSeq("load,create,update,verify", ",") {
 		if !ole.owi.impliesGoal(goal) {
 			continue
 		}
 		switch goal {
 		case "load":
-			err = ole.load()
-			break
+			leErr, err = ole.load()
 		case "create":
 			err = errors.ErrUnsupported
 		case "update":
@@ -43,7 +45,7 @@ func (ole *oplLogicalEntry) process() error {
 		default:
 			err = errors.ErrUnsupported
 		}
-		if err != nil {
+		if leErr != nil || err != nil {
 			break
 		}
 	}

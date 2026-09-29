@@ -100,15 +100,15 @@ func (ow *oplWalkerImpl) startOrRestart() {
 	ow.oplq.Put("")
 }
 
-func (ow *oplWalkerImpl) workerController() {
+func (ow *oplWalkerImpl) workersController() {
 	lgr := ow.lgr.With("worker", "workerController")
 	stoppedWkNum := ow.conc
 	lgr.Debug("oplWalkerImpl", "start", true)
 	rsTo := ow.owo.ResetTimeout * int64(time.Second)
-	hasTo := true
+	hasTimeOut := true
 	if rsTo == 0 {
 		rsTo = int64(60 * time.Second)
-		hasTo = false
+		hasTimeOut = false
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 
@@ -124,12 +124,12 @@ func (ow *oplWalkerImpl) workerController() {
 			lgr.Debug("oplWalkerImpl", "wkn", notif.wkn, "isStart", notif.isStart, "stoppedWkNum", stoppedWkNum)
 		case <-ticker.C:
 			ticker.Reset(time.Duration(rsTo))
-			lgr.Debug("oplWalkerImpl", "hasTo", hasTo, "stoppedWkNum", stoppedWkNum)
-			if hasTo && stoppedWkNum == ow.conc {
+			lgr.Debug("oplWalkerImpl", "hasTo", hasTimeOut, "stoppedWkNum", stoppedWkNum)
+			if hasTimeOut && stoppedWkNum == ow.conc {
 				if ow.owo.EnableRestart {
 					ow.startOrRestart()
 				} else {
-					// will interrup all workers
+					// will interrupt all workers
 					ow.oplq.Close()
 				}
 			}
@@ -192,6 +192,7 @@ func (ow *oplWalkerImpl) Run() error {
 	}
 	ow.sessionTime, ow.invTime = sTs, iTs
 	ow.wkNtfChan = make(chan workerNotif)
+	go ow.workersController()
 
 	var wg sync.WaitGroup
 	for wkn := range ow.conc {
@@ -202,6 +203,7 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.syncTicker = time.NewTicker(time.Duration(ow.owo.SyncPeriod))
 		go ow.oplmSync()
 	}
+
 	// start walker
 	ow.startOrRestart()
 	wg.Wait()

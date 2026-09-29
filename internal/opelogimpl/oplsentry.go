@@ -12,10 +12,10 @@ func (ose *oplStoredEntry) load() error {
 	}
 	se, err := ose.dssStatAndList()
 	if err != nil {
-		return nil
+		return err
 	}
 	_ = se
-	return errors.ErrUnsupported
+	return nil
 }
 
 func (ose *oplStoredEntry) checkInventory() error {
