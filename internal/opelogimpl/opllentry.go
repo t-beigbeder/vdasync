@@ -12,7 +12,11 @@ func (ole *oplLogicalEntry) load() (leErr *LeError, err error) {
 	var (
 		sErr, tErr error
 	)
+	// TODO: may need to read source for checksums verification
+	// however this must only be done after ensuring no copy to target is needed
 	sErr = ole.source().load()
+	// TODO: source children can be created absent in target if target absent
+	// children entries should only be written once
 	tErr = ole.target().load()
 	if sErr == nil {
 		sErr = ole.source().checkInventory()

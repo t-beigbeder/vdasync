@@ -118,6 +118,7 @@ func protoBuf2State(gst *opeloggrpc.State) *State {
 	return &State{
 		Stc:           StateCode(gst.Stc),
 		ToolStartTime: gst.ToolStartTime,
+		Error:         gst.Error,
 		seNum:         gst.SeNum,
 		tcsNums:       slices.Clone(gst.TcsNums),
 		DepCount:      gst.DepCount,
@@ -275,6 +276,7 @@ func state2ProtoBuf(st *State) *opeloggrpc.State {
 	return &opeloggrpc.State{
 		Stc:           opeloggrpc.StateCode(st.Stc),
 		ToolStartTime: st.ToolStartTime,
+		Error:         st.Error,
 		SeNum:         st.seNum,
 		TcsNums:       slices.Clone(st.tcsNums),
 		DepCount:      st.DepCount,

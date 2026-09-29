@@ -130,15 +130,23 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 	return
 }
 
-// getState may be nil or Se may be nil meaning simply listed by parent
-func (ose *oplStoredEntry) getState() *opelog.State {
-	return ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
+func (ose *oplStoredEntry) createEvent(kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte)() {
+	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ose.isTarget, kind, se, tcss)
 }
 
-func (ose *oplStoredEntry) setState(isInv bool, isTarget bool, stc opelog.StateCode, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
+func (ose *oplStoredEntry) getEvents(sessionTs int64, isTarget bool) ([]*opelog.Event) {
+	return ose.ole.le.GetEvents(ose.ole.owi.sessionTime, ose.isTarget)
+}
+
+func (ose *oplStoredEntry) setState(isInv bool, isTarget bool, stc opelog.StateCode, sErr string, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
 	sessInvTs := ose.ole.owi.sessionTime
 	if isInv {
 		sessInvTs = ose.ole.owi.invTime
 	}
-	ose.ole.le.SetState(ose.ole.owi.toolStartTime, sessInvTs, ose.isTarget, stc, se, tcss, depCount)
+	ose.ole.le.SetState(ose.ole.owi.toolStartTime, sessInvTs, ose.isTarget, stc, sErr, se, tcss, depCount)
+}
+
+// getState may be nil or Se may be nil meaning simply listed by parent
+func (ose *oplStoredEntry) getState() *opelog.State {
+	return ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
 }

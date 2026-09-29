@@ -721,11 +721,12 @@ type State struct {
 	Stc   StateCode              `protobuf:"varint,1,opt,name=stc,proto3,enum=opelog.StateCode" json:"stc,omitempty"`
 	// after tool (re)start, entry with on-going STC_DIR state
 	// needs children requeuing after proper evaluation
-	ToolStartTime int64 `protobuf:"varint,2,opt,name=tool_start_time,json=toolStartTime,proto3" json:"tool_start_time,omitempty"`
+	ToolStartTime int64  `protobuf:"varint,2,opt,name=tool_start_time,json=toolStartTime,proto3" json:"tool_start_time,omitempty"`
+	Error         string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
 	// values shared by index, negative index means no value
-	SeNum         int32   `protobuf:"zigzag32,3,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
-	TcsNums       []int32 `protobuf:"zigzag32,4,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
-	DepCount      int32   `protobuf:"varint,5,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
+	SeNum         int32   `protobuf:"zigzag32,4,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
+	TcsNums       []int32 `protobuf:"zigzag32,5,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
+	DepCount      int32   `protobuf:"varint,6,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -772,6 +773,13 @@ func (x *State) GetToolStartTime() int64 {
 		return x.ToolStartTime
 	}
 	return 0
+}
+
+func (x *State) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
 }
 
 func (x *State) GetSeNum() int32 {
@@ -1011,13 +1019,14 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x06remove\x18\x06 \x01(\v2\x0f.opelog.AggInfoR\x06remove\x120\n" +
 	"\vmeta_change\x18\a \x01(\v2\x0f.opelog.AggInfoR\n" +
 	"metaChange\x12%\n" +
-	"\x05error\x18\b \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xa3\x01\n" +
+	"\x05error\x18\b \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xb9\x01\n" +
 	"\x05State\x12#\n" +
 	"\x03stc\x18\x01 \x01(\x0e2\x11.opelog.StateCodeR\x03stc\x12&\n" +
-	"\x0ftool_start_time\x18\x02 \x01(\x03R\rtoolStartTime\x12\x15\n" +
-	"\x06se_num\x18\x03 \x01(\x11R\x05seNum\x12\x19\n" +
-	"\btcs_nums\x18\x04 \x03(\x11R\atcsNums\x12\x1b\n" +
-	"\tdep_count\x18\x05 \x01(\x05R\bdepCount\"\xd5\x05\n" +
+	"\x0ftool_start_time\x18\x02 \x01(\x03R\rtoolStartTime\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\x12\x15\n" +
+	"\x06se_num\x18\x04 \x01(\x11R\x05seNum\x12\x19\n" +
+	"\btcs_nums\x18\x05 \x03(\x11R\atcsNums\x12\x1b\n" +
+	"\tdep_count\x18\x06 \x01(\x05R\bdepCount\"\xd5\x05\n" +
 	"\fLogicalEntry\x122\n" +
 	"\n" +
 	"shared_ses\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\tsharedSes\x126\n" +

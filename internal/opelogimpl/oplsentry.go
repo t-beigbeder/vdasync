@@ -6,6 +6,7 @@ import "errors"
 // common services on dss are in opldss
 
 func (ose *oplStoredEntry) load() error {
+	// TODO: if parent does not exist, child won't either
 	st := ose.getState()
 	if st != nil && st.Se != nil {
 		return nil
@@ -14,6 +15,8 @@ func (ose *oplStoredEntry) load() error {
 	if err != nil {
 		return err
 	}
+
+	ose.createEvent()
 	_ = se
 	return nil
 }
