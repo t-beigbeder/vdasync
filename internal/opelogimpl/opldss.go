@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"path"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/opelog"
@@ -9,6 +10,7 @@ import (
 
 func (ose *oplStoredEntry) dssStat() (*dssa.DataEntry, error) {
 	ose.detail("dss stat")
+	ose.loadTime = time.Now().Unix()
 	de, err := ose.dss().Stat(ose.fullPath())
 	if err != nil {
 		return nil, ose.logErr("dss stat", err)
@@ -18,6 +20,7 @@ func (ose *oplStoredEntry) dssStat() (*dssa.DataEntry, error) {
 
 func (ose *oplStoredEntry) dssList() ([]*dssa.DataEntry, error) {
 	ose.detail("dss list")
+	ose.loadTime = time.Now().Unix()
 	des, err := ose.dss().List(ose.fullPath())
 	if err != nil {
 		return nil, ose.logErr("dss list", err)

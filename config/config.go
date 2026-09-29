@@ -54,6 +54,7 @@ type OpeLogOptionsType struct {
 	SyncPeriod      int64  `yaml:"syncPeriod"`
 	ResetTimeout    int64  `yaml:"resetTimeout"`
 	EnableRestart   bool   `yaml:"enableRestart"`
+	ClearErrors     bool   `yaml:"clearErrors"`
 }
 
 type SftpServerType struct {

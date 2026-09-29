@@ -80,6 +80,13 @@ func (ole *oplLogicalEntry) logErr(msg string, err error) error {
 type oplStoredEntry struct {
 	ole      *oplLogicalEntry
 	isTarget bool
+	// events created once full processing done
+	loadTime       int64
+	removeTime     int64
+	createTime     int64
+	updateTime     int64
+	metaChangeTime int64
+	toolRestarted  bool
 }
 
 func (ose *oplStoredEntry) pfx() string {
@@ -130,15 +137,15 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 	return
 }
 
-func (ose *oplStoredEntry) createEvent(kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte)() {
+func (ose *oplStoredEntry) createEvent(kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
 	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ose.isTarget, kind, se, tcss)
 }
 
-func (ose *oplStoredEntry) getEvents(sessionTs int64, isTarget bool) ([]*opelog.Event) {
+func (ose *oplStoredEntry) getEvents(sessionTs int64) []*opelog.Event {
 	return ose.ole.le.GetEvents(ose.ole.owi.sessionTime, ose.isTarget)
 }
 
-func (ose *oplStoredEntry) setState(isInv bool, isTarget bool, stc opelog.StateCode, sErr string, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
+func (ose *oplStoredEntry) setState(isInv bool, stc opelog.StateCode, sErr string, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
 	sessInvTs := ose.ole.owi.sessionTime
 	if isInv {
 		sessInvTs = ose.ole.owi.invTime
@@ -147,6 +154,12 @@ func (ose *oplStoredEntry) setState(isInv bool, isTarget bool, stc opelog.StateC
 }
 
 // getState may be nil or Se may be nil meaning simply listed by parent
+//
+// toolRestarted if loaded state differs
 func (ose *oplStoredEntry) getState() *opelog.State {
-	return ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
+	st := ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
+	if st != nil && st.ToolStartTime != ose.ole.owi.toolStartTime {
+		ose.toolRestarted = true
+	}
+	return st
 }
