@@ -68,6 +68,7 @@ func (ose *oplStoredEntry) rmDir(theEnd bool) (initiated bool, err error) {
 	if !theEnd && len(ose.se().Children) != 0 {
 		ose.setState(false, opelog.STC_DIR_RM, "", ose.se(), nil, len(ose.se().Children))
 		initiated = true
+		ose.childrenQueued = true
 		return
 	}
 	if err = ose.dss().Rm(ose.fullPath()); err != nil {

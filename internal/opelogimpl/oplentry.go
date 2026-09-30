@@ -97,6 +97,8 @@ type oplStoredEntry struct {
 	createTime     int64
 	updateTime     int64
 	metaChangeTime int64
+	// queue current's dir children
+	childrenQueued bool
 }
 
 func (ose *oplStoredEntry) pfx() string {

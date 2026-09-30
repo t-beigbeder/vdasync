@@ -188,13 +188,19 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 
 	if err := ole.process(); err != nil {
 		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
-		ow.owErr(lgr, "oplWalkerImpl: process entry", err)
+		ow.owErr(lgr, "oplWalkerImpl: process entry: put err le", err)
 		return
 	}
 
 	if ole.hasChanges {
 		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
-			ow.owErr(lgr, "oplWalkerImpl: process entry", err)
+			ow.owErr(lgr, "oplWalkerImpl: process entry: put le", err)
+			return
+		}
+	}
+	for _, child := range ole.childrenQueue() {
+		if err := ow.oplq.Put(child);  err != nil {
+			ow.owErr(lgr, "oplWalkerImpl: process entry: put child in queue", err)
 			return
 		}
 	}

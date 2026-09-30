@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
@@ -38,7 +39,6 @@ func (ole *oplLogicalEntry) tryChange() (bool, error) {
 					return false, err
 				}
 				if initiated {
-					// TODO: queue children
 					return true, nil
 				}
 				// can try next action, eg update from file
@@ -49,9 +49,35 @@ func (ole *oplLogicalEntry) tryChange() (bool, error) {
 	return false, errors.ErrUnsupported
 }
 
+func (ole *oplLogicalEntry) tryCreate() (bool, error) {
+	return false, errors.ErrUnsupported
+}
+
+func (ole *oplLogicalEntry) tryLoad() (bool, error) {
+	return false, errors.ErrUnsupported
+}
+
 func (ole *oplLogicalEntry) recordEvents() {
 	ole.source().recordEvents()
 	ole.target().recordEvents()
+}
+
+// childrenQueue provides to walker children merged both from source and target
+func (ole *oplLogicalEntry) childrenQueue() []string {
+	var mChildren []string
+	sOse, tOse := ole.source(), ole.target()
+	if sOse.childrenQueued {
+		mChildren = slices.Clone(sOse.se().Children)
+	}
+	if tOse.childrenQueued {
+		for _, child := range tOse.se().Children {
+			if slices.Contains(sOse.se().Children, child) {
+				continue
+			}
+			mChildren = append(mChildren, child)
+		}
+	}
+	return mChildren
 }
 
 // process evaluates current states of source and target wrt the walker's
@@ -60,18 +86,25 @@ func (ole *oplLogicalEntry) recordEvents() {
 // Only errors concerning the walker are notified, stored entry level errors are silenced.
 func (ole *oplLogicalEntry) process() error {
 	ole.lgr().Debug("process: start")
-	// events need meaningful state: StoredEntry, Checksums
+	var (
+		done bool
+		err  error
+	)
+	// record events in the end as they need meaningful state: StoredEntry, Checksums
 	defer ole.recordEvents()
 
+	// initializes state for both stored entries
 	_ = ole.source().load()
 	_ = ole.target().load()
-	for {
+
+	// try performing actions starting with the most rights' demanding
+	for !done && err == nil {
+		done, err = ole.tryChange()
 		// can remove and then update
-		done, err := ole.tryChange()
-		if done || err != nil {
-			return nil
-		}
-		break // FIXME: !
+	}
+	for !done && err == nil {
+		done, err = ole.tryCreate()
+		// can remove and then update
 	}
 	return nil
 }
