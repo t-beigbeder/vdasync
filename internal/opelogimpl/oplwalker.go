@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -157,10 +158,12 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 	pRelPath := common.ParentPath(relPath)
 	ple, err := ow.oplm.GetLogicalEntry(pRelPath)
 	if err != nil {
-		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent", err)
+		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent initial", err)
 		return nil, err
 	}
 	ole.parentLe = ple
+	ole.parentSSt = ple.GetState(ow.sessionTime, false)
+	ole.parentTSt = ple.GetState(ow.sessionTime, true)
 
 	// absent parent's state is propagated directly to child
 	pOle := &oplLogicalEntry{plgr: lgr, relPath: pRelPath, owi: ow, le: ple}
@@ -173,6 +176,25 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 		ole.hasChanges = true
 	}
 	return ole, nil
+}
+
+func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) error {
+	if ole.parentLe == nil {
+		return nil
+	}
+	// reload parent and locks to modify
+	ow.mx.Lock()
+	defer ow.mx.Unlock()
+	pRelPath := common.ParentPath(ole.relPath)
+	ple, err := ow.oplm.GetLogicalEntry(pRelPath)
+	if err != nil {
+		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
+		return err
+	}
+	parentSSt := ple.GetState(ow.sessionTime, false)
+	parentTSt := ple.GetState(ow.sessionTime, true)
+	_, _ = parentSSt, parentTSt
+	return errors.ErrUnsupported // FIXME: wip
 }
 
 func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string) {
@@ -199,7 +221,7 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 		}
 	}
 	for _, child := range ole.childrenQueue() {
-		if err := ow.oplq.Put(child);  err != nil {
+		if err := ow.oplq.Put(child); err != nil {
 			ow.owErr(lgr, "oplWalkerImpl: process entry: put child in queue", err)
 			return
 		}

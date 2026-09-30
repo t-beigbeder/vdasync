@@ -43,3 +43,12 @@ func (ose *oplStoredEntry) dssStatAndList() (*opelog.StoredEntry, error) {
 	}
 	return opelog.FromDataEntry(de, chs), nil
 }
+
+func (ose *oplStoredEntry) dssRm() error {
+	ose.detail("dss rm")
+	ose.removeTime = time.Now().Unix()
+	if err := ose.dss().Rm(ose.fullPath()); err != nil {
+		return ose.logErr("dss rm", err)
+	}
+	return nil
+}

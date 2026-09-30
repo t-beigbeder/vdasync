@@ -9,6 +9,7 @@ import (
 // This file is about high order services for stored entries
 // common services on dss are in opldss
 
+// entry processing updates its state until events can be logged along with their final state
 func (ose *oplStoredEntry) recordEvents() {
 	if ose.loadTime != 0 {
 		ose.createEvent(ose.loadTime, opelog.EVC_LOADED, ose.getState().Se, ose.getState().Tcss)
@@ -63,6 +64,16 @@ func (ose *oplStoredEntry) reloadDirNeeded(stc opelog.StateCode) (yes bool) {
 	return
 }
 
+// remove an entry or empty dir
+func (ose *oplStoredEntry) remove() error {
+	if err := ose.dssRm(); err != nil {
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return err
+	}
+	ose.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+	return nil
+}
+
 // rmDir initiates and/or concludes a recursive dir removal
 func (ose *oplStoredEntry) rmDir(theEnd bool) (initiated bool, err error) {
 	if !theEnd && len(ose.se().Children) != 0 {
@@ -71,11 +82,9 @@ func (ose *oplStoredEntry) rmDir(theEnd bool) (initiated bool, err error) {
 		ose.childrenQueued = true
 		return
 	}
-	if err = ose.dss().Rm(ose.fullPath()); err != nil {
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+	if err = ose.remove(); err != nil {
 		return
 	}
-	ose.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 	return
 }
 

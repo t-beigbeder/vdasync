@@ -47,7 +47,9 @@ type oplLogicalEntry struct {
 	owi        *oplWalkerImpl
 	le         *opelog.LogicalEntry
 	// needed to understand what is requested from parent's stored entries
-	parentLe *opelog.LogicalEntry
+	parentLe  *opelog.LogicalEntry
+	parentSSt *opelog.State
+	parentTSt *opelog.State
 }
 
 func (ole *oplLogicalEntry) lgr() *slog.Logger { return ole.plgr.With("relPath", ole.relPath) }

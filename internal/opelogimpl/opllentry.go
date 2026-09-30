@@ -11,12 +11,73 @@ import (
 // This file is about high order services for logical entries
 // common services on dss are in opldss
 
-// tryChange makes target entry change (create, remove, update) progress if possible
+// source and target entries processing updates their states until events can be logged along with their final state
+func (ole *oplLogicalEntry) recordEvents() {
+	ole.source().recordEvents()
+	ole.target().recordEvents()
+}
+
+// childrenQueue provides to walker children merged both from source and target
+func (ole *oplLogicalEntry) childrenQueue() []string {
+	var mChildren []string
+	sOse, tOse := ole.source(), ole.target()
+	if sOse.childrenQueued {
+		sOse.getState().DepCount = int32(len(sOse.se().Children))
+		mChildren = slices.Clone(sOse.se().Children)
+	}
+	if tOse.childrenQueued {
+		tOse.getState().DepCount = int32(len(tOse.se().Children))
+		for _, child := range tOse.se().Children {
+			if slices.Contains(sOse.se().Children, child) {
+				continue
+			}
+			mChildren = append(mChildren, child)
+		}
+	}
+
+	return mChildren
+}
+
+// tryRm makes target entry removal progress if possible.
 //
-// Errors are only returned when other or further actions are not possible
+// Returns true if the change is fully done, if not a remove may be followed by a creation.
+// Errors are only returned when other or further actions are not possible.
+func (ole *oplLogicalEntry) tryRm() (bool, error) {
+	if !ole.owi.impliesGoal("update") {
+		return false, nil
+	}
+	tOse := ole.target()
+	if tOse.isDir() {
+		if !ole.owo().Rm {
+			err := common.ErrNeededRmDisabled
+			tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
+			return false, err
+		}
+		// whatever the current state, launch rmdir
+		tSt := tOse.getState()
+		initiated, err := tOse.rmDir(tSt.Stc == opelog.STC_DIR_RM && tSt.DepCount == 0)
+		if err != nil {
+			return false, err
+		}
+		if initiated {
+			return true, nil
+		}
+		// can try next action, eg update from file
+		return false, nil
+	}
+	if err := tOse.remove(); err != nil {
+		return false, err
+	}
+	return false, nil
+}
+
+// tryChange makes target entry change (create, remove, update) progress if possible.
+//
+// Returns true if the change is fully done, if not a remove may be followed by a creation.
+// Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryChange() (bool, error) {
 	updAble, creAble := ole.owi.impliesGoal("update"), ole.owi.impliesGoal("create")
-	_ = creAble
+	_, _ = updAble, creAble
 	sOse, tOse := ole.source(), ole.target()
 
 	if sOse.hasError() || tOse.hasError() {
@@ -24,26 +85,10 @@ func (ole *oplLogicalEntry) tryChange() (bool, error) {
 	}
 	if sOse.isPresent() && tOse.isPresent() {
 		if !ole.seEqualType() {
-			if !updAble {
-				return false, nil
-			}
-			if tOse.isDir() {
-				if !ole.owo().Rm {
-					err := common.ErrNeededRmDisabled
-					tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
-					return false, err
-				}
-				// whatever the current state, launch rmdir
-				initiated, err := tOse.rmDir(false)
-				if err != nil {
-					return false, err
-				}
-				if initiated {
-					return true, nil
-				}
-				// can try next action, eg update from file
-				return false, nil
-			}
+			return ole.tryRm()
+		}
+		if tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
+			return ole.tryRm()
 		}
 	}
 	return false, errors.ErrUnsupported
@@ -55,29 +100,6 @@ func (ole *oplLogicalEntry) tryCreate() (bool, error) {
 
 func (ole *oplLogicalEntry) tryLoad() (bool, error) {
 	return false, errors.ErrUnsupported
-}
-
-func (ole *oplLogicalEntry) recordEvents() {
-	ole.source().recordEvents()
-	ole.target().recordEvents()
-}
-
-// childrenQueue provides to walker children merged both from source and target
-func (ole *oplLogicalEntry) childrenQueue() []string {
-	var mChildren []string
-	sOse, tOse := ole.source(), ole.target()
-	if sOse.childrenQueued {
-		mChildren = slices.Clone(sOse.se().Children)
-	}
-	if tOse.childrenQueued {
-		for _, child := range tOse.se().Children {
-			if slices.Contains(sOse.se().Children, child) {
-				continue
-			}
-			mChildren = append(mChildren, child)
-		}
-	}
-	return mChildren
 }
 
 // process evaluates current states of source and target wrt the walker's
@@ -94,6 +116,7 @@ func (ole *oplLogicalEntry) process() error {
 	defer ole.recordEvents()
 
 	// initializes state for both stored entries
+	// clear errors if possible, (re)start dir loading if possible
 	_ = ole.source().load()
 	_ = ole.target().load()
 
