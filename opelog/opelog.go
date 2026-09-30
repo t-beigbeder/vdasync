@@ -301,12 +301,15 @@ func NewLogicalEntry() *LogicalEntry {
 	}))
 }
 
-func (le *LogicalEntry) CreateEvent(sessionTs int64, isTarget bool, kind EventCode, se *StoredEntry, tcss [][]byte) *Event {
+func (le *LogicalEntry) CreateEvent(sessionTs, eventTs int64, isTarget bool, kind EventCode, se *StoredEntry, tcss [][]byte) *Event {
 	evs, _ := le.eventsLists[sessionTs]
+	if eventTs == 0 {
+		eventTs = time.Now().Unix()
+	}
 	ev := &Event{
 		IsTarget:  isTarget,
 		Kind:      kind,
-		TimeStamp: time.Now().Unix(),
+		TimeStamp: eventTs,
 		Se:        se,
 		Tcss:      tcss,
 		seNum:     le.addOrShareSe(se),

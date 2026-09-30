@@ -1,75 +1,77 @@
 package opelogimpl
 
-import ()
+import (
+	"errors"
+
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/opelog"
+)
 
 // This file is about high order services for logical entries
 // common services on dss are in opldss
 
-// func (ole *oplLogicalEntry) load() (leErr *LeError, err error) {
-// 	ole.detail("load: start")
-// 	var (
-// 		sErr, tErr error
-// 	)
-// 	// TODO: may need to read source for checksums verification
-// 	// however this must only be done after ensuring no copy to target is needed
-// 	sErr = ole.source().load()
-// 	// TODO: source children can be created absent in target if target absent
-// 	// children entries should only be written once
-// 	tErr = ole.target().load()
-// 	if sErr == nil {
-// 		sErr = ole.source().checkInventory()
-// 	}
-// 	if sErr != nil || tErr != nil {
-// 		leErr = &LeError{source: sErr, target: tErr}
-// 	}
-// 	return
-// }
-
-// func (ole *oplLogicalEntry) manageRestart() error {
-// 	tSt := ole.target().getState()
-// 	if tSt == nil {
-// 		return nil
-// 	}
-// 	if tSt.ToolStartTime == ole.owi.toolStartTime {
-// 		return nil
-// 	}
-// 	switch {
-// 	case tSt.Stc == opelog.STC_DIR_CHANGE && ole.owi.impliesGoal("update"):
-// 		return nil
-// 	case tSt.Stc == opelog.STC_DIR_RM && ole.owi.impliesGoal("update"):
-// 		return nil
-// 	case tSt.Stc == opelog.STC_DIR_LOAD && ole.owi.impliesGoal("load"):
-// 		return nil
-// 	case tSt.Stc == opelog.STC_DIR_CHANGE && ole.owi.impliesGoal("create"):
-// 		return nil
-// 	default:
-// 		return nil
-// 	}
-// }
-
+// tryChange makes target entry change (create, remove, update) progress if possible
+//
+// Errors are only returned when other or further actions are not possible
 func (ole *oplLogicalEntry) tryChange() (bool, error) {
 	updAble, creAble := ole.owi.impliesGoal("update"), ole.owi.impliesGoal("create")
-	if ole.source().hasError() || ole.target().hasError() {
+	_ = creAble
+	sOse, tOse := ole.source(), ole.target()
+
+	if sOse.hasError() || tOse.hasError() {
 		return false, nil
 	}
-	if ole.source().isPresent() && ole.target().isPresent() {
-		if ole.equalType() {
-			
+	if sOse.isPresent() && tOse.isPresent() {
+		if !ole.seEqualType() {
+			if !updAble {
+				return false, nil
+			}
+			if tOse.isDir() {
+				if !ole.owo().Rm {
+					err := common.ErrNeededRmDisabled
+					tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
+					return false, err
+				}
+				// whatever the current state, launch rmdir
+				initiated, err := tOse.rmDir(false)
+				if err != nil {
+					return false, err
+				}
+				if initiated {
+					// TODO: queue children
+					return true, nil
+				}
+				// can try next action, eg update from file
+				return false, nil
+			}
 		}
 	}
+	return false, errors.ErrUnsupported
 }
 
-// process evaluates current states of source and target wrt the context
-// and performs required actions.
+func (ole *oplLogicalEntry) recordEvents() {
+	ole.source().recordEvents()
+	ole.target().recordEvents()
+}
+
+// process evaluates current states of source and target wrt the walker's
+// operational context and performs required actions.
 //
 // Only errors concerning the walker are notified, stored entry level errors are silenced.
 func (ole *oplLogicalEntry) process() error {
 	ole.lgr().Debug("process: start")
+	// events need meaningful state: StoredEntry, Checksums
+	defer ole.recordEvents()
+
 	_ = ole.source().load()
 	_ = ole.target().load()
-	done, err := ole.tryChange()
-	if done || err != nil {
-		return nil
+	for {
+		// can remove and then update
+		done, err := ole.tryChange()
+		if done || err != nil {
+			return nil
+		}
+		break // FIXME: !
 	}
 	return nil
 }

@@ -62,7 +62,7 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 	err = filepath.Walk(std, func(path string, info fs.FileInfo, err error) error {
 		le := opelog.NewLogicalEntry()
 		se := &opelog.StoredEntry{IsDir: info.IsDir(), Mtime: info.ModTime().Unix()}
-		le.CreateEvent(sTs, false, opelog.EVC_LOADED, se, nil)
+		le.CreateEvent(sTs, 0, false, opelog.EVC_LOADED, se, nil)
 		le.SetState(tSt, sTs, false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 		return olm.PutLogicalEntry(path, le)
 	})

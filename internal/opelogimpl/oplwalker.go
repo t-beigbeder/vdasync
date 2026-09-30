@@ -137,30 +137,61 @@ func (ow *oplWalkerImpl) workersController() {
 	}
 }
 
-func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string) {
-	ow.wkNtfChan <- workerNotif{wkn: wkn, isStart: true}
-	defer func() {
-		ow.wkNtfChan <- workerNotif{wkn: wkn}
-	}()
-	ow.detail(ow.lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
+// getLogicalEntry ensures entry is loaded or newly created and retrieves related parent state if needed
+//
+// as an optimization, absent parent's state is propagated to child
+func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*oplLogicalEntry, error) {
 	le, err := ow.oplm.GetLogicalEntry(relPath)
 	if err != nil {
 		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry", err)
-		return
+		return nil, err
 	}
 	ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le}
 	if le == nil {
 		ole.le = &opelog.LogicalEntry{}
 		ole.hasChanges = true
 	}
-	//------------
-	// here it is!
-	//------------
+	if relPath == "" {
+		return ole, nil
+	}
+	pRelPath := common.ParentPath(relPath)
+	ple, err := ow.oplm.GetLogicalEntry(pRelPath)
+	if err != nil {
+		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent", err)
+		return nil, err
+	}
+	ole.parentLe = ple
+
+	// absent parent's state is propagated directly to child
+	pOle := &oplLogicalEntry{plgr: lgr, relPath: pRelPath, owi: ow, le: ple}
+	if pOle.source().isAbsent() && ole.source().getState() == nil {
+		ole.source().setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+		ole.hasChanges = true
+	}
+	if pOle.target().isAbsent() && ole.target().getState() == nil {
+		ole.target().setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+		ole.hasChanges = true
+	}
+	return ole, nil
+}
+
+func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string) {
+	ow.wkNtfChan <- workerNotif{wkn: wkn, isStart: true}
+	defer func() {
+		ow.wkNtfChan <- workerNotif{wkn: wkn}
+	}()
+	ow.detail(ow.lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
+	ole, err := ow.getLogicalEntry(lgr, relPath)
+	if err != nil {
+		return
+	}
+
 	if err := ole.process(); err != nil {
 		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
 		ow.owErr(lgr, "oplWalkerImpl: process entry", err)
 		return
 	}
+
 	if ole.hasChanges {
 		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
 			ow.owErr(lgr, "oplWalkerImpl: process entry", err)

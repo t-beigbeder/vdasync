@@ -4,6 +4,7 @@ type errorConst string
 
 const ErrUnhandledFileType errorConst = "unhandled file type"
 const ErrReadClosedQueue errorConst = "all is read on closed queue"
+const ErrNeededRmDisabled errorConst = "needed removal disabled"
 
 func (e errorConst) Error() string {
 	return string(e)

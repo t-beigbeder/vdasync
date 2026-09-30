@@ -46,6 +46,8 @@ type oplLogicalEntry struct {
 	plgr       *slog.Logger
 	owi        *oplWalkerImpl
 	le         *opelog.LogicalEntry
+	// needed to understand what is requested from parent's stored entries
+	parentLe *opelog.LogicalEntry
 }
 
 func (ole *oplLogicalEntry) lgr() *slog.Logger { return ole.plgr.With("relPath", ole.relPath) }
@@ -73,27 +75,28 @@ func (ole *oplLogicalEntry) logErr(msg string, err error) error {
 	return err
 }
 
-func (ole *oplLogicalEntry) equalType() bool {
-	if ole.target().se() == nil{
+func (ole *oplLogicalEntry) seEqualType() bool {
+	if ole.target().se() == nil {
 		return false
 	}
 	return ole.target().se().EqualType(ole.source().se())
 }
 
-// oplStoredEntry groups operations relevant either for source or for target
+// oplStoredEntry groups operations and state relevant either for source or for target
 //
 // errors returned by its services are logged but are only relevant to oplLogicalEntry
 // that may keep them silent
 type oplStoredEntry struct {
 	ole      *oplLogicalEntry
 	isTarget bool
-	// events created once full processing done
+	// processing state
+	toolRestarted bool
+	// events information, to be created once full processing done
 	loadTime       int64
 	removeTime     int64
 	createTime     int64
 	updateTime     int64
 	metaChangeTime int64
-	toolRestarted  bool
 }
 
 func (ose *oplStoredEntry) pfx() string {
@@ -147,6 +150,7 @@ func (ose *oplStoredEntry) hasError() bool {
 	return st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR
 }
 
+// isPresent detects entry not absent, state may be in progress or have error
 func (ose *oplStoredEntry) isPresent() bool {
 	st := ose.getState()
 	if st == nil {
@@ -155,6 +159,7 @@ func (ose *oplStoredEntry) isPresent() bool {
 	return st.Stc != opelog.STC_DONE_ABSENT
 }
 
+// isPresent detects entry absent
 func (ose *oplStoredEntry) isAbsent() bool {
 	st := ose.getState()
 	if st == nil {
@@ -208,8 +213,8 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 	return
 }
 
-func (ose *oplStoredEntry) createEvent(kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
-	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ose.isTarget, kind, se, tcss)
+func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
+	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ts, ose.isTarget, kind, se, tcss)
 	ose.ole.hasChanges = true
 }
 

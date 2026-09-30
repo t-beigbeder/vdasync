@@ -9,6 +9,24 @@ import (
 // This file is about high order services for stored entries
 // common services on dss are in opldss
 
+func (ose *oplStoredEntry) recordEvents() {
+	if ose.loadTime != 0 {
+		ose.createEvent(ose.loadTime, opelog.EVC_LOADED, ose.getState().Se, ose.getState().Tcss)
+	}
+	if ose.removeTime != 0 {
+		ose.createEvent(ose.removeTime, opelog.EVC_REMOVED, ose.getState().Se, ose.getState().Tcss)
+	}
+	if ose.createTime != 0 {
+		ose.createEvent(ose.createTime, opelog.EVC_CREATED, ose.getState().Se, ose.getState().Tcss)
+	}
+	if ose.updateTime != 0 {
+		ose.createEvent(ose.updateTime, opelog.EVC_UPDATED, ose.getState().Se, ose.getState().Tcss)
+	}
+	if ose.metaChangeTime != 0 {
+		ose.createEvent(ose.metaChangeTime, opelog.EVC_META_CHANGED, ose.getState().Se, ose.getState().Tcss)
+	}
+}
+
 func (ose *oplStoredEntry) happyWithSt(stc opelog.StateCode) (yes bool) {
 	switch stc {
 	case opelog.STC_DONE_ABSENT, opelog.STC_DONE_PRESENT, opelog.STC_DIR_LOAD:
@@ -45,17 +63,35 @@ func (ose *oplStoredEntry) reloadDirNeeded(stc opelog.StateCode) (yes bool) {
 	return
 }
 
+// rmDir initiates and/or concludes a recursive dir removal
+func (ose *oplStoredEntry) rmDir(theEnd bool) (initiated bool, err error) {
+	if !theEnd && len(ose.se().Children) != 0 {
+		ose.setState(false, opelog.STC_DIR_RM, "", ose.se(), nil, len(ose.se().Children))
+		initiated = true
+		return
+	}
+	if err = ose.dss().Rm(ose.fullPath()); err != nil {
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return
+	}
+	ose.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+	return
+}
+
+// doLoad is actual load from dss: Stat, and List for dirs
 func (ose *oplStoredEntry) doLoad() error {
 	se, err := ose.dssStatAndList()
 	if err == nil {
 		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	} else {
-		ose.setState(false, opelog.STC_DONE_PRESENT, err.Error(), se, nil, 0)
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 		return err
 	}
 	return nil
 }
 
+// load ensures stored entry is fetched with dss and its state is cached
+// according to walker's operational context
 func (ose *oplStoredEntry) load() error {
 	st := ose.getState()
 	if st == nil {
