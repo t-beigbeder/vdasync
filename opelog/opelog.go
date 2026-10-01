@@ -114,7 +114,7 @@ func (tse *StoredEntry) Equal(ose *StoredEntry, noEqMtime, noMtime, noMtLink, no
 		if !noEqMtime {
 			return
 		}
-		if  ose.Mtime > tse.Mtime {
+		if ose.Mtime > tse.Mtime {
 			return
 		}
 		if ose.IsSymLink && !noMtime && !noMtLink {

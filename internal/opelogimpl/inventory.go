@@ -4,12 +4,58 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"maps"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
+	"github.com/t-beigbeder/vdasync/opeloggrpc"
 )
+
+const stdColNames = "relPath,isDir,size,mTime,isSymLink,symLinkTarget"
+
+var colIdx = map[string]int{}
+var idxCol = map[int]string{}
+var halgoNames []string
+
+func init() {
+	for hc := range maps.Values(opeloggrpc.HalgoCode_value) {
+		colIdx[common.AlgoCode(hc).String()] = -1
+	}
+	halgoNames = slices.Collect(maps.Keys(colIdx))
+	for _, cn := range strings.Split(stdColNames, ",") {
+		colIdx[cn] = -1
+	}
+}
+
+func setupColIdx(row []string, algos string) error {
+	colNames := slices.Collect(maps.Keys(colIdx))
+	requestedAlgoNames := strings.Split(algos, ",")
+	for ix, col := range row {
+		if !slices.Contains(colNames, col) {
+			return fmt.Errorf("setupColIdx: column name %s (%d) is not standard", col, ix+1)
+		}
+		colIdx[col] = ix
+		idxCol[ix] = col
+	}
+	for _, ran := range requestedAlgoNames {
+		idx, ok := colIdx[ran]
+		if !ok {
+			return fmt.Errorf("setupColIdx: requested hash algo %s is not standard", ran)
+		}
+		if idx == -1 {
+			return fmt.Errorf("setupColIdx: requested hash algo %s is not a column", ran)
+		}
+	}
+	for _, stdCn := range strings.Split(stdColNames, ",") {
+		if colIdx[stdCn] == -1 {
+			return fmt.Errorf("setupColIdx: standard column %s is not a column", stdCn)
+		}
+	}
+	return nil
+}
 
 func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath string, algos string) error {
 	cf, err := os.Open(csvPath)
@@ -22,11 +68,9 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath strin
 	if algos == "" {
 		algos = "sha256"
 	}
-	sAlgos := strings.Split(algos, ",")
-	sCols := make([]int, len(sAlgos)+1)
 	headFound := false
 	for {
-		cCols, err := csr.Read()
+		row, err := csr.Read()
 		if err != nil {
 			if err == io.EOF {
 				return nil
@@ -35,53 +79,36 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath strin
 		}
 		if !headFound {
 			headFound = true
-			for i, col := range cCols {
-				if col == "relPath" {
-					sCols[0] = i + 1
-					continue
-				}
-				for j, algo := range sAlgos {
-					if col == algo {
-						sCols[j+1] = i + 1
-					}
-				}
-			}
-			for k, ix := range sCols {
-				if ix > 0 {
-					sCols[k]--
-					continue
-				}
-				if k == 0 {
-					return fmt.Errorf("headers: relPath missing")
-				}
-				return fmt.Errorf("headers: %s missing", sAlgos[k-1])
+			if err := setupColIdx(row, algos); err != nil {
+				return err
 			}
 			continue
 		}
-		relPath := ""
-		if len(cCols) > sCols[0] {
-			relPath = cCols[sCols[0]]
+		namedValues := map[string]string{}
+		for ix, col := range row {
+			namedValues[idxCol[ix]] = col
 		}
 		var sCss []string
-		for i := range len(sCols) - 1 {
-			ix := sCols[i+1]
-			if len(cCols) <= ix {
-				break
+		for _, algo := range strings.Split(algos, ",") {
+			col := namedValues[algo]
+			if col == "" {
+				continue
 			}
-			sCss = append(sCss, fmt.Sprintf("%s:%s", sAlgos[i], cCols[ix]))
+			sCss = append(sCss, fmt.Sprintf("%s:%s", algo, col))
 		}
+		relPath := namedValues["relPath"]
 		le, err := oplm.GetLogicalEntry(relPath)
 		if err != nil {
 			return err
 		}
 		if le == nil {
-			le = &opelog.LogicalEntry{}
+			le = opelog.NewLogicalEntry()
 		}
 		tcss, err := common.Checksums2TypedChecksums(strings.Join(sCss, ","))
 		if err != nil {
 			return err
 		}
-		se := &opelog.StoredEntry{IsDir: false, Size: 0, Mtime: 0}
+		se := &opelog.StoredEntry{IsDir: false, Size: 0, Mtime: 0, SymLinkTarget: ""}
 		le.SetState(0, inventTs, false, opelog.STC_UNSPECIFIED, "", se, tcss, 0)
 		if err = oplm.PutLogicalEntry(relPath, le); err != nil {
 			return err
