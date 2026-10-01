@@ -71,16 +71,33 @@ func (ole *oplLogicalEntry) tryRm() (bool, error) {
 	return false, nil
 }
 
+// tryCreate performs target entry update if possible.
+func (ole *oplLogicalEntry) tryUpdate() (bool, error) {
+	if !ole.owi.impliesGoal("update") {
+		return false, nil
+	}
+	sOse, tOse := ole.source(), ole.target()
+	_, _ = sOse, tOse
+	return false, errors.ErrUnsupported
+}
+
+// tryCreate performs target entry creation if possible.
+func (ole *oplLogicalEntry) tryCreate() (bool, error) {
+	if !ole.owi.impliesGoal("create") {
+		return false, nil
+	}
+	sOse, tOse := ole.source(), ole.target()
+	_, _ = sOse, tOse
+	return false, errors.ErrUnsupported
+}
+
 // tryChange makes target entry change (create, remove, update) progress if possible.
 //
 // It takes place after possible errors have been cleared.
 // Returns true if the change is fully done, if not a remove may be followed by a creation.
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryChange() (bool, error) {
-	updAble, creAble := ole.owi.impliesGoal("update"), ole.owi.impliesGoal("create")
-	_, _ = updAble, creAble
 	sOse, tOse := ole.source(), ole.target()
-
 	if sOse.hasError() || tOse.hasError() {
 		return false, nil
 	}
@@ -91,13 +108,13 @@ func (ole *oplLogicalEntry) tryChange() (bool, error) {
 		if !ole.seEqualType() {
 			return ole.tryRm()
 		}
+		return ole.tryUpdate()
 	}
 	if !sOse.isPresent() {
 		return false, nil
 	}
-	return false, errors.ErrUnsupported
+	return ole.tryCreate()
 }
-
 
 func (ole *oplLogicalEntry) tryLoad() (bool, error) {
 	return false, errors.ErrUnsupported
@@ -124,7 +141,9 @@ func (ole *oplLogicalEntry) process() error {
 	// try performing "change" actions, starting with the most rights' demanding
 	for !done && err == nil {
 		done, err = ole.tryChange()
-		// can remove and then update, so looping
+		// looping because
+		// can remove and then update
+		// can create and then change mode
 	}
 
 	// if no change done, try to perform loading actions
