@@ -108,6 +108,7 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath strin
 		if err != nil {
 			return err
 		}
+		// TODO: decode namedValues
 		se := &opelog.StoredEntry{IsDir: false, Size: 0, Mtime: 0, SymLinkTarget: ""}
 		le.SetState(0, inventTs, false, opelog.STC_UNSPECIFIED, "", se, tcss, 0)
 		if err = oplm.PutLogicalEntry(relPath, le); err != nil {
