@@ -2,9 +2,9 @@ package opelogimpl
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
+	"path"
 	"slices"
 	"strings"
 	"sync"
@@ -178,6 +178,18 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 	return ole, nil
 }
 
+func isChildInState(cName string, st *opelog.State) bool {
+	if st == nil || st.Se == nil || st.DepCount == 0 {
+		return false
+	}
+	for _, child := range st.Se.Children {
+		if child == cName {
+			return true
+		}
+	}
+	return false
+}
+
 func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) error {
 	if ole.parentLe == nil {
 		return nil
@@ -191,10 +203,37 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
 		return err
 	}
+	cName := path.Base(ole.relPath)
 	parentSSt := ple.GetState(ow.sessionTime, false)
+	notify, hasChanges := false, false
+	if isChildInState(cName, parentSSt) {
+		hasChanges = true
+		parentSSt.DepCount--
+		if parentSSt.DepCount == 0 {
+			notify = true
+		}
+	}
 	parentTSt := ple.GetState(ow.sessionTime, true)
-	_, _ = parentSSt, parentTSt
-	return errors.ErrUnsupported // FIXME: wip
+	if isChildInState(cName, parentTSt) {
+		hasChanges = true
+		parentTSt.DepCount--
+		if parentTSt.DepCount == 0 {
+			notify = true
+		}
+	}
+	if hasChanges {
+		if err := ow.oplm.PutLogicalEntry(pRelPath, ple); err != nil {
+			ow.owErr(lgr, "oplWalkerImpl: notify parent: put ple", err)
+			return err
+		}
+	}
+	if notify {
+		if err := ow.oplq.Put(pRelPath); err != nil {
+			ow.owErr(lgr, "oplWalkerImpl: process entry: put parent in queue", err)
+			return err
+		}
+	}
+	return nil
 }
 
 func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string) {
@@ -202,7 +241,7 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 	defer func() {
 		ow.wkNtfChan <- workerNotif{wkn: wkn}
 	}()
-	ow.detail(ow.lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
+	ow.detail(lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
 	ole, err := ow.getLogicalEntry(lgr, relPath)
 	if err != nil {
 		return
@@ -226,6 +265,7 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 			return
 		}
 	}
+	_ = ow.notifyParent(lgr, ole)
 }
 
 func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {

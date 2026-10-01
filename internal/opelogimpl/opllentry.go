@@ -73,6 +73,7 @@ func (ole *oplLogicalEntry) tryRm() (bool, error) {
 
 // tryChange makes target entry change (create, remove, update) progress if possible.
 //
+// It takes place after possible errors have been cleared.
 // Returns true if the change is fully done, if not a remove may be followed by a creation.
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryChange() (bool, error) {
@@ -84,19 +85,19 @@ func (ole *oplLogicalEntry) tryChange() (bool, error) {
 		return false, nil
 	}
 	if sOse.isPresent() && tOse.isPresent() {
+		if ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
+			return ole.tryRm()
+		}
 		if !ole.seEqualType() {
 			return ole.tryRm()
 		}
-		if tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
-			return ole.tryRm()
-		}
+	}
+	if !sOse.isPresent() {
+		return false, nil
 	}
 	return false, errors.ErrUnsupported
 }
 
-func (ole *oplLogicalEntry) tryCreate() (bool, error) {
-	return false, errors.ErrUnsupported
-}
 
 func (ole *oplLogicalEntry) tryLoad() (bool, error) {
 	return false, errors.ErrUnsupported
@@ -120,14 +121,16 @@ func (ole *oplLogicalEntry) process() error {
 	_ = ole.source().load()
 	_ = ole.target().load()
 
-	// try performing actions starting with the most rights' demanding
+	// try performing "change" actions, starting with the most rights' demanding
 	for !done && err == nil {
 		done, err = ole.tryChange()
-		// can remove and then update
+		// can remove and then update, so looping
 	}
+
+	// if no change done, try to perform loading actions
 	for !done && err == nil {
-		done, err = ole.tryCreate()
-		// can remove and then update
+		done, err = ole.tryLoad()
+		// possible?
 	}
 	return nil
 }

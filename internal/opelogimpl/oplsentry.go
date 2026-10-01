@@ -92,6 +92,7 @@ func (ose *oplStoredEntry) rmDir(theEnd bool) (initiated bool, err error) {
 func (ose *oplStoredEntry) doLoad() error {
 	se, err := ose.dssStatAndList()
 	if err == nil {
+		// further processing will mark it with any required STC_DIR_
 		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	} else {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
