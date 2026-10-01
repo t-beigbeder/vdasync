@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
@@ -22,14 +23,14 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 	}
 	defer wrw.Close()
 	cw := csv.NewWriter(wrw)
-	if err = cw.Write(slices.Concat([]string{"relPath"}, strings.Split(algos, ","))); err != nil {
+	if err = cw.Write(slices.Concat([]string{"relPath", "isDir", "size", "mTime"}, strings.Split(algos, ","))); err != nil {
 		return err
 	}
 
 	err = filepath.Walk(rootPath, func(path_ string, info fs.FileInfo, err error) error {
 		rp := common.RelPath(path_, rootPath)
 		if info.IsDir() {
-			if err = cw.Write([]string{rp}); err != nil {
+			if err = cw.Write([]string{rp, "1", "", dispMtime(info.ModTime())}); err != nil {
 				return err
 			}
 			return nil
@@ -42,14 +43,17 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 		if err != nil {
 			return err
 		}
-		csvLine := make([]string, 1+len(strings.Split(css, ",")))
+		csvLine := make([]string, 4+len(strings.Split(css, ",")))
 		csvLine[0] = rp
+		csvLine[1] = "0"
+		csvLine[2] = fmt.Sprintf("%d", info.Size())
+		csvLine[3] = dispMtime(info.ModTime())
 		for i, cs := range strings.Split(css, ",") {
 			alCs := strings.Split(cs, ":")
 			if len(alCs) != 2 {
 				return fmt.Errorf("invalid algo/checksum %s", algos)
 			}
-			csvLine[i+1] = alCs[1]
+			csvLine[i+4] = alCs[1]
 		}
 		if err = cw.Write(csvLine); err != nil {
 			return err
@@ -64,4 +68,8 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 		return err
 	}
 	return nil
+}
+
+func dispMtime(ts time.Time) string {
+	return ts.UTC().Format(time.RFC3339)
 }

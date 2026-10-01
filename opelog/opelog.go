@@ -79,81 +79,94 @@ func cloneRights(or *Rights) *Rights {
 	return or.Clone()
 }
 
-func (ose *StoredEntry) Clone() *StoredEntry {
+func (tse *StoredEntry) Clone() *StoredEntry {
 	return &StoredEntry{
-		IsDir:         ose.IsDir,
-		Size:          ose.Size,
-		Mtime:         ose.Mtime,
-		User:          int32(ose.User),
-		UserRights:    cloneRights(ose.UserRights),
-		Group:         int32(ose.Group),
-		GroupRights:   cloneRights(ose.GroupRights),
-		OtherRights:   cloneRights(ose.OtherRights),
-		IsSymLink:     ose.IsSymLink,
-		SymLinkTarget: ose.SymLinkTarget,
-		Children:      slices.Clone(ose.Children),
-		AddMeta:       bytes.Clone(ose.AddMeta),
+		IsDir:         tse.IsDir,
+		Size:          tse.Size,
+		Mtime:         tse.Mtime,
+		User:          int32(tse.User),
+		UserRights:    cloneRights(tse.UserRights),
+		Group:         int32(tse.Group),
+		GroupRights:   cloneRights(tse.GroupRights),
+		OtherRights:   cloneRights(tse.OtherRights),
+		IsSymLink:     tse.IsSymLink,
+		SymLinkTarget: tse.SymLinkTarget,
+		Children:      slices.Clone(tse.Children),
+		AddMeta:       bytes.Clone(tse.AddMeta),
 	}
 }
 
-func (se *StoredEntry) HasChild(child string) bool {
-	return slices.Contains(se.Children, child)
+func (tse *StoredEntry) HasChild(child string) bool {
+	return slices.Contains(tse.Children, child)
 }
 
-func (nse *StoredEntry) Equal(ose *StoredEntry) (result bool) {
+func (tse *StoredEntry) Equal(ose *StoredEntry, noEqMtime, noMtime, noMtLink, noRights bool) (result bool) {
 	if ose == nil {
 		return
 	}
-	if nse.IsDir != ose.IsDir {
+	if tse.IsDir != ose.IsDir {
 		return
 	}
-	if nse.Size != ose.Size {
+	if tse.Size != ose.Size {
 		return
 	}
-	if nse.Mtime != ose.Mtime {
+	if tse.Mtime != ose.Mtime {
+		if !noEqMtime {
+			return
+		}
+		if  ose.Mtime > tse.Mtime {
+			return
+		}
+		if ose.IsSymLink && !noMtime && !noMtLink {
+			return
+		}
+		if !ose.IsSymLink && !noMtime {
+			return
+		}
+	}
+	if !noRights {
+		if tse.User != ose.User {
+			return
+		}
+		if !cmpRights(&tse.UserRights, &ose.UserRights) {
+			return
+		}
+		if tse.Group != ose.Group {
+			return
+		}
+		if !cmpRights(&tse.GroupRights, &ose.GroupRights) {
+			return
+		}
+		if !cmpRights(&tse.OtherRights, &ose.OtherRights) {
+			return
+		}
+	}
+	if tse.IsSymLink != ose.IsSymLink {
 		return
 	}
-	if nse.User != ose.User {
+	if tse.SymLinkTarget != ose.SymLinkTarget {
 		return
 	}
-	if !cmpRights(&nse.UserRights, &ose.UserRights) {
+	if len(tse.Children) != len(ose.Children) {
 		return
 	}
-	if nse.Group != ose.Group {
-		return
-	}
-	if !cmpRights(&nse.GroupRights, &ose.GroupRights) {
-		return
-	}
-	if !cmpRights(&nse.OtherRights, &ose.OtherRights) {
-		return
-	}
-	if nse.IsSymLink != ose.IsSymLink {
-		return
-	}
-	if nse.SymLinkTarget != ose.SymLinkTarget {
-		return
-	}
-	if len(nse.Children) != len(ose.Children) {
-		return
-	}
-	for _, nChild := range nse.Children {
+	for _, nChild := range tse.Children {
 		if !ose.HasChild(nChild) {
 			return
 		}
 	}
-	if !bytes.Equal(nse.AddMeta, ose.AddMeta) {
+	if !bytes.Equal(tse.AddMeta, ose.AddMeta) {
 		return
 	}
 	result = true
 	return
 }
 
-func (nse *StoredEntry) EqualType(ose *StoredEntry) bool {
+func (tse *StoredEntry) EqualType(ose *StoredEntry) bool {
 	if ose == nil {
 		return false
 	}
-	return nse.IsDir == ose.IsDir && nse.IsSymLink == ose.IsSymLink
+	return tse.IsDir == ose.IsDir && tse.IsSymLink == ose.IsSymLink
 }
 
 func dr2r(dr *dssa.Rights) *Rights {
@@ -181,20 +194,20 @@ func r2dr(r *Rights) *dssa.Rights {
 	return &dssa.Rights{Read: r.Read, Write: r.Write, Execute: r.Execute}
 }
 
-func (ose *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
+func (tse *StoredEntry) ToDataEntry(path_ string) *dssa.DataEntry {
 	return &dssa.DataEntry{
-		IsDir:         ose.IsDir,
+		IsDir:         tse.IsDir,
 		Path:          path_,
-		Size:          ose.Size,
-		Mtime:         ose.Mtime,
-		User:          int(ose.User),
-		UserRights:    *r2dr(ose.UserRights),
-		Group:         int(ose.Group),
-		GroupRights:   *r2dr(ose.GroupRights),
-		OtherRights:   *r2dr(ose.OtherRights),
-		IsSymLink:     ose.IsSymLink,
-		SymLinkTarget: ose.SymLinkTarget,
-		AddMeta:       bytes.Clone(ose.AddMeta),
+		Size:          tse.Size,
+		Mtime:         tse.Mtime,
+		User:          int(tse.User),
+		UserRights:    *r2dr(tse.UserRights),
+		Group:         int(tse.Group),
+		GroupRights:   *r2dr(tse.GroupRights),
+		OtherRights:   *r2dr(tse.OtherRights),
+		IsSymLink:     tse.IsSymLink,
+		SymLinkTarget: tse.SymLinkTarget,
+		AddMeta:       bytes.Clone(tse.AddMeta),
 	}
 }
 
@@ -375,15 +388,15 @@ func (le *LogicalEntry) setupLoadedStates() {
 	}
 }
 
-func (le *LogicalEntry) GetState(sessionTs int64, isTarget bool) *State {
+func (le *LogicalEntry) GetState(sessInvTs int64, isTarget bool) *State {
 	var (
 		st *State
 		ok bool
 	)
 	if isTarget {
-		st, ok = le.targetStates[sessionTs]
+		st, ok = le.targetStates[sessInvTs]
 	} else {
-		st, ok = le.sourceStates[sessionTs]
+		st, ok = le.sourceStates[sessInvTs]
 	}
 	if !ok {
 		return nil
@@ -396,7 +409,7 @@ func (le *LogicalEntry) addOrShareSe(se *StoredEntry) int32 {
 		return -1
 	}
 	for i, exSe := range slices.Backward(le.sharedSes) {
-		if se.Equal(exSe) {
+		if se.Equal(exSe, false, false, false, false) {
 			return int32(i)
 		}
 	}

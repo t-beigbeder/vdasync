@@ -44,7 +44,7 @@ func (ole *oplLogicalEntry) childrenQueue() []string {
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryRm() (bool, error) {
 	if !ole.owi.impliesGoal("update") {
-		return false, nil
+		return true, nil
 	}
 	tOse := ole.target()
 	if tOse.isDir() {
@@ -72,19 +72,25 @@ func (ole *oplLogicalEntry) tryRm() (bool, error) {
 }
 
 // tryCreate performs target entry update if possible.
+//
+// Returns true if the change is fully done, if not an update may be followed by chmod.
+// Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryUpdate() (bool, error) {
 	if !ole.owi.impliesGoal("update") {
-		return false, nil
+		return true, nil
 	}
 	sOse, tOse := ole.source(), ole.target()
 	_, _ = sOse, tOse
+	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
+
+	}
 	return false, errors.ErrUnsupported
 }
 
 // tryCreate performs target entry creation if possible.
 func (ole *oplLogicalEntry) tryCreate() (bool, error) {
 	if !ole.owi.impliesGoal("create") {
-		return false, nil
+		return true, nil
 	}
 	sOse, tOse := ole.source(), ole.target()
 	_, _ = sOse, tOse
