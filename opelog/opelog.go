@@ -404,6 +404,17 @@ func (le *LogicalEntry) GetState(sessInvTs int64, isTarget bool) *State {
 	return st
 }
 
+func (le *LogicalEntry) GetStats(sessionTs int64) *ComputedStats {
+	cst, _ := le.stats[sessionTs]
+	return cst
+}
+
+func NewComputedStats() *ComputedStats {
+	return &ComputedStats{SourceListOrStat: &AggInfo{}, TargetListOrStat: &AggInfo{},
+		Read: &AggInfo{}, Create: &AggInfo{}, Update: &AggInfo{}, Remove: &AggInfo{}, MetaChange: &AggInfo{}, Error: &AggInfo{},
+	}
+}
+
 func (le *LogicalEntry) addOrShareSe(se *StoredEntry) int32 {
 	if se == nil {
 		return -1

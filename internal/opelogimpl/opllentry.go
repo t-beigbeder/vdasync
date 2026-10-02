@@ -40,90 +40,94 @@ func (ole *oplLogicalEntry) childrenQueue() []string {
 
 // tryRm makes target entry removal progress if possible.
 //
-// Returns true if the change is fully done, if not a remove may be followed by a creation.
 // Errors are only returned when other or further actions are not possible.
-func (ole *oplLogicalEntry) tryRm() (bool, error) {
+func (ole *oplLogicalEntry) tryRm() error {
 	if !ole.owi.impliesGoal("update") {
-		return true, nil
+		return nil
 	}
 	tOse := ole.target()
 	if tOse.isDir() {
 		if !ole.owo().Rm {
-			err := common.ErrNeededRmDisabled
+			err := common.ErrNeededRmForbidden
 			tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
-			return false, err
+			return err
 		}
 		// whatever the current state, launch rmdir
 		tSt := tOse.getState()
-		initiated, err := tOse.rmDir(tSt.Stc == opelog.STC_DIR_RM && tSt.DepCount == 0)
-		if err != nil {
-			return false, err
+		theEnd := (tSt.Stc == opelog.STC_DIR_RM && tSt.DepCount == 0)
+		if tOse.rmDirPossible(theEnd) && tOse.enableWriteNeeded() && !tOse.owo().Force {
+			err := common.ErrNeededWriteEnableForbidden
+			tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
+			return err
 		}
-		if initiated {
-			return true, nil
+		if err := tOse.rmDir(theEnd); err != nil {
+			return err
 		}
-		// can try next action, eg update from file
-		return false, nil
+		return nil
 	}
 	if err := tOse.remove(); err != nil {
-		return false, err
+		return err
 	}
-	return false, nil
+	return nil
 }
 
 // tryCreate performs target entry update if possible.
 //
-// Returns true if the change is fully done, if not an update may be followed by chmod.
 // Errors are only returned when other or further actions are not possible.
-func (ole *oplLogicalEntry) tryUpdate() (bool, error) {
+func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
-		return true, nil
+		return nil
 	}
 	sOse, tOse := ole.source(), ole.target()
 	_, _ = sOse, tOse
 	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
 
 	}
-	return false, errors.ErrUnsupported
+	return errors.ErrUnsupported
 }
 
 // tryCreate performs target entry creation if possible.
-func (ole *oplLogicalEntry) tryCreate() (bool, error) {
+func (ole *oplLogicalEntry) tryCreate() error {
 	if !ole.owi.impliesGoal("create") {
-		return true, nil
+		return nil
 	}
 	sOse, tOse := ole.source(), ole.target()
 	_, _ = sOse, tOse
-	return false, errors.ErrUnsupported
+	return errors.ErrUnsupported
 }
 
 // tryChange makes target entry change (create, remove, update) progress if possible.
 //
 // It takes place after possible errors have been cleared.
-// Returns true if the change is fully done, if not a remove may be followed by a creation.
 // Errors are only returned when other or further actions are not possible.
-func (ole *oplLogicalEntry) tryChange() (bool, error) {
+func (ole *oplLogicalEntry) tryChange() (err error) {
 	sOse, tOse := ole.source(), ole.target()
 	if sOse.hasError() || tOse.hasError() {
-		return false, nil
+		return nil
+	}
+	if sOse.isPresent() && tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
+		if err = ole.tryRm(); err != nil {
+			return
+		}
+	}
+	if sOse.isPresent() && tOse.isPresent() && (!ole.seEqualType() || tOse.se().IsSymLink) {
+		if err = ole.tryRm(); err != nil {
+			return
+		}
 	}
 	if sOse.isPresent() && tOse.isPresent() {
-		if ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
-			return ole.tryRm()
+		if err = ole.tryUpdate(); err != nil {
+			return
 		}
-		if !ole.seEqualType() {
-			return ole.tryRm()
-		}
-		return ole.tryUpdate()
 	}
 	if !sOse.isPresent() {
-		return false, nil
+		return nil
 	}
 	return ole.tryCreate()
 }
 
-func (ole *oplLogicalEntry) tryLoad() (bool, error) {
-	return false, errors.ErrUnsupported
+func (ole *oplLogicalEntry) tryLoad() error {
+	return errors.ErrUnsupported
 }
 
 // process evaluates current states of source and target wrt the walker's
@@ -132,10 +136,7 @@ func (ole *oplLogicalEntry) tryLoad() (bool, error) {
 // Only errors concerning the walker are notified, stored entry level errors are silenced.
 func (ole *oplLogicalEntry) process() error {
 	ole.lgr().Debug("process: start")
-	var (
-		done bool
-		err  error
-	)
+
 	// record events in the end as they need meaningful state: StoredEntry, Checksums
 	defer ole.recordEvents()
 
@@ -144,18 +145,14 @@ func (ole *oplLogicalEntry) process() error {
 	_ = ole.source().load()
 	_ = ole.target().load()
 
-	// try performing "change" actions, starting with the most rights' demanding
-	for !done && err == nil {
-		done, err = ole.tryChange()
-		// looping because
-		// can remove and then update
-		// can create and then change mode
+	// try performing one or several "change" actions
+	if err := ole.tryChange(); err != nil {
+		return nil
 	}
 
-	// if no change done, try to perform loading actions
-	for !done && err == nil {
-		done, err = ole.tryLoad()
-		// possible?
+	// try performing loading actions
+	if err := ole.tryLoad(); err != nil {
+		return nil
 	}
 	return nil
 }

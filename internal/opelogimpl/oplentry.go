@@ -245,3 +245,12 @@ func (ose *oplStoredEntry) getState() *opelog.State {
 	}
 	return st
 }
+
+func (ose *oplStoredEntry) getStats(forChange bool) *opelog.ComputedStats {
+	stats := ose.ole.le.GetStats(ose.ole.owi.sessionTime)
+	if stats == nil {
+		stats = opelog.NewComputedStats()
+	}
+	ose.ole.hasChanges = forChange
+	return stats
+}

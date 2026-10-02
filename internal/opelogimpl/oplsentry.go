@@ -64,8 +64,48 @@ func (ose *oplStoredEntry) reloadDirNeeded(stc opelog.StateCode) (yes bool) {
 	return
 }
 
+func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
+	se := ose.se()
+	if se.UserRights.Write && (!se.IsDir || se.UserRights.Execute) {
+		yes = true
+	}
+	return
+}
+
+func (ose *oplStoredEntry) rmDirPossible(theEnd bool) (yes bool) {
+	if theEnd || len(ose.se().Children) == 0 {
+		yes = true
+	}
+	return
+}
+
+// enables an entry to be written if needed
+func (ose *oplStoredEntry) enableWrite() error {
+	se := ose.se()
+	if se.UserRights.Write && (!se.IsDir || se.UserRights.Execute) {
+		return nil
+	}
+	ose.getStats(true).MetaChange.Number++
+	if ose.owo().Dryrun {
+		return nil
+	}
+	se = se.Clone()
+	se.UserRights.Write = true
+	if se.IsDir {
+		se.UserRights.Execute = true
+	}
+	if err := ose.dssSetStat(se, false, true); err != nil {
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+	}
+	return nil
+}
+
 // remove an entry or empty dir
 func (ose *oplStoredEntry) remove() error {
+	ose.getStats(true).Remove.Number++
+	if ose.owo().Dryrun {
+		return nil
+	}
 	if err := ose.dssRm(); err != nil {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		return err
@@ -75,23 +115,32 @@ func (ose *oplStoredEntry) remove() error {
 }
 
 // rmDir initiates and/or concludes a recursive dir removal
-func (ose *oplStoredEntry) rmDir(theEnd bool) (initiated bool, err error) {
-	if !theEnd && len(ose.se().Children) != 0 {
+func (ose *oplStoredEntry) rmDir(theEnd bool) error {
+	if ose.enableWriteNeeded() {
+		if err := ose.enableWrite(); err != nil {
+			return err
+		}
+	}
+	if !ose.rmDirPossible(theEnd) {
 		ose.setState(false, opelog.STC_DIR_RM, "", ose.se(), nil, len(ose.se().Children))
-		initiated = true
 		ose.childrenQueued = true
-		return
+		return nil
 	}
-	if err = ose.remove(); err != nil {
-		return
+	if err := ose.remove(); err != nil {
+		return err
 	}
-	return
+	return nil
 }
 
 // doLoad is actual load from dss: Stat, and List for dirs
 func (ose *oplStoredEntry) doLoad() error {
 	se, err := ose.dssStatAndList()
 	if err == nil {
+		if ose.isTarget {
+			ose.getStats(true).TargetListOrStat.Number++
+		} else {
+			ose.getStats(true).SourceListOrStat.Number++
+		}
 		// further processing will mark it with any required STC_DIR_
 		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	} else {

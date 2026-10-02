@@ -8,6 +8,15 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
+func (ose *oplStoredEntry) dssSetStat(se *opelog.StoredEntry, noPerm bool, noMtime bool) error {
+	ose.detail("dss setStat")
+	ose.metaChangeTime = time.Now().Unix()
+	if err := ose.dss().SetStat(se.ToDataEntry(ose.fullPath()), noPerm, noMtime); err != nil {
+		return ose.logErr("dss stat", err)
+	}
+	return nil
+}
+
 func (ose *oplStoredEntry) dssStat() (*dssa.DataEntry, error) {
 	ose.detail("dss stat")
 	ose.loadTime = time.Now().Unix()
