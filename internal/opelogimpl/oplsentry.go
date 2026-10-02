@@ -85,7 +85,7 @@ func (ose *oplStoredEntry) enableWrite() error {
 	if se.UserRights.Write && (!se.IsDir || se.UserRights.Execute) {
 		return nil
 	}
-	ose.getStats(true).MetaChange.Number++
+	ose.setStatsFor("incMc", 1, 0)
 	if ose.owo().Dryrun {
 		return nil
 	}
@@ -102,7 +102,7 @@ func (ose *oplStoredEntry) enableWrite() error {
 
 // remove an entry or empty dir
 func (ose *oplStoredEntry) remove() error {
-	ose.getStats(true).Remove.Number++
+	ose.setStatsFor("setRm", 1, -1)
 	if ose.owo().Dryrun {
 		return nil
 	}
@@ -137,9 +137,9 @@ func (ose *oplStoredEntry) doLoad() error {
 	se, err := ose.dssStatAndList()
 	if err == nil {
 		if ose.isTarget {
-			ose.getStats(true).TargetListOrStat.Number++
+			ose.setStatsFor("setTls", 1, 0)
 		} else {
-			ose.getStats(true).SourceListOrStat.Number++
+			ose.setStatsFor("setSls", 1, 0)
 		}
 		// further processing will mark it with any required STC_DIR_
 		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)

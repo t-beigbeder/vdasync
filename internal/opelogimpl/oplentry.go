@@ -246,11 +246,73 @@ func (ose *oplStoredEntry) getState() *opelog.State {
 	return st
 }
 
-func (ose *oplStoredEntry) getStats(forChange bool) *opelog.ComputedStats {
+func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 	stats := ose.ole.le.GetStats(ose.ole.owi.sessionTime)
 	if stats == nil {
 		stats = opelog.NewComputedStats()
 	}
-	ose.ole.hasChanges = forChange
 	return stats
+}
+
+// setStatsFor updates the entry's stats according to given keyword
+//
+// size -1 asks to read cached state for entry's size
+//
+// TODO: would toolRestarted check be needed here?
+// reset as appropriate to avoid double computes, can be done when refreshing state as well
+func (ose *oplStoredEntry) setStatsFor(kw string, num, size int64) {
+	stats := ose.getStats()
+	if size == -1  {
+		se := ose.se()
+		if se != nil {
+			size = se.Size
+		} else {
+			size = 0
+		}
+	}
+	switch kw {
+	case "setSls":
+		stats.SourceListOrStat.Number = num
+	case "incSls":
+		stats.SourceListOrStat.Number += num
+	case "setTls":
+		stats.TargetListOrStat.Number = num
+	case "incTls":
+		stats.TargetListOrStat.Number += num
+	case "setRd":
+		stats.Read.Number = num
+		stats.Read.Size = size
+	case "incRd":
+		stats.Read.Number += num
+		stats.Read.Size += size
+	case "setCr":
+		stats.Create.Number = num
+		stats.Create.Size = size
+	case "incCr":
+		stats.Create.Number += num
+		stats.Create.Size += size
+	case "setUp":
+		stats.Update.Number = num
+		stats.Update.Size = size
+	case "incUp":
+		stats.Update.Number += num
+		stats.Update.Size += size
+	case "setRm":
+		stats.Remove.Number = num
+		stats.Remove.Size = size
+	case "incRm":
+		stats.Remove.Number += num
+		stats.Remove.Size += size
+	case "setMc":
+		stats.MetaChange.Number = num
+	case "incMc":
+		stats.MetaChange.Number += num
+	case "setEr":
+		stats.Error.Number = num
+	case "incEr":
+		stats.Error.Number += num
+	default:
+		return
+	}
+	ose.ole.hasChanges = true
 }

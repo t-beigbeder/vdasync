@@ -71,7 +71,7 @@ func (ole *oplLogicalEntry) tryRm() error {
 	return nil
 }
 
-// tryCreate performs target entry update if possible.
+// tryUpdate performs target entry update if possible.
 //
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryUpdate() error {
@@ -105,25 +105,27 @@ func (ole *oplLogicalEntry) tryChange() (err error) {
 	if sOse.hasError() || tOse.hasError() {
 		return nil
 	}
-	if sOse.isPresent() && tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
+	if tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
 		if err = ole.tryRm(); err != nil {
 			return
 		}
 	}
-	if sOse.isPresent() && tOse.isPresent() && (!ole.seEqualType() || tOse.se().IsSymLink) {
+	if tOse.isPresent() && (!ole.seEqualType() || tOse.se().IsSymLink) {
 		if err = ole.tryRm(); err != nil {
 			return
 		}
 	}
-	if sOse.isPresent() && tOse.isPresent() {
+	if sOse.isPresent() && tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_CHANGE {
 		if err = ole.tryUpdate(); err != nil {
 			return
 		}
 	}
-	if !sOse.isPresent() {
-		return nil
+	if sOse.isPresent() && !tOse.isPresent() {
+		if err = ole.tryCreate(); err != nil {
+			return
+		}
 	}
-	return ole.tryCreate()
+	return nil
 }
 
 func (ole *oplLogicalEntry) tryLoad() error {
