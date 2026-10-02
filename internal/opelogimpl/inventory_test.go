@@ -3,10 +3,18 @@ package opelogimpl
 import (
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
+
+func TestConvs(t *testing.T) {
+	tm := time.Now()
+	sTm, err := dcTime(dispMtime(tm))
+	require.NoError(t, err)
+	require.Equal(t, dispMtime(tm), dispMtime(time.Unix(sTm, 0)))
+}
 
 func TestInventoryCsvImport(t *testing.T) {
 	std := t.TempDir()

@@ -7,7 +7,9 @@ import (
 	"maps"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
@@ -55,6 +57,24 @@ func setupColIdx(row []string, algos string) error {
 		}
 	}
 	return nil
+}
+
+func dcBool(v string) (bool, error) {
+	if v == "1" {
+		return true, nil
+	}
+	if v == "0" {
+		return false, nil
+	}
+	return false, fmt.Errorf("bad bool format %s", v)
+}
+
+func dcTime(v string) (int64, error) {
+	t, err := time.Parse(time.RFC3339, v)
+	if err != nil {
+		return 0, err
+	}
+	return t.Unix(), nil
 }
 
 func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath string, algos string) error {
@@ -109,7 +129,29 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath strin
 			return err
 		}
 		// TODO: decode namedValues
-		se := &opelog.StoredEntry{IsDir: false, Size: 0, Mtime: 0, SymLinkTarget: ""}
+		isDir, err := dcBool(namedValues["isDir"])
+		if err != nil {
+			return err
+		}
+		size, err := strconv.ParseInt(namedValues["size"], 10, 64)
+		if err != nil && namedValues["size"] != "" {
+			return err
+		}
+		mTime, err := dcTime(namedValues["mTime"])
+		if err != nil {
+			return err
+		}
+		isSymLink, err := dcBool(namedValues["isSymLink"])
+		if err != nil {
+			return err
+		}
+		se := &opelog.StoredEntry{
+			IsDir: isDir,
+			Size: size,
+			Mtime: mTime,
+			IsSymLink: isSymLink,
+			SymLinkTarget: namedValues["symLinkTarget"],
+		}
 		le.SetState(0, inventTs, false, opelog.STC_UNSPECIFIED, "", se, tcss, 0)
 		if err = oplm.PutLogicalEntry(relPath, le); err != nil {
 			return err
