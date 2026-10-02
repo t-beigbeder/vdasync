@@ -38,20 +38,17 @@ func (ole *oplLogicalEntry) childrenQueue() []string {
 	return mChildren
 }
 
-// tryRm makes target entry removal progress if possible.
+// doTryRm makes target entry removal progress.
 //
 // Errors are only returned when other or further actions are not possible.
-func (ole *oplLogicalEntry) tryRm() error {
-	if !ole.owi.impliesGoal("update") {
-		return nil
-	}
+func (ole *oplLogicalEntry) doTryRm() error {
 	tOse := ole.target()
+	if !ole.owo().Rm && !ole.owo().Dryrun {
+		err := common.ErrNeededRmForbidden
+		tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
+		return err
+	}
 	if tOse.isDir() {
-		if !ole.owo().Rm {
-			err := common.ErrNeededRmForbidden
-			tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
-			return err
-		}
 		// whatever the current state, launch rmdir
 		tSt := tOse.getState()
 		theEnd := (tSt.Stc == opelog.STC_DIR_RM && tSt.DepCount == 0)
@@ -71,6 +68,38 @@ func (ole *oplLogicalEntry) tryRm() error {
 	return nil
 }
 
+// tryRm makes target entry removal progress if possible.
+//
+// Errors are only returned when other or further actions are not possible.
+func (ole *oplLogicalEntry) tryRm() error {
+	if !ole.owi.impliesGoal("update") {
+		return nil
+	}
+	tOse := ole.target()
+	if tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
+		if err := ole.doTryRm(); err != nil {
+			return err
+		}
+	}
+	if tOse.isPresent() && (!ole.seEqualType() || tOse.se().IsSymLink) {
+		if err := ole.doTryRm(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// doTryUpdate performs target entry update.
+//
+// Errors are only returned when other or further actions are not possible.
+func (ole *oplLogicalEntry) doTryUpdate() error {
+	sOse, tOse := ole.source(), ole.target()
+	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
+
+	}
+	return nil
+}
+
 // tryUpdate performs target entry update if possible.
 //
 // Errors are only returned when other or further actions are not possible.
@@ -79,11 +108,12 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 		return nil
 	}
 	sOse, tOse := ole.source(), ole.target()
-	_, _ = sOse, tOse
-	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
-
+	if sOse.isPresent() && tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_CHANGE {
+		if err := ole.doTryUpdate(); err != nil {
+			return err
+		}
 	}
-	return errors.ErrUnsupported
+	return nil
 }
 
 // tryCreate performs target entry creation if possible.
@@ -105,18 +135,14 @@ func (ole *oplLogicalEntry) tryChange() (err error) {
 	if sOse.hasError() || tOse.hasError() {
 		return nil
 	}
-	if tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
-		if err = ole.tryRm(); err != nil {
-			return
-		}
+	if err = ole.tryRm(); err != nil {
+		return
 	}
-	if tOse.isPresent() && (!ole.seEqualType() || tOse.se().IsSymLink) {
-		if err = ole.tryRm(); err != nil {
-			return
-		}
+	if err = ole.tryUpdate(); err != nil {
+		return
 	}
 	if sOse.isPresent() && tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_CHANGE {
-		if err = ole.tryUpdate(); err != nil {
+		if err = ole.doTryUpdate(); err != nil {
 			return
 		}
 	}
