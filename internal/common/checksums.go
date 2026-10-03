@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"maps"
 	"os"
 	"slices"
 	"strings"
@@ -16,6 +17,9 @@ import (
 	"github.com/t-beigbeder/vdasync/opeloggrpc"
 )
 
+// AlgoCode enum code is used to store compact checksums
+//
+// first byte is the code followed by the actual hash bytes
 type AlgoCode opeloggrpc.HalgoCode
 
 const (
@@ -27,6 +31,7 @@ const (
 	HAL_SHA3_512    = AlgoCode(opeloggrpc.HalgoCode_HAL_SHA3_512)
 )
 
+// String representation for AlgoCode enum is used to export checksums
 func (ac AlgoCode) String() string {
 	switch ac {
 	case HAL_MD5:
@@ -44,6 +49,7 @@ func (ac AlgoCode) String() string {
 	}
 }
 
+// AlgoCodeFor is used to encode checksums from string exports
 func AlgoCodeFor(hName string) AlgoCode {
 	switch hName {
 	case "md5":
@@ -61,6 +67,9 @@ func AlgoCodeFor(hName string) AlgoCode {
 	}
 }
 
+// TypedChecksums2Checksums exports compact checksum slice to string
+//
+// result is a sequence "algo1:hexa1,algo2:hexa2..."
 func TypedChecksums2Checksums(tcss [][]byte) (string, error) {
 	if len(tcss) == 0 {
 		return "", nil
@@ -80,6 +89,7 @@ func TypedChecksums2Checksums(tcss [][]byte) (string, error) {
 	return strings.Join(cs, ","), nil
 }
 
+// Checksums2TypedChecksums encode string checksums as slice of compact ones
 func Checksums2TypedChecksums(hcss string) ([][]byte, error) {
 	if hcss == "" {
 		return nil, nil
@@ -111,7 +121,8 @@ func Checksums2TypedChecksums(hcss string) ([][]byte, error) {
 	return tcss, nil
 }
 
-func AddAlgos(algos, added string) string {
+// ConcatAlgos manages list of comma separated algo-names from algos and added
+func ConcatAlgos(algos, added string) string {
 	if added == "" {
 		return algos
 	}
@@ -129,6 +140,7 @@ func AddAlgos(algos, added string) string {
 	return strings.Join(sAlgos, ",")
 }
 
+// Css2Map provides a map view of string checksums css
 func Css2Map(css string) map[string]string {
 	sCss := strings.Split(css, ",")
 	res := make(map[string]string, len(sCss))
@@ -142,6 +154,7 @@ func Css2Map(css string) map[string]string {
 	return res
 }
 
+// AlgosFrom provides a string algo list of string checksums css
 func AlgosFrom(css string) string {
 	sAlgos := []string{}
 	for scs := range strings.SplitSeq(css, ",") {
@@ -153,6 +166,7 @@ func AlgosFrom(css string) string {
 	return strings.Join(sAlgos, ",")
 }
 
+// FilterCss filters needed string checksums from provided string checksums css
 func FilterCss(css, algos string) string {
 	if algos == "" {
 		return ""
@@ -166,6 +180,38 @@ func FilterCss(css, algos string) string {
 		}
 	}
 	return strings.Join(sRes, ",")
+}
+
+// HasAlgos checks a string checksums css has all needed algos
+func HasAlgos(css, algos string) bool {
+	if algos == "" {
+		return true
+	}
+	cAlg := slices.Collect(maps.Keys(Css2Map(css)))
+	for _, alg := range strings.Split(algos, ",") {
+		if !slices.Contains(cAlg, alg) {
+			return false
+		}
+	}
+	return true
+}
+
+// CompareTcss verifies unordered compact checksums are present and identical
+// in both tcss given a list of requested algos
+func CompareTcss(tcss1, tcss2 [][]byte, algos string) (bool, error) {
+	css1, err := TypedChecksums2Checksums(tcss1)
+	if err != nil {
+		return false, fmt.Errorf("typed checksum error on css1: %s", err)
+	}
+	css2, err := TypedChecksums2Checksums(tcss2)
+	if err != nil {
+		return false, fmt.Errorf("typed checksum error on css2: %s", err)
+	}
+	if !HasAlgos(css1, algos) {
+		return false, nil
+	}
+	fCss1, fCss2 := FilterCss(css1, algos), FilterCss(css2, algos)
+	return fCss1 == fCss2, nil
 }
 
 func ReaderSha256(rdr io.Reader) (string, error) {

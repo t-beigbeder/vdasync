@@ -83,10 +83,10 @@ func TestChecksum(t *testing.T) {
 }
 
 func TestAlgosHandling(t *testing.T) {
-	require.Equal(t, "a,b,c,d,e", AddAlgos("a,b,c", "d,e"))
-	require.Equal(t, "a,b,c", AddAlgos("a,b,c", ""))
-	require.Equal(t, "a,b,c", AddAlgos("a,b,c", "c,b"))
-	require.Equal(t, "a,b,c", AddAlgos("", "a,b,c"))
+	require.Equal(t, "a,b,c,d,e", ConcatAlgos("a,b,c", "d,e"))
+	require.Equal(t, "a,b,c", ConcatAlgos("a,b,c", ""))
+	require.Equal(t, "a,b,c", ConcatAlgos("a,b,c", "c,b"))
+	require.Equal(t, "a,b,c", ConcatAlgos("", "a,b,c"))
 	require.Equal(t, 2, len(Css2Map("a:1,b:2")))
 	require.Equal(t, "a:1,b:2", FilterCss("a:1,b:2", "a,b"))
 	require.Equal(t, "b:2,a:1", FilterCss("a:1,b:2", "b,a"))
@@ -123,6 +123,22 @@ func TestCsString2Bytes(t *testing.T) {
 	h21b, err := TypedChecksums2Checksums(bss21)
 	require.NoError(t, err)
 	require.Equal(t, fmt.Sprintf("%s,%s", h2, h1), h21b)
+
+	eq, err := CompareTcss(nil, nil, "md5")
+	require.NoError(t, err)
+	require.False(t, eq)
+	eq, err = CompareTcss(bss12, bss21, "md5")
+	require.NoError(t, err)
+	require.True(t, eq)
+	eq, err = CompareTcss(bss12, bss21, "sha256")
+	require.NoError(t, err)
+	require.True(t, eq)
+	eq, err = CompareTcss(bss12, bss21, "sha256,md5")
+	require.NoError(t, err)
+	require.True(t, eq)
+	eq, err = CompareTcss(bss12, bss21, "sha256,sha512")
+	require.NoError(t, err)
+	require.False(t, eq)
 
 	rdr, err := os.Open(ft)
 	require.NoError(t, err)

@@ -108,11 +108,14 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 		return nil
 	}
 	sOse, tOse := ole.source(), ole.target()
-	if sOse.isPresent() && tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_CHANGE {
+	if sOse.isPresent() && tOse.isPresent() &&
+		!tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
+
 		if err := ole.doTryUpdate(); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -140,11 +143,6 @@ func (ole *oplLogicalEntry) tryChange() (err error) {
 	}
 	if err = ole.tryUpdate(); err != nil {
 		return
-	}
-	if sOse.isPresent() && tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_CHANGE {
-		if err = ole.doTryUpdate(); err != nil {
-			return
-		}
 	}
 	if sOse.isPresent() && !tOse.isPresent() {
 		if err = ole.tryCreate(); err != nil {

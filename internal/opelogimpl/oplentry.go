@@ -262,7 +262,7 @@ func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 // reset as appropriate to avoid double computes, can be done when refreshing state as well
 func (ose *oplStoredEntry) setStatsFor(kw string, num, size int64) {
 	stats := ose.getStats()
-	if size == -1  {
+	if size == -1 {
 		se := ose.se()
 		if se != nil {
 			size = se.Size

@@ -146,10 +146,10 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath strin
 			return err
 		}
 		se := &opelog.StoredEntry{
-			IsDir: isDir,
-			Size: size,
-			Mtime: mTime,
-			IsSymLink: isSymLink,
+			IsDir:         isDir,
+			Size:          size,
+			Mtime:         mTime,
+			IsSymLink:     isSymLink,
 			SymLinkTarget: namedValues["symLinkTarget"],
 		}
 		le.SetState(0, inventTs, false, opelog.STC_UNSPECIFIED, "", se, tcss, 0)
