@@ -163,7 +163,7 @@ func (ose *oplStoredEntry) isPresent() bool {
 	return st.Stc != opelog.STC_DONE_ABSENT
 }
 
-// isPresent detects entry absent
+// isAbsent detects entry absent
 func (ose *oplStoredEntry) isAbsent() bool {
 	st := ose.getState()
 	if st == nil {

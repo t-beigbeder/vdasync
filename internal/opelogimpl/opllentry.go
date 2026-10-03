@@ -48,6 +48,15 @@ func (ole *oplLogicalEntry) doTryRm() error {
 		tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
 		return err
 	}
+	// ok, but won't do anything if entries error
+	if ole.target().hasError() {
+		return nil
+	}
+	if ole.source().hasError() {
+		err := errors.New("error on source prevents remove")
+		tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
+		return err
+	}
 	if tOse.isDir() {
 		// whatever the current state, launch rmdir
 		tSt := tOse.getState()
@@ -77,6 +86,11 @@ func (ole *oplLogicalEntry) tryRm() error {
 	}
 	tOse := ole.target()
 	if tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
+		tSt := tOse.getState()
+		if tSt.Stc == opelog.STC_DIR_RM && tSt.DepCount != 0 {
+			// shouldn't occur, given the queue management logic
+			return nil
+		}
 		if err := ole.doTryRm(); err != nil {
 			return err
 		}
@@ -89,13 +103,38 @@ func (ole *oplLogicalEntry) tryRm() error {
 	return nil
 }
 
+// checkForUpdate assumes s/t both present and checks if they differ
+func (ole *oplLogicalEntry) checkForUpdate() bool {
+	sOse, tOse := ole.source(), ole.target()
+	tSt := tOse.getState()
+	if tSt.Stc == opelog.STC_DIR_CHANGE && tSt.DepCount != 0 {
+		// shouldn't occur, given the queue management logic
+		return false
+	}
+	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
+		return true
+	}
+	if ole.owo().CsAlgos == "" {
+		return false
+	}
+	eq, err := common.CompareTcss(sOse.getState().Tcss, tOse.getState().Tcss, ole.owo().CsAlgos)
+	if err != nil {
+		return true
+	}
+	return !eq
+}
+
 // doTryUpdate performs target entry update.
 //
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) doTryUpdate() error {
 	sOse, tOse := ole.source(), ole.target()
-	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
-
+	_ = sOse
+	if tOse.isDir() {
+		tSt := tOse.getState()
+		if tSt.Stc == opelog.STC_DIR_CHANGE && tSt.DepCount != 0 {
+			return nil
+		}
 	}
 	return nil
 }
@@ -108,9 +147,8 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 		return nil
 	}
 	sOse, tOse := ole.source(), ole.target()
-	if sOse.isPresent() && tOse.isPresent() &&
-		!tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
-
+	_, _ = sOse, tOse
+	if sOse.isPresent() && tOse.isPresent() && ole.checkForUpdate() {
 		if err := ole.doTryUpdate(); err != nil {
 			return err
 		}
@@ -131,13 +169,10 @@ func (ole *oplLogicalEntry) tryCreate() error {
 
 // tryChange makes target entry change (create, remove, update) progress if possible.
 //
-// It takes place after possible errors have been cleared.
+// It takes place after errors have been cleared as far as possible.
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryChange() (err error) {
 	sOse, tOse := ole.source(), ole.target()
-	if sOse.hasError() || tOse.hasError() {
-		return nil
-	}
 	if err = ole.tryRm(); err != nil {
 		return
 	}
