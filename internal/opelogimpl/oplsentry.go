@@ -2,7 +2,9 @@ package opelogimpl
 
 import (
 	"errors"
+	"time"
 
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
@@ -92,11 +94,11 @@ func (ose *oplStoredEntry) rmDir() error {
 	return nil
 }
 
-// setMeta sets an entry metadata from its source, just update stats in dryrun
-func (ose *oplStoredEntry) setMeta() error {
+// setMeta sets an entry metadata from its source
+func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 	ose.setStatsFor("incMc", 1, 0)
 	if ose.owo().Dryrun {
-		return nil
+		return nil,nil
 	}
 	se := ose.ole.source().se().Clone()
 	owo := ose.owo()
@@ -104,7 +106,18 @@ func (ose *oplStoredEntry) setMeta() error {
 	if err := ose.dssSetStat(se, owo.NoPerm, noMtime); err != nil {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}
-	return nil
+	if noMtime {
+		se.Mtime = time.Now().Unix()
+	}
+	if owo.NoPerm {
+		tSe := ose.se()
+		se.User = tSe.User
+		se.UserRights = tSe.UserRights.Clone()
+		se.Group = tSe.Group
+		se.GroupRights = tSe.GroupRights.Clone()
+		se.OtherRights = tSe.OtherRights.Clone()
+	}
+	return se, nil
 }
 
 // updateDirOps initiates and/or concludes a recursive dir update
@@ -118,29 +131,64 @@ func (ose *oplStoredEntry) updateDirOps() error {
 		ose.childrenQueued = true
 		return nil
 	}
-	if err := ose.setMeta(); err != nil {
+	se, err := ose.setMeta();
+	if err != nil {
 		return err
 	}
+	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	return nil
 }
 
 // copyFile copies file data from its source, just update stats in dryrun
-func (ose *oplStoredEntry)copyFile() error {
+func (ose *oplStoredEntry)copyFile() (err error) {
 	size := ose.ole.source().se().Size
+	sTcss := ose.ole.source().getState().Tcss
 	ose.setStatsFor("setRd", 1, size)
 	ose.setStatsFor("setUp", 1, size)
 	if ose.owo().Dryrun {
 		return nil
 	}
-	return errors.ErrUnsupported
+
+	defer func ()  {
+		if err == nil {
+			return
+		}
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+	}()
+	var (
+		css string
+		tTcss [][]byte
+		eq bool
+		se *opelog.StoredEntry
+	)
+	css, err =  ose.dssCopyFile()
+	if err != nil {
+		return
+	}
+	tTcss, err = common.Checksums2TypedChecksums(css)
+	if err != nil {
+		return
+	}
+	if ose.owo().Check {
+		eq, err = common.CompareTcss(tTcss, sTcss, ose.ole.getCsAlgos())
+		if err != nil {
+			return
+		}
+		if !eq {
+			err = errors.New("checksums differ")
+			return
+		}
+	}
+	if se, err = ose.setMeta(); err != nil {
+		return
+	}
+	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, tTcss, 0)
+	return
 }
 
 // updateFile updates a regular file from its source and sets its meta
 func (ose *oplStoredEntry) updateFile() error {
 	if err := ose.copyFile() ; err != nil {
-		return err
-	}
-	if err := ose.setMeta(); err != nil {
 		return err
 	}
 	return nil

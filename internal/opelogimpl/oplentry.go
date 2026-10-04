@@ -84,6 +84,15 @@ func (ole *oplLogicalEntry) seEqualType() bool {
 	return ole.target().se().EqualType(ole.source().se())
 }
 
+// getCsAlgos retrieves requested checksums algorithms
+func (ole *oplLogicalEntry) getCsAlgos() (csAlgos string) {
+	csAlgos = ole.owo().CsAlgos
+	if csAlgos == "" {
+		csAlgos = "sha256"
+	}
+	return
+}
+
 // oplStoredEntry groups operations and state relevant either for source or for target
 //
 // errors returned by its services are logged but are only relevant to oplLogicalEntry

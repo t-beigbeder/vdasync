@@ -1,12 +1,60 @@
 package opelogimpl
 
 import (
+	"fmt"
+	"io"
 	"path"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
+
+func (ose *oplStoredEntry) dssCopyFile() (css string, err error) {
+	var (
+		rdr io.ReadCloser
+		cr common.ChecksumsReader
+		wrr io.WriteCloser
+		written int64
+	)
+	sOse := ose.ole.source()
+	ose.detail("dss copyFile")
+	ose.updateTime =  time.Now().Unix()
+	rdr, err = sOse.dss().GetReadCloser(sOse.fullPath())
+	if err != nil {
+		_ = ose.logErr("dss copyFile: GetReadCloser", err)
+		return
+	}
+	defer rdr.Close()
+	cr, err = common.NewChecksumsReader(rdr, ose.ole.getCsAlgos())
+	if err != nil {
+		_ = ose.logErr("dss copyFile: NewChecksumsReader", err)
+		return
+	}
+	wrr, err = ose.dss().GetWriteCloser(ose.fullPath())
+	if err != nil {
+		_ = ose.logErr("dss copyFile: GetWriteCloser", err)
+		return
+	}
+	defer wrr.Close()
+	written, err = io.Copy(wrr, cr)
+	if err != nil {
+		_ = ose.logErr("dss copyFile: Copy", err)
+		return
+	}
+	if written != sOse.getState().Se.Size {
+		err = fmt.Errorf("copied %d from %d", written, sOse.getState().Se.Size)
+		_ = ose.logErr("dss copyFile: Copy", err)
+		return
+	}
+	if err = wrr.Close(); err != nil {
+		_ = ose.logErr("dss copyFile: Close writer", err)
+		return
+	}
+	css = cr.Checksums()
+	return
+}
 
 func (ose *oplStoredEntry) dssSetStat(se *opelog.StoredEntry, noPerm bool, noMtime bool) error {
 	ose.detail("dss setStat")
