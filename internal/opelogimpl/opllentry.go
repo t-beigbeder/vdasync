@@ -87,7 +87,6 @@ func (ole *oplLogicalEntry) tryRm() error {
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
 func (ole *oplLogicalEntry) checkForUpdate() bool {
 	sOse, tOse := ole.source(), ole.target()
-	_, _ = sOse, tOse
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
@@ -122,17 +121,28 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 		return nil
 	}
 	if tOse.isRegularFile() {
-		if err := tOse.updateFile(); err != nil {
+		if err := tOse.copyFile(false); err != nil {
 			return err
 		}
 		return nil
 	}
-
-	return errors.ErrUnsupported
+	if tOse.isSymLink() {
+		if err := tOse.cloneSymLink(false); err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
 }
 
-// checkForCreate checks if ...
-func (ole *oplLogicalEntry) checkForCreate() bool {return false}
+// checkForCreate checks if source present and target absent
+func (ole *oplLogicalEntry) checkForCreate() bool {
+	sOse, tOse := ole.source(), ole.target()
+	if !sOse.isPresent() || tOse.isPresent() {
+		return false
+	}
+	return true
+}
 
 // tryCreate performs target entry creation if possible.
 func (ole *oplLogicalEntry) tryCreate() error {
@@ -142,9 +152,27 @@ func (ole *oplLogicalEntry) tryCreate() error {
 	if !ole.checkForCreate() {
 		return nil
 	}
-	sOse, tOse := ole.source(), ole.target()
-	_, _ = sOse, tOse
-	return errors.ErrUnsupported
+	tOse := ole.target()
+	if tOse.isDir() {
+		if err := tOse.createDirOps(); err != nil {
+			return err
+		}
+		return nil
+	}
+	if tOse.isRegularFile() {
+		if err := tOse.copyFile(true); err != nil {
+			return err
+		}
+		return nil
+	}
+	if tOse.isSymLink() {
+		if err := tOse.cloneSymLink(true); err != nil {
+			return err
+		}
+		return nil
+	}
+	return nil
+
 }
 
 // tryChange makes target entry change (create, remove, update) progress if possible.

@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -96,9 +97,8 @@ func (ose *oplStoredEntry) rmDir() error {
 
 // setMeta sets an entry metadata from its source
 func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
-	ose.setStatsFor("incMc", 1, 0)
 	if ose.owo().Dryrun {
-		return nil,nil
+		return nil, nil
 	}
 	se := ose.ole.source().se().Clone()
 	owo := ose.owo()
@@ -121,6 +121,8 @@ func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 }
 
 // updateDirOps initiates and/or concludes a recursive dir update
+//
+// when actually doing also sets meta and updates state
 func (ose *oplStoredEntry) updateDirOps() error {
 	if ose.enableWriteNeeded() {
 		if err := ose.enableWrite(); err != nil {
@@ -129,6 +131,29 @@ func (ose *oplStoredEntry) updateDirOps() error {
 	}
 	if !ose.endOrNoOpDirPossible() {
 		ose.childrenQueued = true
+		return nil
+	}
+	if ose.owo().Dryrun {
+		return nil
+	}
+	se, err := ose.setMeta();
+	if err != nil {
+		return err
+	}
+	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
+	return nil
+}
+
+// createDirOps initiates and/or concludes a recursive dir creation
+//
+// when creating also sets meta and updates state
+func (ose *oplStoredEntry) createDirOps() error {
+	// FIXME: to be implemented
+	if !ose.endOrNoOpDirPossible() {
+		ose.childrenQueued = true
+		return nil
+	}
+	if ose.owo().Dryrun {
 		return nil
 	}
 	se, err := ose.setMeta();
@@ -140,11 +165,17 @@ func (ose *oplStoredEntry) updateDirOps() error {
 }
 
 // copyFile copies file data from its source, just update stats in dryrun
-func (ose *oplStoredEntry)copyFile() (err error) {
+//
+// when copying also sets meta and updates state
+func (ose *oplStoredEntry)copyFile(isCreated bool) (err error) {
 	size := ose.ole.source().se().Size
 	sTcss := ose.ole.source().getState().Tcss
 	ose.setStatsFor("setRd", 1, size)
-	ose.setStatsFor("setUp", 1, size)
+	if !isCreated {
+		ose.setStatsFor("setUp", 1, size)
+	} else {
+		ose.setStatsFor("setCr", 1, size)
+	}
 	if ose.owo().Dryrun {
 		return nil
 	}
@@ -186,11 +217,27 @@ func (ose *oplStoredEntry)copyFile() (err error) {
 	return
 }
 
-// updateFile updates a regular file from its source and sets its meta
-func (ose *oplStoredEntry) updateFile() error {
-	if err := ose.copyFile() ; err != nil {
+// cloneSymLink clones symlink from its source, just update stats in dryrun
+func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
+	ose.setStatsFor("setMc", 1, 0)
+	if ose.owo().Dryrun {
+		return nil
+	}
+	if !isCreated {
+		if err := ose.dssRm(); err != nil {
+			err = fmt.Errorf("cloneSymLink: rm error %s", err)
+			ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		}
+	}
+	if err := ose.dssSymLink(ose.ole.source().se().SymLinkTarget); err != nil {
+		err = fmt.Errorf("cloneSymLink: symlink error %s", err)
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+	}
+	se, err := ose.setMeta()
+	if err != nil {
 		return err
 	}
+	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	return nil
 }
 

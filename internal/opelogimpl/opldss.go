@@ -109,3 +109,12 @@ func (ose *oplStoredEntry) dssRm() error {
 	}
 	return nil
 }
+
+func (ose *oplStoredEntry) dssSymLink(target string) error {
+	ose.detail("dss symlink")
+	ose.metaChangeTime = time.Now().Unix()
+	if err := ose.dss().Symlink(ose.fullPath(), target); err != nil {
+		return ose.logErr("dss symlink", err)
+	}
+	return nil
+}
