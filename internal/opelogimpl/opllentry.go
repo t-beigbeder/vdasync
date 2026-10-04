@@ -67,15 +67,6 @@ func (ole *oplLogicalEntry) tryRm() error {
 		tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
 		return err
 	}
-	// ok, but won't do anything if entries error
-	if ole.target().hasError() {
-		return nil
-	}
-	if ole.source().hasError() {
-		err := errors.New("error on source prevents remove")
-		tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
-		return err
-	}
 	if tOse.isDir() {
 		if tOse.endOrNoOpDirPossible() && tOse.enableWriteNeeded() && !tOse.owo().Force {
 			err := common.ErrNeededWriteEnableForbidden
@@ -125,16 +116,30 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	}
 	tOse := ole.target()
 	if tOse.isDir() {
-		err := tOse.updateDirOps()
-		_ = err
+		if err := tOse.updateDirOps(); err != nil {
+			return err
+		}
+		return nil
+	}
+	if tOse.isRegularFile() {
+		if err := tOse.updateFile(); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	return errors.ErrUnsupported
 }
 
+// checkForCreate checks if ...
+func (ole *oplLogicalEntry) checkForCreate() bool {return false}
+
 // tryCreate performs target entry creation if possible.
 func (ole *oplLogicalEntry) tryCreate() error {
 	if !ole.owi.impliesGoal("create") {
+		return nil
+	}
+	if !ole.checkForCreate() {
 		return nil
 	}
 	sOse, tOse := ole.source(), ole.target()
@@ -148,6 +153,10 @@ func (ole *oplLogicalEntry) tryCreate() error {
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryChange() (err error) {
 	sOse, tOse := ole.source(), ole.target()
+	if sOse.hasError() || tOse.hasError() {
+		// no change allowed, even dryrun uninteresting in that case
+		return
+	}
 	if err = ole.tryRm(); err != nil {
 		return
 	}

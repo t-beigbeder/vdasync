@@ -42,17 +42,15 @@ func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
 	return ose.getState().DepCount == 0 || len(ose.se().Children) == 0
 }
 
-// enables an entry to be written if needed, just update stats in dryrun
+// enableWrite enables an entry to be written if needed
 func (ose *oplStoredEntry) enableWrite() error {
 	if !ose.enableWriteNeeded() {
 		return nil
 	}
-	se := ose.se()
-	ose.setStatsFor("incMc", 1, 0)
 	if ose.owo().Dryrun {
 		return nil
 	}
-	se = se.Clone()
+	se := ose.se().Clone()
 	se.UserRights.Write = true
 	if se.IsDir {
 		se.UserRights.Execute = true
@@ -94,6 +92,21 @@ func (ose *oplStoredEntry) rmDir() error {
 	return nil
 }
 
+// setMeta sets an entry metadata from its source, just update stats in dryrun
+func (ose *oplStoredEntry) setMeta() error {
+	ose.setStatsFor("incMc", 1, 0)
+	if ose.owo().Dryrun {
+		return nil
+	}
+	se := ose.ole.source().se().Clone()
+	owo := ose.owo()
+	noMtime := owo.NoMtime || (se.IsSymLink && owo.NoMtLink)
+	if err := ose.dssSetStat(se, owo.NoPerm, noMtime); err != nil {
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+	}
+	return nil
+}
+
 // updateDirOps initiates and/or concludes a recursive dir update
 func (ose *oplStoredEntry) updateDirOps() error {
 	if ose.enableWriteNeeded() {
@@ -105,9 +118,31 @@ func (ose *oplStoredEntry) updateDirOps() error {
 		ose.childrenQueued = true
 		return nil
 	}
-	// if err := ose.setMeta(); err != nil {
-	// 	return err
-	// }
+	if err := ose.setMeta(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// copyFile copies file data from its source, just update stats in dryrun
+func (ose *oplStoredEntry)copyFile() error {
+	size := ose.ole.source().se().Size
+	ose.setStatsFor("setRd", 1, size)
+	ose.setStatsFor("setUp", 1, size)
+	if ose.owo().Dryrun {
+		return nil
+	}
+	return errors.ErrUnsupported
+}
+
+// updateFile updates a regular file from its source and sets its meta
+func (ose *oplStoredEntry) updateFile() error {
+	if err := ose.copyFile() ; err != nil {
+		return err
+	}
+	if err := ose.setMeta(); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -142,8 +177,4 @@ func (ose *oplStoredEntry) load() error {
 		}
 	}
 	return nil
-}
-
-func (ose *oplStoredEntry) checkInventory() error {
-	return errors.ErrUnsupported
 }
