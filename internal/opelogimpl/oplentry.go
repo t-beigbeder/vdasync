@@ -222,7 +222,7 @@ func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opel
 	ose.ole.hasChanges = true
 }
 
-func (ose *oplStoredEntry) getEvents(sessionTs int64) []*opelog.Event {
+func (ose *oplStoredEntry) getEvents() []*opelog.Event {
 	return ose.ole.le.GetEvents(ose.ole.owi.sessionTime, ose.isTarget)
 }
 

@@ -28,42 +28,7 @@ func (ose *oplStoredEntry) recordEvents() {
 	}
 }
 
-func (ose *oplStoredEntry) happyWithSt(stc opelog.StateCode) (yes bool) {
-	switch stc {
-	case opelog.STC_DONE_ABSENT, opelog.STC_DONE_PRESENT, opelog.STC_DIR_LOAD:
-		return true
-	case opelog.STC_SE_ERROR:
-		if !ose.owo().ClearErrors {
-			return true
-		}
-	case opelog.STC_DIR_RM, opelog.STC_DIR_CHANGE, opelog.STC_DESC_ERROR:
-		if !ose.toolRestarted {
-			return true
-		}
-	}
-	return
-}
-
-func (ose *oplStoredEntry) clearErrorNeeded(stc opelog.StateCode) (yes bool) {
-	switch stc {
-	case opelog.STC_SE_ERROR:
-		if ose.owo().ClearErrors {
-			return true
-		}
-	}
-	return
-}
-
-func (ose *oplStoredEntry) reloadDirNeeded(stc opelog.StateCode) (yes bool) {
-	switch stc {
-	case opelog.STC_DIR_RM, opelog.STC_DIR_CHANGE, opelog.STC_DESC_ERROR:
-		if ose.toolRestarted {
-			return true
-		}
-	}
-	return
-}
-
+// enableWriteNeeded assumes cache state loaded and checks if write (and execute for dirs) access is enabled
 func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 	se := ose.se()
 	if se.UserRights.Write && (!se.IsDir || se.UserRights.Execute) {
@@ -72,19 +37,17 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 	return
 }
 
-func (ose *oplStoredEntry) rmDirPossible(theEnd bool) (yes bool) {
-	if theEnd || len(ose.se().Children) == 0 {
-		yes = true
-	}
-	return
+// endOrNoOpDirPossible factorized test for DepCount nul (recursive op done) or empty dir
+func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
+	return ose.getState().DepCount == 0 || len(ose.se().Children) == 0
 }
 
-// enables an entry to be written if needed
+// enables an entry to be written if needed, just update stats in dryrun
 func (ose *oplStoredEntry) enableWrite() error {
-	se := ose.se()
-	if se.UserRights.Write && (!se.IsDir || se.UserRights.Execute) {
+	if !ose.enableWriteNeeded() {
 		return nil
 	}
+	se := ose.se()
 	ose.setStatsFor("incMc", 1, 0)
 	if ose.owo().Dryrun {
 		return nil
@@ -100,7 +63,7 @@ func (ose *oplStoredEntry) enableWrite() error {
 	return nil
 }
 
-// remove an entry or empty dir
+// remove an entry or empty dir, just update stats in dryrun
 func (ose *oplStoredEntry) remove() error {
 	ose.setStatsFor("setRm", 1, -1)
 	if ose.owo().Dryrun {
@@ -115,20 +78,36 @@ func (ose *oplStoredEntry) remove() error {
 }
 
 // rmDir initiates and/or concludes a recursive dir removal
-func (ose *oplStoredEntry) rmDir(theEnd bool) error {
+func (ose *oplStoredEntry) rmDir() error {
 	if ose.enableWriteNeeded() {
 		if err := ose.enableWrite(); err != nil {
 			return err
 		}
 	}
-	if !ose.rmDirPossible(theEnd) {
-		ose.setState(false, opelog.STC_DIR_RM, "", ose.se(), nil, len(ose.se().Children))
+	if !ose.endOrNoOpDirPossible() {
 		ose.childrenQueued = true
 		return nil
 	}
 	if err := ose.remove(); err != nil {
 		return err
 	}
+	return nil
+}
+
+// updateDirOps initiates and/or concludes a recursive dir update
+func (ose *oplStoredEntry) updateDirOps() error {
+	if ose.enableWriteNeeded() {
+		if err := ose.enableWrite(); err != nil {
+			return err
+		}
+	}
+	if !ose.endOrNoOpDirPossible() {
+		ose.childrenQueued = true
+		return nil
+	}
+	// if err := ose.setMeta(); err != nil {
+	// 	return err
+	// }
 	return nil
 }
 
@@ -157,14 +136,10 @@ func (ose *oplStoredEntry) load() error {
 	if st == nil {
 		return ose.doLoad()
 	}
-	if ose.happyWithSt(st.Stc) {
-		return nil
-	}
-	if ose.clearErrorNeeded(st.Stc) {
-		return ose.doLoad()
-	}
-	if ose.reloadDirNeeded(st.Stc) {
-		return ose.doLoad()
+	if st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR {
+		if ose.toolRestarted && ose.owo().ClearErrors {
+			return ose.doLoad()
+		}
 	}
 	return nil
 }

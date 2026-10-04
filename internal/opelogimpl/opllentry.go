@@ -38,10 +38,29 @@ func (ole *oplLogicalEntry) childrenQueue() []string {
 	return mChildren
 }
 
-// doTryRm makes target entry removal progress.
+// checkForRemove checks if source absent/target present of if their types differ
+func (ole *oplLogicalEntry) checkForRemove() bool {
+	sOse := ole.source()
+	tOse := ole.target()
+	if sOse.isAbsent() && tOse.isPresent() {
+		return true
+	}
+	if sOse.isPresent() && tOse.isPresent() && !ole.seEqualType() {
+		return true
+	}
+	return false
+}
+
+// tryRm makes target entry removal progress if possible.
 //
 // Errors are only returned when other or further actions are not possible.
-func (ole *oplLogicalEntry) doTryRm() error {
+func (ole *oplLogicalEntry) tryRm() error {
+	if !ole.owi.impliesGoal("update") {
+		return nil
+	}
+	if !ole.checkForRemove() {
+		return nil
+	}
 	tOse := ole.target()
 	if !ole.owo().Rm && !ole.owo().Dryrun {
 		err := common.ErrNeededRmForbidden
@@ -58,15 +77,12 @@ func (ole *oplLogicalEntry) doTryRm() error {
 		return err
 	}
 	if tOse.isDir() {
-		// whatever the current state, launch rmdir
-		tSt := tOse.getState()
-		theEnd := (tSt.Stc == opelog.STC_DIR_RM && tSt.DepCount == 0)
-		if tOse.rmDirPossible(theEnd) && tOse.enableWriteNeeded() && !tOse.owo().Force {
+		if tOse.endOrNoOpDirPossible() && tOse.enableWriteNeeded() && !tOse.owo().Force {
 			err := common.ErrNeededWriteEnableForbidden
 			tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
 			return err
 		}
-		if err := tOse.rmDir(theEnd); err != nil {
+		if err := tOse.rmDir(); err != nil {
 			return err
 		}
 		return nil
@@ -77,38 +93,11 @@ func (ole *oplLogicalEntry) doTryRm() error {
 	return nil
 }
 
-// tryRm makes target entry removal progress if possible.
-//
-// Errors are only returned when other or further actions are not possible.
-func (ole *oplLogicalEntry) tryRm() error {
-	if !ole.owi.impliesGoal("update") {
-		return nil
-	}
-	tOse := ole.target()
-	if tOse.isPresent() && ole.parentTSt != nil && ole.parentTSt.Stc == opelog.STC_DIR_RM {
-		tSt := tOse.getState()
-		if tSt.Stc == opelog.STC_DIR_RM && tSt.DepCount != 0 {
-			// shouldn't occur, given the queue management logic
-			return nil
-		}
-		if err := ole.doTryRm(); err != nil {
-			return err
-		}
-	}
-	if tOse.isPresent() && (!ole.seEqualType() || tOse.se().IsSymLink) {
-		if err := ole.doTryRm(); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// checkForUpdate assumes s/t both present and checks if they differ
+// checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
 func (ole *oplLogicalEntry) checkForUpdate() bool {
 	sOse, tOse := ole.source(), ole.target()
-	tSt := tOse.getState()
-	if tSt.Stc == opelog.STC_DIR_CHANGE && tSt.DepCount != 0 {
-		// shouldn't occur, given the queue management logic
+	_, _ = sOse, tOse
+	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
 	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
@@ -124,21 +113,6 @@ func (ole *oplLogicalEntry) checkForUpdate() bool {
 	return !eq
 }
 
-// doTryUpdate performs target entry update.
-//
-// Errors are only returned when other or further actions are not possible.
-func (ole *oplLogicalEntry) doTryUpdate() error {
-	sOse, tOse := ole.source(), ole.target()
-	_ = sOse
-	if tOse.isDir() {
-		tSt := tOse.getState()
-		if tSt.Stc == opelog.STC_DIR_CHANGE && tSt.DepCount != 0 {
-			return nil
-		}
-	}
-	return nil
-}
-
 // tryUpdate performs target entry update if possible.
 //
 // Errors are only returned when other or further actions are not possible.
@@ -146,15 +120,16 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
 		return nil
 	}
-	sOse, tOse := ole.source(), ole.target()
-	_, _ = sOse, tOse
-	if sOse.isPresent() && tOse.isPresent() && ole.checkForUpdate() {
-		if err := ole.doTryUpdate(); err != nil {
-			return err
-		}
+	if !ole.checkForUpdate() {
+		return nil
+	}
+	tOse := ole.target()
+	if tOse.isDir() {
+		err := tOse.updateDirOps()
+		_ = err
 	}
 
-	return nil
+	return errors.ErrUnsupported
 }
 
 // tryCreate performs target entry creation if possible.
