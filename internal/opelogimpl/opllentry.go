@@ -199,8 +199,18 @@ func (ole *oplLogicalEntry) tryChange() (err error) {
 	return nil
 }
 
+// tryLoad makes target entry load progress if possible.
 func (ole *oplLogicalEntry) tryLoad() error {
-	return errors.ErrUnsupported
+	if !ole.owi.impliesGoal("load") {
+		return nil
+	}
+	sOse, tOse := ole.source(), ole.target()
+	sErr := sOse.tryLoad()
+	tErr := tOse.tryLoad()
+	if sErr != nil || tErr != nil {
+		return &LeError{source: sErr, target: tErr}
+	}
+	return nil
 }
 
 // process evaluates current states of source and target wrt the walker's

@@ -241,6 +241,24 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 	return nil
 }
 
+// tryLoad makes source and/or target entry load progress if possible.
+func (ose *oplStoredEntry) tryLoad() error {
+	if !ose.isPresent() {
+		return nil
+	}
+	if !ose.isDir() || len(ose.se().Children) == 0 {
+		// all possible already done
+		return nil
+	}
+	if ose.getState().DepCount != 0 {
+		// another action is ongoing, will progress
+		return nil
+	}
+	// means change actions have been inhibited
+	ose.childrenQueued = true
+	return nil
+}
+
 // doLoad is actual load from dss: Stat, and List for dirs
 func (ose *oplStoredEntry) doLoad() error {
 	se, err := ose.dssStatAndList()
