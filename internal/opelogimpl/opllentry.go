@@ -150,7 +150,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 // checkForCreate checks if source present and target absent
 func (ole *oplLogicalEntry) checkForCreate() bool {
 	sOse, tOse := ole.source(), ole.target()
-	if !sOse.isPresent() || tOse.isPresent() {
+	if sOse.isPresent() || tOse.isAbsent() {
 		return false
 	}
 	return true
@@ -164,20 +164,22 @@ func (ole *oplLogicalEntry) tryCreate() error {
 	if !ole.checkForCreate() {
 		return nil
 	}
+	sOse := ole.source()
 	tOse := ole.target()
-	if tOse.isDir() {
+	if sOse.isDir() {
+		// next call will match an update
 		if err := tOse.createDirOps(); err != nil {
 			return err
 		}
 		return nil
 	}
-	if tOse.isRegularFile() {
+	if sOse.isRegularFile() {
 		if err := tOse.copyFile(true); err != nil {
 			return err
 		}
 		return nil
 	}
-	if tOse.isSymLink() {
+	if sOse.isSymLink() {
 		if err := tOse.cloneSymLink(true); err != nil {
 			return err
 		}

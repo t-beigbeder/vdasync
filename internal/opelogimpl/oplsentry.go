@@ -43,7 +43,7 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 
 // endOrNoOpDirPossible factorized test for DepCount nul (recursive op done) or empty dir
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
-	return ose.getState().DepCount == 0 || len(ose.se().Children) == 0
+	return ose.getState().DepCount <= 0 || len(ose.se().Children) == 0
 }
 
 // enableWrite enables an entry to be written if needed
@@ -59,7 +59,7 @@ func (ose *oplStoredEntry) enableWrite() error {
 	if se.IsDir {
 		se.UserRights.Execute = true
 	}
-	if err := ose.dssSetStat(se, false, true); err != nil {
+	if err := ose.dssSetStat(se, false, true, true); err != nil {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}
 	return nil
@@ -71,7 +71,7 @@ func (ose *oplStoredEntry) remove() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	if err := ose.dssRm(); err != nil {
+	if err := ose.dssRm(false); err != nil {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		return err
 	}
@@ -104,7 +104,7 @@ func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 	se := ose.ole.source().se().Clone()
 	owo := ose.owo()
 	noMtime := owo.NoMtime || (se.IsSymLink && owo.NoMtLink)
-	if err := ose.dssSetStat(se, owo.NoPerm, noMtime); err != nil {
+	if err := ose.dssSetStat(se, owo.NoPerm, noMtime, false); err != nil {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}
 	if noMtime {
@@ -145,17 +145,16 @@ func (ose *oplStoredEntry) updateDirOps() error {
 	return nil
 }
 
-// createDirOps initiates and/or concludes a recursive dir creation
+// createDirOps initiates a recursive dir creation, conclusion by updateDirOps
 //
 // when creating also sets meta and updates state
 func (ose *oplStoredEntry) createDirOps() error {
-	// FIXME: to be implemented
-	if !ose.endOrNoOpDirPossible() {
-		ose.childrenQueued = true
-		return nil
-	}
 	if ose.owo().Dryrun {
 		return nil
+	}
+	if err := ose.dssMkdir(ose.ole.source().se()); err != nil {
+		err = fmt.Errorf("createDirOps: mkdir error %s", err)
+		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
 	}
 	se, err := ose.setMeta()
 	if err != nil {
@@ -225,7 +224,7 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 		return nil
 	}
 	if !isCreated {
-		if err := ose.dssRm(); err != nil {
+		if err := ose.dssRm(true); err != nil {
 			err = fmt.Errorf("cloneSymLink: rm error %s", err)
 			ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		}
@@ -262,7 +261,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 
 // doLoad is actual load from dss: Stat, and List for dirs
 func (ose *oplStoredEntry) doLoad() error {
-	se, err := ose.dssStatAndList()
+	se, err := ose.dssStatAndList(false)
 	if err == nil {
 		if ose.isTarget {
 			ose.setStatsFor("tls", 0)

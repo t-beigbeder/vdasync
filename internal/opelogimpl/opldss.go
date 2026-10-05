@@ -56,18 +56,22 @@ func (ose *oplStoredEntry) dssCopyFile() (css string, err error) {
 	return
 }
 
-func (ose *oplStoredEntry) dssSetStat(se *opelog.StoredEntry, noPerm bool, noMtime bool) error {
+func (ose *oplStoredEntry) dssSetStat(se *opelog.StoredEntry, noPerm, noMtime, noEvent bool) error {
 	ose.detail("dss setStat")
-	ose.metaChangeTime = time.Now().Unix()
+	if !noEvent {
+		ose.metaChangeTime = time.Now().Unix()
+	}
 	if err := ose.dss().SetStat(se.ToDataEntry(ose.fullPath()), noPerm, noMtime); err != nil {
 		return ose.logErr("dss stat", err)
 	}
 	return nil
 }
 
-func (ose *oplStoredEntry) dssStat() (*dssa.DataEntry, error) {
+func (ose *oplStoredEntry) dssStat(noEvent bool) (*dssa.DataEntry, error) {
 	ose.detail("dss stat")
-	ose.loadTime = time.Now().Unix()
+	if !noEvent {
+		ose.loadTime = time.Now().Unix()
+	}
 	de, err := ose.dss().Stat(ose.fullPath())
 	if err != nil {
 		return nil, ose.logErr("dss stat", err)
@@ -75,9 +79,11 @@ func (ose *oplStoredEntry) dssStat() (*dssa.DataEntry, error) {
 	return de, nil
 }
 
-func (ose *oplStoredEntry) dssList() ([]*dssa.DataEntry, error) {
+func (ose *oplStoredEntry) dssList(noEvent bool) ([]*dssa.DataEntry, error) {
 	ose.detail("dss list")
-	ose.loadTime = time.Now().Unix()
+	if !noEvent {
+		ose.loadTime = time.Now().Unix()
+	}
 	des, err := ose.dss().List(ose.fullPath())
 	if err != nil {
 		return nil, ose.logErr("dss list", err)
@@ -85,15 +91,15 @@ func (ose *oplStoredEntry) dssList() ([]*dssa.DataEntry, error) {
 	return des, nil
 }
 
-func (ose *oplStoredEntry) dssStatAndList() (*opelog.StoredEntry, error) {
-	de, err := ose.dssStat()
+func (ose *oplStoredEntry) dssStatAndList(noEvent bool) (*opelog.StoredEntry, error) {
+	de, err := ose.dssStat(noEvent)
 	if err != nil {
 		return nil, err
 	}
 	if !de.IsDir {
 		return opelog.FromDataEntry(de, nil), nil
 	}
-	des, err := ose.dssList()
+	des, err := ose.dssList(noEvent)
 	chs := make([]string, len(des))
 	for i := range des {
 		chs[i] = path.Base(des[i].Path)
@@ -101,9 +107,11 @@ func (ose *oplStoredEntry) dssStatAndList() (*opelog.StoredEntry, error) {
 	return opelog.FromDataEntry(de, chs), nil
 }
 
-func (ose *oplStoredEntry) dssRm() error {
+func (ose *oplStoredEntry) dssRm(noEvent bool) error {
 	ose.detail("dss rm")
-	ose.removeTime = time.Now().Unix()
+	if !noEvent {
+		ose.removeTime = time.Now().Unix()
+	}
 	if err := ose.dss().Rm(ose.fullPath()); err != nil {
 		return ose.logErr("dss rm", err)
 	}
@@ -115,6 +123,17 @@ func (ose *oplStoredEntry) dssSymLink(target string) error {
 	ose.metaChangeTime = time.Now().Unix()
 	if err := ose.dss().Symlink(ose.fullPath(), target); err != nil {
 		return ose.logErr("dss symlink", err)
+	}
+	return nil
+}
+
+func (ose *oplStoredEntry) dssMkdir(se *opelog.StoredEntry) error {
+	ose.detail("dss mkdir")
+	ose.metaChangeTime = time.Now().Unix()
+	cSe := se.ToDataEntry(ose.fullPath())
+	cSe.UserRights.Read, cSe.UserRights.Write, cSe.UserRights.Execute = true, true, true
+	if err := ose.dss().Mkdir(cSe); err != nil {
+		return ose.logErr("dss mkdir", err)
 	}
 	return nil
 }
