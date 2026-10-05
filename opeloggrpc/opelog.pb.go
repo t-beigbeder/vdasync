@@ -144,13 +144,10 @@ const (
 	StateCode_STC_DONE_ABSENT StateCode = 1
 	// state present without se_num means just listed by parent
 	StateCode_STC_DONE_PRESENT StateCode = 2
-	StateCode_STC_DIR_LOAD     StateCode = 3
-	StateCode_STC_DIR_RM       StateCode = 4
-	StateCode_STC_DIR_CHANGE   StateCode = 5
-	StateCode_STC_SE_ERROR     StateCode = 6
+	StateCode_STC_SE_ERROR     StateCode = 3
 	// error from descendants are propagated, loading is partial, modification is blocked
 	// redo will retry required actions
-	StateCode_STC_DESC_ERROR StateCode = 7
+	StateCode_STC_DESC_ERROR StateCode = 4
 )
 
 // Enum value maps for StateCode.
@@ -159,21 +156,15 @@ var (
 		0: "STC_UNSPECIFIED",
 		1: "STC_DONE_ABSENT",
 		2: "STC_DONE_PRESENT",
-		3: "STC_DIR_LOAD",
-		4: "STC_DIR_RM",
-		5: "STC_DIR_CHANGE",
-		6: "STC_SE_ERROR",
-		7: "STC_DESC_ERROR",
+		3: "STC_SE_ERROR",
+		4: "STC_DESC_ERROR",
 	}
 	StateCode_value = map[string]int32{
 		"STC_UNSPECIFIED":  0,
 		"STC_DONE_ABSENT":  1,
 		"STC_DONE_PRESENT": 2,
-		"STC_DIR_LOAD":     3,
-		"STC_DIR_RM":       4,
-		"STC_DIR_CHANGE":   5,
-		"STC_SE_ERROR":     6,
-		"STC_DESC_ERROR":   7,
+		"STC_SE_ERROR":     3,
+		"STC_DESC_ERROR":   4,
 	}
 )
 
@@ -625,7 +616,8 @@ type ComputedStats struct {
 	Update        *AggInfo `protobuf:"bytes,5,opt,name=update,proto3" json:"update,omitempty"`
 	Remove        *AggInfo `protobuf:"bytes,6,opt,name=remove,proto3" json:"remove,omitempty"`
 	MetaChange    *AggInfo `protobuf:"bytes,7,opt,name=meta_change,json=metaChange,proto3" json:"meta_change,omitempty"`
-	Error         *AggInfo `protobuf:"bytes,8,opt,name=error,proto3" json:"error,omitempty"`
+	NoOp          *AggInfo `protobuf:"bytes,8,opt,name=no_op,json=noOp,proto3" json:"no_op,omitempty"`
+	Error         *AggInfo `protobuf:"bytes,9,opt,name=error,proto3" json:"error,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -709,6 +701,13 @@ func (x *ComputedStats) GetMetaChange() *AggInfo {
 	return nil
 }
 
+func (x *ComputedStats) GetNoOp() *AggInfo {
+	if x != nil {
+		return x.NoOp
+	}
+	return nil
+}
+
 func (x *ComputedStats) GetError() *AggInfo {
 	if x != nil {
 		return x.Error
@@ -724,9 +723,10 @@ type State struct {
 	ToolStartTime int64  `protobuf:"varint,2,opt,name=tool_start_time,json=toolStartTime,proto3" json:"tool_start_time,omitempty"`
 	Error         string `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
 	// values shared by index, negative index means no value
-	SeNum         int32   `protobuf:"zigzag32,4,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
-	TcsNums       []int32 `protobuf:"zigzag32,5,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
-	DepCount      int32   `protobuf:"varint,6,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
+	SeNum   int32   `protobuf:"zigzag32,4,opt,name=se_num,json=seNum,proto3" json:"se_num,omitempty"`
+	TcsNums []int32 `protobuf:"zigzag32,5,rep,packed,name=tcs_nums,json=tcsNums,proto3" json:"tcs_nums,omitempty"`
+	// value -1 by convention is a signal from last child sending notification to parent
+	DepCount      int32 `protobuf:"zigzag32,6,opt,name=dep_count,json=depCount,proto3" json:"dep_count,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1009,7 +1009,7 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"eventsList\"5\n" +
 	"\aAggInfo\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x03R\x06number\x12\x12\n" +
-	"\x04size\x18\x02 \x01(\x03R\x04size\"\x88\x03\n" +
+	"\x04size\x18\x02 \x01(\x03R\x04size\"\xae\x03\n" +
 	"\rComputedStats\x12>\n" +
 	"\x13source_list_or_stat\x18\x01 \x01(\v2\x0f.opelog.AggInfoR\x10sourceListOrStat\x12>\n" +
 	"\x13target_list_or_stat\x18\x02 \x01(\v2\x0f.opelog.AggInfoR\x10targetListOrStat\x12#\n" +
@@ -1018,15 +1018,16 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x06update\x18\x05 \x01(\v2\x0f.opelog.AggInfoR\x06update\x12'\n" +
 	"\x06remove\x18\x06 \x01(\v2\x0f.opelog.AggInfoR\x06remove\x120\n" +
 	"\vmeta_change\x18\a \x01(\v2\x0f.opelog.AggInfoR\n" +
-	"metaChange\x12%\n" +
-	"\x05error\x18\b \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xb9\x01\n" +
+	"metaChange\x12$\n" +
+	"\x05no_op\x18\b \x01(\v2\x0f.opelog.AggInfoR\x04noOp\x12%\n" +
+	"\x05error\x18\t \x01(\v2\x0f.opelog.AggInfoR\x05error\"\xb9\x01\n" +
 	"\x05State\x12#\n" +
 	"\x03stc\x18\x01 \x01(\x0e2\x11.opelog.StateCodeR\x03stc\x12&\n" +
 	"\x0ftool_start_time\x18\x02 \x01(\x03R\rtoolStartTime\x12\x14\n" +
 	"\x05error\x18\x03 \x01(\tR\x05error\x12\x15\n" +
 	"\x06se_num\x18\x04 \x01(\x11R\x05seNum\x12\x19\n" +
 	"\btcs_nums\x18\x05 \x03(\x11R\atcsNums\x12\x1b\n" +
-	"\tdep_count\x18\x06 \x01(\x05R\bdepCount\"\xd5\x05\n" +
+	"\tdep_count\x18\x06 \x01(\x11R\bdepCount\"\xd5\x05\n" +
 	"\fLogicalEntry\x122\n" +
 	"\n" +
 	"shared_ses\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\tsharedSes\x126\n" +
@@ -1082,17 +1083,13 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\vEVC_REMOVED\x10\x02\x12\x0f\n" +
 	"\vEVC_CREATED\x10\x03\x12\x0f\n" +
 	"\vEVC_UPDATED\x10\x04\x12\x14\n" +
-	"\x10EVC_META_CHANGED\x10\x05*\xa7\x01\n" +
+	"\x10EVC_META_CHANGED\x10\x05*q\n" +
 	"\tStateCode\x12\x13\n" +
 	"\x0fSTC_UNSPECIFIED\x10\x00\x12\x13\n" +
 	"\x0fSTC_DONE_ABSENT\x10\x01\x12\x14\n" +
 	"\x10STC_DONE_PRESENT\x10\x02\x12\x10\n" +
-	"\fSTC_DIR_LOAD\x10\x03\x12\x0e\n" +
-	"\n" +
-	"STC_DIR_RM\x10\x04\x12\x12\n" +
-	"\x0eSTC_DIR_CHANGE\x10\x05\x12\x10\n" +
-	"\fSTC_SE_ERROR\x10\x06\x12\x12\n" +
-	"\x0eSTC_DESC_ERROR\x10\aB\x0eZ\f./opeloggrpcb\x06proto3"
+	"\fSTC_SE_ERROR\x10\x03\x12\x12\n" +
+	"\x0eSTC_DESC_ERROR\x10\x04B\x0eZ\f./opeloggrpcb\x06proto3"
 
 var (
 	file_grpc_opelog_proto_rawDescOnce sync.Once
@@ -1143,27 +1140,28 @@ var file_grpc_opelog_proto_depIdxs = []int32{
 	8,  // 9: opelog.ComputedStats.update:type_name -> opelog.AggInfo
 	8,  // 10: opelog.ComputedStats.remove:type_name -> opelog.AggInfo
 	8,  // 11: opelog.ComputedStats.meta_change:type_name -> opelog.AggInfo
-	8,  // 12: opelog.ComputedStats.error:type_name -> opelog.AggInfo
-	2,  // 13: opelog.State.stc:type_name -> opelog.StateCode
-	4,  // 14: opelog.LogicalEntry.shared_ses:type_name -> opelog.StoredEntry
-	5,  // 15: opelog.LogicalEntry.shared_tcss:type_name -> opelog.TypedChecksum
-	13, // 16: opelog.LogicalEntry.source_states:type_name -> opelog.LogicalEntry.SourceStatesEntry
-	14, // 17: opelog.LogicalEntry.target_states:type_name -> opelog.LogicalEntry.TargetStatesEntry
-	15, // 18: opelog.LogicalEntry.eventsLists:type_name -> opelog.LogicalEntry.EventsListsEntry
-	16, // 19: opelog.LogicalEntry.stats:type_name -> opelog.LogicalEntry.StatsEntry
-	17, // 20: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
-	18, // 21: opelog.OpeLogAllInOne.sessions:type_name -> opelog.OpeLogAllInOne.SessionsEntry
-	19, // 22: opelog.OpeLogAllInOne.inventories:type_name -> opelog.OpeLogAllInOne.InventoriesEntry
-	10, // 23: opelog.LogicalEntry.SourceStatesEntry.value:type_name -> opelog.State
-	10, // 24: opelog.LogicalEntry.TargetStatesEntry.value:type_name -> opelog.State
-	7,  // 25: opelog.LogicalEntry.EventsListsEntry.value:type_name -> opelog.Events
-	9,  // 26: opelog.LogicalEntry.StatsEntry.value:type_name -> opelog.ComputedStats
-	11, // 27: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
-	28, // [28:28] is the sub-list for method output_type
-	28, // [28:28] is the sub-list for method input_type
-	28, // [28:28] is the sub-list for extension type_name
-	28, // [28:28] is the sub-list for extension extendee
-	0,  // [0:28] is the sub-list for field type_name
+	8,  // 12: opelog.ComputedStats.no_op:type_name -> opelog.AggInfo
+	8,  // 13: opelog.ComputedStats.error:type_name -> opelog.AggInfo
+	2,  // 14: opelog.State.stc:type_name -> opelog.StateCode
+	4,  // 15: opelog.LogicalEntry.shared_ses:type_name -> opelog.StoredEntry
+	5,  // 16: opelog.LogicalEntry.shared_tcss:type_name -> opelog.TypedChecksum
+	13, // 17: opelog.LogicalEntry.source_states:type_name -> opelog.LogicalEntry.SourceStatesEntry
+	14, // 18: opelog.LogicalEntry.target_states:type_name -> opelog.LogicalEntry.TargetStatesEntry
+	15, // 19: opelog.LogicalEntry.eventsLists:type_name -> opelog.LogicalEntry.EventsListsEntry
+	16, // 20: opelog.LogicalEntry.stats:type_name -> opelog.LogicalEntry.StatsEntry
+	17, // 21: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
+	18, // 22: opelog.OpeLogAllInOne.sessions:type_name -> opelog.OpeLogAllInOne.SessionsEntry
+	19, // 23: opelog.OpeLogAllInOne.inventories:type_name -> opelog.OpeLogAllInOne.InventoriesEntry
+	10, // 24: opelog.LogicalEntry.SourceStatesEntry.value:type_name -> opelog.State
+	10, // 25: opelog.LogicalEntry.TargetStatesEntry.value:type_name -> opelog.State
+	7,  // 26: opelog.LogicalEntry.EventsListsEntry.value:type_name -> opelog.Events
+	9,  // 27: opelog.LogicalEntry.StatsEntry.value:type_name -> opelog.ComputedStats
+	11, // 28: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
+	29, // [29:29] is the sub-list for method output_type
+	29, // [29:29] is the sub-list for method input_type
+	29, // [29:29] is the sub-list for extension type_name
+	29, // [29:29] is the sub-list for extension extendee
+	0,  // [0:29] is the sub-list for field type_name
 }
 
 func init() { file_grpc_opelog_proto_init() }

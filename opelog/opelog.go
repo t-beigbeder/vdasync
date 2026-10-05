@@ -259,6 +259,7 @@ type ComputedStats struct {
 	Update           *AggInfo
 	Remove           *AggInfo
 	MetaChange       *AggInfo
+	NoOp          *AggInfo
 	Error            *AggInfo
 }
 
@@ -268,9 +269,6 @@ const (
 	STC_UNSPECIFIED  = StateCode(opeloggrpc.StateCode_STC_UNSPECIFIED)
 	STC_DONE_ABSENT  = StateCode(opeloggrpc.StateCode_STC_DONE_ABSENT)
 	STC_DONE_PRESENT = StateCode(opeloggrpc.StateCode_STC_DONE_PRESENT)
-	STC_DIR_LOAD     = StateCode(opeloggrpc.StateCode_STC_DIR_LOAD)
-	STC_DIR_RM       = StateCode(opeloggrpc.StateCode_STC_DIR_RM)
-	STC_DIR_CHANGE   = StateCode(opeloggrpc.StateCode_STC_DIR_CHANGE)
 	STC_SE_ERROR     = StateCode(opeloggrpc.StateCode_STC_SE_ERROR)
 	// error from descendants are propagated, loading is partial, modification is blocked
 	// redo will retry required actions
@@ -289,6 +287,7 @@ type State struct {
 	Error         string
 	Se            *StoredEntry
 	Tcss          [][]byte
+	// value -1 by convention is a signal from last child sending notification to parent
 	DepCount      int32
 	// values shared by index, negative index means no value
 	seNum   int32

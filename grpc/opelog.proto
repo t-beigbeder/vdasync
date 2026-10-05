@@ -76,7 +76,8 @@ message ComputedStats {
     AggInfo update = 5;
     AggInfo remove = 6;
     AggInfo meta_change = 7;
-    AggInfo error = 8;
+    AggInfo no_op = 8;
+    AggInfo error = 9;
 }
 
 enum StateCode {
@@ -84,13 +85,10 @@ enum StateCode {
    STC_DONE_ABSENT = 1;
    // state present without se_num means just listed by parent
    STC_DONE_PRESENT = 2;
-   STC_DIR_LOAD = 3;
-   STC_DIR_RM = 4;
-   STC_DIR_CHANGE = 5;
-   STC_SE_ERROR = 6;
+   STC_SE_ERROR = 3;
    // error from descendants are propagated, loading is partial, modification is blocked
    // redo will retry required actions
-   STC_DESC_ERROR = 7;
+   STC_DESC_ERROR = 4;
 }
 
 message State {
@@ -102,7 +100,8 @@ message State {
     // values shared by index, negative index means no value
     sint32 se_num = 4;
     repeated sint32 tcs_nums = 5;
-    int32 dep_count = 6;
+    // value -1 by convention is a signal from last child sending notification to parent
+    sint32 dep_count = 6;
 }
 
 message LogicalEntry {

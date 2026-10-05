@@ -1,7 +1,6 @@
 package opelogimpl
 
 import (
-	"errors"
 	"slices"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
