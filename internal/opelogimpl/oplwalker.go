@@ -147,7 +147,10 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry", err)
 		return nil, err
 	}
-	ole := &oplLogicalEntry{plgr: lgr, relPath: relPath, owi: ow, le: le}
+	ole := &oplLogicalEntry{
+		plgr: lgr, relPath: relPath, owi: ow, le: le,
+		childrenLeCache: make(map[string]*opelog.LogicalEntry),
+	}
 	if le == nil {
 		ole.le = &opelog.LogicalEntry{}
 		ole.hasChanges = true
@@ -179,7 +182,7 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 }
 
 func isChildInState(cName string, st *opelog.State) bool {
-	if st == nil || st.Se == nil || st.DepCount <= 0 {
+	if st == nil || st.Se == nil {
 		return false
 	}
 	for _, child := range st.Se.Children {
@@ -190,6 +193,8 @@ func isChildInState(cName string, st *opelog.State) bool {
 	return false
 }
 
+// notifyParent merges source and target state after processing and notifies parent if last child
+// from both branches
 func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) error {
 	if ole.parentLe == nil {
 		return nil
@@ -205,21 +210,29 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 	}
 	cName := path.Base(ole.relPath)
 	parentSSt := ple.GetState(ow.sessionTime, false)
-	notify, hasChanges := false, false
+	hasChanges := false
 	if isChildInState(cName, parentSSt) {
+		if parentSSt.DepCount <= 0 {
+			err := fmt.Errorf("source child %s notifies twice parent", ole.relPath)
+			ow.owErr(lgr, "oplWalkerImpl: internal", err)
+			return err
+		}
 		hasChanges = true
 		parentSSt.DepCount--
 		if parentSSt.DepCount == 0 {
-			notify = true
 			parentSSt.DepCount = -1
 		}
 	}
 	parentTSt := ple.GetState(ow.sessionTime, true)
 	if isChildInState(cName, parentTSt) {
+		if parentTSt.DepCount <= 0 {
+			err := fmt.Errorf("target child %s notifies twice parent", ole.relPath)
+			ow.owErr(lgr, "oplWalkerImpl: internal", err)
+			return err
+		}
 		hasChanges = true
 		parentTSt.DepCount--
 		if parentTSt.DepCount == 0 {
-			notify = true
 			parentTSt.DepCount = -1
 		}
 	}
@@ -229,7 +242,9 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 			return err
 		}
 	}
-	if notify {
+	if (parentSSt.DepCount == -1 && parentTSt.DepCount <= 0) ||
+		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
+		// notifies parent
 		if err := ow.oplq.Put(pRelPath); err != nil {
 			ow.owErr(lgr, "oplWalkerImpl: process entry: put parent in queue", err)
 			return err

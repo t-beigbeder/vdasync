@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
+	"path"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -136,7 +137,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	se, err := ose.setMeta();
+	se, err := ose.setMeta()
 	if err != nil {
 		return err
 	}
@@ -156,7 +157,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	se, err := ose.setMeta();
+	se, err := ose.setMeta()
 	if err != nil {
 		return err
 	}
@@ -167,7 +168,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 // copyFile copies file data from its source, just update stats in dryrun
 //
 // when copying also sets meta and updates state
-func (ose *oplStoredEntry)copyFile(isCreated bool) (err error) {
+func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 	size := ose.ole.source().se().Size
 	sTcss := ose.ole.source().getState().Tcss
 	ose.setStatsFor("setRd", 1, size)
@@ -180,19 +181,19 @@ func (ose *oplStoredEntry)copyFile(isCreated bool) (err error) {
 		return nil
 	}
 
-	defer func ()  {
+	defer func() {
 		if err == nil {
 			return
 		}
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}()
 	var (
-		css string
+		css   string
 		tTcss [][]byte
-		eq bool
-		se *opelog.StoredEntry
+		eq    bool
+		se    *opelog.StoredEntry
 	)
-	css, err =  ose.dssCopyFile()
+	css, err = ose.dssCopyFile()
 	if err != nil {
 		return
 	}
@@ -277,6 +278,34 @@ func (ose *oplStoredEntry) doLoad() error {
 	return nil
 }
 
+// processChildrenDone loads children state and propagate to parent
+func (ose *oplStoredEntry) processChildrenDone() error {
+	var err error
+	se := ose.se()
+	owi := ose.ole.owi
+	hasErrors := false
+	for _, child := range se.Children {
+		cle, ok := ose.ole.childrenLeCache[child]
+		if !ok {
+			cle, err = owi.oplm.GetLogicalEntry(path.Join(ose.ole.relPath, child))
+			if err != nil {
+				ose.setState(false, opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
+				return err
+			}
+		}
+		cSt := cle.GetState(owi.sessionTime, ose.isTarget)
+		if cSt.Stc == opelog.STC_DESC_ERROR || cSt.Stc == opelog.STC_SE_ERROR {
+			hasErrors = true
+			
+		}
+	}
+	if hasErrors {
+		ose.setState(false, opelog.STC_DESC_ERROR, "", se, nil, 0)
+		return nil
+	}
+	return nil
+}
+
 // load ensures stored entry is fetched with dss and its state is cached
 // according to walker's operational context
 func (ose *oplStoredEntry) load() error {
@@ -286,7 +315,7 @@ func (ose *oplStoredEntry) load() error {
 	}
 	if st.DepCount == -1 && !ose.toolRestarted {
 		// load children state and propagate to parent
-		return errors.ErrUnsupported // FIXME: implement
+		return ose.processChildrenDone()
 	}
 	if st.DepCount == -1 {
 		// tool restarted implies new parent children cycle

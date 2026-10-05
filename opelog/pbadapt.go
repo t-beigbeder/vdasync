@@ -99,7 +99,7 @@ func protoBuf2ComputedStats(gcs *opeloggrpc.ComputedStats) *ComputedStats {
 		Update:           protoBuf2AggInfo(gcs.Update),
 		Remove:           protoBuf2AggInfo(gcs.Remove),
 		MetaChange:       protoBuf2AggInfo(gcs.MetaChange),
-		NoOp: protoBuf2AggInfo(gcs.NoOp),
+		NoOp:             protoBuf2AggInfo(gcs.NoOp),
 		Error:            protoBuf2AggInfo(gcs.Error),
 	}
 }
@@ -255,7 +255,7 @@ func computedStats2ProtoBuf(cs *ComputedStats) *opeloggrpc.ComputedStats {
 		Update:           aggInfo2ProtoBuf(cs.Update),
 		Remove:           aggInfo2ProtoBuf(cs.Remove),
 		MetaChange:       aggInfo2ProtoBuf(cs.MetaChange),
-		NoOp: aggInfo2ProtoBuf(cs.NoOp),
+		NoOp:             aggInfo2ProtoBuf(cs.NoOp),
 		Error:            aggInfo2ProtoBuf(cs.Error),
 	}
 }

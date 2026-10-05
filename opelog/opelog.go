@@ -259,7 +259,7 @@ type ComputedStats struct {
 	Update           *AggInfo
 	Remove           *AggInfo
 	MetaChange       *AggInfo
-	NoOp          *AggInfo
+	NoOp             *AggInfo
 	Error            *AggInfo
 }
 
@@ -288,7 +288,7 @@ type State struct {
 	Se            *StoredEntry
 	Tcss          [][]byte
 	// value -1 by convention is a signal from last child sending notification to parent
-	DepCount      int32
+	DepCount int32
 	// values shared by index, negative index means no value
 	seNum   int32
 	tcsNums []int32

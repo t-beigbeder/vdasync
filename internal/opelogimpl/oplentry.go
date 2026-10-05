@@ -50,6 +50,8 @@ type oplLogicalEntry struct {
 	parentLe  *opelog.LogicalEntry
 	parentSSt *opelog.State
 	parentTSt *opelog.State
+	// share source/target
+	childrenLeCache map[string]*opelog.LogicalEntry
 }
 
 func (ole *oplLogicalEntry) lgr() *slog.Logger { return ole.plgr.With("relPath", ole.relPath) }
@@ -102,7 +104,6 @@ type oplStoredEntry struct {
 	isTarget bool
 	// processing state
 	toolRestarted bool
-	childrenCache map[string]*oplLogicalEntry
 	// events information, to be created once full processing done
 	loadTime       int64
 	removeTime     int64

@@ -13,14 +13,14 @@ import (
 
 func (ose *oplStoredEntry) dssCopyFile() (css string, err error) {
 	var (
-		rdr io.ReadCloser
-		cr common.ChecksumsReader
-		wrr io.WriteCloser
+		rdr     io.ReadCloser
+		cr      common.ChecksumsReader
+		wrr     io.WriteCloser
 		written int64
 	)
 	sOse := ose.ole.source()
 	ose.detail("dss copyFile")
-	ose.updateTime =  time.Now().Unix()
+	ose.updateTime = time.Now().Unix()
 	rdr, err = sOse.dss().GetReadCloser(sOse.fullPath())
 	if err != nil {
 		_ = ose.logErr("dss copyFile: GetReadCloser", err)
