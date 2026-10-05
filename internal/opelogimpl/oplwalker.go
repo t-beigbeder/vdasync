@@ -179,7 +179,7 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 }
 
 func isChildInState(cName string, st *opelog.State) bool {
-	if st == nil || st.Se == nil || st.DepCount == 0 {
+	if st == nil || st.Se == nil || st.DepCount <= 0 {
 		return false
 	}
 	for _, child := range st.Se.Children {
@@ -211,6 +211,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 		parentSSt.DepCount--
 		if parentSSt.DepCount == 0 {
 			notify = true
+			parentSSt.DepCount = -1
 		}
 	}
 	parentTSt := ple.GetState(ow.sessionTime, true)
@@ -219,6 +220,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 		parentTSt.DepCount--
 		if parentTSt.DepCount == 0 {
 			notify = true
+			parentTSt.DepCount = -1
 		}
 	}
 	if hasChanges {

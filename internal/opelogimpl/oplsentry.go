@@ -284,6 +284,15 @@ func (ose *oplStoredEntry) load() error {
 	if st == nil {
 		return ose.doLoad()
 	}
+	if st.DepCount == -1 && !ose.toolRestarted {
+		// load children state and propagate to parent
+		return errors.ErrUnsupported // FIXME: implement
+	}
+	if st.DepCount == -1 {
+		// tool restarted implies new parent children cycle
+		st.DepCount = 0
+		ose.ole.hasChanges = true
+	}
 	if st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR {
 		if ose.toolRestarted && ose.owo().ClearErrors {
 			return ose.doLoad()

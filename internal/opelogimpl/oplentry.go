@@ -102,6 +102,7 @@ type oplStoredEntry struct {
 	isTarget bool
 	// processing state
 	toolRestarted bool
+	childrenCache map[string]*oplLogicalEntry
 	// events information, to be created once full processing done
 	loadTime       int64
 	removeTime     int64
