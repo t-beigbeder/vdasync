@@ -67,7 +67,7 @@ func (ose *oplStoredEntry) enableWrite() error {
 
 // remove an entry or empty dir, just update stats in dryrun
 func (ose *oplStoredEntry) remove() error {
-	ose.setStatsFor("setRm", 1, -1)
+	ose.setStatsFor("rm", -1)
 	if ose.owo().Dryrun {
 		return nil
 	}
@@ -171,11 +171,11 @@ func (ose *oplStoredEntry) createDirOps() error {
 func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 	size := ose.ole.source().se().Size
 	sTcss := ose.ole.source().getState().Tcss
-	ose.setStatsFor("setRd", 1, size)
+	ose.setStatsFor("rd", size)
 	if !isCreated {
-		ose.setStatsFor("setUp", 1, size)
+		ose.setStatsFor("up", size)
 	} else {
-		ose.setStatsFor("setCr", 1, size)
+		ose.setStatsFor("cr", size)
 	}
 	if ose.owo().Dryrun {
 		return nil
@@ -220,7 +220,7 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 
 // cloneSymLink clones symlink from its source, just update stats in dryrun
 func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
-	ose.setStatsFor("setMc", 1, 0)
+	ose.setStatsFor("mc", 0)
 	if ose.owo().Dryrun {
 		return nil
 	}
@@ -265,11 +265,10 @@ func (ose *oplStoredEntry) doLoad() error {
 	se, err := ose.dssStatAndList()
 	if err == nil {
 		if ose.isTarget {
-			ose.setStatsFor("setTls", 1, 0)
+			ose.setStatsFor("tls", 0)
 		} else {
-			ose.setStatsFor("setSls", 1, 0)
+			ose.setStatsFor("sls", 0)
 		}
-		// further processing will mark it with any required STC_DIR_
 		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	} else {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
@@ -283,7 +282,8 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 	var err error
 	se := ose.se()
 	owi := ose.ole.owi
-	hasErrors := false
+	errorsNum := 0
+	stats := ose.getStats()
 	for _, child := range se.Children {
 		cle, ok := ose.ole.childrenLeCache[child]
 		if !ok {
@@ -295,13 +295,31 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		}
 		cSt := cle.GetState(owi.sessionTime, ose.isTarget)
 		if cSt.Stc == opelog.STC_DESC_ERROR || cSt.Stc == opelog.STC_SE_ERROR {
-			hasErrors = true
-			
+			errorsNum++
 		}
+		cStats := cle.GetStats(owi.sessionTime)
+		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
+		stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
+		stats.Read.Number += cStats.Read.Number
+		stats.Read.Size += cStats.Read.Size
+		stats.Create.Number += cStats.Create.Number
+		stats.Create.Size += cStats.Create.Size
+		stats.Update.Number += cStats.Update.Number
+		stats.Update.Size += cStats.Update.Size
+		stats.Remove.Number += cStats.Remove.Number
+		stats.Remove.Size += cStats.Remove.Size
+		stats.MetaChange.Number += cStats.MetaChange.Number
+		stats.NoOp.Number += cStats.NoOp.Number
+		stats.NoOp.Size += cStats.NoOp.Size
+		stats.Error.Number += cStats.Error.Number
 	}
-	if hasErrors {
+	st := ose.getState()
+	st.DepCount = 0
+	if errorsNum > 0 {
 		ose.setState(false, opelog.STC_DESC_ERROR, "", se, nil, 0)
 		return nil
+	} else {
+		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	}
 	return nil
 }

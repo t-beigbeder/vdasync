@@ -242,6 +242,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 			return err
 		}
 	}
+	// both branches either just terminated or inactive
 	if (parentSSt.DepCount == -1 && parentTSt.DepCount <= 0) ||
 		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
 		// notifies parent

@@ -244,6 +244,9 @@ func (ose *oplStoredEntry) setState(isInv bool, stc opelog.StateCode, sErr strin
 	}
 	ose.ole.le.SetState(ose.ole.owi.toolStartTime, sessInvTs, ose.isTarget, stc, sErr, se, tcss, depCount)
 	ose.ole.hasChanges = true
+	if sErr != "" {
+		ose.setStatsFor("er", 0)
+	}
 }
 
 // getState may be nil or Se may be nil meaning simply listed by parent
@@ -251,8 +254,14 @@ func (ose *oplStoredEntry) setState(isInv bool, stc opelog.StateCode, sErr strin
 // toolRestarted if loaded state differs
 func (ose *oplStoredEntry) getState() *opelog.State {
 	st := ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
-	if st != nil && st.ToolStartTime != ose.ole.owi.toolStartTime {
-		ose.toolRestarted = true
+	owi := ose.ole.owi
+	if st != nil && st.ToolStartTime != owi.toolStartTime {
+		if !ose.toolRestarted {
+			ose.toolRestarted = true
+			stats := ose.ole.le.GetStats(owi.sessionTime)
+			stats.Reset()
+			ose.ole.hasChanges = true
+		}
 	}
 	return st
 }
@@ -268,10 +277,7 @@ func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 // setStatsFor updates the entry's stats according to given keyword
 //
 // size -1 asks to read cached state for entry's size
-//
-// TODO: would toolRestarted check be needed here?
-// reset as appropriate to avoid double computes, can be done when refreshing state as well
-func (ose *oplStoredEntry) setStatsFor(kw string, num, size int64) {
+func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	stats := ose.getStats()
 	if size == -1 {
 		se := ose.se()
@@ -282,46 +288,29 @@ func (ose *oplStoredEntry) setStatsFor(kw string, num, size int64) {
 		}
 	}
 	switch kw {
-	case "setSls":
-		stats.SourceListOrStat.Number = num
-	case "incSls":
-		stats.SourceListOrStat.Number += num
-	case "setTls":
-		stats.TargetListOrStat.Number = num
-	case "incTls":
-		stats.TargetListOrStat.Number += num
-	case "setRd":
-		stats.Read.Number = num
+	case "sls":
+		stats.SourceListOrStat.Number = 1
+	case "tls":
+		stats.TargetListOrStat.Number = 1
+	case "rd":
+		stats.Read.Number = 1
 		stats.Read.Size = size
-	case "incRd":
-		stats.Read.Number += num
-		stats.Read.Size += size
-	case "setCr":
-		stats.Create.Number = num
+	case "cr":
+		stats.Create.Number = 1
 		stats.Create.Size = size
-	case "incCr":
-		stats.Create.Number += num
-		stats.Create.Size += size
-	case "setUp":
-		stats.Update.Number = num
+	case "up":
+		stats.Update.Number = 1
 		stats.Update.Size = size
-	case "incUp":
-		stats.Update.Number += num
-		stats.Update.Size += size
-	case "setRm":
-		stats.Remove.Number = num
+	case "rm":
+		stats.Remove.Number = 1
 		stats.Remove.Size = size
-	case "incRm":
-		stats.Remove.Number += num
-		stats.Remove.Size += size
-	case "setMc":
-		stats.MetaChange.Number = num
-	case "incMc":
-		stats.MetaChange.Number += num
-	case "setEr":
-		stats.Error.Number = num
-	case "incEr":
-		stats.Error.Number += num
+	case "mc":
+		stats.MetaChange.Number = 1
+	case "no":
+		stats.NoOp.Number = 1
+		stats.NoOp.Size = size
+	case "er":
+		stats.Error.Number = 1
 	default:
 		return
 	}

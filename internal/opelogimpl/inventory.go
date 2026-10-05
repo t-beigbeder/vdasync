@@ -128,7 +128,6 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath strin
 		if err != nil {
 			return err
 		}
-		// TODO: decode namedValues
 		isDir, err := dcBool(namedValues["isDir"])
 		if err != nil {
 			return err

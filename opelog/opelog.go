@@ -263,6 +263,25 @@ type ComputedStats struct {
 	Error            *AggInfo
 }
 
+func (cs *ComputedStats) Reset() {
+	cs.SourceListOrStat = &AggInfo{}
+	cs.TargetListOrStat = &AggInfo{}
+	cs.Read = &AggInfo{}
+	cs.Create = &AggInfo{}
+	cs.Update = &AggInfo{}
+	cs.Remove = &AggInfo{}
+	cs.MetaChange = &AggInfo{}
+	cs.NoOp = &AggInfo{}
+	cs.Error = &AggInfo{}
+}
+
+func (cs *ComputedStats) IsSet() bool {
+	return cs.SourceListOrStat.Number+cs.TargetListOrStat.Number+
+		cs.Read.Number+cs.Create.Number+
+		cs.Update.Number+cs.Remove.Number+cs.MetaChange.Number+cs.Error.Number == 0
+
+}
+
 type StateCode opeloggrpc.StateCode
 
 const (
