@@ -11,9 +11,9 @@ import (
 
 func TestConvs(t *testing.T) {
 	tm := time.Now()
-	sTm, err := dcTime(dispMtime(tm))
+	sTm, err := dcTime(expDispMtime(tm))
 	require.NoError(t, err)
-	require.Equal(t, dispMtime(tm), dispMtime(time.Unix(sTm, 0)))
+	require.Equal(t, expDispMtime(tm), expDispMtime(time.Unix(sTm, 0)))
 }
 
 func TestInventoryCsvImport(t *testing.T) {

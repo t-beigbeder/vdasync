@@ -58,16 +58,20 @@ func TestCsvExport(t *testing.T) {
 		if owt.oplm == nil {
 			owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"))
 		}
-		require.NoError(t, owt.oplm.Create(owt.std, owt.ttd))
+		_, _, err := owt.oplm.Create("ds", "di", owt.std, owt.ttd)
+		require.NoError(t, err)
 		require.NoError(t, owt.ftgen(owt.std))
 		require.NoError(t, owt.invImport())
 		ow := NewOplWalker(
 			owt.lgr.With("test", owt.label), owt.conc,
 			nil, owt.oplm, owt.owo,
 			localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
-			owt.std, owt.ttd)
+			owt.std, owt.ttd,
+			"ds", "di",
+		)
 		require.NoError(t, ow.Run())
-		require.NoError(t, owt.oplm.Open(true))
+		_, _, err = owt.oplm.Open("ds", "di", true)
+		require.NoError(t, err)
 		csvPath := path.Join(owt.ltd, "oplm.csv")
 		require.NoError(t, OplCsvExport(owt.oplm, csvPath, RPT_SYNTHETIC))
 		owt.lgr.Info("exported", "csv", csvPath)

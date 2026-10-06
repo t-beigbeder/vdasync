@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
@@ -31,8 +32,8 @@ type rptLe struct {
 
 func newRptLe(relPath string, le *opelog.LogicalEntry) *rptLe {
 	ole := &oplLogicalEntry{
-		relPath:         relPath,
-		le:              le,
+		relPath: relPath,
+		le:      le,
 	}
 	ole.source = &oplStoredEntry{ole: ole}
 	ole.target = &oplStoredEntry{ole: ole, isTarget: true}
@@ -47,31 +48,31 @@ type rptSe struct {
 	*oplStoredEntry
 }
 
-func (rse *rptSe) curState() *opelog.StoredEntry {
-	ole := rse.currentState()
-	if ole == nil {
-		ole = &opelog.StoredEntry{}
-	}
-	return ole
-}
-
 func (rse *rptSe) dispPres() string {
-	eev := rse.currentEvent()
-	if eev == nil {
+	st := rse.getState()
+	if st == nil {
 		return ""
 	}
-	if eev.Error != "" {
+	if st.Error != "" {
 		return "e"
 	}
-	if eev.Kind == opelog.EVT_ABS {
+	if st.Stc == opelog.STC_DONE_ABSENT {
 		return "-"
+	}
+	if rse.ole.le.IsIgnored {
+		return "i"
 	}
 	return "x"
 }
 
 func (rse *rptSe) dispCss() string {
-	css, sErr := rse.currentChecksums()
-	if sErr != "" {
+	st := rse.getState()
+	if st == nil {
+		return "error"
+	}
+	tcss := st.Tcss
+	css, err := common.TypedChecksums2Checksums(tcss)
+	if err != nil {
 		return "error"
 	}
 	return css
@@ -87,9 +88,6 @@ func (db dispBool) String() string {
 }
 
 func dispDirChildren(se *opelog.StoredEntry) string {
-	if !se.IsPresent {
-		return ""
-	}
 	if !se.IsDir {
 		return "-"
 	}
@@ -97,7 +95,7 @@ func dispDirChildren(se *opelog.StoredEntry) string {
 }
 
 func dispSize(se *opelog.StoredEntry) string {
-	if !se.IsPresent {
+	if se == nil {
 		return ""
 	}
 	if se.IsDir || se.IsSymLink {
@@ -107,7 +105,7 @@ func dispSize(se *opelog.StoredEntry) string {
 }
 
 func dispMtime(se *opelog.StoredEntry) string {
-	if !se.IsPresent {
+	if se == nil {
 		return ""
 	}
 	return time.Unix(se.Mtime, 0).Format(time.RFC3339)
@@ -115,22 +113,22 @@ func dispMtime(se *opelog.StoredEntry) string {
 
 func syntheticExporter(relPath string, le *opelog.LogicalEntry) []string {
 	rle := rptLe{oplLogicalEntry: &oplLogicalEntry{le: le}}
-	scs := rle.rseSrc.curState()
-	tcs := rle.rseTgt.curState()
+	scs := rle.rseSrc.se()
+	tcs := rle.rseTgt.se()
 	record := make([]string, len(exporters[RPT_SYNTHETIC].columns))
 	record[0] = relPath
-	record[1] = le.InvChecksums
+	record[1] = "" // FIXME: le.InvChecksums
 	sBase := 2
 	record[sBase] = rle.rseSrc.dispPres()
 	record[sBase+1] = dispDirChildren(scs)
-	record[sBase+2] = scs.SymLinkrseTgt
+	record[sBase+2] = "" // FIXME: scs.SymLinkrseTgt
 	record[sBase+3] = dispSize(scs)
 	record[sBase+4] = dispMtime(scs)
 	record[sBase+5] = rle.rseSrc.dispCss()
 	tBase := 8
 	record[tBase] = rle.rseTgt.dispPres()
 	record[tBase+1] = dispDirChildren(tcs)
-	record[tBase+2] = tcs.SymLinkrseTgt
+	record[tBase+2] = "" // FIXME: tcs.SymLinkrseTgt
 	record[tBase+3] = dispSize(tcs)
 	record[tBase+4] = dispMtime(tcs)
 	record[tBase+5] = rle.rseTgt.dispCss()
