@@ -30,7 +30,7 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 	err = filepath.Walk(rootPath, func(path_ string, info fs.FileInfo, err error) error {
 		rp := common.RelPath(path_, rootPath)
 		if info.IsDir() {
-			if err = cw.Write([]string{rp, "1", "", dispMtime(info.ModTime()), "0", ""}); err != nil {
+			if err = cw.Write([]string{rp, "1", "", expDispMtime(info.ModTime()), "0", ""}); err != nil {
 				return err
 			}
 			return nil
@@ -47,7 +47,7 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 		csvLine[0] = rp
 		csvLine[1] = "0"
 		csvLine[2] = fmt.Sprintf("%d", info.Size())
-		csvLine[3] = dispMtime(info.ModTime())
+		csvLine[3] = expDispMtime(info.ModTime())
 		csvLine[4] = "0"
 		csvLine[5] = ""
 		for i, cs := range strings.Split(css, ",") {
@@ -72,6 +72,6 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 	return nil
 }
 
-func dispMtime(ts time.Time) string {
+func expDispMtime(ts time.Time) string {
 	return ts.UTC().Format(time.RFC3339)
 }

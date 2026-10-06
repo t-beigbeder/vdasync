@@ -130,14 +130,6 @@ func (ose *oplStoredEntry) root() string {
 	}
 }
 
-func (ose *oplStoredEntry) hasChild(child string) bool {
-	st := ose.getState()
-	if st == nil || st.Se == nil {
-		return false
-	}
-	return st.Se.HasChild(child)
-}
-
 func (ose *oplStoredEntry) hasError() bool {
 	st := ose.getState()
 	if st == nil {
