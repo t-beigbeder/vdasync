@@ -7,6 +7,7 @@ import (
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
@@ -41,11 +42,15 @@ func (e *LeError) Error() string {
 // oplStoredEntry-related errors on the other hand are only meaningful
 // at the logical entry level and may be kept silent from its services.
 type oplLogicalEntry struct {
+	lgr        *slog.Logger
 	hasChanges bool
 	relPath    string
-	plgr       *slog.Logger
 	owi        *oplWalkerImpl
 	le         *opelog.LogicalEntry
+	sOse       *oplStoredEntry
+	tOse       *oplStoredEntry
+	source     *oplStoredEntry
+	target     *oplStoredEntry
 	// needed to understand what is requested from parent's stored entries
 	parentLe  *opelog.LogicalEntry
 	parentSSt *opelog.State
@@ -54,36 +59,22 @@ type oplLogicalEntry struct {
 	childrenLeCache map[string]*opelog.LogicalEntry
 }
 
-func (ole *oplLogicalEntry) lgr() *slog.Logger { return ole.plgr.With("relPath", ole.relPath) }
-
 func (ole *oplLogicalEntry) detail(msg string, args ...any) {
-	ole.lgr().Log(ole.owi.bg, slog.LevelDebug+2, msg, args...)
+	ole.lgr.Log(ole.owi.bg, slog.LevelDebug+2, msg, args...)
 }
 
 func (ole *oplLogicalEntry) owo() *config.OpeLogOptionsType { return ole.owi.owo }
 
-func (ole *oplLogicalEntry) oplq() opelog.Queue { return ole.owi.oplq }
-
-func (ole *oplLogicalEntry) oplm() opelog.OpeLogManager { return ole.owi.oplm }
-
-func (ole *oplLogicalEntry) source() *oplStoredEntry {
-	return &oplStoredEntry{ole: ole}
-}
-
-func (ole *oplLogicalEntry) target() *oplStoredEntry {
-	return &oplStoredEntry{ole: ole, isTarget: true}
-}
-
 func (ole *oplLogicalEntry) logErr(msg string, err error) error {
-	ole.lgr().Error(msg, "err", err)
+	ole.lgr.Error(msg, "err", err)
 	return err
 }
 
 func (ole *oplLogicalEntry) seEqualType() bool {
-	if ole.target().se() == nil {
+	if ole.target.se() == nil {
 		return false
 	}
-	return ole.target().se().EqualType(ole.source().se())
+	return ole.target.se().EqualType(ole.source.se())
 }
 
 // getCsAlgos retrieves requested checksums algorithms
@@ -95,11 +86,17 @@ func (ole *oplLogicalEntry) getCsAlgos() (csAlgos string) {
 	return
 }
 
+// isIncluded checks relPath is included (empty list means all) or not excluded
+func (ole *oplLogicalEntry) isIncluded() bool {
+	return common.IsIncluded(ole.relPath, ole.owi.inclRegs, ole.owi.exclRegs)
+}
+
 // oplStoredEntry groups operations and state relevant either for source or for target
 //
 // errors returned by its services are logged but are only relevant to oplLogicalEntry
 // that may keep them silent
 type oplStoredEntry struct {
+	lgr      *slog.Logger
 	ole      *oplLogicalEntry
 	isTarget bool
 	// processing state
@@ -110,36 +107,20 @@ type oplStoredEntry struct {
 	createTime     int64
 	updateTime     int64
 	metaChangeTime int64
-	// queue current's dir children
+	// current's dir children must be queued
 	childrenQueued bool
 }
 
-func (ose *oplStoredEntry) pfx() string {
-	if ose.isTarget {
-		return "{T}"
-	} else {
-		return "{S}"
-	}
-}
-
-func (ose *oplStoredEntry) lgr() *slog.Logger {
-	return ose.ole.plgr.With("path", path.Join(ose.pfx(), ose.ole.relPath))
-}
-
 func (ose *oplStoredEntry) detail(msg string, args ...any) {
-	ose.lgr().Log(ose.ole.owi.bg, slog.LevelDebug+2, msg, args...)
+	ose.lgr.Log(ose.ole.owi.bg, slog.LevelDebug+2, msg, args...)
 }
 
 func (ose *oplStoredEntry) logErr(msg string, err error) error {
-	ose.lgr().Error(msg, "err", err)
+	ose.lgr.Error(msg, "err", err)
 	return err
 }
 
 func (ose *oplStoredEntry) owo() *config.OpeLogOptionsType { return ose.ole.owi.owo }
-
-func (ose *oplStoredEntry) oplq() opelog.Queue { return ose.ole.owi.oplq }
-
-func (ose *oplStoredEntry) oplm() opelog.OpeLogManager { return ose.ole.owi.oplm }
 
 func (ose *oplStoredEntry) root() string {
 	if ose.isTarget {

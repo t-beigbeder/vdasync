@@ -18,7 +18,7 @@ func (ose *oplStoredEntry) dssCopyFile() (css string, err error) {
 		wrr     io.WriteCloser
 		written int64
 	)
-	sOse := ose.ole.source()
+	sOse := ose.ole.source
 	ose.detail("dss copyFile")
 	ose.updateTime = time.Now().Unix()
 	rdr, err = sOse.dss().GetReadCloser(sOse.fullPath())

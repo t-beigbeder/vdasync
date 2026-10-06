@@ -101,7 +101,7 @@ func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 	if ose.owo().Dryrun {
 		return nil, nil
 	}
-	se := ose.ole.source().se().Clone()
+	se := ose.ole.source.se().Clone()
 	owo := ose.owo()
 	noMtime := owo.NoMtime || (se.IsSymLink && owo.NoMtLink)
 	if err := ose.dssSetStat(se, owo.NoPerm, noMtime, false); err != nil {
@@ -152,7 +152,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	if err := ose.dssMkdir(ose.ole.source().se()); err != nil {
+	if err := ose.dssMkdir(ose.ole.source.se()); err != nil {
 		err = fmt.Errorf("createDirOps: mkdir error %s", err)
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
 	}
@@ -168,8 +168,8 @@ func (ose *oplStoredEntry) createDirOps() error {
 //
 // when copying also sets meta and updates state
 func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
-	size := ose.ole.source().se().Size
-	sTcss := ose.ole.source().getState().Tcss
+	size := ose.ole.source.se().Size
+	sTcss := ose.ole.source.getState().Tcss
 	ose.setStatsFor("rd", size)
 	if !isCreated {
 		ose.setStatsFor("up", size)
@@ -229,7 +229,7 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 			ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		}
 	}
-	if err := ose.dssSymLink(ose.ole.source().se().SymLinkTarget); err != nil {
+	if err := ose.dssSymLink(ose.ole.source.se().SymLinkTarget); err != nil {
 		err = fmt.Errorf("cloneSymLink: symlink error %s", err)
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}

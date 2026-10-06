@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
+	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -36,6 +37,8 @@ type oplWalkerImpl struct {
 	tds           dssa.Dssa
 	sRoot         string
 	tRoot         string
+	inclRegs      []*regexp.Regexp
+	exclRegs      []*regexp.Regexp
 	toolStartTime int64
 	session       string
 	sessionTime   int64
@@ -138,6 +141,30 @@ func (ow *oplWalkerImpl) workersController() {
 	}
 }
 
+// newOplLogicalEntry initializes oplLogicalEntry state from loaded state in le
+func (ow *oplWalkerImpl) newOplLogicalEntry(plgr *slog.Logger, relPath string, le *opelog.LogicalEntry) *oplLogicalEntry {
+	hc := false
+	if le == nil {
+		le = &opelog.LogicalEntry{}
+		hc = true
+	}
+	ole := &oplLogicalEntry{
+		lgr:             plgr.With("relPath", relPath),
+		hasChanges:      hc,
+		relPath:         relPath,
+		owi:             ow,
+		le:              le,
+		childrenLeCache: map[string]*opelog.LogicalEntry{},
+	}
+	ole.source = &oplStoredEntry{
+		lgr: plgr.With("path", path.Join("{S}", relPath)),
+		ole: ole}
+	ole.target = &oplStoredEntry{
+		lgr: plgr.With("path", path.Join("{T}", relPath)),
+		ole: ole, isTarget: true}
+	return ole
+}
+
 // getLogicalEntry ensures entry is loaded or newly created and retrieves related parent state if needed
 //
 // as an optimization, absent parent's state is propagated to child
@@ -147,14 +174,10 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry", err)
 		return nil, err
 	}
-	ole := &oplLogicalEntry{
-		plgr: lgr, relPath: relPath, owi: ow, le: le,
-		childrenLeCache: make(map[string]*opelog.LogicalEntry),
-	}
 	if le == nil {
-		ole.le = &opelog.LogicalEntry{}
-		ole.hasChanges = true
+		le = &opelog.LogicalEntry{}
 	}
+	ole := ow.newOplLogicalEntry(lgr, relPath, le)
 	if relPath == "" {
 		return ole, nil
 	}
@@ -169,13 +192,13 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 	ole.parentTSt = ple.GetState(ow.sessionTime, true)
 
 	// absent parent's state is propagated directly to child
-	pOle := &oplLogicalEntry{plgr: lgr, relPath: pRelPath, owi: ow, le: ple}
-	if pOle.source().isAbsent() && ole.source().getState() == nil {
-		ole.source().setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+	pOle := ow.newOplLogicalEntry(lgr, pRelPath, ple)
+	if pOle.source.isAbsent() && ole.source.getState() == nil {
+		ole.source.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 		ole.hasChanges = true
 	}
-	if pOle.target().isAbsent() && ole.target().getState() == nil {
-		ole.target().setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+	if pOle.target.isAbsent() && ole.target.getState() == nil {
+		ole.target.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 		ole.hasChanges = true
 	}
 	return ole, nil
@@ -305,6 +328,17 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 
 func (ow *oplWalkerImpl) Run() error {
 	ow.lgr.Info("oplWalkerImpl: Run")
+	var err error
+	ow.inclRegs, err = common.ReFromFile(ow.owo.InclListPath, "inclusion list")
+	if err != nil {
+		ow.lgr.Error("oplWalkerImpl", "err", err)
+		return err
+	}
+	ow.exclRegs, err = common.ReFromFile(ow.owo.InclListPath, "inclusion list")
+	if err != nil {
+		ow.lgr.Error("oplWalkerImpl", "err", err)
+		return err
+	}
 	sTs, iTs, err := ow.oplm.Open(ow.session, ow.inventory, false)
 	if err != nil {
 		ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)

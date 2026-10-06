@@ -321,6 +321,7 @@ type LogicalEntry struct {
 	targetStates map[int64]*State
 	eventsLists  map[int64][]*Event
 	stats        map[int64]*ComputedStats
+	IsIgnored    bool
 }
 
 func NewLogicalEntry() *LogicalEntry {

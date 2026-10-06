@@ -815,6 +815,7 @@ type LogicalEntry struct {
 	EventsLists map[int64]*Events `protobuf:"bytes,5,rep,name=eventsLists,proto3" json:"eventsLists,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 	// stats relate to one session
 	Stats         map[int64]*ComputedStats `protobuf:"bytes,6,rep,name=stats,proto3" json:"stats,omitempty" protobuf_key:"varint,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	IsIgnored     bool                     `protobuf:"varint,7,opt,name=is_ignored,json=isIgnored,proto3" json:"is_ignored,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -889,6 +890,13 @@ func (x *LogicalEntry) GetStats() map[int64]*ComputedStats {
 		return x.Stats
 	}
 	return nil
+}
+
+func (x *LogicalEntry) GetIsIgnored() bool {
+	if x != nil {
+		return x.IsIgnored
+	}
+	return false
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
@@ -1027,7 +1035,7 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\x05error\x18\x03 \x01(\tR\x05error\x12\x15\n" +
 	"\x06se_num\x18\x04 \x01(\x11R\x05seNum\x12\x19\n" +
 	"\btcs_nums\x18\x05 \x03(\x11R\atcsNums\x12\x1b\n" +
-	"\tdep_count\x18\x06 \x01(\x11R\bdepCount\"\xd5\x05\n" +
+	"\tdep_count\x18\x06 \x01(\x11R\bdepCount\"\xf4\x05\n" +
 	"\fLogicalEntry\x122\n" +
 	"\n" +
 	"shared_ses\x18\x01 \x03(\v2\x13.opelog.StoredEntryR\tsharedSes\x126\n" +
@@ -1036,7 +1044,9 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\rsource_states\x18\x03 \x03(\v2&.opelog.LogicalEntry.SourceStatesEntryR\fsourceStates\x12K\n" +
 	"\rtarget_states\x18\x04 \x03(\v2&.opelog.LogicalEntry.TargetStatesEntryR\ftargetStates\x12G\n" +
 	"\veventsLists\x18\x05 \x03(\v2%.opelog.LogicalEntry.EventsListsEntryR\veventsLists\x125\n" +
-	"\x05stats\x18\x06 \x03(\v2\x1f.opelog.LogicalEntry.StatsEntryR\x05stats\x1aN\n" +
+	"\x05stats\x18\x06 \x03(\v2\x1f.opelog.LogicalEntry.StatsEntryR\x05stats\x12\x1d\n" +
+	"\n" +
+	"is_ignored\x18\a \x01(\bR\tisIgnored\x1aN\n" +
 	"\x11SourceStatesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\x03R\x03key\x12#\n" +
 	"\x05value\x18\x02 \x01(\v2\r.opelog.StateR\x05value:\x028\x01\x1aN\n" +

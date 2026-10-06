@@ -12,27 +12,27 @@ import (
 
 // source and target entries processing updates their states until events can be logged along with their final state
 func (ole *oplLogicalEntry) recordEvents() {
-	ole.source().recordEvents()
-	ole.target().recordEvents()
+	ole.source.recordEvents()
+	ole.target.recordEvents()
 }
 
 // setNoOpIf sets stats for NoOp if entries has not been touched
 func (ole *oplLogicalEntry) setNoOpIf() {
-	stats := ole.source().getStats()
+	stats := ole.source.getStats()
 	if stats.IsSet() {
 		return
 	}
 	var size int64
-	if ole.source().se() != nil {
-		size = ole.source().se().Size
+	if ole.source.se() != nil {
+		size = ole.source.se().Size
 	}
-	ole.source().setStatsFor("no", size)
+	ole.source.setStatsFor("no", size)
 }
 
 // childrenQueue provides to walker children merged both from source and target
 func (ole *oplLogicalEntry) childrenQueue() []string {
 	var mChildren []string
-	sOse, tOse := ole.source(), ole.target()
+	sOse, tOse := ole.source, ole.target
 	if sOse.childrenQueued {
 		sOse.getState().DepCount = int32(len(sOse.se().Children))
 		mChildren = slices.Clone(sOse.se().Children)
@@ -52,8 +52,8 @@ func (ole *oplLogicalEntry) childrenQueue() []string {
 
 // checkForRemove checks if source absent/target present of if their types differ
 func (ole *oplLogicalEntry) checkForRemove() bool {
-	sOse := ole.source()
-	tOse := ole.target()
+	sOse := ole.source
+	tOse := ole.target
 	if sOse.isAbsent() && tOse.isPresent() {
 		return true
 	}
@@ -73,7 +73,7 @@ func (ole *oplLogicalEntry) tryRm() error {
 	if !ole.checkForRemove() {
 		return nil
 	}
-	tOse := ole.target()
+	tOse := ole.target
 	if !ole.owo().Rm && !ole.owo().Dryrun {
 		err := common.ErrNeededRmForbidden
 		tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
@@ -98,7 +98,7 @@ func (ole *oplLogicalEntry) tryRm() error {
 
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
 func (ole *oplLogicalEntry) checkForUpdate() bool {
-	sOse, tOse := ole.source(), ole.target()
+	sOse, tOse := ole.source, ole.target
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
@@ -125,7 +125,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.checkForUpdate() {
 		return nil
 	}
-	tOse := ole.target()
+	tOse := ole.target
 	if tOse.isDir() {
 		if err := tOse.updateDirOps(); err != nil {
 			return err
@@ -149,7 +149,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 
 // checkForCreate checks if source present and target absent
 func (ole *oplLogicalEntry) checkForCreate() bool {
-	sOse, tOse := ole.source(), ole.target()
+	sOse, tOse := ole.source, ole.target
 	if sOse.isPresent() || tOse.isAbsent() {
 		return false
 	}
@@ -164,8 +164,8 @@ func (ole *oplLogicalEntry) tryCreate() error {
 	if !ole.checkForCreate() {
 		return nil
 	}
-	sOse := ole.source()
-	tOse := ole.target()
+	sOse := ole.source
+	tOse := ole.target
 	if sOse.isDir() {
 		// next call will match an update
 		if err := tOse.createDirOps(); err != nil {
@@ -194,7 +194,7 @@ func (ole *oplLogicalEntry) tryCreate() error {
 // It takes place after errors have been cleared as far as possible.
 // Errors are only returned when other or further actions are not possible.
 func (ole *oplLogicalEntry) tryChange() (err error) {
-	sOse, tOse := ole.source(), ole.target()
+	sOse, tOse := ole.source, ole.target
 	if sOse.hasError() || tOse.hasError() {
 		// no change allowed, even dryrun uninteresting in that case
 		return
@@ -218,7 +218,7 @@ func (ole *oplLogicalEntry) tryLoad() error {
 	if !ole.owi.impliesGoal("load") {
 		return nil
 	}
-	sOse, tOse := ole.source(), ole.target()
+	sOse, tOse := ole.source, ole.target
 	sErr := sOse.tryLoad()
 	tErr := tOse.tryLoad()
 	if sErr != nil || tErr != nil {
@@ -232,15 +232,21 @@ func (ole *oplLogicalEntry) tryLoad() error {
 //
 // Only errors concerning the walker are notified, stored entry level errors are silenced.
 func (ole *oplLogicalEntry) process() error {
-	ole.lgr().Debug("process: start")
+	ole.lgr.Debug("process: start")
+	if !ole.isIncluded() {
+		ole.detail("logical entry is ignored")
+		ole.le.IsIgnored = true
+		ole.hasChanges = true
+		return nil
+	}
 
 	// record events in the end as they need meaningful state: StoredEntry, Checksums
 	defer ole.recordEvents()
 
 	// initializes state for both stored entries
 	// clear errors if possible, (re)start dir loading if possible
-	_ = ole.source().load()
-	_ = ole.target().load()
+	_ = ole.source.load()
+	_ = ole.target.load()
 
 	// try performing one or several "change" actions
 	if err := ole.tryChange(); err != nil {

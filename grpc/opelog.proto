@@ -115,6 +115,7 @@ message LogicalEntry {
     map<int64,Events> eventsLists = 5;
     // stats relate to one session
     map<int64,ComputedStats> stats = 6;
+    bool is_ignored = 7;
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
