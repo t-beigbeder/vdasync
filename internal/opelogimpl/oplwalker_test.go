@@ -180,7 +180,6 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestOplWalker(t *testing.T) {
-	t.Skip("FIXME:")
 	var (
 		lgr *slog.Logger
 		err error
@@ -188,7 +187,7 @@ func TestOplWalker(t *testing.T) {
 	lgr = common.GetLogger()
 	// lgr = common.InfoLogger()
 	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	// lgr = common.DbgLogger()
+	lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")

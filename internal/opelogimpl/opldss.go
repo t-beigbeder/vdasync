@@ -73,10 +73,10 @@ func (ose *oplStoredEntry) dssStat(noEvent bool) (*dssa.DataEntry, error) {
 		ose.loadTime = time.Now().Unix()
 	}
 	de, err := ose.dss().Stat(ose.fullPath())
-	if err != nil {
+	if err != nil && (de == nil || !de.ErrNotExist) {
 		return nil, ose.logErr("dss stat", err)
 	}
-	return de, nil
+	return de, err
 }
 
 func (ose *oplStoredEntry) dssList(noEvent bool) ([]*dssa.DataEntry, error) {
@@ -93,8 +93,11 @@ func (ose *oplStoredEntry) dssList(noEvent bool) ([]*dssa.DataEntry, error) {
 
 func (ose *oplStoredEntry) dssStatAndList(noEvent bool) (*opelog.StoredEntry, error) {
 	de, err := ose.dssStat(noEvent)
-	if err != nil {
+	if err != nil && (de == nil || !de.ErrNotExist) {
 		return nil, err
+	}
+	if err != nil {
+		return nil, nil
 	}
 	if !de.IsDir {
 		return opelog.FromDataEntry(de, nil), nil

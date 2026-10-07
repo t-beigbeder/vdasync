@@ -145,7 +145,7 @@ func (ow *oplWalkerImpl) workersController() {
 func (ow *oplWalkerImpl) newOplLogicalEntry(plgr *slog.Logger, relPath string, le *opelog.LogicalEntry) *oplLogicalEntry {
 	hc := false
 	if le == nil {
-		le = &opelog.LogicalEntry{}
+		le = opelog.NewLogicalEntry()
 		hc = true
 	}
 	ole := &oplLogicalEntry{
@@ -173,9 +173,6 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 	if err != nil {
 		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry", err)
 		return nil, err
-	}
-	if le == nil {
-		le = &opelog.LogicalEntry{}
 	}
 	ole := ow.newOplLogicalEntry(lgr, relPath, le)
 	if relPath == "" {
@@ -240,6 +237,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 			ow.owErr(lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
+		lgr.Debug("parentSSt", "relPath", ole.relPath, "DepCount", parentSSt.DepCount)
 		hasChanges = true
 		parentSSt.DepCount--
 		if parentSSt.DepCount == 0 {

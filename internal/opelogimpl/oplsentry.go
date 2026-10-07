@@ -268,6 +268,10 @@ func (ose *oplStoredEntry) doLoad() error {
 		} else {
 			ose.setStatsFor("sls", 0)
 		}
+		if se == nil {
+			ose.setState(false, opelog.STC_DONE_ABSENT, "", se, nil, 0)
+			return nil
+		}
 		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	} else {
 		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
