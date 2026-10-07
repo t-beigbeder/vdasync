@@ -298,11 +298,15 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 			return
 		}
 	}
-	for _, child := range ole.childrenQueue() {
+	children := ole.childrenQueue()
+	for _, child := range children {
 		if err := ow.oplq.Put(child); err != nil {
 			ow.owErr(lgr, "oplWalkerImpl: process entry: put child in queue", err)
 			return
 		}
+	}
+	if len(children) != 0 {
+		return
 	}
 	_ = ow.notifyParent(lgr, ole)
 }

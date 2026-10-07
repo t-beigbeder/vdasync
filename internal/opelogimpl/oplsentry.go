@@ -286,7 +286,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 	se := ose.se()
 	owi := ose.ole.owi
 	errorsNum := 0
-	stats := ose.getStats()
+	stats := ose.getStats() //FIXME:
 	for _, child := range se.Children {
 		cle, ok := ose.ole.childrenLeCache[child]
 		if !ok {
@@ -300,7 +300,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		if cSt.Stc == opelog.STC_DESC_ERROR || cSt.Stc == opelog.STC_SE_ERROR {
 			errorsNum++
 		}
-		cStats := cle.GetStats(owi.sessionTime)
+		cStats := cle.GetStats(owi.sessionTime) //FIXME:
 		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
 		stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
 		stats.Read.Number += cStats.Read.Number
