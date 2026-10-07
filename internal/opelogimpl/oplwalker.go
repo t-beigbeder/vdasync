@@ -114,6 +114,10 @@ func (ow *oplWalkerImpl) workersController() {
 		rsTo = int64(60 * time.Second)
 		hasTimeOut = false
 	}
+	if rsTo < 0 {
+		// for tests
+		rsTo = int64(time.Second)
+	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 
 	for {
@@ -215,7 +219,7 @@ func isChildInState(cName string, st *opelog.State) bool {
 
 // notifyParent merges source and target state after processing and notifies parent if last child
 // from both branches
-func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) error {
+func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	if ole.parentLe == nil {
 		return nil
 	}
@@ -225,7 +229,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 	pRelPath := common.ParentPath(ole.relPath)
 	ple, err := ow.oplm.GetLogicalEntry(pRelPath)
 	if err != nil {
-		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
+		ow.owErr(ole.lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
 		return err
 	}
 	cName := path.Base(ole.relPath)
@@ -234,10 +238,9 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 	if isChildInState(cName, parentSSt) {
 		if parentSSt.DepCount <= 0 {
 			err := fmt.Errorf("source child %s notifies twice parent", ole.relPath)
-			ow.owErr(lgr, "oplWalkerImpl: internal", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
-		lgr.Debug("parentSSt", "relPath", ole.relPath, "DepCount", parentSSt.DepCount)
 		hasChanges = true
 		parentSSt.DepCount--
 		if parentSSt.DepCount == 0 {
@@ -248,7 +251,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 	if isChildInState(cName, parentTSt) {
 		if parentTSt.DepCount <= 0 {
 			err := fmt.Errorf("target child %s notifies twice parent", ole.relPath)
-			ow.owErr(lgr, "oplWalkerImpl: internal", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
 		hasChanges = true
@@ -259,7 +262,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 	}
 	if hasChanges {
 		if err := ow.oplm.PutLogicalEntry(pRelPath, ple); err != nil {
-			ow.owErr(lgr, "oplWalkerImpl: notify parent: put ple", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: notify parent: put ple", err)
 			return err
 		}
 	}
@@ -268,7 +271,7 @@ func (ow *oplWalkerImpl) notifyParent(lgr *slog.Logger, ole *oplLogicalEntry) er
 		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
 		// notifies parent
 		if err := ow.oplq.Put(pRelPath); err != nil {
-			ow.owErr(lgr, "oplWalkerImpl: process entry: put parent in queue", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put parent in queue", err)
 			return err
 		}
 	}
@@ -288,27 +291,27 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 
 	if err := ole.process(); err != nil {
 		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
-		ow.owErr(lgr, "oplWalkerImpl: process entry: put err le", err)
+		ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put err le", err)
 		return
 	}
 
 	if ole.hasChanges {
 		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
-			ow.owErr(lgr, "oplWalkerImpl: process entry: put le", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put le", err)
 			return
 		}
 	}
 	children := ole.childrenQueue()
 	for _, child := range children {
 		if err := ow.oplq.Put(child); err != nil {
-			ow.owErr(lgr, "oplWalkerImpl: process entry: put child in queue", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put child in queue", err)
 			return
 		}
 	}
 	if len(children) != 0 {
 		return
 	}
-	_ = ow.notifyParent(lgr, ole)
+	_ = ow.notifyParent(ole)
 }
 
 func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
@@ -323,7 +326,7 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 			}
 			break
 		}
-		ow.processEntry(lgr.With("relPath", relPath), wkn, relPath)
+		ow.processEntry(lgr, wkn, relPath)
 	}
 	lgr.Debug("oplWalkerImpl: stop")
 }

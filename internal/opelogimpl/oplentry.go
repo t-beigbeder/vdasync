@@ -243,6 +243,7 @@ func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 	stats := ose.ole.le.GetStats(ose.ole.owi.sessionTime)
 	if stats == nil {
 		stats = opelog.NewComputedStats()
+		ose.ole.le.SetStats(ose.ole.owi.sessionTime, stats)
 	}
 	return stats
 }

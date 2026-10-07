@@ -430,8 +430,13 @@ func (le *LogicalEntry) GetStats(sessionTs int64) *ComputedStats {
 
 func NewComputedStats() *ComputedStats {
 	return &ComputedStats{SourceListOrStat: &AggInfo{}, TargetListOrStat: &AggInfo{},
-		Read: &AggInfo{}, Create: &AggInfo{}, Update: &AggInfo{}, Remove: &AggInfo{}, MetaChange: &AggInfo{}, Error: &AggInfo{},
+		Read: &AggInfo{}, Create: &AggInfo{}, Update: &AggInfo{}, Remove: &AggInfo{}, MetaChange: &AggInfo{},
+		NoOp: &AggInfo{}, Error: &AggInfo{},
 	}
+}
+
+func (le *LogicalEntry) SetStats(sessionTs int64, cst *ComputedStats) {
+	le.stats[sessionTs] = cst
 }
 
 func (le *LogicalEntry) addOrShareSe(se *StoredEntry) int32 {
