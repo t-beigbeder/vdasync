@@ -74,7 +74,8 @@ func TestCsvExport(t *testing.T) {
 		_, _, err = owt.oplm.Open("ds", "di", true)
 		require.NoError(t, err)
 		csvPath := path.Join(owt.ltd, "oplm.csv")
-		require.NoError(t, OplCsvExport(owt.oplm, csvPath, RPT_SYNTHETIC))
+		// FIXME: owi
+		require.NoError(t, OplCsvExport(nil, csvPath, RPT_SYNTHETIC))
 		owt.lgr.Info("exported", "csv", csvPath)
 	}
 }

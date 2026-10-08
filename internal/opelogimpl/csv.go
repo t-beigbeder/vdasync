@@ -19,7 +19,7 @@ const (
 
 type csvExporter struct {
 	columns     []string
-	rowExporter func(relPath string, ole *opelog.LogicalEntry) []string
+	rowExporter func(owi *oplWalkerImpl, relPath string, ole *opelog.LogicalEntry) []string
 }
 
 var exporters map[RptType]csvExporter = map[RptType]csvExporter{}
@@ -30,9 +30,10 @@ type rptLe struct {
 	rseTgt *rptSe
 }
 
-func newRptLe(relPath string, le *opelog.LogicalEntry) *rptLe {
+func newRptLe(owi *oplWalkerImpl, relPath string, le *opelog.LogicalEntry) *rptLe {
 	ole := &oplLogicalEntry{
 		relPath: relPath,
+		owi:     owi,
 		le:      le,
 	}
 	ole.source = &oplStoredEntry{ole: ole}
@@ -88,7 +89,7 @@ func (db dispBool) String() string {
 }
 
 func dispDirChildren(se *opelog.StoredEntry) string {
-	if !se.IsDir {
+	if se == nil || !se.IsDir {
 		return "-"
 	}
 	return fmt.Sprintf("%d", len(se.Children))
@@ -111,8 +112,8 @@ func dispMtime(se *opelog.StoredEntry) string {
 	return time.Unix(se.Mtime, 0).Format(time.RFC3339)
 }
 
-func syntheticExporter(relPath string, le *opelog.LogicalEntry) []string {
-	rle := rptLe{oplLogicalEntry: &oplLogicalEntry{le: le}}
+func syntheticExporter(owi *oplWalkerImpl, relPath string, le *opelog.LogicalEntry) []string {
+	rle := newRptLe(owi, relPath, le)
 	scs := rle.rseSrc.se()
 	tcs := rle.rseTgt.se()
 	record := make([]string, len(exporters[RPT_SYNTHETIC].columns))
@@ -147,7 +148,7 @@ func init() {
 	}
 }
 
-func OplCsvExport(oplm opelog.OpeLogManager, csvPath string, rt RptType) error {
+func OplCsvExport(owi *oplWalkerImpl, csvPath string, rt RptType) error {
 	ce, ok := exporters[rt]
 	if !ok {
 		return fmt.Errorf("report type %d is unknown", rt)
@@ -161,8 +162,8 @@ func OplCsvExport(oplm opelog.OpeLogManager, csvPath string, rt RptType) error {
 	if err := cw.Write(ce.columns); err != nil {
 		return err
 	}
-	err = oplm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
-		if err := cw.Write(ce.rowExporter(relPath, ole)); err != nil {
+	err = owi.oplm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+		if err := cw.Write(ce.rowExporter(owi, relPath, ole)); err != nil {
 			return err
 		}
 		return nil

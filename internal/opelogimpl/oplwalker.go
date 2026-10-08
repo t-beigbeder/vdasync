@@ -46,6 +46,7 @@ type oplWalkerImpl struct {
 	invTime       int64
 	gErrs         []error
 	syncTicker    *time.Ticker
+	exportTicker  *time.Ticker
 	wkNtfChan     chan workerNotif
 	bg            context.Context
 }
@@ -99,6 +100,18 @@ func (ow *oplWalkerImpl) oplmSync() {
 	}
 }
 
+func (ow *oplWalkerImpl) oplmExport() {
+	lgr := ow.lgr.With("worker", "oplmExport")
+	lgr.Debug("oplWalkerImpl", "start", true)
+
+	for tick := range ow.exportTicker.C {
+		lgr.Info("oplWalkerImpl", "tick", tick)
+		if err := OplCsvExport(ow, ow.owo.ExpFile, RPT_SYNTHETIC); err != nil {
+			ow.owErr(lgr, "failed to export logs", err)
+		}
+	}
+}
+
 func (ow *oplWalkerImpl) startOrRestart() {
 	ow.toolStartTime = time.Now().Unix()
 	ow.oplq.Put("")
@@ -110,13 +123,9 @@ func (ow *oplWalkerImpl) workersController() {
 	lgr.Debug("oplWalkerImpl", "start", true)
 	rsTo := ow.owo.ResetTimeout * int64(time.Second)
 	hasTimeOut := true
-	if rsTo == 0 {
+	if rsTo <= 0 {
 		rsTo = int64(60 * time.Second)
 		hasTimeOut = false
-	}
-	if rsTo < 0 {
-		// for tests
-		rsTo = int64(100*time.Millisecond)
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 
@@ -217,12 +226,16 @@ func isChildInState(cName string, st *opelog.State) bool {
 	return false
 }
 
+func stChildren(st *opelog.State) string {
+	if st == nil || st.Se == nil {
+		return ""
+	}
+	return strings.Join(st.Se.Children, ",")
+}
+
 // notifyParent merges source and target state after processing and notifies parent if last child
 // from both branches
 func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
-	if ole.parentLe == nil {
-		return nil
-	}
 	// reload parent and locks to modify
 	ow.mx.Lock()
 	defer ow.mx.Unlock()
@@ -234,6 +247,8 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	}
 	cName := path.Base(ole.relPath)
 	parentSSt := ple.GetState(ow.sessionTime, false)
+	parentTSt := ple.GetState(ow.sessionTime, true)
+
 	hasChanges := false
 	if isChildInState(cName, parentSSt) {
 		if parentSSt.DepCount <= 0 {
@@ -247,7 +262,6 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 			parentSSt.DepCount = -1
 		}
 	}
-	parentTSt := ple.GetState(ow.sessionTime, true)
 	if isChildInState(cName, parentTSt) {
 		if parentTSt.DepCount <= 0 {
 			err := fmt.Errorf("target child %s notifies twice parent", ole.relPath)
@@ -266,6 +280,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 			return err
 		}
 	}
+
 	// both branches either just terminated or inactive
 	if (parentSSt.DepCount == -1 && parentTSt.DepCount <= 0) ||
 		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
@@ -303,12 +318,16 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 	}
 	children := ole.childrenQueue()
 	for _, child := range children {
-		if err := ow.oplq.Put(child); err != nil {
+		if err := ow.oplq.Put(path.Join(relPath, child)); err != nil {
 			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put child in queue", err)
 			return
 		}
 	}
 	if len(children) != 0 {
+		lgr.Debug("oplWalkerImpl: processEntry", "relPath", relPath, "ole childrenQueue", strings.Join(children, ","))
+		return
+	}
+	if relPath == "" {
 		return
 	}
 	_ = ow.notifyParent(ole)
@@ -359,8 +378,12 @@ func (ow *oplWalkerImpl) Run() error {
 		go ow.work(wkn, &wg)
 	}
 	if ow.owo.SyncPeriod != 0 {
-		ow.syncTicker = time.NewTicker(time.Duration(ow.owo.SyncPeriod))
+		ow.syncTicker = time.NewTicker(time.Duration(ow.owo.SyncPeriod * int64(time.Second)))
 		go ow.oplmSync()
+	}
+	if ow.owo.ExpPeriod != 0 {
+		ow.exportTicker = time.NewTicker(time.Duration(ow.owo.ExpPeriod * int64(time.Second)))
+		go ow.oplmExport()
 	}
 
 	// start walker
@@ -368,6 +391,9 @@ func (ow *oplWalkerImpl) Run() error {
 	wg.Wait()
 	if ow.owo.SyncPeriod != 0 {
 		ow.syncTicker.Stop()
+	}
+	if ow.owo.ExpPeriod != 0 {
+		ow.exportTicker.Stop()
 	}
 	if err := ow.oplm.Close(); err != nil {
 		ow.lgr.Error("oplWalkerImpl: Run: close logs", "err", err)

@@ -251,7 +251,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 		return nil
 	}
 	if ose.getState().DepCount != 0 {
-		// another action is ongoing, will progress
+		// another action is ongoing, will progress (including -1 meaning that side is done)
 		return nil
 	}
 	// means change actions have been inhibited
@@ -316,13 +316,11 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		stats.NoOp.Size += cStats.NoOp.Size
 		stats.Error.Number += cStats.Error.Number
 	}
-	st := ose.getState()
-	st.DepCount = 0
 	if errorsNum > 0 {
-		ose.setState(false, opelog.STC_DESC_ERROR, "", se, nil, 0)
+		ose.setState(false, opelog.STC_DESC_ERROR, "", se, nil, -1)
 		return nil
 	} else {
-		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
+		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, -1)
 	}
 	return nil
 }

@@ -70,7 +70,8 @@ func (owt *owTest) invCheck() error {
 		return err
 	}
 	defer owt.oplm.Close()
-	if err := OplCsvExport(owt.oplm, cPath, RPT_SYNTHETIC); err != nil {
+	// FIXME: owi
+	if err := OplCsvExport(nil, cPath, RPT_SYNTHETIC); err != nil {
 		return err
 	}
 	owt.lgr.Info("invCheck", "csvExport", cPath)
@@ -172,7 +173,8 @@ func TestManyOplWalkers(t *testing.T) {
 		csvPath := path.Join(owt.ltd, "oplm.csv")
 		_, _, err = owt.oplm.Open("ds", "di", true)
 		require.NoError(t, err)
-		require.NoError(t, OplCsvExport(owt.oplm, csvPath, RPT_SYNTHETIC))
+		// FIXME: owi
+		require.NoError(t, OplCsvExport(nil, csvPath, RPT_SYNTHETIC))
 		owt.lgr.Info("exported", "csv", csvPath)
 		require.NoError(t, owt.oplm.Close())
 		require.True(t, true)
@@ -192,8 +194,8 @@ func TestOplWalker(t *testing.T) {
 
 	lgr.Debug("TestOplWalker: started")
 	std := t.TempDir()
-	require.NoError(t, common.FileTreeGenerate(std, 5, 20, 1, 1024, false, 2))
-	// require.NoError(t, common.FileTreeGenerate(std, 100, 3000, 2, 4096, false, 2))
+	// require.NoError(t, common.FileTreeGenerate(std, 5, 20, 1, 1024, false, 2))
+	require.NoError(t, common.FileTreeGenerate(std, 100, 3000, 2, 4096, false, 2))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
 	ltd := t.TempDir()
@@ -204,12 +206,15 @@ func TestOplWalker(t *testing.T) {
 	_, _, err = oplm.Create("ds", "di", std, ttd)
 	require.NoError(t, err)
 
+	csvPath := path.Join(ltd, "oplm.csv")
 	ow := NewOplWalker(
-		lgr, 1, nil, oplm,
+		lgr, 4, nil, oplm,
 		&config.OpeLogOptionsType{
-			Goals:      "load", // load, create, update/remove, verify
-			SyncPeriod: int64(5 * time.Second),
+			Goals:        "load", // load, create, update/remove, verify
+			SyncPeriod:   5,
 			ResetTimeout: 1,
+			ExpPeriod:    10,
+			ExpFile:      csvPath,
 		},
 		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
 		std, ttd,

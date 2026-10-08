@@ -55,6 +55,8 @@ type OpeLogOptionsType struct {
 	ResetTimeout    int64  `yaml:"resetTimeout"`
 	EnableRestart   bool   `yaml:"enableRestart"`
 	ClearErrors     bool   `yaml:"clearErrors"`
+	ExpPeriod       int64  `yaml:"expPeriod"`
+	ExpFile         string `yaml:"expFile"`
 }
 
 type SftpServerType struct {
