@@ -70,8 +70,7 @@ func (owt *owTest) invCheck() error {
 		return err
 	}
 	defer owt.oplm.Close()
-	// FIXME: owi
-	if err := OplCsvExport(nil, cPath, RPT_SYNTHETIC); err != nil {
+	if err := OplCsvExport(owt.lgr, nil, owt.oplm, cPath, RPT_SYNTHETIC, "ds"); err != nil {
 		return err
 	}
 	owt.lgr.Info("invCheck", "csvExport", cPath)
@@ -173,8 +172,7 @@ func TestManyOplWalkers(t *testing.T) {
 		csvPath := path.Join(owt.ltd, "oplm.csv")
 		_, _, err = owt.oplm.Open("ds", "di", true)
 		require.NoError(t, err)
-		// FIXME: owi
-		require.NoError(t, OplCsvExport(nil, csvPath, RPT_SYNTHETIC))
+		require.NoError(t, OplCsvExport(owt.lgr, nil, owt.oplm, csvPath, RPT_SYNTHETIC, "ds"))
 		owt.lgr.Info("exported", "csv", csvPath)
 		require.NoError(t, owt.oplm.Close())
 		require.True(t, true)
@@ -187,9 +185,9 @@ func TestOplWalker(t *testing.T) {
 		err error
 	)
 	lgr = common.GetLogger()
-	// lgr = common.InfoLogger()
+	lgr = common.InfoLogger()
 	lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	lgr = common.DbgLogger()
+	// lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")
@@ -208,11 +206,11 @@ func TestOplWalker(t *testing.T) {
 
 	csvPath := path.Join(ltd, "oplm.csv")
 	ow := NewOplWalker(
-		lgr, 4, nil, oplm,
+		lgr, 1, nil, oplm,
 		&config.OpeLogOptionsType{
-			Goals:        "load", // load, create, update/remove, verify
+			Goals:        "create", // load, create, update/remove, verify
 			SyncPeriod:   5,
-			ResetTimeout: 1,
+			ResetTimeout: -1,
 			ExpPeriod:    10,
 			ExpFile:      csvPath,
 		},

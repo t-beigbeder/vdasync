@@ -106,7 +106,7 @@ func (ow *oplWalkerImpl) oplmExport() {
 
 	for tick := range ow.exportTicker.C {
 		lgr.Info("oplWalkerImpl", "tick", tick)
-		if err := OplCsvExport(ow, ow.owo.ExpFile, RPT_SYNTHETIC); err != nil {
+		if err := OplCsvExport(ow.lgr, ow, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.session); err != nil {
 			ow.owErr(lgr, "failed to export logs", err)
 		}
 	}
@@ -123,9 +123,14 @@ func (ow *oplWalkerImpl) workersController() {
 	lgr.Debug("oplWalkerImpl", "start", true)
 	rsTo := ow.owo.ResetTimeout * int64(time.Second)
 	hasTimeOut := true
-	if rsTo <= 0 {
+	if rsTo == 0 {
 		rsTo = int64(60 * time.Second)
 		hasTimeOut = false
+	}
+	if rsTo < 0 {
+		// not reliable, for testing only
+		rsTo = int64(50 * time.Millisecond)
+		hasTimeOut = true
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 
@@ -224,13 +229,6 @@ func isChildInState(cName string, st *opelog.State) bool {
 		}
 	}
 	return false
-}
-
-func stChildren(st *opelog.State) string {
-	if st == nil || st.Se == nil {
-		return ""
-	}
-	return strings.Join(st.Se.Children, ",")
 }
 
 // notifyParent merges source and target state after processing and notifies parent if last child

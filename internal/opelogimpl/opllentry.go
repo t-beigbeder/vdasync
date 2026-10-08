@@ -146,7 +146,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 // checkForCreate checks if source present and target absent
 func (ole *oplLogicalEntry) checkForCreate() bool {
 	sOse, tOse := ole.source, ole.target
-	if sOse.isPresent() || tOse.isAbsent() {
+	if !sOse.isPresent() || !tOse.isAbsent() {
 		return false
 	}
 	return true

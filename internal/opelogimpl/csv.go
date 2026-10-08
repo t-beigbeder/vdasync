@@ -3,9 +3,11 @@ package opelogimpl
 import (
 	"encoding/csv"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
@@ -148,7 +150,20 @@ func init() {
 	}
 }
 
-func OplCsvExport(owi *oplWalkerImpl, csvPath string, rt RptType) error {
+func OplCsvExport(lgr *slog.Logger, ow OplWalker, oplm opelog.OpeLogManager,
+	csvPath string, rt RptType, session string,
+) error {
+	var ok bool
+	if ow == nil {
+		ow = NewOplWalker(
+			lgr, 1, nil, oplm, &config.OpeLogOptionsType{},
+			nil, nil, "", "", session, "",
+		)
+	}
+	owi, ok := ow.(*oplWalkerImpl)
+	if !ok {
+		return fmt.Errorf("OplCsvExport need an oplWalkerImpl")
+	}
 	ce, ok := exporters[rt]
 	if !ok {
 		return fmt.Errorf("report type %d is unknown", rt)
@@ -162,7 +177,7 @@ func OplCsvExport(owi *oplWalkerImpl, csvPath string, rt RptType) error {
 	if err := cw.Write(ce.columns); err != nil {
 		return err
 	}
-	err = owi.oplm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+	err = oplm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
 		if err := cw.Write(ce.rowExporter(owi, relPath, ole)); err != nil {
 			return err
 		}
