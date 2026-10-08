@@ -171,7 +171,7 @@ func (ow *oplWalkerImpl) newOplLogicalEntry(plgr *slog.Logger, relPath string, l
 
 // getLogicalEntry ensures entry is loaded or newly created and retrieves related parent state if needed
 //
-// as an optimization, absent parent's state is propagated to child
+// as an optimization, absent parent's state is propagated to (current) child
 func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*oplLogicalEntry, error) {
 	le, err := ow.oplm.GetLogicalEntry(relPath)
 	if err != nil {

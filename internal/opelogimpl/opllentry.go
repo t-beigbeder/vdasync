@@ -16,12 +16,8 @@ func (ole *oplLogicalEntry) recordEvents() {
 	ole.target.recordEvents()
 }
 
-// setNoOpIf sets stats for NoOp if entries has not been touched
-func (ole *oplLogicalEntry) setNoOpIf() {
-	stats := ole.source.getStats()
-	if stats.IsSet() {
-		return
-	}
+// setNoOp sets stats for NoOp
+func (ole *oplLogicalEntry) setNoOp() {
 	var size int64
 	if ole.source.se() != nil {
 		size = ole.source.se().Size
@@ -258,7 +254,10 @@ func (ole *oplLogicalEntry) process() error {
 		return nil
 	}
 
-	// set NoOp stats if nothing done on any side
-	ole.setNoOpIf()
+	// if nothing done on any side, set NoOp stats
+	if !ole.source.getStats().IsSet() {
+		ole.setNoOp()
+	}
+
 	return nil
 }

@@ -278,7 +278,7 @@ func (cs *ComputedStats) Reset() {
 func (cs *ComputedStats) IsSet() bool {
 	return cs.SourceListOrStat.Number+cs.TargetListOrStat.Number+
 		cs.Read.Number+cs.Create.Number+
-		cs.Update.Number+cs.Remove.Number+cs.MetaChange.Number+cs.Error.Number == 0
+		cs.Update.Number+cs.Remove.Number+cs.MetaChange.Number+cs.Error.Number != 0
 
 }
 
