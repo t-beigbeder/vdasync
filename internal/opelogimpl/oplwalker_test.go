@@ -192,6 +192,7 @@ func TestOplWalker(t *testing.T) {
 
 	lgr.Debug("TestOplWalker: started")
 	std := t.TempDir()
+	// require.NoError(t, common.FileTreeGenerate(std, 5, 20, 1, 1024, false, 2))
 	require.NoError(t, common.FileTreeGenerate(std, 100, 3000, 2, 4096, false, 2))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
@@ -204,7 +205,7 @@ func TestOplWalker(t *testing.T) {
 	require.NoError(t, err)
 
 	ow := NewOplWalker(
-		lgr, 4, nil, oplm,
+		lgr, 1, nil, oplm,
 		&config.OpeLogOptionsType{
 			Goals:      "load", // load, create, update/remove, verify
 			SyncPeriod: int64(5 * time.Second),

@@ -116,7 +116,7 @@ func (ow *oplWalkerImpl) workersController() {
 	}
 	if rsTo < 0 {
 		// for tests
-		rsTo = int64(time.Second)
+		rsTo = int64(100*time.Millisecond)
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 
