@@ -280,7 +280,7 @@ func (ose *oplStoredEntry) doLoad() error {
 	return nil
 }
 
-// processChildrenDone loads children state and propagate to parent
+// processChildrenDone loads children state, set current's accordingly, and propagate to parent
 func (ose *oplStoredEntry) processChildrenDone() error {
 	var err error
 	se := ose.se()
@@ -319,9 +319,8 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 	if errorsNum > 0 {
 		ose.setState(false, opelog.STC_DESC_ERROR, "", se, nil, -1)
 		return nil
-	} else {
-		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, -1)
 	}
+	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, -1)
 	return nil
 }
 

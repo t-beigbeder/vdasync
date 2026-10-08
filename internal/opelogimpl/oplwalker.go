@@ -282,6 +282,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	// both branches either just terminated or inactive
 	if (parentSSt.DepCount == -1 && parentTSt.DepCount <= 0) ||
 		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
+
 		// notifies parent
 		if err := ow.oplq.Put(pRelPath); err != nil {
 			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put parent in queue", err)
@@ -321,11 +322,7 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 			return
 		}
 	}
-	if len(children) != 0 {
-		lgr.Debug("oplWalkerImpl: processEntry", "relPath", relPath, "ole childrenQueue", strings.Join(children, ","))
-		return
-	}
-	if relPath == "" {
+	if len(children) != 0 || relPath == "" {
 		return
 	}
 	_ = ow.notifyParent(ole)
