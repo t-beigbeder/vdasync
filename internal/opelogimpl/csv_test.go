@@ -11,7 +11,6 @@ import (
 )
 
 func TestCsvExport(t *testing.T) {
-	t.Skip("FIXME:")
 	var (
 		err error
 	)
@@ -33,6 +32,7 @@ func TestCsvExport(t *testing.T) {
 			conc:      0,
 			owo: &config.OpeLogOptionsType{
 				Goals: "load",
+				ResetTimeout: -1,
 			},
 			oplm:    nil,
 			oplq:    nil,
@@ -74,7 +74,6 @@ func TestCsvExport(t *testing.T) {
 		_, _, err = owt.oplm.Open("ds", "di", true)
 		require.NoError(t, err)
 		csvPath := path.Join(owt.ltd, "oplm.csv")
-		// FIXME: owi
 		require.NoError(t, OplCsvExport(owt.lgr, ow, owt.oplm, csvPath, RPT_SYNTHETIC, "ds"))
 		owt.lgr.Info("exported", "csv", csvPath)
 	}

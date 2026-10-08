@@ -14,7 +14,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type m2fMng struct {
+type m2fOplMng struct {
 	path        string
 	mx          sync.Mutex
 	source      string
@@ -27,7 +27,29 @@ type m2fMng struct {
 	hasUpdates  bool
 }
 
-func (m *m2fMng) save() error {
+func (m *m2fOplMng) tsInUse(ts int64) (yes bool) {
+	for sTs := range maps.Values(m.sessions) {
+		if sTs == ts {
+			return true
+		}
+	}
+	for iTs := range maps.Values(m.inventories) {
+		if iTs == ts {
+			return true
+		}
+	}
+	return
+}
+
+func (m *m2fOplMng) nextTimeStamp() int64 {
+	for ts := time.Now().Unix(); ; ts += 1 {
+		if !m.tsInUse(ts) {
+			return ts
+		}
+	}
+}
+
+func (m *m2fOplMng) save() error {
 	aio := opeloggrpc.OpeLogAllInOne{
 		SourceRoot:     m.source,
 		TargetRoot:     m.target,
@@ -48,60 +70,28 @@ func (m *m2fMng) save() error {
 	return nil
 }
 
-// GetLogicalEntry implements [opelog.OpeLogManager].
-func (m *m2fMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error) {
-	m.mx.Lock()
-	defer m.mx.Unlock()
-	if !m.isOpen {
-		return nil, errors.New("m2fMng.GetLogicalEntry: not opened")
+// AddInventory implements [opelog.OpeLogManager].
+func (m *m2fOplMng) AddInventory(label string) (int64, error) {
+	_, ok := m.inventories[label]
+	if ok {
+		return 0, fmt.Errorf("inventory %s already exists", label)
 	}
-	le, _ := m.les[relPath]
-	return le, nil
+	m.inventories[label] = m.nextTimeStamp()
+	return m.inventories[label], nil
 }
 
-// Sync implements [opelog.OpeLogManager].
-func (m *m2fMng) Sync() error {
-	m.mx.Lock()
-	defer m.mx.Unlock()
-	if !m.isOpen {
-		return errors.New("m2fMng.Sync: not opened")
+// AddSession implements [opelog.OpeLogManager].
+func (m *m2fOplMng) AddSession(label string) (int64, error) {
+	_, ok := m.inventories[label]
+	if ok {
+		return 0, fmt.Errorf("session %s already exists", label)
 	}
-	if !m.hasUpdates {
-		return nil
-	}
-	if err := m.save(); err != nil {
-		return err
-	}
-	m.hasUpdates = false
-	return nil
-}
-
-// Close implements [opelog.OpeLogManager].
-func (m *m2fMng) Close() error {
-	m.mx.Lock()
-	defer m.mx.Unlock()
-	if !m.isOpen {
-		return errors.New("m2fMng.Close: not opened")
-	}
-	if !m.hasUpdates {
-		m.isOpen = false
-		return nil
-	}
-	if err := m.save(); err != nil {
-		return err
-	}
-	m.hasUpdates = false
-	m.isOpen = false
-	if !m.readOnly {
-		if err := os.Remove(fmt.Sprintf("%s.lock", m.path)); err != nil {
-			return err
-		}
-	}
-	return nil
+	m.sessions[label] = m.nextTimeStamp()
+	return m.sessions[label], nil
 }
 
 // Create implements [opelog.OpeLogManager].
-func (m *m2fMng) Create(session, inventory, source, target string) (int64, int64, error) {
+func (m *m2fOplMng) Create(session, inventory, source, target string) (int64, int64, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if common.FileExists(m.path) {
@@ -143,50 +133,8 @@ func (m *m2fMng) Create(session, inventory, source, target string) (int64, int64
 	return sTs, iTs, nil
 }
 
-func (m *m2fMng) tsInUse(ts int64) (yes bool) {
-	for sTs := range maps.Values(m.sessions) {
-		if sTs == ts {
-			return true
-		}
-	}
-	for iTs := range maps.Values(m.inventories) {
-		if iTs == ts {
-			return true
-		}
-	}
-	return
-}
-
-func (m *m2fMng) nextTimeStamp() int64 {
-	for ts := time.Now().Unix(); ; ts += 1 {
-		if !m.tsInUse(ts) {
-			return ts
-		}
-	}
-}
-
-// AddInventory implements [opelog.OpeLogManager].
-func (m *m2fMng) AddInventory(label string) (int64, error) {
-	_, ok := m.inventories[label]
-	if ok {
-		return 0, fmt.Errorf("inventory %s already exists", label)
-	}
-	m.inventories[label] = m.nextTimeStamp()
-	return m.inventories[label], nil
-}
-
-// AddSession implements [opelog.OpeLogManager].
-func (m *m2fMng) AddSession(label string) (int64, error) {
-	_, ok := m.inventories[label]
-	if ok {
-		return 0, fmt.Errorf("session %s already exists", label)
-	}
-	m.sessions[label] = m.nextTimeStamp()
-	return m.sessions[label], nil
-}
-
 // NewSession implements [opelog.OpeLogManager].
-func (m *m2fMng) Open(session, inventory string, readOnly bool) (int64, int64, error) {
+func (m *m2fOplMng) Open(session, inventory string, readOnly bool) (int64, int64, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	lock := fmt.Sprintf("%s.lock", m.path)
@@ -236,8 +184,60 @@ func (m *m2fMng) Open(session, inventory string, readOnly bool) (int64, int64, e
 	return sTs, iTs, nil
 }
 
+// Sync implements [opelog.OpeLogManager].
+func (m *m2fOplMng) Sync() error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	if !m.isOpen {
+		return errors.New("m2fMng.Sync: not opened")
+	}
+	if !m.hasUpdates {
+		return nil
+	}
+	if err := m.save(); err != nil {
+		return err
+	}
+	m.hasUpdates = false
+	return nil
+}
+
+// Close implements [opelog.OpeLogManager].
+func (m *m2fOplMng) Close() error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	if !m.isOpen {
+		return errors.New("m2fMng.Close: not opened")
+	}
+	if !m.hasUpdates {
+		m.isOpen = false
+		return nil
+	}
+	if err := m.save(); err != nil {
+		return err
+	}
+	m.hasUpdates = false
+	m.isOpen = false
+	if !m.readOnly {
+		if err := os.Remove(fmt.Sprintf("%s.lock", m.path)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetLogicalEntry implements [opelog.OpeLogManager].
+func (m *m2fOplMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error) {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	if !m.isOpen {
+		return nil, errors.New("m2fMng.GetLogicalEntry: not opened")
+	}
+	le, _ := m.les[relPath]
+	return le, nil
+}
+
 // PutLogicalEntry implements [opelog.OpeLogManager].
-func (m *m2fMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error {
+func (m *m2fOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.isOpen {
@@ -252,7 +252,7 @@ func (m *m2fMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error
 }
 
 // Walk implements [opelog.OpeLogManager].
-func (m *m2fMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error) error {
+func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.isOpen {
@@ -266,8 +266,8 @@ func (m *m2fMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error)
 	return nil
 }
 
-var _ opelog.OpeLogManager = &m2fMng{}
+var _ opelog.OpeLogManager = &m2fOplMng{}
 
 func MakeM2fManager(path string) (opelog.OpeLogManager, error) {
-	return &m2fMng{path: path}, nil
+	return &m2fOplMng{path: path}, nil
 }
