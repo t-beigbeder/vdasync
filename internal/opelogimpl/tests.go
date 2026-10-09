@@ -27,35 +27,55 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 		return err
 	}
 
-	err = filepath.Walk(rootPath, func(path_ string, info fs.FileInfo, err error) error {
+	err = filepath.Walk(rootPath, func(path_ string, _ fs.FileInfo, err error) error {
 		rp := common.RelPath(path_, rootPath)
+		isSymlink := "0"
+		linkTarget := ""
+		css := ""
+		cssMap := map[string]string{}
+		info, err := os.Lstat(path_)
+		if err != nil {
+			return err
+		}
+
 		if info.IsDir() {
 			if err = cw.Write([]string{rp, "1", "", expDispMtime(info.ModTime()), "0", ""}); err != nil {
 				return err
 			}
 			return nil
 		}
-		rdr, err := os.Open(path_)
-		if err != nil {
-			return err
-		}
-		css, err := common.ReaderChecksum(rdr, algos)
-		if err != nil {
-			return err
+		if info.Mode().Type()&fs.ModeSymlink != 0 {
+			linkTarget, err = os.Readlink(path_)
+			if err != nil {
+				return err
+			}
+			isSymlink = "1"
+		} else {
+			rdr, err := os.Open(path_)
+			if err != nil {
+				return err
+			}
+			css, err = common.ReaderChecksum(rdr, algos)
+			if err != nil {
+				return err
+			}
+			cssMap = common.Css2Map(css)
 		}
 		csvLine := make([]string, 6+len(strings.Split(css, ",")))
 		csvLine[0] = rp
 		csvLine[1] = "0"
 		csvLine[2] = fmt.Sprintf("%d", info.Size())
 		csvLine[3] = expDispMtime(info.ModTime())
-		csvLine[4] = "0"
-		csvLine[5] = ""
-		for i, cs := range strings.Split(css, ",") {
-			alCs := strings.Split(cs, ":")
-			if len(alCs) != 2 {
-				return fmt.Errorf("invalid algo/checksum %s", algos)
+		csvLine[4] = isSymlink
+		csvLine[5] = linkTarget
+		if css != "" {
+			for i, algo := range strings.Split(algos, ",") {
+				cs4al, ok := cssMap[algo]
+				if !ok {
+					return fmt.Errorf("invalid algo/checksum %s/%s", algo, css)
+				}
+				csvLine[i+6] = cs4al
 			}
-			csvLine[i+6] = alCs[1]
 		}
 		if err = cw.Write(csvLine); err != nil {
 			return err

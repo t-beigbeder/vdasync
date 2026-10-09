@@ -197,21 +197,29 @@ func TestOplWalker(t *testing.T) {
 
 	lgr.Debug("TestOplWalker: started")
 	std := t.TempDir()
+	ltd := t.TempDir()
+	ttd := t.TempDir()
+
 	// require.NoError(t, ftGenTiny(std))
 	// require.NoError(t, ftGenMedium(std))
 	require.NoError(t, ftGenAugSmall(std))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
-	ltd := t.TempDir()
-	ttd := t.TempDir()
+	cPath := path.Join(ltd, "invDump.csv")
+	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
 
 	oplm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
 	require.NoError(t, err)
 	oplmi, ok := oplm.(*m2fOplMng)
 	require.True(t, ok)
 	oplmi.testMarsh = true
-	_, _, err = oplm.Create("ds", "di", std, ttd)
+
+	_, iTs, err := oplm.Create("ds", "di", std, ttd)
 	require.NoError(t, err)
+	_, _, err = oplm.Open("ds", "di", false)
+	require.NoError(t, err)
+	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5"))
+	require.NoError(t, oplm.Close())
 
 	csvPath := path.Join(ltd, "oplm.csv")
 	ow := NewOplWalker(
