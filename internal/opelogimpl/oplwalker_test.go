@@ -197,8 +197,9 @@ func TestOplWalker(t *testing.T) {
 
 	lgr.Debug("TestOplWalker: started")
 	std := t.TempDir()
-	//require.NoError(t, ftGenTiny(std))
-	require.NoError(t, ftGenMedium(std))
+	// require.NoError(t, ftGenTiny(std))
+	// require.NoError(t, ftGenMedium(std))
+	require.NoError(t, ftGenAugSmall(std))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
 	ltd := t.TempDir()
