@@ -192,7 +192,7 @@ func TestOplWalker(t *testing.T) {
 	lgr = common.GetLogger()
 	lgr = common.InfoLogger()
 	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	// lgr = common.DbgLogger()
+	lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")
@@ -227,8 +227,8 @@ func TestOplWalker(t *testing.T) {
 		&config.OpeLogOptionsType{
 			Goals:        "update", // load, create, update/remove, verify
 			SyncPeriod:   5,
-			ResetTimeout: -1,
-			ExpPeriod:    10,
+			ResetTimeout: 15,
+			ExpPeriod:    6,
 			ExpFile:      csvPath,
 		},
 		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),

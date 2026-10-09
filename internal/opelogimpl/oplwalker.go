@@ -45,8 +45,6 @@ type oplWalkerImpl struct {
 	inventory     string
 	invTime       int64
 	gErrs         []error
-	syncTicker    *time.Ticker
-	exportTicker  *time.Ticker
 	wkNtfChan     chan workerNotif
 	bg            context.Context
 }
@@ -88,27 +86,17 @@ func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
 	}
 }
 
-func (ow *oplWalkerImpl) oplmSync() {
-	lgr := ow.lgr.With("worker", "oplmSync")
-	lgr.Debug("oplWalkerImpl", "start", true)
-
-	for tick := range ow.syncTicker.C {
-		lgr.Info("oplWalkerImpl", "tick", tick)
-		if err := ow.oplm.Sync(); err != nil {
-			ow.owErr(lgr, "failed to synchronize logs", err)
-		}
+func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
+	lgr.Debug("doing")
+	if err := ow.oplm.Sync(); err != nil {
+		ow.owErr(lgr, "failed to synchronize logs", err)
 	}
 }
 
-func (ow *oplWalkerImpl) oplmExport() {
-	lgr := ow.lgr.With("worker", "oplmExport")
-	lgr.Debug("oplWalkerImpl", "start", true)
-
-	for tick := range ow.exportTicker.C {
-		lgr.Info("oplWalkerImpl", "tick", tick)
-		if err := OplCsvExport(ow.lgr, ow, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.session); err != nil {
-			ow.owErr(lgr, "failed to export logs", err)
-		}
+func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
+	lgr.Debug("doing")
+	if err := OplCsvExport(ow.lgr, ow, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.session); err != nil {
+		ow.owErr(lgr, "failed to export logs", err)
 	}
 }
 
@@ -347,8 +335,12 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 }
 
 func (ow *oplWalkerImpl) Run() error {
+	var (
+		err          error
+		syncJob   *common.PeriodicJob
+		exportJob *common.PeriodicJob
+	)
 	ow.lgr.Info("oplWalkerImpl: Run")
-	var err error
 	ow.inclRegs, err = common.ReFromFile(ow.owo.InclListPath, "inclusion list")
 	if err != nil {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
@@ -374,23 +366,30 @@ func (ow *oplWalkerImpl) Run() error {
 		go ow.work(wkn, &wg)
 	}
 	if ow.owo.SyncPeriod != 0 {
-		ow.syncTicker = time.NewTicker(time.Duration(ow.owo.SyncPeriod * int64(time.Second)))
-		go ow.oplmSync()
+		lgr := ow.lgr.With("syncJob", ow.owo.SyncPeriod)
+		syncJob = common.NewPeriodicJob(lgr, ow.owo.SyncPeriod, func() {ow.doOplmSync(lgr)})
+		go syncJob.Start()
 	}
 	if ow.owo.ExpPeriod != 0 {
-		ow.exportTicker = time.NewTicker(time.Duration(ow.owo.ExpPeriod * int64(time.Second)))
-		go ow.oplmExport()
+		lgr := ow.lgr.With("exportJob", ow.owo.ExpPeriod)
+		exportJob = common.NewPeriodicJob(lgr, ow.owo.ExpPeriod, func() {ow.doOplmExport(lgr)})
+		go exportJob.Start()
 	}
 
 	// start walker
 	ow.startOrRestart()
+	// wait workers done
 	wg.Wait()
+	// stop periodic jobs
 	if ow.owo.SyncPeriod != 0 {
-		ow.syncTicker.Stop()
+		syncJob.Stop()
+		<-syncJob.Done()
 	}
 	if ow.owo.ExpPeriod != 0 {
-		ow.exportTicker.Stop()
+		exportJob.Stop()
+		<-exportJob.Done()
 	}
+	// all done
 	if err := ow.oplm.Close(); err != nil {
 		ow.lgr.Error("oplWalkerImpl: Run: close logs", "err", err)
 		return err
