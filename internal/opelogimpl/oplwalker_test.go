@@ -38,6 +38,11 @@ var ftGenMedium = func(root string) error {
 	return common.FileTreeGenerate(root, 100, 3000, 2, 4096, false, 2)
 }
 
+var ftGenAugSmall = func(root string) error {
+	_, _, err := common.MakeAugmentedTestFilesTree(root, 7, 100, 16, 1024)
+	return err
+}
+
 func (owt *owTest) invImport() error {
 	if !owt.loadInv {
 		return nil
@@ -192,8 +197,8 @@ func TestOplWalker(t *testing.T) {
 
 	lgr.Debug("TestOplWalker: started")
 	std := t.TempDir()
-	// require.NoError(t, common.FileTreeGenerate(std, 5, 20, 1, 1024, false, 2))
-	require.NoError(t, common.FileTreeGenerate(std, 100, 3000, 2, 4096, false, 2))
+	//require.NoError(t, ftGenTiny(std))
+	require.NoError(t, ftGenMedium(std))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
 	ltd := t.TempDir()
