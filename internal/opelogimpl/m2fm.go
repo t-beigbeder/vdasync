@@ -25,6 +25,8 @@ type m2fOplMng struct {
 	readOnly    bool
 	isOpen      bool
 	hasUpdates  bool
+	testMarsh   bool
+	marshLes         map[string][]byte
 }
 
 func (m *m2fOplMng) tsInUse(ts int64) (yes bool) {
@@ -58,7 +60,16 @@ func (m *m2fOplMng) save() error {
 		Inventories:    maps.Clone(m.inventories),
 	}
 	for rp, le := range m.les {
-		aio.LogicalEntries[rp] = opelog.LogicalEntry2ProtoBuf(le)
+		if m.testMarsh {
+			ble := m.marshLes[rp]
+			le2 := opeloggrpc.LogicalEntry{}
+			if err := proto.Unmarshal(ble, &le2); err != nil {
+				return err
+			}
+			aio.LogicalEntries[rp] = &le2
+		} else {
+			aio.LogicalEntries[rp] = opelog.LogicalEntry2ProtoBuf(le)
+		}
 	}
 	bs, err := proto.Marshal(&aio)
 	if err != nil {
@@ -171,8 +182,19 @@ func (m *m2fOplMng) Open(session, inventory string, readOnly bool) (int64, int64
 		return 0, 0, fmt.Errorf("unknown inventory: %s", inventory)
 	}
 	m.les = make(map[string]*opelog.LogicalEntry, len(aio.LogicalEntries))
+	if m.testMarsh {
+		m.marshLes = make(map[string][]byte, len(aio.LogicalEntries))
+	}
 	for rp, gle := range aio.LogicalEntries {
 		m.les[rp] = opelog.ProtoBuf2LogicalEntry(gle)
+		if m.testMarsh {
+			gle = opelog.LogicalEntry2ProtoBuf(m.les[rp])
+			bs, err := proto.Marshal(gle)
+			if err != nil {
+				return 0, 0, err
+			}
+			m.marshLes[rp] = bs
+		}
 	}
 	if !readOnly {
 		if err := common.WriteFile(lock, []byte{}); err != nil {
@@ -232,8 +254,18 @@ func (m *m2fOplMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error
 	if !m.isOpen {
 		return nil, errors.New("m2fMng.GetLogicalEntry: not opened")
 	}
-	le, _ := m.les[relPath]
-	return le, nil
+	var ole *opelog.LogicalEntry
+	if m.testMarsh {
+		bole, _ := m.marshLes[relPath]
+		gole := opeloggrpc.LogicalEntry{}
+		if err := proto.Unmarshal(bole, &gole); err != nil {
+			return nil, err
+		}
+		ole = opelog.ProtoBuf2LogicalEntry(&gole)
+	} else {
+		ole, _ = m.les[relPath]
+	}
+	return ole, nil
 }
 
 // PutLogicalEntry implements [opelog.OpeLogManager].
@@ -246,7 +278,16 @@ func (m *m2fOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) er
 	if m.readOnly {
 		return errors.New("m2fMng.PutEntryLog: opened in read-only")
 	}
-	m.les[relPath] = ole
+	if m.testMarsh {
+		gole := opelog.LogicalEntry2ProtoBuf(ole)
+		bole, err := proto.Marshal(gole)
+		if err != nil {
+			return err
+		}
+		m.marshLes[relPath] = bole
+	} else {
+		m.les[relPath] = ole
+	}
 	m.hasUpdates = true
 	return nil
 }
@@ -259,6 +300,14 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 		return errors.New("m2fMng.Walk: not opened")
 	}
 	for relPath, ole := range m.les {
+		if m.testMarsh {
+			bole, _ := m.marshLes[relPath]
+			gole := opeloggrpc.LogicalEntry{}
+			if err := proto.Unmarshal(bole, &gole); err != nil {
+				return err
+			}
+			ole = opelog.ProtoBuf2LogicalEntry(&gole)
+		}
 		if err := doIt(relPath, ole); err != nil {
 			return err
 		}
