@@ -25,15 +25,17 @@ func (ole *oplLogicalEntry) setNoOp() {
 	ole.source.setStatsFor("no", size)
 }
 
-// childrenQueue provides to walker children merged both from source and target
-func (ole *oplLogicalEntry) childrenQueue() []string {
+// setChildrenQueue provides to walker children merged both from source and target
+func (ole *oplLogicalEntry) setChildrenQueue() []string {
 	var mChildren []string
 	sOse, tOse := ole.source, ole.target
 	if sOse.childrenQueued {
+		ole.hasChanges = true
 		sOse.getState().DepCount = int32(len(sOse.se().Children))
 		mChildren = slices.Clone(sOse.se().Children)
 	}
 	if tOse.childrenQueued {
+		ole.hasChanges = true
 		tOse.getState().DepCount = int32(len(tOse.se().Children))
 		for _, child := range tOse.se().Children {
 			if slices.Contains(sOse.se().Children, child) {

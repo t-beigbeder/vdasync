@@ -249,6 +249,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 
 	hasChanges := false
 	if isChildInState(cName, parentSSt) {
+		ole.lgr.Debug("notifyParent", "parentSSt.DepCount", parentSSt.DepCount)
 		if parentSSt.DepCount <= 0 {
 			err := fmt.Errorf("source child %s notifies twice parent", ole.relPath)
 			ow.owErr(ole.lgr, "oplWalkerImpl: internal", err)
@@ -309,13 +310,13 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 		return
 	}
 
+	children := ole.setChildrenQueue()
 	if ole.hasChanges {
 		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
 			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put le", err)
 			return
 		}
 	}
-	children := ole.childrenQueue()
 	for _, child := range children {
 		if err := ow.oplq.Put(path.Join(relPath, child)); err != nil {
 			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put child in queue", err)
