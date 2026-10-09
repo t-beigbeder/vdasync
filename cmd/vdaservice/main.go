@@ -15,7 +15,7 @@ import (
 
 func main() {
 	var (
-		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency version shutdown interactive ftgen")
+		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency version shutdown interactive ftgen oplcreate")
 		dssFlag          = flag.String("dss", "", "dss on which the command applies")
 		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
 		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")

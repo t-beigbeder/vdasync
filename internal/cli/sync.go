@@ -5,17 +5,20 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path"
 	"runtime/pprof"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/opelogimpl"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/walker"
 )
 
 func RunSyncCli(df *DssaFactory) {
 	var (
+		cmdFlag      = flag.String("cmd", "", "operations log command: load,create,update,verify")
 		sourceFlag   = flag.String("source", "", "source of the command")
 		targetFlag   = flag.String("target", "", "target of the command")
 		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -97,25 +100,48 @@ func RunSyncCli(df *DssaFactory) {
 	}
 	defer tDss.EndSession()
 
-	swk, err := walker.RunSynchronizer(
-		lgr, *cf.ConcurrencyFlag,
-		&config.SyncOptionsType{
-			Dryrun: *dryRunFlag, Rm: *rmFlag, Force: *forceFlag, IgnoreIrreg: *iirregFlag,
-			Check: *svsf.CheckFlag, CsAlgos: *svsf.CsalFlag,
-			NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
-			ExclListPath: *svsf.ExclFlag, InclListPath: *svsf.InclFlag,
-		},
-		sDss, sourceRoot,
-		tDss, targetRoot,
-	)
+	swo := config.SyncOptionsType{
+		Dryrun: *dryRunFlag, Rm: *rmFlag, Force: *forceFlag, IgnoreIrreg: *iirregFlag,
+		Check: *svsf.CheckFlag, CsAlgos: *svsf.CsalFlag,
+		NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
+		ExclListPath: *svsf.ExclFlag, InclListPath: *svsf.InclFlag,
+	}
+
+	if *svsf.OplDirFlag == "" {
+		swk, err := walker.RunSynchronizer(
+			lgr, *cf.ConcurrencyFlag,
+			&swo,
+			sDss, sourceRoot,
+			tDss, targetRoot,
+		)
+		if err != nil {
+			common.Fatal(lgr, err)
+		}
+		syncRes := walker.SyncResult(swk)
+		if !*cf.SilentFlag {
+			walker.DisplaySyncResult(syncRes, outFile, true, *cf.VerboseFlag)
+		} else if *cf.VerboseFlag {
+			walker.DisplaySyncResult(syncRes, outFile, true, false)
+		}
+		time.Sleep(10 * time.Millisecond)
+		return
+	}
+	owo := &config.OpeLogOptionsType{
+		SyncOptionsType: swo,
+		Goals:           *cmdFlag,
+	}
+	oplm, err := opelogimpl.MakeM2fManager(path.Join(*svsf.OplDirFlag, "m2f.opl"))
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	syncRes := walker.SyncResult(swk)
-	if !*cf.SilentFlag {
-		walker.DisplaySyncResult(syncRes, outFile, true, *cf.VerboseFlag)
-	} else if *cf.VerboseFlag {
-		walker.DisplaySyncResult(syncRes, outFile, true, false)
+	ow := opelogimpl.NewOplWalker(
+		lgr, *cf.ConcurrencyFlag, nil, oplm,
+		owo,
+		sDss, tDss,
+		sourceRoot, targetRoot,
+		"ds", "di",
+	)
+	if err = ow.Run(); err != nil {
+		common.Fatal(lgr, err)
 	}
-	time.Sleep(10 * time.Millisecond)
 }

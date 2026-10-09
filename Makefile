@@ -33,7 +33,7 @@ build-this: export GOARCH = amd64
 build-this: export BDIR = bin/lamd64
 build-this: export BEXT =
 build-this:
-	go build -o $(BDIR)/vdasftp$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/sftp/main.go
+	go build -o $(BDIR)/vdasync$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasync/main.go
 
 .PHONY: test-again
 test-again:	export OTVL_TEST_FULL = 1

@@ -336,7 +336,7 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 
 func (ow *oplWalkerImpl) Run() error {
 	var (
-		err          error
+		err       error
 		syncJob   *common.PeriodicJob
 		exportJob *common.PeriodicJob
 	)
@@ -367,12 +367,12 @@ func (ow *oplWalkerImpl) Run() error {
 	}
 	if ow.owo.SyncPeriod != 0 {
 		lgr := ow.lgr.With("syncJob", ow.owo.SyncPeriod)
-		syncJob = common.NewPeriodicJob(lgr, ow.owo.SyncPeriod, func() {ow.doOplmSync(lgr)})
+		syncJob = common.NewPeriodicJob(lgr, ow.owo.SyncPeriod, func() { ow.doOplmSync(lgr) })
 		go syncJob.Start()
 	}
 	if ow.owo.ExpPeriod != 0 {
 		lgr := ow.lgr.With("exportJob", ow.owo.ExpPeriod)
-		exportJob = common.NewPeriodicJob(lgr, ow.owo.ExpPeriod, func() {ow.doOplmExport(lgr)})
+		exportJob = common.NewPeriodicJob(lgr, ow.owo.ExpPeriod, func() { ow.doOplmExport(lgr) })
 		go exportJob.Start()
 	}
 

@@ -36,13 +36,11 @@ type CommonFlagsType struct {
 
 func CommonFlags() *CommonFlagsType {
 	return &CommonFlagsType{
-		ConfigFlag:      flag.String("config", "", "configuration file, see documentation"),
-		ConcurrencyFlag: flag.Int("conc", 0, "number of concurrent activities"),
-		LogLevelFlag:    flag.String("level", "", "log level, defaults to ERROR"),
-		LogFlag: flag.String("log", "",
-			"log file, defaults to vdasync-<pid>.log in temp dir, \"std[out|err]\" are known keywords"),
-		OutFlag: flag.String("out", "stdout",
-			"file for output, defaults to stdout, \"std[out|err]\" are known keywords"),
+		ConfigFlag:         flag.String("config", "", "configuration file, see documentation"),
+		ConcurrencyFlag:    flag.Int("conc", 0, "number of concurrent activities"),
+		LogLevelFlag:       flag.String("level", "", "log level, defaults to ERROR"),
+		LogFlag:            flag.String("log", "", "log file, defaults to vdasync-<pid>.log in temp dir, \"std[out|err]\" are known keywords"),
+		OutFlag:            flag.String("out", "stdout", "file for output, defaults to stdout, \"std[out|err]\" are known keywords"),
 		SilentFlag:         flag.Bool("silent", false, "no output, or simple summary in case also verbose"),
 		VerboseFlag:        flag.Bool("verbose", false, "detailed output"),
 		NoTlsFlag:          flag.Bool("notls", false, "insecure communication with servers over http"),
@@ -60,18 +58,20 @@ func CommonFlags() *CommonFlagsType {
 }
 
 type ServicesFlagsType struct {
-	CheckFlag *bool
-	CsalFlag  *string
-	ExclFlag  *string
-	InclFlag  *string
+	OplDirFlag *string
+	CheckFlag  *bool
+	CsalFlag   *string
+	ExclFlag   *string
+	InclFlag   *string
 }
 
 func ServicesFlags() *ServicesFlagsType {
 	return &ServicesFlagsType{
-		CheckFlag: flag.Bool("check", false, "compute checksums"),
-		CsalFlag:  flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
-		ExclFlag:  flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
-		InclFlag:  flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
+		OplDirFlag: flag.String("opldir", "", "operations logs directory if applies"),
+		CheckFlag:  flag.Bool("check", false, "compute checksums"),
+		CsalFlag:   flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
+		ExclFlag:   flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
+		InclFlag:   flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
 	}
 }
 

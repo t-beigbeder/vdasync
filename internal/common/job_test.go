@@ -22,14 +22,14 @@ func TestPeriodicJob(t *testing.T) {
 	// lgr, err = CliLogger("TestPeriodicJob", "DEBUG+2", "stderr")
 	lgr = DbgLogger()
 	require.NoError(t, err)
-	pb := NewPeriodicJob(lgr, 1, func() {lgr.Debug("job")})
+	pb := NewPeriodicJob(lgr, 1, func() { lgr.Debug("job") })
 	go pb.Start()
-	go func ()  {
-		time.Sleep(5*time.Second)
+	go func() {
+		time.Sleep(5 * time.Second)
 		lgr.Debug("will stop")
 		pb.Stop()
 	}()
 	lgr.Debug("waiting for done")
-	<- pb.Done()
+	<-pb.Done()
 	lgr.Debug("done raised")
 }

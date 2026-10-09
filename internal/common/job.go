@@ -40,12 +40,12 @@ func (pb *PeriodicJob) Done() chan bool {
 	return pb.doneChan
 }
 
-func NewPeriodicJob(lgr        *slog.Logger, periodSecs int64, job func()) *PeriodicJob{
+func NewPeriodicJob(lgr *slog.Logger, periodSecs int64, job func()) *PeriodicJob {
 	return &PeriodicJob{
-		lgr: lgr,
+		lgr:        lgr,
 		periodSecs: periodSecs,
-		job: job,
-		stopChan: make(chan bool),
-		doneChan: make(chan bool),
+		job:        job,
+		stopChan:   make(chan bool),
+		doneChan:   make(chan bool),
 	}
 }
