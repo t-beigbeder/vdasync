@@ -31,7 +31,7 @@ func TestCsvExport(t *testing.T) {
 			ftgen:     ftGenSmall,
 			conc:      0,
 			owo: &config.OpeLogOptionsType{
-				Goals: "load",
+				Goals:        "load",
 				ResetTimeout: -1,
 			},
 			oplm:    nil,

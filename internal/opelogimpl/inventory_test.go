@@ -24,6 +24,9 @@ func TestInventoryCsvImport(t *testing.T) {
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5,sha256,sha512"))
 	oplm, err := MakeM2fManager(path.Join(ctd, "m2f.opl"))
 	require.NoError(t, err)
+	oplmi, ok := oplm.(*m2fOplMng)
+	require.True(t, ok)
+	oplmi.testMarsh = true
 	ttd := t.TempDir()
 	_, iTs, err := oplm.Create("ds", "di", std, ttd)
 	require.NoError(t, err)
@@ -33,4 +36,10 @@ func TestInventoryCsvImport(t *testing.T) {
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5,sha512"))
 	err = InventoryCsvImport(oplm, iTs, cPath, "md5,sha3_256,sha512")
 	require.Error(t, err)
+	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5,sha512"))
+	require.NoError(t, oplm.Close())
+	oplm2, err := MakeM2fManager(path.Join(ctd, "m2f.opl"))
+	require.NoError(t, err)
+	_, _, err = oplm2.Open("ds", "di", true)
+	require.NoError(t, err)
 }

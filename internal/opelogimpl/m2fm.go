@@ -26,7 +26,7 @@ type m2fOplMng struct {
 	isOpen      bool
 	hasUpdates  bool
 	testMarsh   bool
-	marshLes         map[string][]byte
+	marshLes    map[string][]byte
 }
 
 func (m *m2fOplMng) tsInUse(ts int64) (yes bool) {
@@ -186,14 +186,17 @@ func (m *m2fOplMng) Open(session, inventory string, readOnly bool) (int64, int64
 		m.marshLes = make(map[string][]byte, len(aio.LogicalEntries))
 	}
 	for rp, gle := range aio.LogicalEntries {
-		m.les[rp] = opelog.ProtoBuf2LogicalEntry(gle)
+		ole := opelog.ProtoBuf2LogicalEntry(gle)
 		if m.testMarsh {
-			gle = opelog.LogicalEntry2ProtoBuf(m.les[rp])
+			gle = opelog.LogicalEntry2ProtoBuf(ole)
 			bs, err := proto.Marshal(gle)
 			if err != nil {
 				return 0, 0, err
 			}
 			m.marshLes[rp] = bs
+			m.les[rp] = nil
+		} else {
+			m.les[rp] = ole
 		}
 	}
 	if !readOnly {
@@ -230,12 +233,10 @@ func (m *m2fOplMng) Close() error {
 	if !m.isOpen {
 		return errors.New("m2fMng.Close: not opened")
 	}
-	if !m.hasUpdates {
-		m.isOpen = false
-		return nil
-	}
-	if err := m.save(); err != nil {
-		return err
+	if m.hasUpdates {
+		if err := m.save(); err != nil {
+			return err
+		}
 	}
 	m.hasUpdates = false
 	m.isOpen = false
@@ -285,6 +286,7 @@ func (m *m2fOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) er
 			return err
 		}
 		m.marshLes[relPath] = bole
+		m.les[relPath] = nil
 	} else {
 		m.les[relPath] = ole
 	}
