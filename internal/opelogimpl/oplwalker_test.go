@@ -192,7 +192,7 @@ func TestOplWalker(t *testing.T) {
 	lgr = common.GetLogger()
 	lgr = common.InfoLogger()
 	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	lgr = common.DbgLogger()
+	// lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")
@@ -201,8 +201,8 @@ func TestOplWalker(t *testing.T) {
 	ttd := t.TempDir()
 
 	// require.NoError(t, ftGenTiny(std))
-	// require.NoError(t, ftGenMedium(std))
-	require.NoError(t, ftGenAugSmall(std))
+	require.NoError(t, ftGenMedium(std))
+	// require.NoError(t, ftGenAugSmall(std))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
 	cPath := path.Join(ltd, "invDump.csv")
@@ -212,7 +212,7 @@ func TestOplWalker(t *testing.T) {
 	require.NoError(t, err)
 	oplmi, ok := oplm.(*m2fOplMng)
 	require.True(t, ok)
-	oplmi.testMarsh = true
+	oplmi.testMarsh = false
 
 	_, iTs, err := oplm.Create("ds", "di", std, ttd)
 	require.NoError(t, err)
@@ -225,11 +225,16 @@ func TestOplWalker(t *testing.T) {
 	ow := NewOplWalker(
 		lgr, 4, nil, oplm,
 		&config.OpeLogOptionsType{
-			Goals:        "update", // load, create, update/remove, verify
+			SyncOptionsType: config.SyncOptionsType{
+				Check: true,
+			},
+			Goals:        "update", // load, create, update/remove[, verify]
 			SyncPeriod:   5,
-			ResetTimeout: 15,
+			ResetTimeout: -1,
 			ExpPeriod:    6,
 			ExpFile:      csvPath,
+			InvCsAlgos:   "md5",
+			NoInvCheck:   false,
 		},
 		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
 		std, ttd,

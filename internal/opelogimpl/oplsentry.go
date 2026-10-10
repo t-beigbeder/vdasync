@@ -60,7 +60,7 @@ func (ose *oplStoredEntry) enableWrite() error {
 		se.UserRights.Execute = true
 	}
 	if err := ose.dssSetStat(se, false, true, true); err != nil {
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}
 	return nil
 }
@@ -72,10 +72,10 @@ func (ose *oplStoredEntry) remove() error {
 		return nil
 	}
 	if err := ose.dssRm(false); err != nil {
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		return err
 	}
-	ose.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+	ose.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 	return nil
 }
 
@@ -105,7 +105,8 @@ func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 	owo := ose.owo()
 	noMtime := owo.NoMtime || (se.IsSymLink && owo.NoMtLink)
 	if err := ose.dssSetStat(se, owo.NoPerm, noMtime, false); err != nil {
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return nil, err
 	}
 	if noMtime {
 		se.Mtime = time.Now().Unix()
@@ -141,7 +142,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 	if err != nil {
 		return err
 	}
-	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	return nil
 }
 
@@ -154,13 +155,14 @@ func (ose *oplStoredEntry) createDirOps() error {
 	}
 	if err := ose.dssMkdir(ose.ole.source.se()); err != nil {
 		err = fmt.Errorf("createDirOps: mkdir error %s", err)
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
+		return err
 	}
 	se, err := ose.setMeta()
 	if err != nil {
 		return err
 	}
-	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	return nil
 }
 
@@ -184,7 +186,7 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 		if err == nil {
 			return
 		}
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}()
 	var (
 		css   string
@@ -201,7 +203,7 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 		return
 	}
 	if ose.owo().Check {
-		eq, err = common.CompareTcss(tTcss, sTcss, ose.ole.getCsAlgos())
+		eq, err = common.CompareTcss(tTcss, sTcss, ose.ole.getCsAlgos(false))
 		if err != nil {
 			return
 		}
@@ -213,7 +215,7 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 	if se, err = ose.setMeta(); err != nil {
 		return
 	}
-	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, tTcss, 0)
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, tTcss, 0)
 	return
 }
 
@@ -226,18 +228,18 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 	if !isCreated {
 		if err := ose.dssRm(true); err != nil {
 			err = fmt.Errorf("cloneSymLink: rm error %s", err)
-			ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		}
 	}
 	if err := ose.dssSymLink(ose.ole.source.se().SymLinkTarget); err != nil {
 		err = fmt.Errorf("cloneSymLink: symlink error %s", err)
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}
 	se, err := ose.setMeta()
 	if err != nil {
 		return err
 	}
-	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	return nil
 }
 
@@ -245,6 +247,9 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 func (ose *oplStoredEntry) tryLoad() error {
 	if !ose.isPresent() {
 		return nil
+	}
+	if !ose.isTarget && ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() {
+
 	}
 	if !ose.isDir() || len(ose.se().Children) == 0 {
 		// all possible already done
@@ -269,12 +274,22 @@ func (ose *oplStoredEntry) doLoad() error {
 			ose.setStatsFor("sls", 0)
 		}
 		if se == nil {
-			ose.setState(false, opelog.STC_DONE_ABSENT, "", se, nil, 0)
+			ose.setState(opelog.STC_DONE_ABSENT, "", se, nil, 0)
 			return nil
 		}
-		ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
+		owi := ose.ole.owi
+		if !ose.isTarget && owi.needInvCheck() {
+			iSt := ose.ole.le.GetState(owi.invTime, false)
+			iSe := iSt.Se
+			if !iSe.Equal(se, false, owi.owo.NoMtime, owi.owo.NoMtLink, true, true) {
+				err = errors.New("inventory metadata differ")
+				ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
+				return err
+			}
+		}
+		ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	} else {
-		ose.setState(false, opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 		return err
 	}
 	return nil
@@ -292,7 +307,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		if !ok {
 			cle, err = owi.oplm.GetLogicalEntry(path.Join(ose.ole.relPath, child))
 			if err != nil {
-				ose.setState(false, opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
+				ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 				return err
 			}
 		}
@@ -317,10 +332,10 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		stats.Error.Number += cStats.Error.Number
 	}
 	if errorsNum > 0 {
-		ose.setState(false, opelog.STC_DESC_ERROR, "", se, nil, -1)
+		ose.setState(opelog.STC_DESC_ERROR, "", se, nil, -1)
 		return nil
 	}
-	ose.setState(false, opelog.STC_DONE_PRESENT, "", se, nil, -1)
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, -1)
 	return nil
 }
 

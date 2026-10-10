@@ -27,7 +27,7 @@ func (ose *oplStoredEntry) dssCopyFile() (css string, err error) {
 		return
 	}
 	defer rdr.Close()
-	cr, err = common.NewChecksumsReader(rdr, ose.ole.getCsAlgos())
+	cr, err = common.NewChecksumsReader(rdr, ose.ole.getCsAlgos(true))
 	if err != nil {
 		_ = ose.logErr("dss copyFile: NewChecksumsReader", err)
 		return

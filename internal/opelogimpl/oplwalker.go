@@ -49,6 +49,10 @@ type oplWalkerImpl struct {
 	bg            context.Context
 }
 
+func (ow *oplWalkerImpl) needInvCheck() bool {
+	return ow.owo.Check && !ow.owo.NoInvCheck && ow.inventory != ""
+}
+
 func (ow *oplWalkerImpl) owErr(lgr *slog.Logger, msg string, err error) error {
 	lgr.Error(msg, "err", err)
 	ow.mx.Lock()
@@ -197,11 +201,11 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 	// absent parent's state is propagated directly to child
 	pOle := ow.newOplLogicalEntry(lgr, pRelPath, ple)
 	if pOle.source.isAbsent() && ole.source.getState() == nil {
-		ole.source.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+		ole.source.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 		ole.hasChanges = true
 	}
 	if pOle.target.isAbsent() && ole.target.getState() == nil {
-		ole.target.setState(false, opelog.STC_DONE_ABSENT, "", nil, nil, 0)
+		ole.target.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 		ole.hasChanges = true
 	}
 	return ole, nil

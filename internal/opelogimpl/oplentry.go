@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
+	"strings"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -47,8 +48,6 @@ type oplLogicalEntry struct {
 	relPath    string
 	owi        *oplWalkerImpl
 	le         *opelog.LogicalEntry
-	sOse       *oplStoredEntry
-	tOse       *oplStoredEntry
 	source     *oplStoredEntry
 	target     *oplStoredEntry
 	// needed to understand what is requested from parent's stored entries
@@ -77,13 +76,21 @@ func (ole *oplLogicalEntry) seEqualType() bool {
 	return ole.target.se().EqualType(ole.source.se())
 }
 
-// getCsAlgos retrieves requested checksums algorithms
-func (ole *oplLogicalEntry) getCsAlgos() (csAlgos string) {
-	csAlgos = ole.owo().CsAlgos
-	if csAlgos == "" {
-		csAlgos = "sha256"
+// getCsAlgos retrieves requested checksums algorithms according to execution options
+func (ole *oplLogicalEntry) getCsAlgos(withInv bool) string {
+	owo := ole.owo()
+	cssAlgos := []string{}
+	if owo.Check {
+		cssAlgos = strings.Split(owo.CsAlgos, ",")
+		if owo.CsAlgos == "" {
+			cssAlgos = append(cssAlgos, "sha256")
+		}
 	}
-	return
+	csAlgos := strings.Join(cssAlgos, ",")
+	if withInv && !owo.NoInvCheck {
+		csAlgos = common.ConcatAlgos(csAlgos, owo.InvCsAlgos)
+	}
+	return csAlgos
 }
 
 // isIncluded checks relPath is included (empty list means all) or not excluded
@@ -210,12 +217,10 @@ func (ose *oplStoredEntry) getEvents() []*opelog.Event {
 	return ose.ole.le.GetEvents(ose.ole.owi.sessionTime, ose.isTarget)
 }
 
-func (ose *oplStoredEntry) setState(isInv bool, stc opelog.StateCode, sErr string, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
-	sessInvTs := ose.ole.owi.sessionTime
-	if isInv {
-		sessInvTs = ose.ole.owi.invTime
-	}
-	ose.ole.le.SetState(ose.ole.owi.toolStartTime, sessInvTs, ose.isTarget, stc, sErr, se, tcss, depCount)
+func (ose *oplStoredEntry) setState(stc opelog.StateCode, sErr string, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
+	ose.ole.le.SetState(
+		ose.ole.owi.toolStartTime, ose.ole.owi.sessionTime, ose.isTarget,
+		stc, sErr, se, tcss, depCount)
 	ose.ole.hasChanges = true
 	if sErr != "" {
 		ose.setStatsFor("er", 0)
@@ -226,8 +231,8 @@ func (ose *oplStoredEntry) setState(isInv bool, stc opelog.StateCode, sErr strin
 //
 // toolRestarted if loaded state differs
 func (ose *oplStoredEntry) getState() *opelog.State {
-	st := ose.ole.le.GetState(ose.ole.owi.sessionTime, ose.isTarget)
 	owi := ose.ole.owi
+	st := ose.ole.le.GetState(owi.sessionTime, ose.isTarget)
 	if st != nil && st.ToolStartTime != owi.toolStartTime {
 		if !ose.toolRestarted {
 			ose.toolRestarted = true

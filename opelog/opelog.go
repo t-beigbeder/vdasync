@@ -100,14 +100,14 @@ func (tse *StoredEntry) HasChild(child string) bool {
 	return slices.Contains(tse.Children, child)
 }
 
-func (tse *StoredEntry) Equal(ose *StoredEntry, noEqMtime, noMtime, noMtLink, noRights bool) (result bool) {
+func (tse *StoredEntry) Equal(ose *StoredEntry, noEqMtime, noMtime, noMtLink, noRights, noChildren bool) (result bool) {
 	if ose == nil {
 		return
 	}
 	if tse.IsDir != ose.IsDir {
 		return
 	}
-	if tse.Size != ose.Size {
+	if !tse.IsDir && tse.Size != ose.Size {
 		return
 	}
 	if tse.Mtime != ose.Mtime {
@@ -147,12 +147,14 @@ func (tse *StoredEntry) Equal(ose *StoredEntry, noEqMtime, noMtime, noMtLink, no
 	if tse.SymLinkTarget != ose.SymLinkTarget {
 		return
 	}
-	if len(tse.Children) != len(ose.Children) {
-		return
-	}
-	for _, nChild := range tse.Children {
-		if !ose.HasChild(nChild) {
+	if !noChildren {
+		if len(tse.Children) != len(ose.Children) {
 			return
+		}
+		for _, nChild := range tse.Children {
+			if !ose.HasChild(nChild) {
+				return
+			}
 		}
 	}
 	if !bytes.Equal(tse.AddMeta, ose.AddMeta) {
@@ -444,7 +446,7 @@ func (le *LogicalEntry) addOrShareSe(se *StoredEntry) int32 {
 		return -1
 	}
 	for i, exSe := range slices.Backward(le.sharedSes) {
-		if se.Equal(exSe, false, false, false, false) {
+		if se.Equal(exSe, false, false, false, false, false) {
 			return int32(i)
 		}
 	}

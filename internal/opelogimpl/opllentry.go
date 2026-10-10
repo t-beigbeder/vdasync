@@ -74,13 +74,13 @@ func (ole *oplLogicalEntry) tryRm() error {
 	tOse := ole.target
 	if !ole.owo().Rm && !ole.owo().Dryrun {
 		err := common.ErrNeededRmForbidden
-		tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
+		tOse.setState(opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
 		return err
 	}
 	if tOse.isDir() {
 		if tOse.endOrNoOpDirPossible() && tOse.enableWriteNeeded() && !tOse.owo().Force {
 			err := common.ErrNeededWriteEnableForbidden
-			tOse.setState(false, opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
+			tOse.setState(opelog.STC_SE_ERROR, err.Error(), tOse.se(), nil, 0)
 			return err
 		}
 		if err := tOse.rmDir(); err != nil {
@@ -100,7 +100,7 @@ func (ole *oplLogicalEntry) checkForUpdate() bool {
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
-	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true) {
+	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true, false) {
 		return true
 	}
 	if ole.owo().CsAlgos == "" {
@@ -236,6 +236,14 @@ func (ole *oplLogicalEntry) process() error {
 		ole.le.IsIgnored = true
 		ole.hasChanges = true
 		return nil
+	}
+	if ole.owi.needInvCheck() {
+		iSt := ole.le.GetState(ole.owi.invTime, false)
+		if iSt == nil || iSt.Se == nil {
+			ole.source.setState(opelog.STC_SE_ERROR, "not in inventory", nil, nil, 0)
+			ole.hasChanges = true
+			return nil
+		}
 	}
 
 	// record events in the end as they need meaningful state: StoredEntry, Checksums
