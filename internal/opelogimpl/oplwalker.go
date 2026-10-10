@@ -83,8 +83,6 @@ func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
 		return hasAny("create,update")
 	case "update":
 		return hasAny("update")
-	case "verify":
-		return hasAny("verify")
 	default:
 		return false
 	}

@@ -262,20 +262,4 @@ func TestGoals(t *testing.T) {
 	require.True(t, owi.impliesGoal("load"))
 	require.True(t, owi.impliesGoal("create"))
 	require.True(t, owi.impliesGoal("update"))
-	require.False(t, owi.impliesGoal("verify"))
-	owi.owo.Goals = "load,create,update,verify2"
-	require.True(t, owi.impliesGoal("load"))
-	require.True(t, owi.impliesGoal("create"))
-	require.True(t, owi.impliesGoal("update"))
-	require.False(t, owi.impliesGoal("verify"))
-	owi.owo.Goals = "load,create,update,verify"
-	require.True(t, owi.impliesGoal("load"))
-	require.True(t, owi.impliesGoal("create"))
-	require.True(t, owi.impliesGoal("update"))
-	require.True(t, owi.impliesGoal("verify"))
-	owi.owo.Goals = "verify"
-	require.False(t, owi.impliesGoal("load"))
-	require.False(t, owi.impliesGoal("create"))
-	require.False(t, owi.impliesGoal("update"))
-	require.True(t, owi.impliesGoal("verify"))
 }
