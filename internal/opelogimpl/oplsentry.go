@@ -208,7 +208,7 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 			return
 		}
 		if !eq {
-			err = errors.New("checksums differ")
+			err = errors.New("source/target checksums differ")
 			return
 		}
 	}
@@ -234,6 +234,7 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 	if err := ose.dssSymLink(ose.ole.source.se().SymLinkTarget); err != nil {
 		err = fmt.Errorf("cloneSymLink: symlink error %s", err)
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return err
 	}
 	se, err := ose.setMeta()
 	if err != nil {
@@ -248,8 +249,28 @@ func (ose *oplStoredEntry) tryLoad() error {
 	if !ose.isPresent() {
 		return nil
 	}
-	if !ose.isTarget && ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() {
-
+	if !ose.isTarget && ose.isPresent() && ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() && len(ose.getState().Tcss) == 0 {
+		css, err := ose.dssRead()
+		if err != nil {
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+			return err
+		}
+		tCss, err := common.Checksums2TypedChecksums(css)
+		if err != nil {
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+			return err
+		}
+		iSt := ose.ole.le.GetState(ose.ole.owi.invTime, false)
+		eq, err := common.CompareTcss(tCss, iSt.Tcss, ose.ole.owi.owo.InvCsAlgos)
+		if err != nil {
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+			return err
+		}
+		if !eq {
+			err = errors.New("inventory/source checksums differ")
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+			return err
+		}
 	}
 	if !ose.isDir() || len(ose.se().Children) == 0 {
 		// all possible already done

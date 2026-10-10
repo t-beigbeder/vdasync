@@ -11,6 +11,39 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
+func (ose *oplStoredEntry) dssRead() (css string, err error) {
+	var (
+		rdr     io.ReadCloser
+		cr      common.ChecksumsReader
+		written int64
+	)
+	ose.detail("dss read")
+	ose.loadTime = time.Now().Unix()
+	rdr, err = ose.dss().GetReadCloser(ose.fullPath())
+	if err != nil {
+		_ = ose.logErr("dss read: GetReadCloser", err)
+		return
+	}
+	defer rdr.Close()
+	cr, err = common.NewChecksumsReader(rdr, ose.ole.getCsAlgos(true))
+	if err != nil {
+		_ = ose.logErr("dss read: NewChecksumsReader", err)
+		return
+	}
+	written, err = io.Copy(io.Discard, cr)
+	if err != nil {
+		_ = ose.logErr("dss read: Copy", err)
+		return
+	}
+	if written != ose.getState().Se.Size {
+		err = fmt.Errorf("copied %d from %d", written, ose.getState().Se.Size)
+		_ = ose.logErr("dss read: Copy", err)
+		return
+	}
+	css = cr.Checksums()
+	return
+}
+
 func (ose *oplStoredEntry) dssCopyFile() (css string, err error) {
 	var (
 		rdr     io.ReadCloser
