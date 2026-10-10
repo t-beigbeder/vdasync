@@ -267,7 +267,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 	if !ose.isPresent() {
 		return nil
 	}
-	if !ose.isTarget && ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() && len(ose.getState().Tcss) == 0 {
+	if ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() && len(ose.getState().Tcss) == 0 {
 		css, err := ose.dssRead()
 		if err != nil {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)

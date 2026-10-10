@@ -105,7 +105,7 @@ func TestManyOplWalkers(t *testing.T) {
 			ftgen:     ftGenSmall,
 			conc:      0,
 			owo: &config.OpeLogOptionsType{
-				Goals: "load", // load, create, update/remove, verify
+				Goals: "load", // load, create, update/remove
 			},
 			oplm:    nil,
 			oplq:    nil,
@@ -191,7 +191,7 @@ func TestOplWalker(t *testing.T) {
 	)
 	lgr = common.GetLogger()
 	lgr = common.InfoLogger()
-	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	// lgr = common.DbgLogger()
 	require.NoError(t, err)
 
@@ -201,8 +201,8 @@ func TestOplWalker(t *testing.T) {
 	ttd := t.TempDir()
 
 	// require.NoError(t, ftGenTiny(std))
-	require.NoError(t, ftGenMedium(std))
-	// require.NoError(t, ftGenAugSmall(std))
+	// require.NoError(t, ftGenMedium(std))
+	require.NoError(t, ftGenAugSmall(std))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
 	cPath := path.Join(ltd, "invDump.csv")
@@ -212,7 +212,7 @@ func TestOplWalker(t *testing.T) {
 	require.NoError(t, err)
 	oplmi, ok := oplm.(*m2fOplMng)
 	require.True(t, ok)
-	oplmi.testMarsh = false
+	oplmi.testMarsh = true
 
 	_, iTs, err := oplm.Create("ds", "di", std, ttd)
 	require.NoError(t, err)
@@ -228,7 +228,7 @@ func TestOplWalker(t *testing.T) {
 			SyncOptionsType: config.SyncOptionsType{
 				Check: true,
 			},
-			Goals:        "update", // load, create, update/remove[, verify]
+			Goals:        "update", // load, create, update/remove
 			SyncPeriod:   5,
 			ResetTimeout: -1,
 			ExpPeriod:    6,
