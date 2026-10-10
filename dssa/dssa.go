@@ -9,15 +9,18 @@ type Rights struct {
 }
 
 type DataEntry struct {
-	IsDir         bool
-	Path          string
-	Size          int64
-	Mtime         int64
-	User          int
-	UserRights    Rights
-	Group         int
-	GroupRights   Rights
-	OtherRights   Rights
+	IsDir       bool
+	Path        string
+	Size        int64
+	Mtime       int64
+	User        int
+	UserRights  Rights
+	Group       int
+	GroupRights Rights
+	OtherRights Rights
+	// some implementations (sftpc) list entries w/o Lstat information
+	// explicit call to Stat (that implements Lstat) on each entry is then required
+	// for most operations
 	NoLStat       bool
 	IsSymLink     bool
 	SymLinkTarget string

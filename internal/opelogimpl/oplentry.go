@@ -1,163 +1,298 @@
 package opelogimpl
 
 import (
-	"errors"
+	"fmt"
 	"log/slog"
 	"path"
 	"strings"
-	"time"
 
+	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
+// This file is about low-level structure for logical and stored entries
+// Higher order services are either in opllentry (logical) or in oplsentry (stored)
+// Common dss related services are in opldss
+
+// LeError may group one or two errors on source and/or target stored entry
+type LeError struct {
+	source error
+	target error
+}
+
+func (e *LeError) Error() string {
+	s := ""
+	if e.source != nil {
+		s += fmt.Sprintf("source %s", e.source.Error())
+	}
+	if e.target != nil {
+		if s != "" {
+			s += " - "
+		}
+		s += fmt.Sprintf("target %s", e.target.Error())
+	}
+	return s
+}
+
+// oplLogicalEntry groups operations on both source and target (oplStoredEntry)
+//
+// Its services notifies errors that are meaningful from walker point of view,
+// for instance regarding parent-child communication.
+// oplStoredEntry-related errors on the other hand are only meaningful
+// at the logical entry level and may be kept silent from its services.
 type oplLogicalEntry struct {
-	isDir   bool
-	relPath string
-	plgr    *slog.Logger
-	owi     *oplWalkerImpl
-	le      *opelog.LogicalEntry
+	lgr        *slog.Logger
+	hasChanges bool
+	relPath    string
+	owi        *oplWalkerImpl
+	le         *opelog.LogicalEntry
+	source     *oplStoredEntry
+	target     *oplStoredEntry
+	// needed to understand what is requested from parent's stored entries
+	parentLe  *opelog.LogicalEntry
+	parentSSt *opelog.State
+	parentTSt *opelog.State
+	// share source/target
+	childrenLeCache map[string]*opelog.LogicalEntry
 }
 
-func (ole *oplLogicalEntry) lgr() *slog.Logger {
-	return ole.plgr.With("relPath", ole.relPath)
+func (ole *oplLogicalEntry) detail(msg string, args ...any) {
+	ole.lgr.Log(ole.owi.bg, slog.LevelDebug+2, msg, args...)
 }
 
-func (ole *oplLogicalEntry) source() *oplStoredEntry {
-	return &oplStoredEntry{oplLogicalEntry: ole}
-}
+func (ole *oplLogicalEntry) owo() *config.OpeLogOptionsType { return ole.owi.owo }
 
-func (ole *oplLogicalEntry) target() *oplStoredEntry {
-	return &oplStoredEntry{oplLogicalEntry: ole, isTarget: true}
-}
-
-func (ole *oplLogicalEntry) load() error {
-	ole.lgr().Debug("load: start")
-	if err := ole.source().load(); err != nil {
-		return err
-	}
-	if err := ole.target().load(); err != nil {
-		return err
-	}
-	ole.lgr().Debug("load: stop")
-	return errors.ErrUnsupported
-}
-
-func (ole *oplLogicalEntry) process() error {
-	ole.lgr().Debug("process: start")
-	var (
-		err error
-	)
-	for _, goal := range strings.Split("load,create,update,verify", ",") {
-		if !ole.owi.hasGoal(goal) {
-			continue
-		}
-		switch goal {
-		case "load":
-			err = ole.load()
-		default:
-			err = errors.ErrUnsupported
-		}
-		if err != nil {
-			break
-		}
-	}
-	ole.lgr().Debug("process: stop")
+func (ole *oplLogicalEntry) logErr(msg string, err error) error {
+	ole.lgr.Error(msg, "err", err)
 	return err
 }
 
-type oplStoredEntry struct {
-	*oplLogicalEntry
-	isTarget bool
-}
-
-func (ose *oplStoredEntry) pfx() string {
-	if ose.isTarget {
-		return "{T}"
-	} else {
-		return "{S}"
+func (ole *oplLogicalEntry) seEqualType() bool {
+	if ole.target.se() == nil {
+		return false
 	}
+	return ole.target.se().EqualType(ole.source.se())
 }
 
-func (ose *oplStoredEntry) lgr() *slog.Logger {
-	return ose.plgr.With("path", path.Join(ose.pfx(), ose.relPath))
+// getCsAlgos retrieves requested checksums algorithms according to execution options
+func (ole *oplLogicalEntry) getCsAlgos(withInv bool) string {
+	owo := ole.owo()
+	cssAlgos := []string{}
+	if owo.Check {
+		if owo.CsAlgos == "" {
+			cssAlgos = []string{"sha256"}
+		} else {
+			cssAlgos = strings.Split(owo.CsAlgos, ",")
+		}
+	}
+	csAlgos := strings.Join(cssAlgos, ",")
+	if withInv && !owo.NoInvCheck {
+		csAlgos = common.ConcatAlgos(csAlgos, owo.InvCsAlgos)
+	}
+	return csAlgos
 }
+
+// isIncluded checks relPath is included (empty list means all) or not excluded
+func (ole *oplLogicalEntry) isIncluded() bool {
+	return common.IsIncluded(ole.relPath, ole.owi.inclRegs, ole.owi.exclRegs)
+}
+
+// oplStoredEntry groups operations and state relevant either for source or for target
+//
+// errors returned by its services are logged but are only relevant to oplLogicalEntry
+// that may keep them silent
+type oplStoredEntry struct {
+	lgr      *slog.Logger
+	ole      *oplLogicalEntry
+	isTarget bool
+	// processing state
+	toolRestarted bool
+	// events information, to be created once full processing done
+	loadTime       int64
+	removeTime     int64
+	createTime     int64
+	updateTime     int64
+	metaChangeTime int64
+	// current's dir children must be queued
+	childrenQueued bool
+}
+
+func (ose *oplStoredEntry) detail(msg string, args ...any) {
+	ose.lgr.Log(ose.ole.owi.bg, slog.LevelDebug+2, msg, args...)
+}
+
+func (ose *oplStoredEntry) logErr(msg string, err error) error {
+	ose.lgr.Error(msg, "err", err)
+	return err
+}
+
+func (ose *oplStoredEntry) owo() *config.OpeLogOptionsType { return ose.ole.owi.owo }
 
 func (ose *oplStoredEntry) root() string {
 	if ose.isTarget {
-		return ose.owi.tRoot
+		return ose.ole.owi.tRoot
 	} else {
-		return ose.owi.sRoot
+		return ose.ole.owi.sRoot
 	}
+}
+
+func (ose *oplStoredEntry) hasError() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR
+}
+
+// isPresent detects entry not absent, state may be in progress or have error
+func (ose *oplStoredEntry) isPresent() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc != opelog.STC_DONE_ABSENT
+}
+
+// isAbsent detects entry absent
+func (ose *oplStoredEntry) isAbsent() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc == opelog.STC_DONE_ABSENT
+}
+
+func (ose *oplStoredEntry) se() *opelog.StoredEntry {
+	st := ose.getState()
+	if st == nil {
+		return nil
+	}
+	return st.Se
+}
+
+func (ose *oplStoredEntry) isDir() bool {
+	se := ose.se()
+	if se == nil {
+		return false
+	}
+	return se.IsDir
+}
+
+func (ose *oplStoredEntry) isSymLink() bool {
+	se := ose.se()
+	if se == nil {
+		return false
+	}
+	return se.IsSymLink
+}
+
+func (ose *oplStoredEntry) isRegularFile() bool {
+	se := ose.se()
+	if se == nil {
+		return false
+	}
+	return !se.IsDir && !se.IsSymLink
 }
 
 func (ose *oplStoredEntry) fullPath() string {
-	return path.Join(ose.root(), ose.relPath)
-}
-
-func (ose *oplStoredEntry) events() (evs []*opelog.Event) {
-	if ose.isTarget {
-		evs = ose.le.TargetEvents
-	} else {
-		evs = ose.le.SourceEvents
-	}
-	return
-}
-
-func (ose *oplStoredEntry) existenceEv() (ev *opelog.Event) {
-	evs := ose.events()
-	for i := len(evs) - 1; i >= 0; i-- {
-		if evs[i].Kind == opelog.EVT_ABS || evs[i].Kind == opelog.EVT_EXIST {
-			return evs[i]
-		}
-	}
-	return nil
-}
-
-func (ose *oplStoredEntry) states() (sts []*opelog.StoredEntry) {
-	if ose.isTarget {
-		sts = ose.le.TargetStates
-	} else {
-		sts = ose.le.SourceStates
-	}
-	return
-}
-
-func (ose *oplStoredEntry) currentState() *opelog.StoredEntry {
-	sts := ose.states()
-	if len(sts) == 0 {
-		return nil
-	}
-	return sts[len(sts)-1]
+	return path.Join(ose.root(), ose.ole.relPath)
 }
 
 func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 	if ose.isTarget {
-		ds = ose.owi.tds
+		ds = ose.ole.owi.tds
 	} else {
-		ds = ose.owi.sds
+		ds = ose.ole.owi.sds
 	}
 	return
 }
 
-func (ose *oplStoredEntry) newEvent(kind opelog.EventCode, origin opelog.OriginCode, sErr string) {
-	evs := ose.events()
-	evs = append(evs, &opelog.Event{Kind: kind, Origin: origin, TimeStamp: time.Now().Unix(), StateIndex: int32(len(ose.states()) - 1), Error: sErr})
+func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
+	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ts, ose.isTarget, kind, se, tcss)
+	ose.ole.hasChanges = true
 }
 
-func (ose *oplStoredEntry) load() error {
-	eev := ose.existenceEv()
-	if eev != nil && eev.Error == "" {
-		return nil
+func (ose *oplStoredEntry) getEvents() []*opelog.Event {
+	return ose.ole.le.GetEvents(ose.ole.owi.sessionTime, ose.isTarget)
+}
+
+func (ose *oplStoredEntry) setState(stc opelog.StateCode, sErr string, se *opelog.StoredEntry, tcss [][]byte, depCount int) {
+	ose.ole.le.SetState(
+		ose.ole.owi.toolStartTime, ose.ole.owi.sessionTime, ose.isTarget,
+		stc, sErr, se, tcss, depCount)
+	ose.ole.hasChanges = true
+	if sErr != "" {
+		ose.setStatsFor("er", 0)
 	}
-	ose.lgr().Debug("load: start")
-	de, err := ose.dss().Stat(ose.fullPath())
-	if err != nil && !de.ErrNotExist {
-		sts := ose.states()
-		sts = append(sts, &opelog.StoredEntry{})
-		ose.newEvent(opelog.EVT_ABS, opelog.ORI_STAT, err.Error())
-		return err
+}
+
+// getState may be nil or Se may be nil meaning simply listed by parent
+//
+// toolRestarted if loaded state differs
+func (ose *oplStoredEntry) getState() *opelog.State {
+	owi := ose.ole.owi
+	st := ose.ole.le.GetState(owi.sessionTime, ose.isTarget)
+	if st != nil && st.ToolStartTime != owi.toolStartTime {
+		if !ose.toolRestarted {
+			ose.toolRestarted = true
+			stats := ose.ole.le.GetStats(owi.sessionTime)
+			stats.Reset()
+			ose.ole.hasChanges = true
+		}
 	}
-	ose.lgr().Debug("load: stop")
-	return nil
+	return st
+}
+
+func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
+	stats := ose.ole.le.GetStats(ose.ole.owi.sessionTime)
+	if stats == nil {
+		stats = opelog.NewComputedStats()
+		ose.ole.le.SetStats(ose.ole.owi.sessionTime, stats)
+	}
+	return stats
+}
+
+// setStatsFor updates the entry's stats according to given keyword
+//
+// size -1 asks to read cached state for entry's size
+func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
+	stats := ose.getStats()
+	if size == -1 {
+		se := ose.se()
+		if se != nil {
+			size = se.Size
+		} else {
+			size = 0
+		}
+	}
+	switch kw {
+	case "sls":
+		stats.SourceListOrStat.Number = 1
+	case "tls":
+		stats.TargetListOrStat.Number = 1
+	case "rd":
+		stats.Read.Number = 1
+		stats.Read.Size = size
+	case "cr":
+		stats.Create.Number = 1
+		stats.Create.Size = size
+	case "up":
+		stats.Update.Number = 1
+		stats.Update.Size = size
+	case "rm":
+		stats.Remove.Number = 1
+		stats.Remove.Size = size
+	case "mc":
+		stats.MetaChange.Number = 1
+	case "no":
+		stats.NoOp.Number = 1
+		stats.NoOp.Size = size
+	case "er":
+		stats.Error.Number = 1
+	default:
+		return
+	}
+	ose.ole.hasChanges = true
 }

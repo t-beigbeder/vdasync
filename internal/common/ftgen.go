@@ -18,7 +18,7 @@ type ftGenCtx struct {
 	fGenQueue            chan []int
 }
 
-func iDir2dKey(ctx *ftGenCtx, iPath []int) string {
+func iDir2dKey(_ *ftGenCtx, iPath []int) string {
 	rs := ""
 	for _, i := range iPath {
 		if rs == "" {

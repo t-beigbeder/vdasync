@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/sftpc"
 	"github.com/t-beigbeder/vdasync/internal/remote"
+	"github.com/t-beigbeder/vdasync/internal/sftputil"
 	"google.golang.org/grpc"
 )
 
@@ -28,6 +30,7 @@ func RunSftpPlugin() {
 		sftpRoot    = flag.String("sftproot", "", "root path from SFTP server root where files are served")
 		sftpKHFile  = flag.String("sftpkhfile", "", "known_hosts file, defaults to $HOME/.ssh/known_hosts")
 		sftpNoHKC   = flag.Bool("sftpnohkc", false, "ignore host key, insecure, equivalent of ssh StrictHostKeychecking=no")
+		sftpServer  = flag.Bool("sftpserver", false, "convenient sftp server for testing")
 	)
 	cf := cli.CommonFlags()
 	flag.Parse()
@@ -39,6 +42,24 @@ func RunSftpPlugin() {
 	lgr, err := common.CliLogger(cmd, *cf.LogLevelFlag, *cf.LogFlag)
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("path.Base: %s: %v", exe, err))
+	}
+	if *sftpServer {
+		if *sftpUser == "" {
+			common.Fatal(lgr, errors.New("sftuser empty"))
+		}
+		if *sftpIdent == "" {
+			common.Fatal(lgr, errors.New("sftpident empty"))
+		}
+		if *sftpRoot == "" {
+			common.Fatal(lgr, errors.New("sftproot empty"))
+		}
+		_, err := sftputil.RunInsecureSftpServer(lgr, *sftpUser, *sftpAddress, *sftpIdent, *sftpRoot)
+		if err != nil {
+			common.Fatal(lgr, err)
+		}
+		lgr.Info("RunInsecureSftpServer: will wait one hour")
+		time.Sleep(time.Hour)
+		os.Exit(0)
 	}
 
 	knownHostsFile := ""
@@ -61,7 +82,7 @@ func RunSftpPlugin() {
 	if *sftpRoot == "" {
 		common.Fatal(lgr, errors.New("sftproot empty"))
 	}
-	dss, err := sftpc.MakeSftpClientDssa(*sftpUser, *sftpAddress, *sftpIdent, *sftpRoot, *cf.ConcurrencyFlag, sftpc.GetSftpClient, knownHostsFile)
+	dss, err := sftpc.MakeSftpClientDssa(*sftpUser, *sftpAddress, *sftpIdent, *sftpRoot, *cf.ConcurrencyFlag, sftputil.GetSftpClient, knownHostsFile)
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("sftpc.MakeSftpClientDssa: %s: %v", exe, err))
 	}

@@ -1,0 +1,175 @@
+package opelogimpl
+
+import (
+	"fmt"
+	"io"
+	"path"
+	"time"
+
+	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/opelog"
+)
+
+func (ose *oplStoredEntry) dssRead() (css string, err error) {
+	var (
+		rdr     io.ReadCloser
+		cr      common.ChecksumsReader
+		written int64
+	)
+	ose.detail("dss read")
+	ose.loadTime = time.Now().Unix()
+	rdr, err = ose.dss().GetReadCloser(ose.fullPath())
+	if err != nil {
+		_ = ose.logErr("dss read: GetReadCloser", err)
+		return
+	}
+	defer rdr.Close()
+	cr, err = common.NewChecksumsReader(rdr, ose.ole.getCsAlgos(true))
+	if err != nil {
+		_ = ose.logErr("dss read: NewChecksumsReader", err)
+		return
+	}
+	written, err = io.Copy(io.Discard, cr)
+	if err != nil {
+		_ = ose.logErr("dss read: Copy", err)
+		return
+	}
+	if written != ose.getState().Se.Size {
+		err = fmt.Errorf("copied %d from %d", written, ose.getState().Se.Size)
+		_ = ose.logErr("dss read: Copy", err)
+		return
+	}
+	css = cr.Checksums()
+	return
+}
+
+func (ose *oplStoredEntry) dssCopyFile() (css string, err error) {
+	var (
+		rdr     io.ReadCloser
+		cr      common.ChecksumsReader
+		wrr     io.WriteCloser
+		written int64
+	)
+	sOse := ose.ole.source
+	ose.detail("dss copyFile")
+	ose.updateTime = time.Now().Unix()
+	rdr, err = sOse.dss().GetReadCloser(sOse.fullPath())
+	if err != nil {
+		_ = ose.logErr("dss copyFile: GetReadCloser", err)
+		return
+	}
+	defer rdr.Close()
+	cr, err = common.NewChecksumsReader(rdr, ose.ole.getCsAlgos(true))
+	if err != nil {
+		_ = ose.logErr("dss copyFile: NewChecksumsReader", err)
+		return
+	}
+	wrr, err = ose.dss().GetWriteCloser(ose.fullPath())
+	if err != nil {
+		_ = ose.logErr("dss copyFile: GetWriteCloser", err)
+		return
+	}
+	defer wrr.Close()
+	written, err = io.Copy(wrr, cr)
+	if err != nil {
+		_ = ose.logErr("dss copyFile: Copy", err)
+		return
+	}
+	if written != sOse.getState().Se.Size {
+		err = fmt.Errorf("copied %d from %d", written, sOse.getState().Se.Size)
+		_ = ose.logErr("dss copyFile: Copy", err)
+		return
+	}
+	if err = wrr.Close(); err != nil {
+		_ = ose.logErr("dss copyFile: Close writer", err)
+		return
+	}
+	css = cr.Checksums()
+	return
+}
+
+func (ose *oplStoredEntry) dssSetStat(se *opelog.StoredEntry, noPerm, noMtime, noEvent bool) error {
+	ose.detail("dss setStat")
+	if !noEvent {
+		ose.metaChangeTime = time.Now().Unix()
+	}
+	if err := ose.dss().SetStat(se.ToDataEntry(ose.fullPath()), noPerm, noMtime); err != nil {
+		return ose.logErr("dss stat", err)
+	}
+	return nil
+}
+
+func (ose *oplStoredEntry) dssStat(noEvent bool) (*dssa.DataEntry, error) {
+	ose.detail("dss stat")
+	if !noEvent {
+		ose.loadTime = time.Now().Unix()
+	}
+	de, err := ose.dss().Stat(ose.fullPath())
+	if err != nil && (de == nil || !de.ErrNotExist) {
+		return nil, ose.logErr("dss stat", err)
+	}
+	return de, err
+}
+
+func (ose *oplStoredEntry) dssList(noEvent bool) ([]*dssa.DataEntry, error) {
+	ose.detail("dss list")
+	if !noEvent {
+		ose.loadTime = time.Now().Unix()
+	}
+	des, err := ose.dss().List(ose.fullPath())
+	if err != nil {
+		return nil, ose.logErr("dss list", err)
+	}
+	return des, nil
+}
+
+func (ose *oplStoredEntry) dssStatAndList(noEvent bool) (*opelog.StoredEntry, error) {
+	de, err := ose.dssStat(noEvent)
+	if err != nil && (de == nil || !de.ErrNotExist) {
+		return nil, err
+	}
+	if err != nil {
+		return nil, nil
+	}
+	if !de.IsDir {
+		return opelog.FromDataEntry(de, nil), nil
+	}
+	des, err := ose.dssList(noEvent)
+	chs := make([]string, len(des))
+	for i := range des {
+		chs[i] = path.Base(des[i].Path)
+	}
+	return opelog.FromDataEntry(de, chs), nil
+}
+
+func (ose *oplStoredEntry) dssRm(noEvent bool) error {
+	ose.detail("dss rm")
+	if !noEvent {
+		ose.removeTime = time.Now().Unix()
+	}
+	if err := ose.dss().Rm(ose.fullPath()); err != nil {
+		return ose.logErr("dss rm", err)
+	}
+	return nil
+}
+
+func (ose *oplStoredEntry) dssSymLink(target string) error {
+	ose.detail("dss symlink")
+	ose.metaChangeTime = time.Now().Unix()
+	if err := ose.dss().Symlink(target, ose.fullPath()); err != nil {
+		return ose.logErr("dss symlink", err)
+	}
+	return nil
+}
+
+func (ose *oplStoredEntry) dssMkdir(se *opelog.StoredEntry) error {
+	ose.detail("dss mkdir")
+	ose.metaChangeTime = time.Now().Unix()
+	cSe := se.ToDataEntry(ose.fullPath())
+	cSe.UserRights.Read, cSe.UserRights.Write, cSe.UserRights.Execute = true, true, true
+	if err := ose.dss().Mkdir(cSe); err != nil {
+		return ose.logErr("dss mkdir", err)
+	}
+	return nil
+}

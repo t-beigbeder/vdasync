@@ -49,7 +49,14 @@ type SyncOptionsType struct {
 type OpeLogOptionsType struct {
 	SyncOptionsType `yaml:"syncOptionsType"`
 	Goals           string `yaml:"goals"`
-	StatsTime       int64  `yaml:"statsTime"`
+	NoInvCheck      bool   `yaml:"noInvCheck"`
+	InvCsAlgos      string `yaml:"invCsAlgos"`
+	SyncPeriod      int64  `yaml:"syncPeriod"`
+	ResetTimeout    int64  `yaml:"resetTimeout"`
+	EnableRestart   bool   `yaml:"enableRestart"`
+	ClearErrors     bool   `yaml:"clearErrors"`
+	ExpPeriod       int64  `yaml:"expPeriod"`
+	ExpFile         string `yaml:"expFile"`
 }
 
 type SftpServerType struct {
