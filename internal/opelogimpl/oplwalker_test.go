@@ -241,6 +241,12 @@ func TestOplWalker(t *testing.T) {
 		"ds", "di")
 	err = ow.Run()
 	require.NoError(t, err)
+	oplmRo, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	require.NoError(t, err)
+	sTs, _, err := oplmRo.Open("ds", "di", true)
+	rLe, err := oplmRo.GetLogicalEntry("")
+	require.NoError(t, err)
+	require.Zero(t, rLe.GetStats(sTs).Error.Number)
 }
 
 func TestGoals(t *testing.T) {

@@ -172,6 +172,8 @@ func (ose *oplStoredEntry) createDirOps() error {
 func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 	size := ose.ole.source.se().Size
 	sTcss := ose.ole.source.getState().Tcss
+	var tCss [][]byte
+
 	ose.setStatsFor("rd", size)
 	if !isCreated {
 		ose.setStatsFor("up", size)
@@ -186,36 +188,52 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 		if err == nil {
 			return
 		}
-		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), tCss, 0)
 	}()
 	var (
-		css   string
-		tTcss [][]byte
-		eq    bool
-		se    *opelog.StoredEntry
+		css string
+		eq  bool
+		se  *opelog.StoredEntry
 	)
 	css, err = ose.dssCopyFile()
 	if err != nil {
 		return
 	}
-	tTcss, err = common.Checksums2TypedChecksums(css)
+	tCss, err = common.Checksums2TypedChecksums(css)
 	if err != nil {
 		return
 	}
 	if ose.owo().Check {
-		eq, err = common.CompareTcss(tTcss, sTcss, ose.ole.getCsAlgos(false))
-		if err != nil {
-			return
+		if len(sTcss) > 0 {
+			eq, err = common.CompareTcss(tCss, sTcss, ose.ole.getCsAlgos(false))
+			if err != nil {
+				return
+			}
+			if !eq {
+				err = errors.New("source/target checksums differ")
+				return
+			}
 		}
-		if !eq {
-			err = errors.New("source/target checksums differ")
-			return
+		if ose.ole.owi.needInvCheck() {
+			iSt := ose.ole.le.GetState(ose.ole.owi.invTime, false)
+			eq, err = common.CompareTcss(tCss, iSt.Tcss, ose.ole.owi.owo.InvCsAlgos)
+			if err != nil {
+				return
+			}
+			if !eq {
+				err = errors.New("inventory/source checksums differ")
+				return
+			}
+		}
+		sOse := ose.ole.source
+		if len(sTcss) == 0 {
+			sOse.setState(opelog.STC_DONE_PRESENT, "", sOse.se(), tCss, 0)
 		}
 	}
 	if se, err = ose.setMeta(); err != nil {
 		return
 	}
-	ose.setState(opelog.STC_DONE_PRESENT, "", se, tTcss, 0)
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, tCss, 0)
 	return
 }
 
@@ -249,7 +267,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 	if !ose.isPresent() {
 		return nil
 	}
-	if !ose.isTarget && ose.isPresent() && ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() && len(ose.getState().Tcss) == 0 {
+	if !ose.isTarget && ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() && len(ose.getState().Tcss) == 0 {
 		css, err := ose.dssRead()
 		if err != nil {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
@@ -271,6 +289,8 @@ func (ose *oplStoredEntry) tryLoad() error {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 			return err
 		}
+		ose.setState(opelog.STC_DONE_PRESENT, "", ose.se(), tCss, 0)
+		return nil
 	}
 	if !ose.isDir() || len(ose.se().Children) == 0 {
 		// all possible already done

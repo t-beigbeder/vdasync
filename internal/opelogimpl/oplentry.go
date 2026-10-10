@@ -81,9 +81,10 @@ func (ole *oplLogicalEntry) getCsAlgos(withInv bool) string {
 	owo := ole.owo()
 	cssAlgos := []string{}
 	if owo.Check {
-		cssAlgos = strings.Split(owo.CsAlgos, ",")
 		if owo.CsAlgos == "" {
-			cssAlgos = append(cssAlgos, "sha256")
+			cssAlgos = []string{"sha256"}
+		} else {
+			cssAlgos = strings.Split(owo.CsAlgos, ",")
 		}
 	}
 	csAlgos := strings.Join(cssAlgos, ",")
