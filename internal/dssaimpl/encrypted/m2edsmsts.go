@@ -101,7 +101,7 @@ func (m *m2edsStSvc) Put(bs []byte) error {
 	}
 	if !de.ErrNotExist {
 		// TODO: merge with common LimitedBackup
-		sf := time.Unix(de.Mtime, 0).Format(bckExtFormat)
+		sf := time.Unix(de.Mtime, 0).UTC().Format(bckExtFormat)
 		if err = common.CopyEntry(m.dss, m.metaPath(), fmt.Sprintf("%s.%s", m.metaPath(), sf)); err != nil {
 			return err
 		}

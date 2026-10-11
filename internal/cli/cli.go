@@ -59,6 +59,7 @@ func CommonFlags() *CommonFlagsType {
 
 type ServicesFlagsType struct {
 	OplDirFlag *string
+	OplBckFlag *int
 	CheckFlag  *bool
 	CsalFlag   *string
 	ExclFlag   *string
@@ -68,6 +69,7 @@ type ServicesFlagsType struct {
 func ServicesFlags() *ServicesFlagsType {
 	return &ServicesFlagsType{
 		OplDirFlag: flag.String("opldir", "", "operations logs directory if applies"),
+		OplBckFlag: flag.Int("oplbck", 5, "number of backups for operation logs master file"),
 		CheckFlag:  flag.Bool("check", false, "compute checksums"),
 		CsalFlag:   flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
 		ExclFlag:   flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),

@@ -159,7 +159,7 @@ func TestManyOplWalkers(t *testing.T) {
 			owt.ftgen = ftGenSmall
 		}
 		if owt.oplm == nil {
-			owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"))
+			owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"), 0)
 		}
 		_, _, err = owt.oplm.Create("ds", "di", owt.std, owt.ttd)
 		require.NoError(t, err)
@@ -192,7 +192,7 @@ func TestOplWalker(t *testing.T) {
 	lgr = common.GetLogger()
 	lgr = common.InfoLogger()
 	lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	// lgr = common.DbgLogger()
+	lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")
@@ -208,7 +208,7 @@ func TestOplWalker(t *testing.T) {
 	cPath := path.Join(ltd, "invDump.csv")
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
 
-	oplm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	oplm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 5)
 	require.NoError(t, err)
 	oplmi, ok := oplm.(*m2fOplMng)
 	require.True(t, ok)
@@ -241,7 +241,7 @@ func TestOplWalker(t *testing.T) {
 		"ds", "di")
 	err = ow.Run()
 	require.NoError(t, err)
-	oplmRo, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	oplmRo, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
 	sTs, _, err := oplmRo.Open("ds", "di", true)
 	rLe, err := oplmRo.GetLogicalEntry("")

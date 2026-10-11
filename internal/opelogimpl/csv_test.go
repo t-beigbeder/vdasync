@@ -57,7 +57,7 @@ func TestCsvExport(t *testing.T) {
 			owt.ftgen = ftGenSmall
 		}
 		if owt.oplm == nil {
-			owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"))
+			owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"), 0)
 		}
 		_, _, err := owt.oplm.Create("ds", "di", owt.std, owt.ttd)
 		require.NoError(t, err)

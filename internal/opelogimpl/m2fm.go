@@ -16,6 +16,7 @@ import (
 
 type m2fOplMng struct {
 	path        string
+	bckLimit    int
 	mx          sync.Mutex
 	source      string
 	target      string
@@ -30,12 +31,12 @@ type m2fOplMng struct {
 }
 
 func (m *m2fOplMng) tsInUse(ts int64) (yes bool) {
-	for sTs := range maps.Values(m.sessions) {
+	for _, sTs := range m.sessions {
 		if sTs == ts {
 			return true
 		}
 	}
-	for iTs := range maps.Values(m.inventories) {
+	for _, iTs := range m.inventories {
 		if iTs == ts {
 			return true
 		}
@@ -219,6 +220,11 @@ func (m *m2fOplMng) Sync() error {
 	if !m.hasUpdates {
 		return nil
 	}
+	if m.bckLimit > 0 {
+		if err := common.LimitedBackup(m.path, m.bckLimit); err != nil {
+			return err
+		}
+	}
 	if err := m.save(); err != nil {
 		return err
 	}
@@ -319,6 +325,6 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 
 var _ opelog.OpeLogManager = &m2fOplMng{}
 
-func MakeM2fManager(path string) (opelog.OpeLogManager, error) {
-	return &m2fOplMng{path: path}, nil
+func MakeM2fManager(path string, bckLimit int) (opelog.OpeLogManager, error) {
+	return &m2fOplMng{path: path, bckLimit: bckLimit}, nil
 }

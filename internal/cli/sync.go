@@ -130,7 +130,7 @@ func RunSyncCli(df *DssaFactory) {
 		SyncOptionsType: swo,
 		Goals:           *cmdFlag,
 	}
-	oplm, err := opelogimpl.MakeM2fManager(path.Join(*svsf.OplDirFlag, "m2f.opl"))
+	oplm, err := opelogimpl.MakeM2fManager(path.Join(*svsf.OplDirFlag, "m2f.opl"), *svsf.OplBckFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}

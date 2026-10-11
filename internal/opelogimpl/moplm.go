@@ -22,6 +22,7 @@ type memOplm struct {
 	hasUpdates  bool
 }
 
+// FIXME: duplicated code
 func (m *memOplm) tsInUse(ts int64) (yes bool) {
 	for sTs := range maps.Values(m.sessions) {
 		if sTs == ts {

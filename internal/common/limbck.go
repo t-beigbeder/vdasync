@@ -37,7 +37,7 @@ func LimitedBackup(path_ string, limit int) error {
 	if err != nil {
 		return err
 	}
-	tss := time.Unix(fi.ModTime().Unix(), 0).Format(bckExtFormat)
+	tss := time.Unix(fi.ModTime().Unix(), 0).UTC().Format(bckExtFormat)
 	rc, err := os.Open(path_)
 	if err != nil {
 		return err

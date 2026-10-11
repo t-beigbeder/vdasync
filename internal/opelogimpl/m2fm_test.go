@@ -20,7 +20,7 @@ func TestM2fBaseOpeLogs(t *testing.T) {
 	ltd := t.TempDir()
 	ttd := t.TempDir()
 
-	olm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
 	_, _, err = olm.Create("ds", "di", std, ttd)
 	require.NoError(t, err)
@@ -30,7 +30,7 @@ func TestM2fBaseOpeLogs(t *testing.T) {
 	require.NoError(t, olm.Sync())
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
 	require.NoError(t, olm.Sync())
-	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
 	_, _, err = olm2.Open("ds", "di", false)
 	require.Error(t, err)
@@ -52,7 +52,7 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 	ltd := t.TempDir()
 	ttd := t.TempDir()
 
-	olm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
 	sTs, _, err := olm.Create("ds", "di", std, ttd)
 	require.NoError(t, err)
@@ -68,7 +68,7 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NoError(t, olm.Sync())
-	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
 	_, _, err = olm2.Open("ds", "di", false)
 	require.Error(t, err)
@@ -90,7 +90,7 @@ func TestM2fMarshOpeLogs(t *testing.T) {
 	ltd := t.TempDir()
 	ttd := t.TempDir()
 
-	olmi, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olmi, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
 	olm, ok := olmi.(*m2fOplMng)
 	require.True(t, ok)
@@ -109,7 +109,7 @@ func TestM2fMarshOpeLogs(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NoError(t, olm.Sync())
-	olmi2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olmi2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	olm2, ok := olmi2.(*m2fOplMng)
 	require.True(t, ok)
 	olm2.testMarsh = true
