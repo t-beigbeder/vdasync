@@ -12,6 +12,8 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
 )
 
+const bckExtFormat = "20060102-150405"
+
 type m2edsvc struct {
 	metasts.M2StSvc
 }
@@ -98,7 +100,8 @@ func (m *m2edsStSvc) Put(bs []byte) error {
 		return err
 	}
 	if !de.ErrNotExist {
-		sf := time.Unix(de.Mtime, 0).Format(time.RFC3339)
+		// TODO: merge with common LimitedBackup
+		sf := time.Unix(de.Mtime, 0).Format(bckExtFormat)
 		if err = common.CopyEntry(m.dss, m.metaPath(), fmt.Sprintf("%s.%s", m.metaPath(), sf)); err != nil {
 			return err
 		}

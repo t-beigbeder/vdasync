@@ -8,6 +8,8 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 )
 
+// TODO: add tests for other dssadapt 
+
 func TestDeList(t *testing.T) {
 	dss := MakeLocalFilesDssa()
 	td := t.TempDir()

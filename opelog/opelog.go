@@ -84,9 +84,9 @@ func (tse *StoredEntry) Clone() *StoredEntry {
 		IsDir:         tse.IsDir,
 		Size:          tse.Size,
 		Mtime:         tse.Mtime,
-		User:          int32(tse.User),
+		User:          tse.User,
 		UserRights:    cloneRights(tse.UserRights),
-		Group:         int32(tse.Group),
+		Group:         tse.Group,
 		GroupRights:   cloneRights(tse.GroupRights),
 		OtherRights:   cloneRights(tse.OtherRights),
 		IsSymLink:     tse.IsSymLink,
@@ -277,11 +277,11 @@ func (cs *ComputedStats) Reset() {
 	cs.Error = &AggInfo{}
 }
 
+// IsSet checks Number set in any aggregated info except NoOp
 func (cs *ComputedStats) IsSet() bool {
 	return cs.SourceListOrStat.Number+cs.TargetListOrStat.Number+
 		cs.Read.Number+cs.Create.Number+
 		cs.Update.Number+cs.Remove.Number+cs.MetaChange.Number+cs.Error.Number != 0
-
 }
 
 type StateCode opeloggrpc.StateCode
@@ -302,7 +302,7 @@ func (sc StateCode) String() string {
 
 type State struct {
 	Stc StateCode
-	// after tool (re)start, entry with on-going STC_DIR state
+	// after tool (re)start, entry with state implying on-going activity
 	// needs children requeuing after proper evaluation
 	ToolStartTime int64
 	Error         string
