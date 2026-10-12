@@ -78,7 +78,7 @@ func ServicesFlags() *ServicesFlagsType {
 		ExclFlag:    flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
 		InclFlag:    flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
 		OplSesFlag:  flag.String("oplses", "", "operation logs session name"),
-		OplInvFlag:  flag.String("oplses", "", "operation logs inventory name"),
+		OplInvFlag:  flag.String("oplinv", "", "operation logs inventory name"),
 		OplPathFlag: flag.String("oplpath", "", "operation logs master file"),
 		OplStoFlag:  flag.String("oplsto", "aio", "operation logs storage: aio|pbf"),
 		OplCsvFlag:  flag.String("oplcsv", "", "operation logs csv export path"),
