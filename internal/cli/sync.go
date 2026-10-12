@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
 	"runtime/pprof"
 	"time"
 
@@ -18,7 +17,7 @@ import (
 
 func RunSyncCli(df *DssaFactory) {
 	var (
-		cmdFlag      = flag.String("cmd", "", "operations log command: load,create,update,verify")
+		oplCmdFlag   = flag.String("oplcmd", "", "operations log command: load,create,update")
 		sourceFlag   = flag.String("source", "", "source of the command")
 		targetFlag   = flag.String("target", "", "target of the command")
 		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -107,7 +106,7 @@ func RunSyncCli(df *DssaFactory) {
 		ExclListPath: *svsf.ExclFlag, InclListPath: *svsf.InclFlag,
 	}
 
-	if *svsf.OplDirFlag == "" {
+	if *oplCmdFlag == "" {
 		swk, err := walker.RunSynchronizer(
 			lgr, *cf.ConcurrencyFlag,
 			&swo,
@@ -126,20 +125,32 @@ func RunSyncCli(df *DssaFactory) {
 		time.Sleep(10 * time.Millisecond)
 		return
 	}
-	owo := &config.OpeLogOptionsType{
-		SyncOptionsType: swo,
-		Goals:           *cmdFlag,
-	}
-	oplm, err := opelogimpl.MakeM2fManager(path.Join(*svsf.OplDirFlag, "m2f.opl"), *svsf.OplBckFlag)
+	syncPer, syncBck, err := ParsePeriodBackups(*svsf.OplSyncFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
+	}
+	expPer, expBck, err := ParsePeriodBackups(*svsf.OplExpFlag)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
+	oplm, err := opelogimpl.MakeM2fManager(*svsf.OplPathFlag, syncBck)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
+	owo := &config.OpeLogOptionsType{
+		SyncOptionsType: swo,
+		Goals:           *oplCmdFlag,
+		SyncPeriod:      int64(syncPer),
+		ExpFile:         *svsf.OplExpFlag,
+		ExpPeriod:       int64(expPer),
+		ExpBck:          expBck,
 	}
 	ow := opelogimpl.NewOplWalker(
 		lgr, *cf.ConcurrencyFlag, nil, oplm,
 		owo,
 		sDss, tDss,
 		sourceRoot, targetRoot,
-		"ds", "di",
+		*svsf.OplSesFlag, *svsf.OplInvFlag,
 	)
 	if err = ow.Run(); err != nil {
 		common.Fatal(lgr, err)

@@ -57,6 +57,7 @@ type OpeLogOptionsType struct {
 	ClearErrors     bool   `yaml:"clearErrors"`
 	ExpPeriod       int64  `yaml:"expPeriod"`
 	ExpFile         string `yaml:"expFile"`
+	ExpBck          int    `yaml:"expBck"`
 }
 
 type SftpServerType struct {
