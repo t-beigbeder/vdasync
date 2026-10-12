@@ -8,7 +8,7 @@ import (
 )
 
 func TestAll(t *testing.T) {
-	t.Skip("wip")
+	t.Skip("wip") // TODO: what was it?
 	tds, err := NewTestDss(&TestDssOptions{
 		Lgr:         common.DbgLogger(),
 		Kind:        "sftp",

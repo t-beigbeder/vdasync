@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"log/slog"
 	"path"
 	"testing"
 
@@ -12,22 +13,21 @@ import (
 
 func TestCsvExport(t *testing.T) {
 	var (
+		lgr *slog.Logger
 		err error
 	)
-	dbgLgr := common.DbgLogger()
-	cliLgr, err := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	lgr = common.GetLogger()
+	// lgr = common.InfoLogger()
+	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	// lgr = common.DbgLogger()
 	require.NoError(t, err)
-	infLgr := common.InfoLogger()
-	defLgr := common.GetLogger()
-	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
-	defLgr = infLgr
 	skipDefault := false
 
 	owts := []owTest{
 		{
 			label:     "load - c4 small simple",
 			unSkipped: false,
-			lgr:       defLgr,
+			lgr:       lgr,
 			ftgen:     ftGenSmall,
 			conc:      0,
 			owo: &config.OpeLogOptionsType{
@@ -42,7 +42,7 @@ func TestCsvExport(t *testing.T) {
 
 	for _, owt := range owts {
 		if owt.lgr == nil {
-			owt.lgr = defLgr
+			owt.lgr = lgr
 		}
 		if skipDefault {
 			if !owt.unSkipped {

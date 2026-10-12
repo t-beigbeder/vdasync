@@ -13,7 +13,7 @@ import (
 )
 
 func TestM2fBaseOpeLogs(t *testing.T) {
-	lgr := common.DbgLogger()
+	lgr := common.GetLogger()
 	lgr.Debug("TestM2fBaseOpeLogs: start")
 
 	std := t.TempDir()
@@ -38,7 +38,7 @@ func TestM2fBaseOpeLogs(t *testing.T) {
 }
 
 func TestM2fNoFileOpeLogs(t *testing.T) {
-	lgr := common.DbgLogger()
+	lgr := common.GetLogger()
 	lgr.Debug("TestM2fNoFileOpeLogs: start")
 
 	std := t.TempDir()
@@ -69,7 +69,7 @@ func TestM2fNoFileOpeLogs(t *testing.T) {
 }
 
 func TestM2fWriteOpeLogs(t *testing.T) {
-	lgr := common.DbgLogger()
+	lgr := common.GetLogger()
 	lgr.Debug("TestM2fWriteOpeLogs: start")
 
 	std := t.TempDir()
@@ -105,7 +105,7 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 }
 
 func TestM2fWriteNoFileOpeLogs(t *testing.T) {
-	lgr := common.DbgLogger()
+	lgr := common.GetLogger()
 	lgr.Debug("TestM2fWriteNoFileOpeLogs: start")
 
 	std := t.TempDir()
