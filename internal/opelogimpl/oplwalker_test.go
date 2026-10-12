@@ -250,6 +250,45 @@ func TestOplWalker(t *testing.T) {
 	require.Zero(t, rLe.GetStats(sTs).Error.Number)
 }
 
+func TestOplBadSession(t *testing.T) {
+	var (
+		lgr *slog.Logger
+		err error
+	)
+	lgr = common.GetLogger()
+	// lgr = common.InfoLogger()
+	// lgr, err = common.CliLogger("TestOplBadSession", "DEBUG+2", "stderr")
+	// lgr = common.DbgLogger()
+	require.NoError(t, err)
+
+	lgr.Debug("TestOplBadSession: started")
+	std := t.TempDir()
+	ltd := t.TempDir()
+	ttd := t.TempDir()
+
+	require.NoError(t, ftGenTiny(std))
+	lgr.Debug("TestOplBadSession: FileTreeGenerated")
+
+	cPath := path.Join(ltd, "invDump.csv")
+	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
+	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, false, std, ttd)
+	require.NoError(t, err)
+	require.Contains(t, oplm.Olm().Sessions, "ds")
+	iTs := oplm.Olm().Sessions["ds"].ReferenceTime
+	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5"))
+	require.NoError(t, oplm.Close())
+	require.Contains(t, oplm.Olm().Sessions, "di")
+	ow := NewOplWalker(
+		lgr, 4, nil, oplm,
+		&config.OpeLogOptionsType{Goals: "load"},
+		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
+		std, ttd,
+		"di", "ds")
+	err = ow.Run()
+	require.Error(t, err)
+
+}
+
 func TestGoals(t *testing.T) {
 	owi := &oplWalkerImpl{owo: &config.OpeLogOptionsType{Goals: ""}}
 	owi.owo.Goals = "load"

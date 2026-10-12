@@ -363,6 +363,11 @@ func (ow *oplWalkerImpl) Run() error {
 			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
 			return err
 		}
+		if sSi.IsInventory {
+			err = fmt.Errorf("cannot use inventory %s as a synchronization session", ow.session)
+			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
+			return err
+		}
 		ow.sessionTime = sSi.ReferenceTime
 	}
 	if ow.inventory != "" {

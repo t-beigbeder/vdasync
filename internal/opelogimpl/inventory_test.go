@@ -37,7 +37,6 @@ func TestInventoryMediumCsvImport(t *testing.T) {
 
 	require.Contains(t, oplm.Olm().Sessions, "di")
 	iTs = oplm.Olm().Sessions["di"].ReferenceTime
-	require.NoError(t, err)
 	require.Contains(t, oplm.Olm().Sessions, "ds")
 	require.Contains(t, oplm.Olm().Sessions, "di")
 }

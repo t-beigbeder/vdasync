@@ -486,9 +486,9 @@ type SessionInfo struct {
 
 func (si *SessionInfo) Clone() *SessionInfo {
 	return &SessionInfo{
-		Comment: si.Comment,
+		Comment:       si.Comment,
 		ReferenceTime: si.ReferenceTime,
-		IsInventory: si.IsInventory,
+		IsInventory:   si.IsInventory,
 	}
 }
 
@@ -506,7 +506,7 @@ func (olm *OpeLogMaster) Clone() *OpeLogMaster {
 	return &OpeLogMaster{
 		SourceRoot: olm.SourceRoot,
 		TargetRoot: olm.TargetRoot,
-		Sessions: sis,
+		Sessions:   sis,
 	}
 }
 func (olm *OpeLogMaster) Session(label string) *SessionInfo {

@@ -64,7 +64,7 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, olm.Sync())
 
-	olm2, err := openTestM2fManagerRO(path.Join(ltd, "m2f.opl"), true)
+	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
 	require.Error(t, olm2.Open(false))
 	require.NoError(t, olm2.Open(true))
