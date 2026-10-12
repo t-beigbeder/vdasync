@@ -12,10 +12,10 @@ import (
 )
 
 type OpeLogManager interface {
-	Create(session, inventory, source, target string) (int64, int64, error)
-	AddSession(label string) (int64, error)
-	AddInventory(label string) (int64, error)
-	Open(session, inventory string, readOnly bool) (int64, int64, error)
+	Create(source, target string) error
+	AddSession(label string, si *SessionInfo) (int64, error)
+	Open(readOnly bool) error
+	Olm() *OpeLogMaster
 	Sync() error
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
@@ -478,14 +478,45 @@ func (le *LogicalEntry) addOrShareTcss(tcss [][]byte) []int32 {
 	return tcssNums
 }
 
-// For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
-type OpeLogAllInOne struct {
+type SessionInfo struct {
+	Comment       string
+	ReferenceTime int64
+	IsInventory   bool
+}
+
+func (si *SessionInfo) Clone() *SessionInfo {
+	return &SessionInfo{
+		Comment: si.Comment,
+		ReferenceTime: si.ReferenceTime,
+		IsInventory: si.IsInventory,
+	}
+}
+
+type OpeLogMaster struct {
 	SourceRoot string
 	TargetRoot string
+	Sessions   map[string]*SessionInfo
+}
+
+func (olm *OpeLogMaster) Clone() *OpeLogMaster {
+	sis := make(map[string]*SessionInfo, len(olm.Sessions))
+	for k, v := range olm.Sessions {
+		sis[k] = v.Clone()
+	}
+	return &OpeLogMaster{
+		SourceRoot: olm.SourceRoot,
+		TargetRoot: olm.TargetRoot,
+		Sessions: sis,
+	}
+}
+func (olm *OpeLogMaster) Session(label string) *SessionInfo {
+	si, _ := olm.Sessions[label]
+	return si
+}
+
+// For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
+type OpeLogAllInOne struct {
+	Master *OpeLogMaster
 	// the key is the relative path
 	LogicalEntries map[string]*LogicalEntry
-	// the key is the session label the value is its unique reference time
-	Sessions map[string]int64
-	// the key is the inventory label the value is its unique reference time
-	Inventories map[string]int64
 }

@@ -353,12 +353,28 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
 		return err
 	}
-	sTs, iTs, err := ow.oplm.Open(ow.session, ow.inventory, false)
-	if err != nil {
-		ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
+	if err := ow.oplm.Open(false); err != nil {
 		return err
 	}
-	ow.sessionTime, ow.invTime = sTs, iTs
+	if ow.session != "" {
+		sSi := ow.oplm.Olm().Session(ow.session)
+		if sSi == nil {
+			err = fmt.Errorf("no such session %s", ow.session)
+			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
+			return err
+		}
+		ow.sessionTime = sSi.ReferenceTime
+	}
+	if ow.inventory != "" {
+		iSi := ow.oplm.Olm().Session(ow.inventory)
+		if iSi == nil {
+			err = fmt.Errorf("no such inventory %s", ow.inventory)
+			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
+			return err
+		}
+		ow.invTime = iSi.ReferenceTime
+	}
+
 	ow.wkNtfChan = make(chan workerNotif)
 	go ow.workersController()
 

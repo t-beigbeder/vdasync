@@ -51,11 +51,19 @@ func (owt *owTest) invImport() error {
 	if err := InventoryCsvExport(owt.std, cPath, owt.owo.InvCsAlgos); err != nil {
 		return err
 	}
-	_, iTs, err := owt.oplm.Open("ds", "di", false)
+	err := owt.oplm.Open(false)
 	if err != nil {
 		return err
 	}
 	defer owt.oplm.Close()
+	_, err = owt.oplm.AddSession("ds", &opelog.SessionInfo{IsInventory: false})
+	if err != nil {
+		return err
+	}
+	iTs, err := owt.oplm.AddSession("di", &opelog.SessionInfo{IsInventory: true})
+	if err != nil {
+		return err
+	}
 	ica := "" // FIXME: owt.owo.InvCsAlgos
 	if err := InventoryCsvImport(owt.oplm, iTs, cPath, ica); err != nil {
 		return err
@@ -71,7 +79,7 @@ func (owt *owTest) invCheck() error {
 		return nil
 	}
 	cPath := path.Join(owt.ltd, "oplmExport.csv")
-	if _, _, err := owt.oplm.Open("ds", "di", true); err != nil {
+	if err := owt.oplm.Open(true); err != nil {
 		return err
 	}
 	defer owt.oplm.Close()
@@ -159,9 +167,8 @@ func TestManyOplWalkers(t *testing.T) {
 			owt.ftgen = ftGenSmall
 		}
 		if owt.oplm == nil {
-			owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"), 0)
+			owt.oplm, err = makeTestM2fManager(path.Join(owt.ltd, "m2f.opl"), 0, true, owt.std, owt.ttd)
 		}
-		_, _, err = owt.oplm.Create("ds", "di", owt.std, owt.ttd)
 		require.NoError(t, err)
 		require.NoError(t, owt.ftgen(owt.std))
 		require.NoError(t, owt.invImport())
@@ -175,8 +182,7 @@ func TestManyOplWalkers(t *testing.T) {
 		require.NoError(t, ow.Run())
 		require.NoError(t, owt.invCheck())
 		csvPath := path.Join(owt.ltd, "oplm.csv")
-		_, _, err = owt.oplm.Open("ds", "di", true)
-		require.NoError(t, err)
+		require.NoError(t, owt.oplm.Open(true))
 		require.NoError(t, OplCsvExport(owt.lgr, nil, owt.oplm, csvPath, RPT_SYNTHETIC, "ds"))
 		owt.lgr.Info("exported", "csv", csvPath)
 		require.NoError(t, owt.oplm.Close())
@@ -207,17 +213,10 @@ func TestOplWalker(t *testing.T) {
 
 	cPath := path.Join(ltd, "invDump.csv")
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
-
-	oplm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 5)
+	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, true, std, ttd)
 	require.NoError(t, err)
-	oplmi, ok := oplm.(*m2fOplMng)
-	require.True(t, ok)
-	oplmi.testMarsh = true
-
-	_, iTs, err := oplm.Create("ds", "di", std, ttd)
-	require.NoError(t, err)
-	_, _, err = oplm.Open("ds", "di", false)
-	require.NoError(t, err)
+	require.Contains(t, oplm.Olm().Sessions, "di")
+	iTs := oplm.Olm().Sessions["di"].ReferenceTime
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5"))
 	require.NoError(t, oplm.Close())
 
@@ -241,9 +240,11 @@ func TestOplWalker(t *testing.T) {
 		"ds", "di")
 	err = ow.Run()
 	require.NoError(t, err)
-	oplmRo, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
+
+	oplmRo, err := openTestM2fManagerRO(path.Join(ltd, "m2f.opl"), true)
 	require.NoError(t, err)
-	sTs, _, err := oplmRo.Open("ds", "di", true)
+	require.Contains(t, oplmRo.Olm().Sessions, "ds")
+	sTs := oplm.Olm().Sessions["ds"].ReferenceTime
 	rLe, err := oplmRo.GetLogicalEntry("")
 	require.NoError(t, err)
 	require.Zero(t, rLe.GetStats(sTs).Error.Number)
