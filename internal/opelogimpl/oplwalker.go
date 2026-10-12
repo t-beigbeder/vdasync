@@ -378,7 +378,7 @@ func (ow *oplWalkerImpl) checkConsistency() (err error) {
 		ow.invTime = iSi.ReferenceTime
 	}
 	if !ow.owo.NoInvCheck && ow.inventory == "" {
-		err = errors.New("an inventory must be provided unless check disabled")
+		err = errors.New("an inventory must be provided as check enabled")
 		return
 	}
 	return

@@ -82,7 +82,7 @@ release:	## go build and release tgz
 	mkdir -p tmp
 	tar czf tmp/vdasync-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasync vdaservice vdaserver vdatserver
 	tar czf tmp/vdasync-all-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 .
-	tar czf tmp/vdasync-sftp-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasftpsync.exe
+	tar czf tmp/vdasync-sftp-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasftpsync.exe vdaservice.exe
 	tar czf tmp/vdasync-all-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
 
 .PHONY: certs
