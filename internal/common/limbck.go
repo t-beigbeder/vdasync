@@ -2,18 +2,18 @@ package common
 
 import (
 	"fmt"
-	"io"
-	"os"
 	"path"
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/t-beigbeder/vdasync/dssa"
 )
 
-const bckExtFormat = "20060102-150405"
+const BckExtFormat = "20060102-150405"
 
-func listBck(path_ string) ([]string, error) {
-	des, err := os.ReadDir(path.Dir(path_))
+func listBck(dss dssa.Dssa, path_ string) ([]string, error) {
+	des, err := dss.List(path.Dir(path_))
 	if err != nil {
 		return nil, err
 	}
@@ -21,8 +21,8 @@ func listBck(path_ string) ([]string, error) {
 	pfx := fmt.Sprintf("%s.", fn)
 	names := []string{}
 	for _, de := range des {
-		name := de.Name()
-		if len(name) != len(fn)+len(bckExtFormat)+1 || !strings.HasPrefix(name, pfx) {
+		name := path.Base(de.Path)
+		if len(name) != len(fn)+len(BckExtFormat)+1 || !strings.HasPrefix(name, pfx) {
 			continue
 		}
 		names = append(names, name)
@@ -31,35 +31,21 @@ func listBck(path_ string) ([]string, error) {
 	return names, nil
 }
 
-// TODO: implement with DSS and test in localfiles/common_test
-func LimitedBackup(path_ string, limit int) error {
-	fi, err := os.Stat(path_)
+func LimitedBackup(dss dssa.Dssa, path_ string, limit int) error {
+	de, err := dss.Stat(path_)
 	if err != nil {
 		return err
 	}
-	tss := time.Unix(fi.ModTime().Unix(), 0).UTC().Format(bckExtFormat)
-	rc, err := os.Open(path_)
-	if err != nil {
-		return err
-	}
-	defer rc.Close()
+	tss := time.Unix(de.Mtime, 0).UTC().Format(BckExtFormat)
 	newPath := fmt.Sprintf("%s.%s", path_, tss)
-	wc, err := os.Create(newPath)
-	if err != nil {
-		return err
-	}
-	defer wc.Close()
-	if _, err = io.Copy(wc, rc); err != nil {
-		return err
-	}
-	if err := wc.Close(); err != nil {
+	if err = CopyEntry(dss, path_, newPath); err != nil {
 		return err
 	}
 	if limit <= 0 {
 		return nil
 	}
 	for {
-		ns, err := listBck(path_)
+		ns, err := listBck(dss, path_)
 		if err != nil {
 			return err
 		}
@@ -67,7 +53,7 @@ func LimitedBackup(path_ string, limit int) error {
 			return nil
 		}
 		rp := path.Join(path.Dir(path_), ns[len(ns)-limit-1])
-		if err = os.Remove(rp); err != nil {
+		if err = dss.Rm(rp); err != nil {
 			return err
 		}
 	}

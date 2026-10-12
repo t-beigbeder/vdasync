@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/opelog"
 	"github.com/t-beigbeder/vdasync/opeloggrpc"
 	"google.golang.org/protobuf/proto"
@@ -221,7 +222,7 @@ func (m *m2fOplMng) Sync() error {
 		return nil
 	}
 	if m.bckLimit > 0 {
-		if err := common.LimitedBackup(m.path, m.bckLimit); err != nil {
+		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), m.path, m.bckLimit); err != nil {
 			return err
 		}
 	}
