@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path"
@@ -336,6 +337,53 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 	lgr.Debug("oplWalkerImpl: stop")
 }
 
+func (ow *oplWalkerImpl) checkConsistency() (err error) {
+	defer func() {
+		if err != nil {
+			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
+		}
+	}()
+
+	if ow.sRoot != ow.oplm.Olm().SourceRoot {
+		err = fmt.Errorf("source root in opelog path differs from %s", ow.sRoot)
+		return
+	}
+	if ow.tRoot != ow.oplm.Olm().TargetRoot {
+		err = fmt.Errorf("target root in opelog path differs from %s", ow.tRoot)
+		return
+	}
+	if ow.session != "" {
+		sSi := ow.oplm.Olm().Session(ow.session)
+		if sSi == nil {
+			err = fmt.Errorf("no such session %s", ow.session)
+			return
+		}
+		if sSi.IsInventory {
+			err = fmt.Errorf("cannot use inventory %s as a synchronization session", ow.session)
+			return
+		}
+		ow.sessionTime = sSi.ReferenceTime
+	} else if ow.oplm.Olm().StoreType == "mem" {
+		ow.session = "auto"
+		if ow.sessionTime, err = ow.oplm.AddSession("auto", &opelog.SessionInfo{}); err != nil {
+			return
+		}
+	}
+	if ow.inventory != "" {
+		iSi := ow.oplm.Olm().Session(ow.inventory)
+		if iSi == nil {
+			err = fmt.Errorf("no such inventory %s", ow.inventory)
+			return
+		}
+		ow.invTime = iSi.ReferenceTime
+	}
+	if !ow.owo.NoInvCheck && ow.inventory == "" {
+		err = errors.New("an inventory must be provided unless check disabled")
+		return
+	}
+	return
+}
+
 func (ow *oplWalkerImpl) Run() error {
 	var (
 		err       error
@@ -353,33 +401,12 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
 		return err
 	}
-	if err := ow.oplm.Open(false); err != nil {
+	if err = ow.oplm.Open(false); err != nil {
 		return err
 	}
-	if ow.session != "" {
-		sSi := ow.oplm.Olm().Session(ow.session)
-		if sSi == nil {
-			err = fmt.Errorf("no such session %s", ow.session)
-			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
-			return err
-		}
-		if sSi.IsInventory {
-			err = fmt.Errorf("cannot use inventory %s as a synchronization session", ow.session)
-			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
-			return err
-		}
-		ow.sessionTime = sSi.ReferenceTime
+	if err = ow.checkConsistency(); err != nil {
+		return err
 	}
-	if ow.inventory != "" {
-		iSi := ow.oplm.Olm().Session(ow.inventory)
-		if iSi == nil {
-			err = fmt.Errorf("no such inventory %s", ow.inventory)
-			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
-			return err
-		}
-		ow.invTime = iSi.ReferenceTime
-	}
-
 	ow.wkNtfChan = make(chan workerNotif)
 	go ow.workersController()
 

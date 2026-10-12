@@ -493,6 +493,7 @@ func (si *SessionInfo) Clone() *SessionInfo {
 }
 
 type OpeLogMaster struct {
+	StoreType  string // set at open time mem, aio, pbf
 	SourceRoot string
 	TargetRoot string
 	Sessions   map[string]*SessionInfo

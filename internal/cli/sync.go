@@ -17,17 +17,21 @@ import (
 
 func RunSyncCli(df *DssaFactory) {
 	var (
-		oplCmdFlag   = flag.String("oplcmd", "", "operations log command: load,create,update")
-		sourceFlag   = flag.String("source", "", "source of the command")
-		targetFlag   = flag.String("target", "", "target of the command")
-		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
-		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
-		forceFlag    = flag.Bool("force", false, "force removing read-only files in sync target")
-		iirregFlag   = flag.Bool("iirreg", false, "ignore irregular files (sockets, pipes, devices...)")
-		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
-		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
-		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
-		cProfFlag    = flag.String("cprof", "", "cpu.prof file")
+		oplCmdFlag     = flag.String("oplcmd", "", "operation logs command: load,create,update")
+		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operation logs won't check inventory")
+		oplRtoFlag     = flag.Int64("oplrto", 0, "operation logs reset timeout in seconds")
+		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
+		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
+		sourceFlag     = flag.String("source", "", "source of the command")
+		targetFlag     = flag.String("target", "", "target of the command")
+		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
+		rmFlag         = flag.Bool("rm", false, "remove files in sync target")
+		forceFlag      = flag.Bool("force", false, "force removing read-only files in sync target")
+		iirregFlag     = flag.Bool("iirreg", false, "ignore irregular files (sockets, pipes, devices...)")
+		noPermFlag     = flag.Bool("noperm", false, "neither check nor set permissions")
+		noMtimeFlag    = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
+		noMtLinkFlag   = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
+		cProfFlag      = flag.String("cprof", "", "cpu.prof file")
 	)
 	cf := CommonFlags()
 	svsf := ServicesFlags()
@@ -140,7 +144,11 @@ func RunSyncCli(df *DssaFactory) {
 	owo := &config.OpeLogOptionsType{
 		SyncOptionsType: swo,
 		Goals:           *oplCmdFlag,
+		NoInvCheck:      *oplNoInvCFlag,
 		SyncPeriod:      int64(syncPer),
+		ResetTimeout:    *oplRtoFlag,
+		EnableRestart:   *oplRestartFlag,
+		ClearErrors:     *oplClErrFlag,
 		ExpFile:         *svsf.OplExpFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,

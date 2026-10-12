@@ -141,6 +141,7 @@ func (m *m2fOplMng) Open(readOnly bool) error {
 		}
 		m.isOpen = true
 		m.readOnly = readOnly
+		m.om.StoreType = "mem"
 		return nil
 	}
 	lock := fmt.Sprintf("%s.lock", m.pathOpt)
@@ -181,6 +182,7 @@ func (m *m2fOplMng) Open(readOnly bool) error {
 	}
 	m.isOpen = true
 	m.readOnly = readOnly
+	m.om.StoreType = "aio"
 	return nil
 }
 
