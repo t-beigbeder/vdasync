@@ -747,7 +747,7 @@ func TestInclSynczer(t *testing.T) {
 	ilp := path.Join(td1, "il.txt")
 	common.Lines2file(
 		[]string{
-			"^d00/d00/d00/f12",
+			"^d00/d00/d00/",
 			"^d00/d00/d01/f0.$",
 		},
 		ilp)

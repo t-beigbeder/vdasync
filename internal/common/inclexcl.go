@@ -37,7 +37,7 @@ func ReFromFile(path_ string, label string) ([]*regexp.Regexp, error) {
 }
 
 func isIncluded(relPath string, inclRegs []*regexp.Regexp) bool {
-	if len(inclRegs) == 0 {
+	if len(inclRegs) == 0 || relPath == "" {
 		return true
 	}
 	for _, ire := range inclRegs {

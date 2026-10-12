@@ -270,7 +270,7 @@ func syncEntryStatusInit(pe *ProcessedEntry) {
 	pe.wi.SetUserData(pe.DataEntry, es)
 }
 
-func isIncluded(pe *ProcessedEntry) bool {
+func bckIsIncluded(pe *ProcessedEntry) bool {
 	sd := syncData(pe)
 	rp := syncRelPath(pe)
 	if len(sd.incls) == 0 {
@@ -284,12 +284,12 @@ func isIncluded(pe *ProcessedEntry) bool {
 	return false
 }
 
-func isExcluded(pe *ProcessedEntry) bool {
+func bckIsExcluded(pe *ProcessedEntry) bool {
 	sd := syncData(pe)
 	rp := syncRelPath(pe)
 	for _, ere := range sd.excls {
 		if ere.MatchString(rp) {
-			ise := !isIncluded(pe)
+			ise := !bckIsIncluded(pe)
 			if ise {
 				pe.Lgr_().Debug("isExcluded: excluded", "ere", ere, "pe", pe.DataEntry.Path, "rp", rp)
 				return true
@@ -299,6 +299,12 @@ func isExcluded(pe *ProcessedEntry) bool {
 		}
 	}
 	return false
+}
+
+func isExcluded(pe *ProcessedEntry) bool {
+	sd := syncData(pe)
+	rp := syncRelPath(pe)
+	return !common.IsIncluded(rp, sd.incls, sd.excls)
 }
 
 func onStartDirEntrySync(pe *ProcessedEntry, noLstatOnList bool) []*dssa.DataEntry {
