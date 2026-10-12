@@ -15,7 +15,7 @@ import (
 )
 
 type m2fOplMng struct {
-	path       string
+	pathOpt    string
 	bckLimit   int
 	mx         sync.Mutex
 	om         *opelog.OpeLogMaster
@@ -45,6 +45,9 @@ func (m *m2fOplMng) nextTimeStamp() int64 {
 }
 
 func (m *m2fOplMng) save() error {
+	if m.pathOpt == "" {
+		return nil
+	}
 	aio := opeloggrpc.OpeLogAllInOne{
 		Master:         opelog.OpeLogMaster2ProtoBuf(m.om),
 		LogicalEntries: make(map[string]*opeloggrpc.LogicalEntry, len(m.les)),
@@ -65,7 +68,7 @@ func (m *m2fOplMng) save() error {
 	if err != nil {
 		return err
 	}
-	if err = common.WriteFile(m.path, bs); err != nil {
+	if err = common.WriteFile(m.pathOpt, bs); err != nil {
 		return err
 	}
 	return nil
@@ -91,19 +94,25 @@ func (m *m2fOplMng) AddSession(label string, si *opelog.SessionInfo) (int64, err
 func (m *m2fOplMng) Create(source, target string) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
-	if common.FileExists(m.path) {
-		return fmt.Errorf("m2fMng.Create: %s already exists", m.path)
+	if m.pathOpt != "" && common.FileExists(m.pathOpt) {
+		return fmt.Errorf("m2fMng.Create: %s already exists", m.pathOpt)
 	}
 	if m.les != nil {
-		return fmt.Errorf("m2fMng.Create: %s should be created without entries", m.path)
+		return fmt.Errorf("m2fMng.Create: %s should be created without entries", m.pathOpt)
 	}
 	if m.om != nil && len(m.om.Sessions) != 0 {
-		return fmt.Errorf("m2fMng.Create: %s should be created without sessions", m.path)
+		return fmt.Errorf("m2fMng.Create: %s should be created without sessions", m.pathOpt)
 	}
 	om := &opelog.OpeLogMaster{
 		SourceRoot: source,
 		TargetRoot: target,
-		Sessions:   nil,
+		Sessions:   map[string]*opelog.SessionInfo{},
+	}
+	if m.pathOpt == "" {
+		m.om = om
+		m.les = map[string]*opelog.LogicalEntry{}
+		m.marshLes = map[string][]byte{}
+		return nil
 	}
 	aio := opeloggrpc.OpeLogAllInOne{
 		Master:         opelog.OpeLogMaster2ProtoBuf(om),
@@ -113,7 +122,7 @@ func (m *m2fOplMng) Create(source, target string) error {
 	if err != nil {
 		return err
 	}
-	if err = common.WriteFile(m.path, bs); err != nil {
+	if err = common.WriteFile(m.pathOpt, bs); err != nil {
 		return err
 	}
 	return nil
@@ -123,14 +132,22 @@ func (m *m2fOplMng) Create(source, target string) error {
 func (m *m2fOplMng) Open(readOnly bool) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
-	lock := fmt.Sprintf("%s.lock", m.path)
 	if m.isOpen {
 		return errors.New("m2fMng.Open: already opened")
 	}
+	if m.pathOpt == "" {
+		if m.om == nil {
+			return errors.New("m2fMng.Open: memory-only m2f master has not been created")
+		}
+		m.isOpen = true
+		m.readOnly = readOnly
+		return nil
+	}
+	lock := fmt.Sprintf("%s.lock", m.pathOpt)
 	if !readOnly && common.FileExists(lock) {
 		return fmt.Errorf("m2fMng.Open: locked (%s)", lock)
 	}
-	bs, err := common.UnsafeLoadFile(m.path)
+	bs, err := common.UnsafeLoadFile(m.pathOpt)
 	if err != nil {
 		return err
 	}
@@ -182,8 +199,11 @@ func (m *m2fOplMng) Sync() error {
 	if !m.hasUpdates {
 		return nil
 	}
+	if m.pathOpt == "" {
+		return nil
+	}
 	if m.bckLimit > 0 {
-		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), m.path, m.bckLimit); err != nil {
+		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), m.pathOpt, m.bckLimit); err != nil {
 			return err
 		}
 	}
@@ -208,8 +228,8 @@ func (m *m2fOplMng) Close() error {
 	}
 	m.hasUpdates = false
 	m.isOpen = false
-	if !m.readOnly {
-		if err := os.Remove(fmt.Sprintf("%s.lock", m.path)); err != nil {
+	if !m.readOnly && m.pathOpt != "" {
+		if err := os.Remove(fmt.Sprintf("%s.lock", m.pathOpt)); err != nil {
 			return err
 		}
 	}
@@ -287,6 +307,6 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 
 var _ opelog.OpeLogManager = &m2fOplMng{}
 
-func MakeM2fManager(path string, bckLimit int) (opelog.OpeLogManager, error) {
-	return &m2fOplMng{path: path, bckLimit: bckLimit}, nil
+func MakeM2fManager(pathOpt string, bckLimit int) (opelog.OpeLogManager, error) {
+	return &m2fOplMng{pathOpt: pathOpt, bckLimit: bckLimit}, nil
 }
