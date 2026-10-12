@@ -121,7 +121,6 @@ func (ow *oplWalkerImpl) workersController() {
 	if rsTo < 0 {
 		// not reliable, for testing only
 		rsTo = int64(50 * time.Millisecond)
-		hasTimeOut = true
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 
@@ -174,7 +173,7 @@ func (ow *oplWalkerImpl) newOplLogicalEntry(plgr *slog.Logger, relPath string, l
 	return ole
 }
 
-// getLogicalEntry ensures entry is loaded or newly created and retrieves related parent state if needed
+// getLogicalEntry ensures entry is loaded or newly created and retrieves related parent state if applies
 //
 // as an optimization, absent parent's state is propagated to (current) child
 func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*oplLogicalEntry, error) {
@@ -197,7 +196,7 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 	ole.parentSSt = ple.GetState(ow.sessionTime, false)
 	ole.parentTSt = ple.GetState(ow.sessionTime, true)
 
-	// absent parent's state is propagated directly to child
+	// absent parent's state is propagated directly to new child
 	pOle := ow.newOplLogicalEntry(lgr, pRelPath, ple)
 	if pOle.source.isAbsent() && ole.source.getState() == nil {
 		ole.source.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
@@ -266,18 +265,18 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	}
 	if hasChanges {
 		if err := ow.oplm.PutLogicalEntry(pRelPath, ple); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: notify parent: put ple", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: put parent le", err)
 			return err
 		}
 	}
 
-	// both branches either just terminated or inactive
+	// if one branche just terminated and other one too or inactive
 	if (parentSSt.DepCount == -1 && parentTSt.DepCount <= 0) ||
 		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
 
 		// notifies parent
 		if err := ow.oplq.Put(pRelPath); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put parent in queue", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: put parent in queue", err)
 			return err
 		}
 	}
@@ -297,20 +296,20 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 
 	if err := ole.process(); err != nil {
 		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
-		ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put err le", err)
+		ow.owErr(ole.lgr, "oplWalkerImpl: process entry", err)
 		return
 	}
 
-	children := ole.setChildrenQueue()
+	children := ole.setChildrenQueue() // side effect hasChanges
 	if ole.hasChanges {
 		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put le", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: put le", err)
 			return
 		}
 	}
 	for _, child := range children {
 		if err := ow.oplq.Put(path.Join(relPath, child)); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put child in queue", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: put child in queue", err)
 			return
 		}
 	}
@@ -377,7 +376,7 @@ func (ow *oplWalkerImpl) checkConsistency() (err error) {
 		}
 		ow.invTime = iSi.ReferenceTime
 	}
-	if !ow.owo.NoInvCheck && ow.inventory == "" {
+	if ow.owo.Check && !ow.owo.NoInvCheck && ow.inventory == "" {
 		err = errors.New("an inventory must be provided as check enabled")
 		return
 	}
