@@ -21,7 +21,7 @@ func TestProxy(t *testing.T) {
 	td := t.TempDir()
 	rec1, id1, err := common.AgeNewKeyPair()
 	require.NoError(t, err)
-	dss, err := MakeProxyDssa(lgr, td, []string{id1})
+	dss, err := MakeProxyEncDssa(lgr, td, []string{id1})
 	require.NoError(t, err)
 	require.Error(t, dss.NewSession())
 	rec2, id2, err := common.AgeNewKeyPair()
@@ -48,7 +48,7 @@ func TestRunOpeDssaTrustedServer(t *testing.T) {
 	td := t.TempDir()
 	rec1, id1, err := common.AgeNewKeyPair()
 	require.NoError(t, err)
-	dss, err := MakeProxyDssa(lgr, td, []string{id1})
+	dss, err := MakeProxyEncDssa(lgr, td, []string{id1})
 	require.NoError(t, err)
 	bgCtx := context.Background()
 	port, cFunc, err := remote.RunOpeDssaServer(lgr, bgCtx,
