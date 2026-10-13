@@ -34,9 +34,9 @@ func TestCsvExport(t *testing.T) {
 				Goals:        "load",
 				ResetTimeout: -1,
 			},
-			oplm:    nil,
-			oplq:    nil,
-			loadInv: false,
+			oplm:       nil,
+			oplq:       nil,
+			hasLoadInv: false,
 		},
 	}
 

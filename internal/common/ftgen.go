@@ -78,8 +78,6 @@ func ftGenFile(ctx *ftGenCtx) error {
 			wg.Add(1)
 			go func() {
 				for iPath := range fGenQueue {
-					t := iPath
-					_ = t
 					if err := MakeTestFile(ftgenPath(ctx, iPath, true), mrand.Intn(ctx.maxFs-1)+1); err != nil {
 						fGenErrors <- err
 						break

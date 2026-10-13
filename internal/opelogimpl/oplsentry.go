@@ -300,7 +300,8 @@ func (ose *oplStoredEntry) tryLoad() error {
 		// another action is ongoing, will progress (including -1 meaning that side is done)
 		return nil
 	}
-	// means change actions have been inhibited
+	// DepCount nul means change actions have been inhibited
+	// (initial state, or reset after tool (re)start)
 	ose.childrenQueued = true
 	return nil
 }
@@ -336,7 +337,7 @@ func (ose *oplStoredEntry) doLoad() error {
 	return nil
 }
 
-// processChildrenDone loads children state, set current's accordingly, and propagate to parent
+// processChildrenDone loads children state/stats, propagate to current's accordingly
 func (ose *oplStoredEntry) processChildrenDone() error {
 	var err error
 	se := ose.se()
@@ -388,11 +389,13 @@ func (ose *oplStoredEntry) load() error {
 		return ose.doLoad()
 	}
 	if st.DepCount == -1 && !ose.toolRestarted {
-		// load children state and propagate to parent
+		// load children state and propagate to current
 		return ose.processChildrenDone()
 	}
 	if st.DepCount == -1 {
 		// tool restarted implies new parent children cycle
+		// reseting DepCount on non-empty dir is a signal to walk again
+		// cf se.tryLoad
 		st.DepCount = 0
 		ose.ole.hasChanges = true
 	}

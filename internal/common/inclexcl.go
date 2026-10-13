@@ -57,7 +57,7 @@ func isExcluded(relPath string, exclRegs []*regexp.Regexp) bool {
 	return false
 }
 
-// IsIncluded checks relPath is included (empty list means all) or not excluded
+// IsIncluded checks relPath is included (empty list means all) and not excluded
 func IsIncluded(relPath string, inclRegs, exclRegs []*regexp.Regexp) bool {
 	return isIncluded(relPath, inclRegs) && !isExcluded(relPath, exclRegs)
 }

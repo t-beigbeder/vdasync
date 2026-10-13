@@ -25,7 +25,7 @@ type ProxyHdlArgs struct {
 
 type ProxyHdlRess struct {
 	Err    error
-	Des []*dssa.DataEntry
+	Des    []*dssa.DataEntry
 	De     *dssa.DataEntry
 	RC     io.ReadCloser
 	WC     io.WriteCloser
@@ -37,17 +37,17 @@ type ProxyHandler interface {
 }
 
 type proxyDssa struct {
-	lgr *slog.Logger
+	lgr        *slog.Logger
 	underlying dssa.Dssa
-	handler ProxyHandler
+	handler    ProxyHandler
 }
 
 type noOpHandler struct {
-	lgr *slog.Logger
+	lgr        *slog.Logger
 	underlying dssa.Dssa
 }
 
-func (ph *noOpHandler)Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess {
+func (ph *noOpHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess {
 	ress := &ProxyHdlRess{}
 	switch fcName {
 	case "NewSession":

@@ -250,7 +250,7 @@ func (ole *oplLogicalEntry) process() error {
 	defer ole.recordEvents()
 
 	// initializes state for both stored entries
-	// clear errors if possible, (re)start dir loading if possible
+	// clear errors if possible, (re)start dir loading if necessary
 	_ = ole.source.load()
 	_ = ole.target.load()
 

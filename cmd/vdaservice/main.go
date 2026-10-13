@@ -99,7 +99,6 @@ func main() {
 	}
 
 	dss, root, err := cli.DoGetDssAndRootFor(lgr, cf, cfg, false, *dssFlag, rps, *cmdFlag != "trust" && *cmdFlag != "untrust", nil)
-	_ = root
 	if err != nil {
 		common.Fatal(lgr, err)
 	}

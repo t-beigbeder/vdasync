@@ -106,7 +106,6 @@ func getStat(lgr *slog.Logger, callStat chan string) {
 				"HeapInuse", m.HeapInuse/1024, "HeapAlloc", m.HeapAlloc/1024, "StackInuse", m.StackInuse/1024,
 				"statMap", statMap)
 		}
-		_ = stat
 	}
 	runtime.ReadMemStats(&m)
 	lgr.Info("RunOpeDssaServer: done", "count", count,

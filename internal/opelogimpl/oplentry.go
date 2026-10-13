@@ -94,7 +94,7 @@ func (ole *oplLogicalEntry) getCsAlgos(withInv bool) string {
 	return csAlgos
 }
 
-// isIncluded checks relPath is included (empty list means all) or not excluded
+// isIncluded checks relPath is included (empty list means all) and not excluded
 func (ole *oplLogicalEntry) isIncluded() bool {
 	return common.IsIncluded(ole.relPath, ole.owi.inclRegs, ole.owi.exclRegs)
 }
@@ -108,6 +108,8 @@ type oplStoredEntry struct {
 	ole      *oplLogicalEntry
 	isTarget bool
 	// processing state
+	// toolRestarted tracks need to reload state/stats (from cache or clearing errors)
+	// after tool restart
 	toolRestarted bool
 	// events information, to be created once full processing done
 	loadTime       int64
@@ -138,6 +140,7 @@ func (ose *oplStoredEntry) root() string {
 	}
 }
 
+// hasError checks se for error, missing state has no error
 func (ose *oplStoredEntry) hasError() bool {
 	st := ose.getState()
 	if st == nil {
@@ -146,7 +149,7 @@ func (ose *oplStoredEntry) hasError() bool {
 	return st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR
 }
 
-// isPresent detects entry not absent, state may be in progress or have error
+// isPresent detects entry not absent, state may be in progress or have error, missing state is not present
 func (ose *oplStoredEntry) isPresent() bool {
 	st := ose.getState()
 	if st == nil {
@@ -155,7 +158,7 @@ func (ose *oplStoredEntry) isPresent() bool {
 	return st.Stc != opelog.STC_DONE_ABSENT
 }
 
-// isAbsent detects entry absent
+// isAbsent detects entry absent, missing state is not absent
 func (ose *oplStoredEntry) isAbsent() bool {
 	st := ose.getState()
 	if st == nil {
@@ -230,7 +233,8 @@ func (ose *oplStoredEntry) setState(stc opelog.StateCode, sErr string, se *opelo
 
 // getState may be nil or Se may be nil meaning simply listed by parent
 //
-// toolRestarted if loaded state differs
+// toolRestarted is set if loaded state differs from tool (re)start time,
+// and stats collecting is reset on first call
 func (ose *oplStoredEntry) getState() *opelog.State {
 	owi := ose.ole.owi
 	st := ose.ole.le.GetState(owi.sessionTime, ose.isTarget)

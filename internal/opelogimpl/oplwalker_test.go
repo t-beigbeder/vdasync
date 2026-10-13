@@ -2,8 +2,11 @@ package opelogimpl
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
+	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,16 +17,18 @@ import (
 )
 
 type owTest struct {
-	label         string
-	unSkipped     bool
-	lgr           *slog.Logger
-	ftgen         func(root string) error
-	conc          int
-	owo           *config.OpeLogOptionsType
-	oplm          opelog.OpeLogManager
-	oplq          opelog.Queue
-	loadInv       bool
-	std, ltd, ttd string
+	label              string
+	unSkipped          bool
+	lgr                *slog.Logger
+	ftgen              func(root string) error
+	conc               int
+	owo                *config.OpeLogOptionsType
+	oplm               opelog.OpeLogManager
+	oplq               opelog.Queue
+	hasLoadInv         bool
+	hasNoExpCsv        bool
+	csvName            string
+	std, ltd, ttd, ctd string
 }
 
 var ftGenTiny = func(root string) error {
@@ -44,7 +49,7 @@ var ftGenAugSmall = func(root string) error {
 }
 
 func (owt *owTest) invImport() error {
-	if !owt.loadInv {
+	if !owt.hasLoadInv {
 		return nil
 	}
 	cPath := path.Join(owt.ltd, "invDump.csv")
@@ -70,11 +75,12 @@ func (owt *owTest) invImport() error {
 	return nil
 }
 
-func (owt *owTest) invCheck() error {
-	if !owt.loadInv {
+func (owt *owTest) exportCsv() error {
+	if owt.hasNoExpCsv {
 		return nil
 	}
-	cPath := path.Join(owt.ltd, "oplmExport.csv")
+	csvName := strings.Join(strings.Split(owt.label, " "), "-")
+	cPath := fmt.Sprintf("%s.csv", path.Join(owt.ctd, csvName))
 	if err := owt.oplm.Open(true); err != nil {
 		return err
 	}
@@ -82,7 +88,7 @@ func (owt *owTest) invCheck() error {
 	if err := OplCsvExport(owt.lgr, nil, owt.oplm, cPath, RPT_SYNTHETIC, "ds"); err != nil {
 		return err
 	}
-	owt.lgr.Info("invCheck", "csvExport", cPath)
+	owt.lgr.Info("exportCsv", "cPath", cPath)
 	return nil
 }
 
@@ -97,7 +103,9 @@ func TestManyOplWalkers(t *testing.T) {
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
 	skipDefault := false
-	defLgr = cliLgr
+	defLgr = infLgr
+	ctd := path.Join(os.TempDir(), "oplCsv")
+	os.Mkdir(ctd, 0700)
 
 	owts := []owTest{
 		{
@@ -109,9 +117,9 @@ func TestManyOplWalkers(t *testing.T) {
 			owo: &config.OpeLogOptionsType{
 				Goals: "load",
 			},
-			oplm:    nil,
-			oplq:    nil,
-			loadInv: false,
+			oplm:       nil,
+			oplq:       nil,
+			hasLoadInv: false,
 		},
 		{
 			label: "load c4 - medium with sync",
@@ -123,27 +131,27 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label:     "load & inv check - c4 small simple",
-			ftgen:     ftGenSmall,
-			conc:      4,
+			label: "load & inv check - c4 small simple",
+			ftgen: ftGenSmall,
+			conc:  4,
 			owo: &config.OpeLogOptionsType{
 				Goals:      "load",
 				InvCsAlgos: "md5",
 			},
-			loadInv: true,
+			hasLoadInv: true,
 		},
 		{
-			label:     "create - c4 tiny simple",
-			ftgen:     ftGenTiny,
-			conc:      4,
+			label: "create - c4 tiny simple",
+			ftgen: ftGenTiny,
+			conc:  4,
 			owo: &config.OpeLogOptionsType{
 				Goals: "create",
 			},
 		},
 		{
-			label:     "update - c4 tiny simple",
-			ftgen:     ftGenTiny,
-			conc:      4,
+			label: "update - c4 tiny simple",
+			ftgen: ftGenTiny,
+			conc:  4,
 			owo: &config.OpeLogOptionsType{
 				Goals: "update",
 			},
@@ -163,6 +171,7 @@ func TestManyOplWalkers(t *testing.T) {
 		owt.std = t.TempDir()
 		owt.ltd = t.TempDir()
 		owt.ttd = t.TempDir()
+		owt.ctd = ctd
 		if owt.ftgen == nil {
 			owt.ftgen = ftGenSmall
 		}
@@ -183,19 +192,14 @@ func TestManyOplWalkers(t *testing.T) {
 			"ds", "di",
 		)
 		require.NoError(t, ow.Run())
-		require.NoError(t,  owt.oplm.Open(true))
+		require.NoError(t, owt.oplm.Open(true))
 		sTs := owt.oplm.Olm().Sessions["ds"].ReferenceTime
 		rLe, err := owt.oplm.GetLogicalEntry("")
 		require.NoError(t, err)
 		require.Zero(t, rLe.GetStats(sTs).Error.Number)
-		require.NoError(t,  owt.oplm.Close())
-
-		require.NoError(t, owt.invCheck())
-		csvPath := path.Join(owt.ltd, "oplm.csv")
-		require.NoError(t, owt.oplm.Open(true))
-		require.NoError(t, OplCsvExport(owt.lgr, nil, owt.oplm, csvPath, RPT_SYNTHETIC, "ds"))
-		owt.lgr.Info("exported", "csv", csvPath)
 		require.NoError(t, owt.oplm.Close())
+
+		require.NoError(t, owt.exportCsv())
 		require.True(t, true)
 	}
 }
