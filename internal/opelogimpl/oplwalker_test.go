@@ -1,10 +1,10 @@
 package opelogimpl
 
 import (
+	"errors"
 	"log/slog"
 	"path"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/config"
@@ -56,16 +56,12 @@ func (owt *owTest) invImport() error {
 		return err
 	}
 	defer owt.oplm.Close()
-	_, err = owt.oplm.AddSession("ds", &opelog.SessionInfo{IsInventory: false})
-	if err != nil {
-		return err
+	iSs, ok := owt.oplm.Olm().Sessions["di"]
+	if !ok {
+		return errors.New("missing di session")
 	}
-	iTs, err := owt.oplm.AddSession("di", &opelog.SessionInfo{IsInventory: true})
-	if err != nil {
-		return err
-	}
-	ica := "" // FIXME: owt.owo.InvCsAlgos
-	if err := InventoryCsvImport(owt.oplm, iTs, cPath, ica); err != nil {
+	ica := owt.owo.InvCsAlgos
+	if err := InventoryCsvImport(owt.oplm, iSs.ReferenceTime, cPath, ica); err != nil {
 		return err
 	}
 	if err := owt.oplm.Close(); err != nil {
@@ -91,8 +87,6 @@ func (owt *owTest) invCheck() error {
 }
 
 func TestManyOplWalkers(t *testing.T) {
-	t.Skip("FIXME:")
-
 	var (
 		err error
 	)
@@ -103,7 +97,7 @@ func TestManyOplWalkers(t *testing.T) {
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
 	skipDefault := false
-	defLgr = infLgr
+	defLgr = cliLgr
 
 	owts := []owTest{
 		{
@@ -113,7 +107,7 @@ func TestManyOplWalkers(t *testing.T) {
 			ftgen:     ftGenSmall,
 			conc:      0,
 			owo: &config.OpeLogOptionsType{
-				Goals: "load", // load, create, update/remove
+				Goals: "load",
 			},
 			oplm:    nil,
 			oplq:    nil,
@@ -125,13 +119,12 @@ func TestManyOplWalkers(t *testing.T) {
 			ftgen: ftGenMedium,
 			owo: &config.OpeLogOptionsType{
 				Goals:      "load",
-				SyncPeriod: int64(5 * time.Second),
+				SyncPeriod: 5,
 			},
 		},
 		{
 			label:     "load & inv check - c4 small simple",
 			ftgen:     ftGenSmall,
-			unSkipped: true,
 			conc:      4,
 			owo: &config.OpeLogOptionsType{
 				Goals:      "load",
@@ -141,11 +134,18 @@ func TestManyOplWalkers(t *testing.T) {
 		},
 		{
 			label:     "create - c4 tiny simple",
-			unSkipped: true,
 			ftgen:     ftGenTiny,
 			conc:      4,
 			owo: &config.OpeLogOptionsType{
 				Goals: "create",
+			},
+		},
+		{
+			label:     "update - c4 tiny simple",
+			ftgen:     ftGenTiny,
+			conc:      4,
+			owo: &config.OpeLogOptionsType{
+				Goals: "update",
 			},
 		},
 	}
@@ -168,10 +168,13 @@ func TestManyOplWalkers(t *testing.T) {
 		}
 		if owt.oplm == nil {
 			owt.oplm, err = makeTestM2fManager(path.Join(owt.ltd, "m2f.opl"), 0, true, owt.std, owt.ttd)
+			require.NoError(t, err)
+			require.NoError(t, owt.oplm.Close())
 		}
-		require.NoError(t, err)
+
 		require.NoError(t, owt.ftgen(owt.std))
 		require.NoError(t, owt.invImport())
+		owt.owo.ResetTimeout = -1
 		ow := NewOplWalker(
 			owt.lgr.With("test", owt.label), owt.conc,
 			nil, owt.oplm, owt.owo,
@@ -180,6 +183,13 @@ func TestManyOplWalkers(t *testing.T) {
 			"ds", "di",
 		)
 		require.NoError(t, ow.Run())
+		require.NoError(t,  owt.oplm.Open(true))
+		sTs := owt.oplm.Olm().Sessions["ds"].ReferenceTime
+		rLe, err := owt.oplm.GetLogicalEntry("")
+		require.NoError(t, err)
+		require.Zero(t, rLe.GetStats(sTs).Error.Number)
+		require.NoError(t,  owt.oplm.Close())
+
 		require.NoError(t, owt.invCheck())
 		csvPath := path.Join(owt.ltd, "oplm.csv")
 		require.NoError(t, owt.oplm.Open(true))
