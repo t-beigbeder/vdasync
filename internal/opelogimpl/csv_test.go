@@ -10,6 +10,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 )
+
 func TestCsvExport(t *testing.T) {
 	var (
 		lgr *slog.Logger

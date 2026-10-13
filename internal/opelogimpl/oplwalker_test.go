@@ -86,7 +86,7 @@ func (owt *owTest) exportCsv() error {
 		return err
 	}
 	defer owt.oplm.Close()
-	if err := BckOplCsvExport(owt.lgr, nil, owt.oplm, cPath, RPT_SYNTHETIC, "ds"); err != nil {
+	if err := OplCsvExport(owt.lgr, owt.oplm, cPath, RPT_SYNTHETIC, "di", "ds"); err != nil {
 		return err
 	}
 	owt.lgr.Info("exportCsv", "cPath", cPath)
@@ -103,7 +103,7 @@ func TestManyOplWalkers(t *testing.T) {
 	infLgr := common.InfoLogger()
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
-	skipDefault := true
+	skipDefault := false
 	defLgr = infLgr
 	ctd := path.Join(os.TempDir(), "oplCsv")
 	os.Mkdir(ctd, 0700)
@@ -133,7 +133,7 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label: "load & inv check - c4 small simple",
+			label: "load and inv check - c4 small simple",
 			ftgen: ftGenSmall,
 			conc:  4,
 			owo: &config.OpeLogOptionsType{
@@ -216,7 +216,7 @@ func TestOplWalker(t *testing.T) {
 	lgr = common.GetLogger()
 	// lgr = common.InfoLogger()
 	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	// lgr = common.DbgLogger()
+	lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")
