@@ -212,6 +212,7 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 	return
 }
 
+// createEvent creates an event in the current session with given data
 func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
 	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ts, ose.isTarget, kind, se, tcss)
 	ose.ole.hasChanges = true
@@ -234,7 +235,8 @@ func (ose *oplStoredEntry) setState(stc opelog.StateCode, sErr string, se *opelo
 // getState may be nil or Se may be nil meaning simply listed by parent
 //
 // toolRestarted is set if loaded state differs from tool (re)start time,
-// and stats collecting is reset on first call
+// and stats collecting is reset on first call.
+// Returned State may be modified, provided the le's hasChanges flag is set
 func (ose *oplStoredEntry) getState() *opelog.State {
 	owi := ose.ole.owi
 	st := ose.ole.le.GetState(owi.sessionTime, ose.isTarget)
@@ -249,6 +251,8 @@ func (ose *oplStoredEntry) getState() *opelog.State {
 	return st
 }
 
+// getStats provides computed stats for the entry in the active session
+// Returned ComputedStats may be modified, provided the le's hasChanges flag is set
 func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 	stats := ose.ole.le.GetStats(ose.ole.owi.sessionTime)
 	if stats == nil {

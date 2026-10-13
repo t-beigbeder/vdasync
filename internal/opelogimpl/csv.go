@@ -164,6 +164,7 @@ func OplCsvExport(lgr *slog.Logger, ow OplWalker, oplm opelog.OpeLogManager,
 	if !ok {
 		return fmt.Errorf("OplCsvExport need an oplWalkerImpl")
 	}
+	// FIXME: loose coupling and session ts
 	ce, ok := exporters[rt]
 	if !ok {
 		return fmt.Errorf("report type %d is unknown", rt)

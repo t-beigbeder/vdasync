@@ -29,6 +29,7 @@ type owTest struct {
 	hasNoExpCsv        bool
 	csvName            string
 	std, ltd, ttd, ctd string
+	noTestMarsh bool
 }
 
 var ftGenTiny = func(root string) error {
@@ -102,7 +103,7 @@ func TestManyOplWalkers(t *testing.T) {
 	infLgr := common.InfoLogger()
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
-	skipDefault := false
+	skipDefault := true
 	defLgr = infLgr
 	ctd := path.Join(os.TempDir(), "oplCsv")
 	os.Mkdir(ctd, 0700)
@@ -120,6 +121,7 @@ func TestManyOplWalkers(t *testing.T) {
 			oplm:       nil,
 			oplq:       nil,
 			hasLoadInv: false,
+			noTestMarsh: false,
 		},
 		{
 			label: "load c4 - medium with sync",
@@ -150,11 +152,13 @@ func TestManyOplWalkers(t *testing.T) {
 		},
 		{
 			label: "update - c4 tiny simple",
+			unSkipped: true,
 			ftgen: ftGenTiny,
 			conc:  4,
 			owo: &config.OpeLogOptionsType{
 				Goals: "update",
 			},
+			noTestMarsh: true,
 		},
 	}
 
@@ -176,7 +180,7 @@ func TestManyOplWalkers(t *testing.T) {
 			owt.ftgen = ftGenSmall
 		}
 		if owt.oplm == nil {
-			owt.oplm, err = makeTestM2fManager(path.Join(owt.ltd, "m2f.opl"), 0, true, owt.std, owt.ttd)
+			owt.oplm, err = makeTestM2fManager(path.Join(owt.ltd, "m2f.opl"), 0, !owt.noTestMarsh, owt.std, owt.ttd)
 			require.NoError(t, err)
 			require.NoError(t, owt.oplm.Close())
 		}
