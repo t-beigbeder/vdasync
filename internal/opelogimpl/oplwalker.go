@@ -98,7 +98,7 @@ func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
 
 func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	lgr.Debug("doing")
-	if err := OplCsvExport(ow.lgr, ow, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.session); err != nil {
+	if err := BckOplCsvExport(ow.lgr, ow, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.session); err != nil {
 		ow.owErr(lgr, "failed to export logs", err)
 	}
 }

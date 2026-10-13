@@ -29,7 +29,7 @@ type owTest struct {
 	hasNoExpCsv        bool
 	csvName            string
 	std, ltd, ttd, ctd string
-	noTestMarsh bool
+	noTestMarsh        bool
 }
 
 var ftGenTiny = func(root string) error {
@@ -86,7 +86,7 @@ func (owt *owTest) exportCsv() error {
 		return err
 	}
 	defer owt.oplm.Close()
-	if err := OplCsvExport(owt.lgr, nil, owt.oplm, cPath, RPT_SYNTHETIC, "ds"); err != nil {
+	if err := BckOplCsvExport(owt.lgr, nil, owt.oplm, cPath, RPT_SYNTHETIC, "ds"); err != nil {
 		return err
 	}
 	owt.lgr.Info("exportCsv", "cPath", cPath)
@@ -118,9 +118,9 @@ func TestManyOplWalkers(t *testing.T) {
 			owo: &config.OpeLogOptionsType{
 				Goals: "load",
 			},
-			oplm:       nil,
-			oplq:       nil,
-			hasLoadInv: false,
+			oplm:        nil,
+			oplq:        nil,
+			hasLoadInv:  false,
 			noTestMarsh: false,
 		},
 		{
@@ -151,10 +151,10 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label: "update - c4 tiny simple",
+			label:     "update - c4 tiny simple",
 			unSkipped: true,
-			ftgen: ftGenTiny,
-			conc:  4,
+			ftgen:     ftGenTiny,
+			conc:      4,
 			owo: &config.OpeLogOptionsType{
 				Goals: "update",
 			},
