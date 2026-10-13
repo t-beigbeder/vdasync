@@ -11,7 +11,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 )
 
-func TestCsvExport(t *testing.T) {
+func TestBckCsvExport(t *testing.T) {
 	var (
 		lgr *slog.Logger
 		err error

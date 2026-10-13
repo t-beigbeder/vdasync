@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"fmt"
 	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/opelog"
@@ -57,18 +58,63 @@ func syntheticExporter(owi *oplWalkerImpl, relPath string, le *opelog.LogicalEnt
 }
 
 type expLe struct {
+	relPath string
 	*opelog.LogicalEntry
-	source *expSe
-	target *expSe
+	iTs    int64
+	sTs    int64
+	invent *expSt
+	source *expSt
+	target *expSt
 }
 
-type expSe struct {
-	*opelog.StoredEntry
+type expSt struct {
+	*opelog.State
 	isTarget bool
+	ele      *expLe
+}
+
+func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
+	ele := &expLe{
+		relPath:      relPath,
+		LogicalEntry: le,
+		iTs:          iTs,
+		sTs:          sTs,
+		invent: &expSt{},
+		source:       &expSt{},
+		target:       &expSt{isTarget: true},
+	}
+	ele.invent.ele = ele
+	ele.invent.State = ele.LogicalEntry.GetState(iTs, false)
+	ele.source.ele = ele
+	ele.source.State = ele.LogicalEntry.GetState(sTs, false)
+	ele.target.ele = ele
+	ele.target.State = ele.LogicalEntry.GetState(sTs, true)
+	return ele
 }
 
 func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
-	csvPath string, rt RptType, session string,
+	csvPath string, rt RptType, invent, session string,
 ) error {
-	return nil
+	ise := &opelog.SessionInfo{ReferenceTime: -1}
+	sse := &opelog.SessionInfo{ReferenceTime: -1}
+	var ok bool
+	if invent != "" {
+		ise, ok = oplm.Olm().Sessions[invent]
+		if !ok {
+			return fmt.Errorf("inventory %s not found", invent)
+		}
+	}
+	if session != "" {
+		sse, ok = oplm.Olm().Sessions[session]
+		if !ok {
+			return fmt.Errorf("session %s not found", session)
+		}
+	}
+
+	err := oplm.Walk(func(relPath string, le *opelog.LogicalEntry) error {
+		ele := newExpLe(relPath, le, ise.ReferenceTime, sse.ReferenceTime)
+		_ = ele
+		return nil
+	})
+	return err
 }
