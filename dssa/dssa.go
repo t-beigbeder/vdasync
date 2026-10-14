@@ -49,7 +49,7 @@ type DataEntry struct {
 	AddMeta       []byte
 }
 
-func (de *DataEntry)ModString() string {
+func (de *DataEntry) ModString() string {
 	tp := "-"
 	if de.IsDir {
 		tp = "d"

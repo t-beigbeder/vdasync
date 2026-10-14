@@ -301,7 +301,7 @@ func TestOplWalker(t *testing.T) {
 			SyncOptionsType: config.SyncOptionsType{
 				Check: true,
 			},
-			Goals:        "update", 
+			Goals:        "update",
 			SyncPeriod:   5,
 			ResetTimeout: -1,
 			ExpPeriod:    6,
