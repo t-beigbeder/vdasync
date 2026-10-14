@@ -289,6 +289,9 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 		ow.wkNtfChan <- workerNotif{wkn: wkn}
 	}()
 	ow.detail(lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
+	if slices.Contains(ow.owo.SpecialInterest, relPath) {
+		lgr.Info("processEntry: SpecialInterest")
+	}
 	ole, err := ow.getLogicalEntry(lgr, relPath)
 	if err != nil {
 		return
@@ -367,6 +370,9 @@ func (ow *oplWalkerImpl) checkConsistency() (err error) {
 		if ow.sessionTime, err = ow.oplm.AddSession("auto", &opelog.SessionInfo{}); err != nil {
 			return
 		}
+	} else {
+		err = errors.New("no session provided")
+		return
 	}
 	if ow.inventory != "" {
 		iSi := ow.oplm.Olm().Session(ow.inventory)

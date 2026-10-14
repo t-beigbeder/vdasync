@@ -100,6 +100,12 @@ func (ole *oplLogicalEntry) checkForUpdate() bool {
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
+	if sOse.isDir() {
+		if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, false, false) {
+			return true
+		}
+		return false
+	}
 	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true, false) {
 		return true
 	}

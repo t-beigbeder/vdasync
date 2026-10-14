@@ -32,6 +32,7 @@ type owTest struct {
 	csvName            string
 	std, ltd, ttd, ctd string
 	noTestMarsh        bool
+	specialInterest    []string
 }
 
 var ftGenTiny = func(root string) error {
@@ -153,6 +154,7 @@ func (owt *owTest) runOwTest() (err error) {
 		owt.owo.Goals = "update"
 	}
 	owt.owo.ResetTimeout = -1
+	owt.owo.SpecialInterest = owt.specialInterest
 	ow := NewOplWalker(
 		owt.lgr.With("test", owt.label), owt.conc,
 		nil, owt.oplm, owt.owo,
@@ -272,13 +274,15 @@ func TestOplWalker(t *testing.T) {
 	lgr = common.GetLogger()
 	// lgr = common.InfoLogger()
 	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	lgr = common.DbgLogger()
+	// lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	lgr.Debug("TestOplWalker: started")
 	std := t.TempDir()
+	defer walker.SetTestDirRW(std, "source")
 	ltd := t.TempDir()
 	ttd := t.TempDir()
+	defer walker.SetTestDirRW(ttd, "target")
 
 	// require.NoError(t, ftGenTiny(std))
 	// require.NoError(t, ftGenMedium(std))

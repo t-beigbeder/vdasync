@@ -58,6 +58,7 @@ type OpeLogOptionsType struct {
 	ExpPeriod       int64  `yaml:"expPeriod"`
 	ExpFile         string `yaml:"expFile"`
 	ExpBck          int    `yaml:"expBck"`
+	SpecialInterest []string
 }
 
 type SftpServerType struct {

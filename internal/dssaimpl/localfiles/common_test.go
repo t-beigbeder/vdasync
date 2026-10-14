@@ -14,7 +14,6 @@ func TestDeList(t *testing.T) {
 	dss := MakeLocalFilesDssa()
 	td := t.TempDir()
 	lgr := common.GetLogger()
-	lgr = common.DbgLogger()
 	_, _, err := common.AugmentTestFilesTree(td)
 	require.NoError(t, err)
 	des, err := dss.List(path.Join(td))

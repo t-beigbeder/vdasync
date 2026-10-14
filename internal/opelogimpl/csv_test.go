@@ -9,6 +9,7 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/walker"
 )
 
 func TestCsvExport(t *testing.T) {
@@ -24,8 +25,10 @@ func TestCsvExport(t *testing.T) {
 
 	lgr.Debug("TestCsvExport: started")
 	std := t.TempDir()
+	defer walker.SetTestDirRW(std, "source")
 	ltd := t.TempDir()
 	ttd := t.TempDir()
+	defer walker.SetTestDirRW(ttd, "target")
 
 	// require.NoError(t, ftGenTiny(std))
 	// require.NoError(t, ftGenMedium(std))
