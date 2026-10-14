@@ -95,18 +95,18 @@ func (ole *oplLogicalEntry) tryRm() error {
 }
 
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
-func (ole *oplLogicalEntry) checkForUpdate() bool {
+func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 	sOse, tOse := ole.source, ole.target
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
 	if sOse.isDir() {
-		if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, false, false) {
+		if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, noRights, false) {
 			return true
 		}
 		return false
 	}
-	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true, false) {
+	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, noRights, false) {
 		return true
 	}
 	if ole.owo().CsAlgos == "" {
@@ -126,7 +126,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
 		return nil
 	}
-	if !ole.checkForUpdate() {
+	if !ole.checkForUpdate(false) {
 		return nil
 	}
 	tOse := ole.target
@@ -134,6 +134,14 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 		if err := tOse.updateDirOps(); err != nil {
 			return err
 		}
+		return nil
+	}
+	if !ole.checkForUpdate(true) {
+		se, err := tOse.setMeta()
+		if err != nil {
+			return err
+		}
+		tOse.setState(opelog.STC_DONE_PRESENT, "", se, tOse.getState().Tcss, 0)
 		return nil
 	}
 	if tOse.isRegularFile() {
