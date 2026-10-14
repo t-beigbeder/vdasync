@@ -80,7 +80,7 @@ type expSt struct {
 
 func (est *expSt) dispState() string {
 	if est.Stc == opelog.STC_DONE_PRESENT {
-		return "x"
+		return est.Se.ToDataEntry("").ModString()
 	}
 	if est.Stc == opelog.STC_DONE_ABSENT {
 		return "-"

@@ -165,22 +165,6 @@ func DataEntryMod(de *dssa.DataEntry) uint32 {
 	return mod
 }
 
-func rightsList(rights dssa.Rights) string {
-	rs := "-"
-	if rights.Read {
-		rs = "r"
-	}
-	ws := "-"
-	if rights.Write {
-		ws = "w"
-	}
-	xs := "-"
-	if rights.Execute {
-		xs = "x"
-	}
-	return rs + ws + xs
-}
-
 func DataEntryList(de *dssa.DataEntry, isNoOwn bool, cs string) string {
 	tp := "-"
 	if de.IsDir {
@@ -201,7 +185,7 @@ func DataEntryList(de *dssa.DataEntry, isNoOwn bool, cs string) string {
 		csd = " " + cs
 	}
 	return fmt.Sprintf("%s%s%s%s%s%10d %21s %s%s%s", tp,
-		rightsList(de.UserRights), rightsList(de.GroupRights), rightsList(de.OtherRights),
+		de.UserRights.String(), de.GroupRights.String(), de.OtherRights.String(),
 		ownDisp, de.Size, time.Unix(de.Mtime, 0).UTC().Format(time.RFC3339), de.Path,
 		lt, csd,
 	)

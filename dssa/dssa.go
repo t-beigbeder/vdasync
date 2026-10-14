@@ -1,11 +1,30 @@
 package dssa
 
-import "io"
+import (
+	"fmt"
+	"io"
+)
 
 type Rights struct {
 	Read    bool
 	Write   bool
 	Execute bool
+}
+
+func (rights *Rights) String() string {
+	rs := "-"
+	if rights.Read {
+		rs = "r"
+	}
+	ws := "-"
+	if rights.Write {
+		ws = "w"
+	}
+	xs := "-"
+	if rights.Execute {
+		xs = "x"
+	}
+	return rs + ws + xs
 }
 
 type DataEntry struct {
@@ -28,6 +47,16 @@ type DataEntry struct {
 	ErrNotExist   bool
 	Id            string
 	AddMeta       []byte
+}
+
+func (de *DataEntry)ModString() string {
+	tp := "-"
+	if de.IsDir {
+		tp = "d"
+	} else if de.IsSymLink {
+		tp = "l"
+	}
+	return fmt.Sprintf("%s%s%s%s", tp, de.UserRights.String(), de.GroupRights.String(), de.OtherRights.String())
 }
 
 type Dssa interface {

@@ -35,7 +35,7 @@ func (ose *oplStoredEntry) recordEvents() {
 // enableWriteNeeded assumes cache state loaded and checks if write (and execute for dirs) access is enabled
 func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 	se := ose.se()
-	if se.UserRights.Write && (!se.IsDir || se.UserRights.Execute) {
+	if !se.UserRights.Write || (se.IsDir && !se.UserRights.Execute) {
 		yes = true
 	}
 	return
@@ -153,16 +153,17 @@ func (ose *oplStoredEntry) createDirOps() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	if err := ose.dssMkdir(ose.ole.source.se()); err != nil {
+	rwSe := ose.ole.source.se().Clone()
+	if ose.ole.source.enableWriteNeeded() {
+		rwSe.UserRights.Write = true
+		rwSe.UserRights.Execute = true
+	}
+	if err := ose.dssMkdir(rwSe); err != nil {
 		err = fmt.Errorf("createDirOps: mkdir error %s", err)
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
 		return err
 	}
-	se, err := ose.setMeta()
-	if err != nil {
-		return err
-	}
-	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, 0)
+	ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
 	return nil
 }
 

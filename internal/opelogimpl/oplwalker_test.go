@@ -13,10 +13,12 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/walker"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 type owTest struct {
+	t                  *testing.T
 	label              string
 	unSkipped          bool
 	lgr                *slog.Logger
@@ -45,7 +47,7 @@ var ftGenMedium = func(root string) error {
 }
 
 var ftGenAugSmall = func(root string) error {
-	_, _, err := common.MakeAugmentedTestFilesTree(root, 7, 100, 16, 1024)
+	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 7, 100, 16, 1024)
 	return err
 }
 
@@ -93,30 +95,111 @@ func (owt *owTest) exportCsv() error {
 	return nil
 }
 
-func TestManyOplWalkers(t *testing.T) {
-	var (
-		err error
-	)
+func (owt *owTest) setDefLogger() error {
 	dbgLgr := common.DbgLogger()
 	cliLgr, err := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	require.NoError(t, err)
 	infLgr := common.InfoLogger()
 	defLgr := common.GetLogger()
 	_, _, _, _ = dbgLgr, cliLgr, infLgr, defLgr
-	skipDefault := false
 	defLgr = infLgr
-	ctd := path.Join(os.TempDir(), "oplCsv")
-	os.Mkdir(ctd, 0700)
+	if err != nil {
+		return err
+	}
+	if owt.lgr == nil {
+		owt.lgr = defLgr
+	}
+	return nil
+}
+
+func (owt *owTest) runOwTest() (err error) {
+	ctx := "ns"
+	defer func() {
+		if err == nil {
+			return
+		}
+		err = fmt.Errorf("test \"%s\" - ctx %s - err %s", owt.label, ctx, err)
+	}()
+	if owt.ctd == "" {
+		owt.ctd = path.Join(os.TempDir(), "oplCsv")
+		os.Mkdir(owt.ctd, 0700)
+	}
+	owt.std = owt.t.TempDir()
+	defer walker.SetTestDirRW(owt.std, "source")
+	owt.ltd = owt.t.TempDir()
+	owt.ttd = owt.t.TempDir()
+	defer walker.SetTestDirRW(owt.ttd, "target")
+	if owt.ftgen == nil {
+		owt.ftgen = ftGenSmall
+	}
+	if owt.oplm == nil {
+		if owt.oplm, err = makeTestM2fManager(path.Join(owt.ltd, "m2f.opl"), 0, !owt.noTestMarsh, owt.std, owt.ttd); err != nil {
+			ctx = "makeTestM2fManager"
+			return
+		}
+		if err = owt.oplm.Close(); err != nil {
+			ctx = "oplmClose1"
+			return
+		}
+	}
+	if err = owt.ftgen(owt.std); err != nil {
+		ctx = "ftgen"
+		return
+	}
+	if err = owt.invImport(); err != nil {
+		ctx = "invImport"
+		return
+	}
+	if owt.owo.Goals == "" {
+		owt.owo.Goals = "update"
+	}
+	owt.owo.ResetTimeout = -1
+	ow := NewOplWalker(
+		owt.lgr.With("test", owt.label), owt.conc,
+		nil, owt.oplm, owt.owo,
+		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
+		owt.std, owt.ttd,
+		"ds", "di",
+	)
+	if err = ow.Run(); err != nil {
+		ctx = "owRun"
+		return
+	}
+	if err = owt.oplm.Open(true); err != nil {
+		ctx = "oplmOpen"
+		return
+	}
+	sTs := owt.oplm.Olm().Sessions["ds"].ReferenceTime
+	rLe, err := owt.oplm.GetLogicalEntry("")
+	if err != nil || rLe == nil || rLe.GetStats(sTs) == nil {
+		err = errors.New("no stats on root")
+		return
+	}
+	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
+		err = fmt.Errorf("got %d errors", nbe)
+		return
+	}
+	if err = owt.oplm.Close(); err != nil {
+		ctx = "oplmClose2"
+		return
+	}
+	if err = owt.exportCsv(); err != nil {
+		ctx = "exportCsv"
+		return
+	}
+	return
+}
+
+func TestManyOplWalkers(t *testing.T) {
 
 	owts := []owTest{
 		{
 			label:     "load - c0 small simple",
 			unSkipped: false,
-			lgr:       defLgr,
+			lgr:       nil,
 			ftgen:     ftGenSmall,
 			conc:      0,
-			owo: &config.OpeLogOptionsType{
-				Goals: "load",
+			owo:       &config.OpeLogOptionsType{
+				// Goals: "update",
 			},
 			oplm:        nil,
 			oplq:        nil,
@@ -151,60 +234,33 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label:     "update - c4 tiny simple",
-			unSkipped: true,
-			ftgen:     ftGenTiny,
-			conc:      4,
-			owo: &config.OpeLogOptionsType{
-				Goals: "update",
-			},
+			label:       "update - c4 tiny simple",
+			ftgen:       ftGenTiny,
+			conc:        4,
+			owo:         &config.OpeLogOptionsType{},
+			noTestMarsh: true,
+		},
+		{
+			label:       "update - c4 aug small",
+			ftgen:       ftGenAugSmall,
+			conc:        4,
+			owo:         &config.OpeLogOptionsType{},
 			noTestMarsh: true,
 		},
 	}
 
+	skipDefault := false
 	for _, owt := range owts {
-		if owt.lgr == nil {
-			owt.lgr = defLgr
-		}
+		require.NoError(t, owt.setDefLogger())
 		if skipDefault {
 			if !owt.unSkipped {
 				owt.lgr.Info("skipped", "test", owt.label)
 				continue
 			}
 		}
-		owt.std = t.TempDir()
-		owt.ltd = t.TempDir()
-		owt.ttd = t.TempDir()
-		owt.ctd = ctd
-		if owt.ftgen == nil {
-			owt.ftgen = ftGenSmall
-		}
-		if owt.oplm == nil {
-			owt.oplm, err = makeTestM2fManager(path.Join(owt.ltd, "m2f.opl"), 0, !owt.noTestMarsh, owt.std, owt.ttd)
-			require.NoError(t, err)
-			require.NoError(t, owt.oplm.Close())
-		}
-
-		require.NoError(t, owt.ftgen(owt.std))
-		require.NoError(t, owt.invImport())
-		owt.owo.ResetTimeout = -1
-		ow := NewOplWalker(
-			owt.lgr.With("test", owt.label), owt.conc,
-			nil, owt.oplm, owt.owo,
-			localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
-			owt.std, owt.ttd,
-			"ds", "di",
-		)
-		require.NoError(t, ow.Run())
-		require.NoError(t, owt.oplm.Open(true))
-		sTs := owt.oplm.Olm().Sessions["ds"].ReferenceTime
-		rLe, err := owt.oplm.GetLogicalEntry("")
-		require.NoError(t, err)
-		require.Zero(t, rLe.GetStats(sTs).Error.Number)
-		require.NoError(t, owt.oplm.Close())
-
-		require.NoError(t, owt.exportCsv())
-		require.True(t, true)
+		owt.t = t
+		err := owt.runOwTest()
+		require.NoError(t, err, err)
 	}
 }
 
@@ -245,7 +301,7 @@ func TestOplWalker(t *testing.T) {
 			SyncOptionsType: config.SyncOptionsType{
 				Check: true,
 			},
-			Goals:        "update", // load, create, update/remove
+			Goals:        "update", 
 			SyncPeriod:   5,
 			ResetTimeout: -1,
 			ExpPeriod:    6,
