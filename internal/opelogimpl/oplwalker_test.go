@@ -167,13 +167,14 @@ func (owt *owTest) runOwTest() (err error) {
 		return
 	}
 	if err = owt.oplm.Open(true); err != nil {
-		ctx = "oplmOpen"
+		ctx = "oplmOpen1"
 		return
 	}
 	sTs := owt.oplm.Olm().Sessions["ds"].ReferenceTime
 	rLe, err := owt.oplm.GetLogicalEntry("")
 	if err != nil || rLe == nil || rLe.GetStats(sTs) == nil {
 		err = errors.New("no stats on root")
+		ctx = "GetStats1"
 		return
 	}
 	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
@@ -186,6 +187,27 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 	if err = owt.exportCsv(); err != nil {
 		ctx = "exportCsv"
+		return
+	}
+
+	// phase2: dryrun
+	owt.owo.Dryrun = true
+	if err = ow.Run(); err != nil {
+		ctx = "Dryrun"
+		return
+	}
+	if err = owt.oplm.Open(true); err != nil {
+		ctx = "oplmOpen2"
+		return
+	}
+	rLe, err = owt.oplm.GetLogicalEntry("")
+	if err != nil || rLe == nil || rLe.GetStats(sTs) == nil {
+		err = errors.New("no stats on root")
+		ctx = "GetStats2"
+		return
+	}
+	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
+		err = fmt.Errorf("got %d errors", nbe)
 		return
 	}
 	return
@@ -240,14 +262,12 @@ func TestManyOplWalkers(t *testing.T) {
 			ftgen:       ftGenTiny,
 			conc:        4,
 			owo:         &config.OpeLogOptionsType{},
-			noTestMarsh: true,
 		},
 		{
 			label:       "update - c4 aug small",
 			ftgen:       ftGenAugSmall,
 			conc:        4,
 			owo:         &config.OpeLogOptionsType{},
-			noTestMarsh: true,
 		},
 	}
 
