@@ -47,6 +47,8 @@ type oplWalkerImpl struct {
 	invTime       int64
 	gErrs         []error
 	wkNtfChan     chan workerNotif
+	wkCtlStopChan chan bool
+	wkCtlDoneChan chan bool
 	bg            context.Context
 }
 
@@ -123,9 +125,12 @@ func (ow *oplWalkerImpl) workersController() {
 		rsTo = int64(50 * time.Millisecond)
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
-
-	for {
+	for stopped := false; !stopped; {
 		select {
+		case <- ow.wkCtlStopChan:
+			lgr.Debug("oplWalkerImpl", "wkCtlStopChan", "received")
+			stopped = true
+			ticker.Stop()
 		case notif := <-ow.wkNtfChan:
 			if notif.isStart {
 				ticker.Reset(time.Duration(rsTo))
@@ -147,6 +152,8 @@ func (ow *oplWalkerImpl) workersController() {
 			}
 		}
 	}
+	lgr.Debug("oplWalkerImpl", "wkCtlDoneChan", "sending")
+	ow.wkCtlDoneChan <- true
 }
 
 // newOplLogicalEntry initializes oplLogicalEntry state from loaded state in le
@@ -305,6 +312,12 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 
 	children := ole.setChildrenQueue() // side effect hasChanges
 	if ole.hasChanges {
+		if sst := ole.source.getState(); sst != nil {
+			sst.ToolStartTime = ow.toolStartTime
+		}
+		if tst := ole.target.getState(); tst != nil {
+			tst.ToolStartTime = ow.toolStartTime
+		}
 		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
 			ow.owErr(ole.lgr, "oplWalkerImpl: put le", err)
 			return
@@ -444,6 +457,12 @@ func (ow *oplWalkerImpl) Run() error {
 		exportJob.Stop()
 		<-exportJob.Done()
 	}
+	// stopping controller
+	ow.lgr.Debug("oplWalkerImpl", "wkCtlStopChan", "sending")
+	ow.wkCtlStopChan <- true
+	ow.lgr.Debug("oplWalkerImpl", "wkCtlDoneChan", "receiving")
+	<- ow.wkCtlDoneChan
+
 	// all done
 	if err := ow.oplm.Close(); err != nil {
 		ow.lgr.Error("oplWalkerImpl: Run: close logs", "err", err)
@@ -477,6 +496,8 @@ func NewOplWalker(lgr *slog.Logger, conc int,
 		conc: conc, oplq: oplq, oplm: oplm, owo: owo,
 		sds: sds, tds: tds, sRoot: sRoot, tRoot: tRoot,
 		session: session, inventory: inventory,
+		wkCtlStopChan: make(chan bool),
+		wkCtlDoneChan: make(chan bool),
 		bg: context.Background(),
 	}
 }

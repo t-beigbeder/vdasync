@@ -345,6 +345,10 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 	owi := ose.ole.owi
 	errorsNum := 0
 	stats := ose.getStats()
+	if !ose.isTarget {
+		stats.NoOp.Number = 0
+		stats.NoOp.Size = 0
+	}
 	for _, child := range se.Children {
 		cle, ok := ose.ole.childrenLeCache[child]
 		if !ok {
@@ -379,6 +383,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		return nil
 	}
 	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, -1)
+	ose.lgr.Debug("processChildrenDone", "stats.NoOp", stats.NoOp)
 	return nil
 }
 

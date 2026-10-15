@@ -267,8 +267,8 @@ func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 // size -1 asks to read cached state for entry's size
 func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	stats := ose.getStats()
+	se := ose.se()
 	if size == -1 {
-		se := ose.se()
 		if se != nil {
 			size = se.Size
 		} else {
@@ -295,8 +295,13 @@ func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	case "mc":
 		stats.MetaChange.Number = 1
 	case "no":
-		stats.NoOp.Number = 1
-		stats.NoOp.Size = size
+		if se != nil && se.IsDir {
+			stats.NoOp.Number++
+			stats.NoOp.Size += size
+		} else if se != nil {
+			stats.NoOp.Number = 1
+			stats.NoOp.Size = size
+		}
 	case "er":
 		stats.Error.Number = 1
 	default:

@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/config"
@@ -115,6 +116,16 @@ func (owt *owTest) setDefLogger() error {
 	return nil
 }
 
+func (owt *owTest) newOplWalker() OplWalker {
+	return NewOplWalker(
+		owt.lgr.With("test", owt.label), owt.conc,
+		nil, owt.oplm, owt.owo,
+		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
+		owt.std, owt.ttd,
+		"ds", "di",
+	)
+}
+
 func (owt *owTest) runOwTest() (err error) {
 	ctx := "ns"
 	defer func() {
@@ -158,13 +169,7 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 	owt.owo.ResetTimeout = -1
 	owt.owo.SpecialInterest = owt.specialInterest
-	ow := NewOplWalker(
-		owt.lgr.With("test", owt.label), owt.conc,
-		nil, owt.oplm, owt.owo,
-		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
-		owt.std, owt.ttd,
-		"ds", "di",
-	)
+	ow := owt.newOplWalker()
 	if err = ow.Run(); err != nil {
 		ctx = "owRun"
 		return
@@ -194,7 +199,9 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 
 	// phase2: dryrun
+	time.Sleep(time.Second)
 	owt.owo.Dryrun = true
+	ow = owt.newOplWalker()
 	if err = ow.Run(); err != nil {
 		ctx = "Dryrun"
 		return
@@ -298,13 +305,17 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestSingleOplWalkers(t *testing.T) {
-
+	// t.Skip("for setup only")
+	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	_ = cliLgr
 	owts := []owTest{
 		{
 			label: "update - c4 tiny simple",
+			lgr: common.DbgLogger(),
 			ftgen: ftGenTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
+			// specialInterest: []string{""},
 		},
 	}
 
