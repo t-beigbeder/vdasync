@@ -79,11 +79,14 @@ func (owt *owTest) invImport() error {
 	return nil
 }
 
-func (owt *owTest) exportCsv() error {
+func (owt *owTest) exportCsv(dryRunCheck bool) error {
 	if owt.hasNoExpCsv {
 		return nil
 	}
 	csvName := strings.Join(strings.Split(owt.label, " "), "-")
+	if dryRunCheck {
+		csvName += "-dryrun"
+	}
 	cPath := fmt.Sprintf("%s.csv", path.Join(owt.ctd, csvName))
 	if err := owt.oplm.Open(true); err != nil {
 		return err
@@ -185,7 +188,7 @@ func (owt *owTest) runOwTest() (err error) {
 		ctx = "oplmClose2"
 		return
 	}
-	if err = owt.exportCsv(); err != nil {
+	if err = owt.exportCsv(false); err != nil {
 		ctx = "exportCsv"
 		return
 	}
@@ -208,6 +211,14 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
 		err = fmt.Errorf("got %d errors", nbe)
+		return
+	}
+	if err = owt.oplm.Close(); err != nil {
+		ctx = "oplmClose3"
+		return
+	}
+	if err = owt.exportCsv(true); err != nil {
+		ctx = "exportCsvDryRun"
 		return
 	}
 	return

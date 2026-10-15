@@ -33,7 +33,7 @@ func init() {
 	exporters[RPT_SYNTHETIC] = csvExporter{
 		columns: []string{
 			"Meta",
-			"RelPath", "InvChks",
+			"RelPath", "InvChks", "Sync",
 			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
 			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
 		},
@@ -48,13 +48,16 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record := make([]string, len(cols))
 	record[1] = relPath
 	record[2] = ele.invent.dispChecksums()
-	sBase := 3
+	record[3] = ele.dispSyncStatus()
+
+	sBase := 4
 	record[sBase] = ele.source.dispState()
 	record[sBase+1] = ele.source.dispDir()
 	record[sBase+2] = ele.source.dispSymlink()
 	record[sBase+3] = ele.source.dispSize()
 	record[sBase+4] = ele.source.dispMtime()
 	record[sBase+5] = ele.source.dispChecksums()
+
 	tBase := sBase + 6
 	record[tBase] = ele.target.dispState()
 	record[tBase+1] = ele.target.dispDir()
@@ -81,6 +84,29 @@ type expSt struct {
 	isInvent bool
 	isTarget bool
 	ele      *expLe
+}
+
+func (ele *expLe) dispSyncStatus() (sys string) {
+	csts := ele.GetStats(ele.sTs)
+	if csts.Remove.Number > 0 {
+		sys += "r"
+	}
+	if csts.Create.Number > 0 {
+		sys += "c"
+	}
+	if csts.Update.Number > 0 {
+		sys += "u"
+	}
+	if csts.MetaChange.Number > 0 {
+		sys += "m"
+	}
+	if csts.Error.Number > 0 {
+		sys += "e"
+	}
+	if sys == "" && (csts.NoOp.Number > 0 || csts.Read.Number > 0) {
+		sys = "-"
+	}
+	return sys
 }
 
 func (est *expSt) dispState() string {
