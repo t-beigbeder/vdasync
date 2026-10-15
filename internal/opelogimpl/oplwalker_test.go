@@ -89,7 +89,7 @@ func (owt *owTest) exportCsv() error {
 		return err
 	}
 	defer owt.oplm.Close()
-	if err := OplCsvExport(owt.lgr, owt.oplm, cPath, RPT_SYNTHETIC, "di", "ds"); err != nil {
+	if err := OplCsvExport(owt.lgr, owt.oplm, cPath, RPT_SYNTHETIC, "di", "ds", nil); err != nil {
 		return err
 	}
 	owt.lgr.Info("exportCsv", "cPath", cPath)
@@ -267,6 +267,32 @@ func TestManyOplWalkers(t *testing.T) {
 			label:       "update - c4 aug small",
 			ftgen:       ftGenAugSmall,
 			conc:        4,
+			owo:         &config.OpeLogOptionsType{},
+		},
+	}
+
+	skipDefault := false
+	for _, owt := range owts {
+		require.NoError(t, owt.setDefLogger())
+		if skipDefault {
+			if !owt.unSkipped {
+				owt.lgr.Info("skipped", "test", owt.label)
+				continue
+			}
+		}
+		owt.t = t
+		err := owt.runOwTest()
+		require.NoError(t, err, err)
+	}
+}
+
+func TestSingleOplWalkers(t *testing.T) {
+
+	owts := []owTest{
+		{
+			label:       "update - c4 tiny simple",
+			ftgen:       ftGenTiny,
+			conc:        1,
 			owo:         &config.OpeLogOptionsType{},
 		},
 	}

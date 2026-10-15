@@ -70,5 +70,5 @@ func TestCsvExport(t *testing.T) {
 	require.Zero(t, rLe.GetStats(sTs).Error.Number)
 
 	csvPath := path.Join(ltd, "oplm.csv")
-	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_SYNTHETIC, "di", "ds"))
+	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_SYNTHETIC, "di", "ds", nil))
 }

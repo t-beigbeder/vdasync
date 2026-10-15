@@ -11,6 +11,10 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
+type RptConfig struct {
+	ToolInfo string
+}
+
 type RptType int
 
 const (
@@ -28,6 +32,7 @@ var exporters map[RptType]csvExporter = map[RptType]csvExporter{}
 func init() {
 	exporters[RPT_SYNTHETIC] = csvExporter{
 		columns: []string{
+			"Meta",
 			"RelPath", "InvChks",
 			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
 			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
@@ -41,16 +46,16 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	_ = ele
 	cols := exporters[RPT_SYNTHETIC].columns
 	record := make([]string, len(cols))
-	record[0] = relPath
-	record[1] = ele.invent.dispChecksums()
-	sBase := 2
+	record[1] = relPath
+	record[2] = ele.invent.dispChecksums()
+	sBase := 3
 	record[sBase] = ele.source.dispState()
 	record[sBase+1] = ele.source.dispDir()
 	record[sBase+2] = ele.source.dispSymlink()
 	record[sBase+3] = ele.source.dispSize()
 	record[sBase+4] = ele.source.dispMtime()
 	record[sBase+5] = ele.source.dispChecksums()
-	tBase := 8
+	tBase := sBase + 6
 	record[tBase] = ele.target.dispState()
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
@@ -180,7 +185,11 @@ func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
 
 func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	csvPath string, rt RptType, invent, session string,
+	rptCfg *RptConfig,
 ) error {
+	if rptCfg == nil {
+		rptCfg = &RptConfig{ToolInfo: "no tool information"}
+	}
 	ise := &opelog.SessionInfo{ReferenceTime: -1}
 	sse := &opelog.SessionInfo{ReferenceTime: -1}
 	var ok bool
@@ -207,6 +216,10 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	defer wrw.Close()
 	cw := csv.NewWriter(wrw)
 	if err := cw.Write(ce.columns); err != nil {
+		return err
+	}
+	meta := fmt.Sprintf("%s\nexport timestamp: %s", rptCfg.ToolInfo, time.Now().Format(time.RFC3339))
+	if err := cw.Write([]string{meta}); err != nil {
 		return err
 	}
 
