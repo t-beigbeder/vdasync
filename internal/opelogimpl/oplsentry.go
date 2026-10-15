@@ -374,8 +374,11 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		stats.Remove.Number += cStats.Remove.Number
 		stats.Remove.Size += cStats.Remove.Size
 		stats.MetaChange.Number += cStats.MetaChange.Number
-		stats.NoOp.Number += cStats.NoOp.Number
-		stats.NoOp.Size += cStats.NoOp.Size
+		if !ose.isTarget {
+			// computed just in case, reset in the end if inconsistent
+			stats.NoOp.Number += cStats.NoOp.Number
+			stats.NoOp.Size += cStats.NoOp.Size
+		}
 		stats.Error.Number += cStats.Error.Number
 	}
 	if errorsNum > 0 {

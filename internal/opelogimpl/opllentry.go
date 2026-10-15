@@ -18,11 +18,14 @@ func (ole *oplLogicalEntry) recordEvents() {
 
 // setNoOp sets stats for NoOp
 func (ole *oplLogicalEntry) setNoOp() {
-	var size int64
-	if ole.source.se() != nil {
-		size = ole.source.se().Size
+	if ole.source.getStats().IsSet() {
+		ole.source.getStats().NoOp.Number = 0
+		ole.source.getStats().NoOp.Size = 0
+		ole.lgr.Debug("setNoOp", "stats.NoOp", ole.source.getStats().NoOp)
+		return
 	}
-	ole.source.setStatsFor("no", size)
+	ole.source.setStatsFor("no", -1)
+	ole.lgr.Debug("setNoOp", "stats.NoOp", ole.source.getStats().NoOp)
 }
 
 // setChildrenQueue provides to walker children merged both from source and target
@@ -277,9 +280,7 @@ func (ole *oplLogicalEntry) process() error {
 	}
 
 	// if nothing done on any side, set NoOp stats
-	if !ole.source.getStats().IsSet() {
-		ole.setNoOp()
-	}
+	ole.setNoOp()
 
 	return nil
 }
