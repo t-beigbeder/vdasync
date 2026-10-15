@@ -37,6 +37,7 @@ type SyncOptionsType struct {
 	Check        bool   `yaml:"check"`
 	CsAlgos      string `yaml:"csAlgos"`
 	NoPerm       bool   `yaml:"noPerm"`
+	NoEqMtime    bool   `yaml:"noEqMtime"`
 	NoMtime      bool   `yaml:"noMtime"`
 	NoMtLink     bool   `yaml:"noMtLink"`
 	Rm           bool   `yaml:"rm"`

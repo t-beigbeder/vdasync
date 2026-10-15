@@ -96,23 +96,21 @@ func (ole *oplLogicalEntry) tryRm() error {
 
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
 func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
-	sOse, tOse := ole.source, ole.target
+	sOse, tOse, owo := ole.source, ole.target, ole.owo()
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
+	seEqual := tOse.se().Equal(sOse.se(), owo.NoEqMtime, owo.NoMtime, owo.NoMtLink, noRights, false)
 	if sOse.isDir() {
-		if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, noRights, false) {
-			return true
-		}
-		return false
+		return !seEqual
 	}
-	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, noRights, false) {
+	if !seEqual {
 		return true
 	}
-	if ole.owo().CsAlgos == "" {
+	if owo.CsAlgos == "" {
 		return false
 	}
-	eq, err := common.CompareTcss(sOse.getState().Tcss, tOse.getState().Tcss, ole.owo().CsAlgos)
+	eq, err := common.CompareTcss(sOse.getState().Tcss, tOse.getState().Tcss, owo.CsAlgos)
 	if err != nil {
 		return true
 	}

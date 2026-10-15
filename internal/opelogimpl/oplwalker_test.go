@@ -269,16 +269,16 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label:       "update - c4 tiny simple",
-			ftgen:       ftGenTiny,
-			conc:        4,
-			owo:         &config.OpeLogOptionsType{},
+			label: "update - c4 tiny simple",
+			ftgen: ftGenTiny,
+			conc:  4,
+			owo:   &config.OpeLogOptionsType{},
 		},
 		{
-			label:       "update - c4 aug small",
-			ftgen:       ftGenAugSmall,
-			conc:        4,
-			owo:         &config.OpeLogOptionsType{},
+			label: "update - c4 aug small",
+			ftgen: ftGenAugSmall,
+			conc:  4,
+			owo:   &config.OpeLogOptionsType{},
 		},
 	}
 
@@ -301,10 +301,10 @@ func TestSingleOplWalkers(t *testing.T) {
 
 	owts := []owTest{
 		{
-			label:       "update - c4 tiny simple",
-			ftgen:       ftGenTiny,
-			conc:        1,
-			owo:         &config.OpeLogOptionsType{},
+			label: "update - c4 tiny simple",
+			ftgen: ftGenTiny,
+			conc:  1,
+			owo:   &config.OpeLogOptionsType{},
 		},
 	}
 

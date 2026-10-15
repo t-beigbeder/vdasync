@@ -104,15 +104,15 @@ func RunSyncCli(df *DssaFactory) {
 	defer tDss.EndSession()
 
 	swo := config.SyncOptionsType{
-		Dryrun: *dryRunFlag,
-		Rm: *rmFlag,
-		Force: *forceFlag,
-		IgnoreIrreg: *iirregFlag,
-		Check: *svsf.CheckFlag,
-		CsAlgos: *svsf.CsalFlag,
-		NoPerm: *noPermFlag,
-		NoMtime: *noMtimeFlag,
-		NoMtLink: *noMtLinkFlag,
+		Dryrun:       *dryRunFlag,
+		Rm:           *rmFlag,
+		Force:        *forceFlag,
+		IgnoreIrreg:  *iirregFlag,
+		Check:        *svsf.CheckFlag,
+		CsAlgos:      *svsf.CsalFlag,
+		NoPerm:       *noPermFlag,
+		NoMtime:      *noMtimeFlag,
+		NoMtLink:     *noMtLinkFlag,
 		ExclListPath: *svsf.ExclFlag,
 		InclListPath: *svsf.InclFlag,
 	}
