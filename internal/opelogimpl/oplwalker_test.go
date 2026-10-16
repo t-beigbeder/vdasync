@@ -8,6 +8,7 @@ import (
 	"path"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/config"
@@ -31,6 +32,8 @@ type owTest struct {
 	oplq               opelog.Queue
 	hasLoadInv         bool
 	hasNoExpCsv        bool
+	hasNoPhase2 bool
+	hasNoExpCsv2 bool
 	csvName            string
 	std, ltd, ttd, ctd string
 	sDss, tDss         dssa.Dssa
@@ -138,7 +141,7 @@ func (owt *owTest) newOplWalker() OplWalker {
 	)
 }
 
-func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, err error) {
+func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, stats *opelog.ComputedStats, err error) {
 	defer func() {
 		if ctx != "" {
 			ctx = fmt.Sprintf("%s: %s", baseCtx, ctx)
@@ -160,7 +163,8 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, err error) {
 		ctx = "GetStats"
 		return
 	}
-	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
+	stats = rLe.GetStats(sTs)
+	if nbe := stats.Error.Number; nbe != 0 {
 		err = fmt.Errorf("got %d errors", nbe)
 		return
 	}
@@ -176,6 +180,7 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, err error) {
 }
 
 func (owt *owTest) runOwTest() (err error) {
+	var stats *opelog.ComputedStats
 	ctx := "ns"
 	defer func() {
 		if err == nil {
@@ -220,14 +225,21 @@ func (owt *owTest) runOwTest() (err error) {
 	owt.owo.SpecialInterest = owt.specialInterest
 
 	// phase1: initial sync request
-	if ctx, err = owt.walkStatsCsv("phase1"); err != nil {
+	if ctx, _, err = owt.walkStatsCsv("phase1"); err != nil {
 		return
 	}
 
 	// phase2: dryrun
-	owt.owo.Dryrun = true
-	if ctx, err = owt.walkStatsCsv("phase2"); err != nil {
-		return
+	if !owt.hasNoPhase2 {
+		time.Sleep(time.Millisecond)
+		owt.owo.Dryrun = true
+		if ctx, stats, err = owt.walkStatsCsv("phase2"); err != nil {
+			return
+		}
+		if stats.IsSet() {
+			ctx = "phase2"
+			err = errors.New("stats is set")
+		}
 	}
 
 	return
@@ -237,7 +249,7 @@ func TestManyOplWalkers(t *testing.T) {
 
 	owts := []owTest{
 		{
-			label:     "load - c0 small simple",
+			label:     "update - c0 small simple",
 			unSkipped: false,
 			lgr:       nil,
 			ftgen:     ftGenSmall,
@@ -292,7 +304,7 @@ func TestManyOplWalkers(t *testing.T) {
 	}
 
 	skipDefault := false
-	for _, owt := range owts {
+	for it, owt := range owts {
 		require.NoError(t, owt.setDefLogger())
 		if skipDefault {
 			if !owt.unSkipped {
@@ -300,6 +312,7 @@ func TestManyOplWalkers(t *testing.T) {
 				continue
 			}
 		}
+		owt.label = fmt.Sprintf("%d - %s", it+1, owt.label)
 		owt.t = t
 		err := owt.runOwTest()
 		require.NoError(t, err, err)
@@ -307,17 +320,17 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestSingleOplWalkers(t *testing.T) {
-	// t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "update - c4 tiny simple",
-			lgr:   common.DbgLogger(),
-			ftgen: ftGenTiny,
+			label: "load c1 - medium - debug",
 			conc:  1,
-			owo:   &config.OpeLogOptionsType{},
-			// specialInterest: []string{""},
+			ftgen: ftGenMedium,
+			owo: &config.OpeLogOptionsType{
+				Goals:      "load",
+			},
 		},
 	}
 

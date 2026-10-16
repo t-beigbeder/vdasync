@@ -123,8 +123,8 @@ func (ow *oplWalkerImpl) workersController() {
 		hasTimeOut = false
 	}
 	if rsTo < 0 {
-		// not reliable, for testing only
-		rsTo = int64(50 * time.Millisecond)
+		// not reliable, for testing only - FIXME: have it in millis
+		rsTo = int64(250 * time.Millisecond)
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 	for stopped := false; !stopped; {

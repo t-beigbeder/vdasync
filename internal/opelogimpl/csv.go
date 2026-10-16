@@ -33,7 +33,7 @@ func init() {
 	exporters[RPT_SYNTHETIC] = csvExporter{
 		columns: []string{
 			"Meta",
-			"RelPath", "InvChks", "Sync",
+			"RelPath", "InvChks", "Sync", "Summary",
 			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
 			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
 		},
@@ -49,8 +49,9 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record[1] = relPath
 	record[2] = ele.invent.dispChecksums()
 	record[3] = ele.dispSyncStatus()
+	record[4] = ele.dispSummary()
 
-	sBase := 4
+	sBase := 5
 	record[sBase] = ele.source.dispState()
 	record[sBase+1] = ele.source.dispDir()
 	record[sBase+2] = ele.source.dispSymlink()
@@ -107,6 +108,10 @@ func (ele *expLe) dispSyncStatus() (sys string) {
 		sys = "-"
 	}
 	return sys
+}
+
+func (ele *expLe) dispSummary() string {
+	return ele.GetStats(ele.sTs).Display("summary")
 }
 
 func (est *expSt) dispState() string {

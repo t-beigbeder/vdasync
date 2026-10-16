@@ -2,8 +2,10 @@ package opelog
 
 import (
 	"bytes"
+	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -273,6 +275,36 @@ func (cs *ComputedStats) IsSet() bool {
 	return cs.SourceListOrStat.Number+cs.TargetListOrStat.Number+
 		cs.Read.Number+cs.Create.Number+
 		cs.Update.Number+cs.Remove.Number+cs.MetaChange.Number+cs.Error.Number != 0
+}
+
+func (cs *ComputedStats) Display(kw string) string {
+	sr := []string{}
+	aiDispIf := func(ai *AggInfo, pfx string, hasSize bool) {
+		if ai.Number == 0 {
+			return
+		}
+		if hasSize {
+			sr = append(sr, fmt.Sprintf("%s(%d/%d)", pfx, ai.Number, ai.Size))
+		} else {
+			sr = append(sr, fmt.Sprintf("%s(%d)", pfx, ai.Number))
+		}
+	}
+	if cs == nil {
+		return "-"
+	}
+	if kw == "summary" {
+		aiDispIf(cs.SourceListOrStat, "sSt", false)
+		aiDispIf(cs.TargetListOrStat, "tSt", false)
+		aiDispIf(cs.Read, "read", false)
+		aiDispIf(cs.Create, "create", false)
+		aiDispIf(cs.Remove, "remove", false)
+		aiDispIf(cs.Update, "update", false)
+		aiDispIf(cs.MetaChange, "meta", false)
+		aiDispIf(cs.NoOp, "noOp", false)
+		aiDispIf(cs.Error, "error", false)
+		return strings.Join(sr, " - ")
+	}
+	return fmt.Sprintf("display stats: unknown kw: %s", kw)
 }
 
 type StateCode opeloggrpc.StateCode
