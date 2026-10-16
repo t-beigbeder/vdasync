@@ -16,7 +16,7 @@ type OpeLogManager interface {
 	AddSession(label string, si *SessionInfo) (int64, error)
 	Open(readOnly bool) error
 	Olm() *OpeLogMaster
-	Sync() error
+	Sync(olmChanged bool) error
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
@@ -469,10 +469,22 @@ func (le *LogicalEntry) addOrShareTcss(tcss [][]byte) []int32 {
 	return tcssNums
 }
 
+type ToolInformation struct {
+	StartTime     int64
+	CmdLine       string
+	Version       string
+	HostName      string
+	SourceDssInfo string
+	TargetDssInfo string
+	StopTime      int64
+	ExecSummary   string
+}
+
 type SessionInfo struct {
 	Comment       string
 	ReferenceTime int64
 	IsInventory   bool
+	ToolInfo      *ToolInformation
 }
 
 func (si *SessionInfo) Clone() *SessionInfo {

@@ -152,6 +152,22 @@ func ProtoBuf2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 	return le
 }
 
+func protobuf2ToolInformation(gti *opeloggrpc.ToolInformation) *ToolInformation {
+	if gti == nil {
+		return nil
+	}
+	return &ToolInformation{
+		StartTime:     gti.StartTime,
+		CmdLine:       gti.CmdLine,
+		Version:       gti.Version,
+		HostName:      gti.HostName,
+		SourceDssInfo: gti.SourceDssInfo,
+		TargetDssInfo: gti.TargetDssInfo,
+		StopTime:      gti.StopTime,
+		ExecSummary:   gti.ExecSummary,
+	}
+}
+
 func protobuf2SessionInfo(gsi *opeloggrpc.SessionInfo) *SessionInfo {
 	if gsi == nil {
 		return nil
@@ -160,6 +176,7 @@ func protobuf2SessionInfo(gsi *opeloggrpc.SessionInfo) *SessionInfo {
 		Comment:       gsi.Comment,
 		ReferenceTime: gsi.ReferenceTime,
 		IsInventory:   gsi.IsInventory,
+		ToolInfo:      protobuf2ToolInformation(gsi.ToolInfo),
 	}
 }
 
@@ -342,6 +359,22 @@ func LogicalEntry2ProtoBuf(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 	}
 }
 
+func toolInformation2ProtoBuf(ti *ToolInformation) *opeloggrpc.ToolInformation {
+	if ti == nil {
+		return nil
+	}
+	return &opeloggrpc.ToolInformation{
+		StartTime:     ti.StartTime,
+		CmdLine:       ti.CmdLine,
+		Version:       ti.Version,
+		HostName:      ti.HostName,
+		SourceDssInfo: ti.SourceDssInfo,
+		TargetDssInfo: ti.SourceDssInfo,
+		StopTime:      ti.StopTime,
+		ExecSummary:   ti.ExecSummary,
+	}
+}
+
 func sessionInfo2ProtoBuf(si *SessionInfo) *opeloggrpc.SessionInfo {
 	if si == nil {
 		return nil
@@ -350,6 +383,7 @@ func sessionInfo2ProtoBuf(si *SessionInfo) *opeloggrpc.SessionInfo {
 		Comment:       si.Comment,
 		ReferenceTime: si.ReferenceTime,
 		IsInventory:   si.IsInventory,
+		ToolInfo:      toolInformation2ProtoBuf(si.ToolInfo),
 	}
 }
 

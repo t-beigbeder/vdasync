@@ -12,7 +12,7 @@ import (
 )
 
 type RptConfig struct {
-	ToolInfo string
+	ToolInfo *opelog.ToolInformation
 }
 
 type RptType int
@@ -214,7 +214,7 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	rptCfg *RptConfig,
 ) error {
 	if rptCfg == nil {
-		rptCfg = &RptConfig{ToolInfo: "no tool information"}
+		rptCfg = &RptConfig{ToolInfo: &opelog.ToolInformation{CmdLine: "no tool information"}}
 	}
 	ise := &opelog.SessionInfo{ReferenceTime: -1}
 	sse := &opelog.SessionInfo{ReferenceTime: -1}
@@ -244,7 +244,7 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	if err := cw.Write(ce.columns); err != nil {
 		return err
 	}
-	meta := fmt.Sprintf("%s\nexport timestamp: %s", rptCfg.ToolInfo, time.Now().Format(time.RFC3339))
+	meta := fmt.Sprintf("%v\nexport timestamp: %s", *rptCfg.ToolInfo, time.Now().Format(time.RFC3339))
 	if err := cw.Write([]string{meta}); err != nil {
 		return err
 	}

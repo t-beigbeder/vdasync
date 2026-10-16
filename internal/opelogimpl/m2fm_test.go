@@ -24,9 +24,9 @@ func TestM2fBaseOpeLogs(t *testing.T) {
 	require.NoError(t, err)
 
 	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 
 	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
@@ -48,9 +48,9 @@ func TestM2fNoFileOpeLogs(t *testing.T) {
 	require.NoError(t, err)
 
 	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 
 	require.Error(t, olm.Open(false))
 	require.Error(t, olm.Open(true))
@@ -61,9 +61,9 @@ func TestM2fNoFileOpeLogs(t *testing.T) {
 	olm, err = makeTestM2fManager("", 0, false, std, ttd)
 	require.NoError(t, err)
 	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 	require.NoError(t, olm.Close())
 	lgr.Debug("TestM2fNoFileOpeLogs: end")
 }
@@ -93,7 +93,7 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 		return olm.PutLogicalEntry(path, le)
 	})
 	require.NoError(t, err)
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 
 	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestM2fWriteNoFileOpeLogs(t *testing.T) {
 		return olm.PutLogicalEntry(path, le)
 	})
 	require.NoError(t, err)
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 
 	require.NoError(t, olm.Close())
 	lgr.Debug("TestM2fWriteNoFileOpeLogs: end")

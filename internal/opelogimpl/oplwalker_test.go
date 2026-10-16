@@ -11,6 +11,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/config"
+	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/walker"
@@ -24,6 +25,7 @@ type owTest struct {
 	lgr                *slog.Logger
 	ftgen              func(root string) error
 	conc               int
+	oplTi *opelog.ToolInformation
 	owo                *config.OpeLogOptionsType
 	oplm               opelog.OpeLogManager
 	oplq               opelog.Queue
@@ -31,6 +33,7 @@ type owTest struct {
 	hasNoExpCsv        bool
 	csvName            string
 	std, ltd, ttd, ctd string
+	sDss, tDss         dssa.Dssa
 	noTestMarsh        bool
 	specialInterest    []string
 }
@@ -79,20 +82,20 @@ func (owt *owTest) invImport() error {
 	return nil
 }
 
-func (owt *owTest) exportCsv(dryRunCheck bool) error {
+func (owt *owTest) exportCsv(baseCtx string) error {
 	if owt.hasNoExpCsv {
 		return nil
 	}
 	csvName := strings.Join(strings.Split(owt.label, " "), "-")
-	if dryRunCheck {
-		csvName += "-dryrun"
+	if baseCtx != "" {
+		csvName += "-" + baseCtx
 	}
 	cPath := fmt.Sprintf("%s.csv", path.Join(owt.ctd, csvName))
 	if err := owt.oplm.Open(true); err != nil {
 		return err
 	}
 	defer owt.oplm.Close()
-	if err := OplCsvExport(owt.lgr, owt.oplm, cPath, RPT_SYNTHETIC, "di", "ds", nil); err != nil {
+	if err := OplCsvExport(owt.lgr, owt.oplm, cPath, RPT_SYNTHETIC, "di", "ds", &RptConfig{ToolInfo: owt.oplTi}); err != nil {
 		return err
 	}
 	owt.lgr.Info("exportCsv", "cPath", cPath)
@@ -116,13 +119,60 @@ func (owt *owTest) setDefLogger() error {
 }
 
 func (owt *owTest) newOplWalker() OplWalker {
+	if owt.sDss == nil {
+		owt.sDss = localfiles.MakeLocalFilesDssa()
+	}
+	if owt.tDss == nil {
+		owt.tDss = localfiles.MakeLocalFilesDssa()
+	}
+	cl := fmt.Sprintf("%s-%s", owt.t.Name(), owt.label)
+	if owt.oplTi == nil {
+		owt.oplTi = &opelog.ToolInformation{CmdLine: cl}
+	}
 	return NewOplWalker(
 		owt.lgr.With("test", owt.label), owt.conc,
-		nil, owt.oplm, owt.owo,
-		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
-		owt.std, owt.ttd,
+		nil, owt.oplm,
+		owt.oplTi, owt.owo,
+		owt.sDss, owt.tDss, owt.std, owt.ttd,
 		"ds", "di",
 	)
+}
+
+func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, err error) {
+	defer func() {
+		if ctx != "" {
+			ctx = fmt.Sprintf("%s: %s", baseCtx, ctx)
+		}
+	}()
+	ow := owt.newOplWalker()
+	if err = ow.Run(); err != nil {
+		ctx = "owRun"
+		return
+	}
+	if err = owt.oplm.Open(true); err != nil {
+		ctx = "oplmOpen"
+		return
+	}
+	sTs := owt.oplm.Olm().Sessions["ds"].ReferenceTime
+	rLe, err := owt.oplm.GetLogicalEntry("")
+	if err != nil || rLe == nil || rLe.GetStats(sTs) == nil {
+		err = errors.New("no stats on root")
+		ctx = "GetStats"
+		return
+	}
+	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
+		err = fmt.Errorf("got %d errors", nbe)
+		return
+	}
+	if err = owt.oplm.Close(); err != nil {
+		ctx = "oplmClose"
+		return
+	}
+	if err = owt.exportCsv(baseCtx); err != nil {
+		ctx = "exportCsv"
+		return
+	}
+	return
 }
 
 func (owt *owTest) runOwTest() (err error) {
@@ -168,64 +218,18 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 	owt.owo.ResetTimeout = -1
 	owt.owo.SpecialInterest = owt.specialInterest
-	ow := owt.newOplWalker()
-	if err = ow.Run(); err != nil {
-		ctx = "owRun"
-		return
-	}
-	if err = owt.oplm.Open(true); err != nil {
-		ctx = "oplmOpen1"
-		return
-	}
-	sTs := owt.oplm.Olm().Sessions["ds"].ReferenceTime
-	rLe, err := owt.oplm.GetLogicalEntry("")
-	if err != nil || rLe == nil || rLe.GetStats(sTs) == nil {
-		err = errors.New("no stats on root")
-		ctx = "GetStats1"
-		return
-	}
-	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
-		err = fmt.Errorf("got %d errors", nbe)
-		return
-	}
-	if err = owt.oplm.Close(); err != nil {
-		ctx = "oplmClose2"
-		return
-	}
-	if err = owt.exportCsv(false); err != nil {
-		ctx = "exportCsv"
+
+	// phase1: initial sync request
+	if ctx, err = owt.walkStatsCsv("phase1"); err != nil {
 		return
 	}
 
 	// phase2: dryrun
 	owt.owo.Dryrun = true
-	ow = owt.newOplWalker()
-	if err = ow.Run(); err != nil {
-		ctx = "Dryrun"
+	if ctx, err = owt.walkStatsCsv("phase2"); err != nil {
 		return
 	}
-	if err = owt.oplm.Open(true); err != nil {
-		ctx = "oplmOpen2"
-		return
-	}
-	rLe, err = owt.oplm.GetLogicalEntry("")
-	if err != nil || rLe == nil || rLe.GetStats(sTs) == nil {
-		err = errors.New("no stats on root")
-		ctx = "GetStats2"
-		return
-	}
-	if nbe := rLe.GetStats(sTs).Error.Number; nbe != 0 {
-		err = fmt.Errorf("got %d errors", nbe)
-		return
-	}
-	if err = owt.oplm.Close(); err != nil {
-		ctx = "oplmClose3"
-		return
-	}
-	if err = owt.exportCsv(true); err != nil {
-		ctx = "exportCsvDryRun"
-		return
-	}
+
 	return
 }
 
@@ -309,7 +313,7 @@ func TestSingleOplWalkers(t *testing.T) {
 	owts := []owTest{
 		{
 			label: "update - c4 tiny simple",
-			lgr: common.DbgLogger(),
+			lgr:   common.DbgLogger(),
 			ftgen: ftGenTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
@@ -367,6 +371,7 @@ func TestOplWalker(t *testing.T) {
 	csvPath := path.Join(ltd, "oplm.csv")
 	ow := NewOplWalker(
 		lgr, 4, nil, oplm,
+		&opelog.ToolInformation{CmdLine: "TestOplWalker"},
 		&config.OpeLogOptionsType{
 			SyncOptionsType: config.SyncOptionsType{
 				Check: true,
@@ -424,6 +429,7 @@ func TestOplBadSession(t *testing.T) {
 	require.Contains(t, oplm.Olm().Sessions, "di")
 	ow := NewOplWalker(
 		lgr, 4, nil, oplm,
+		&opelog.ToolInformation{CmdLine: "TestOplWalker"},
 		&config.OpeLogOptionsType{Goals: "load"},
 		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
 		std, ttd,

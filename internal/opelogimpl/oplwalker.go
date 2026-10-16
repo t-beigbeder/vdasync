@@ -33,6 +33,7 @@ type oplWalkerImpl struct {
 	conc          int
 	oplq          opelog.Queue
 	oplm          opelog.OpeLogManager
+	oplTi         *opelog.ToolInformation
 	owo           *config.OpeLogOptionsType
 	sds           dssa.Dssa
 	tds           dssa.Dssa
@@ -93,14 +94,14 @@ func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
 
 func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
 	lgr.Debug("doing")
-	if err := ow.oplm.Sync(); err != nil {
+	if err := ow.oplm.Sync(false); err != nil {
 		ow.owErr(lgr, "failed to synchronize logs", err)
 	}
 }
 
 func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	lgr.Debug("doing")
-	if err := OplCsvExport(ow.lgr, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.inventory, ow.session, nil); err != nil {
+	if err := OplCsvExport(ow.lgr, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.inventory, ow.session, &RptConfig{ToolInfo: ow.oplTi}); err != nil {
 		ow.owErr(lgr, "failed to export logs", err)
 	}
 }
@@ -128,7 +129,7 @@ func (ow *oplWalkerImpl) workersController() {
 	ticker := time.NewTicker(time.Duration(rsTo))
 	for stopped := false; !stopped; {
 		select {
-		case <- ow.wkCtlStopChan:
+		case <-ow.wkCtlStopChan:
 			lgr.Debug("oplWalkerImpl", "wkCtlStopChan", "received")
 			stopped = true
 			ticker.Stop()
@@ -446,6 +447,11 @@ func (ow *oplWalkerImpl) Run() error {
 	}
 
 	// start walker
+	ow.oplm.Olm().Sessions[ow.session].ToolInfo = ow.oplTi
+	if err := ow.oplm.Sync(true); err != nil {
+		ow.lgr.Error("oplWalkerImpl: Run: log initial tool info", "err", err)
+		return err
+	}
 	ow.startOrRestart()
 	// wait workers done
 	wg.Wait()
@@ -462,9 +468,14 @@ func (ow *oplWalkerImpl) Run() error {
 	ow.lgr.Debug("oplWalkerImpl", "wkCtlStopChan", "sending")
 	ow.wkCtlStopChan <- true
 	ow.lgr.Debug("oplWalkerImpl", "wkCtlDoneChan", "receiving")
-	<- ow.wkCtlDoneChan
+	<-ow.wkCtlDoneChan
 
 	// all done
+	ow.oplm.Olm().Sessions[ow.session].ToolInfo = ow.oplTi
+	if err := ow.oplm.Sync(true); err != nil {
+		ow.lgr.Error("oplWalkerImpl: Run: log final tool info", "err", err)
+		return err
+	}
 	if err := ow.oplm.Close(); err != nil {
 		ow.lgr.Error("oplWalkerImpl: Run: close logs", "err", err)
 		return err
@@ -481,7 +492,7 @@ func (ow *oplWalkerImpl) Run() error {
 
 func NewOplWalker(lgr *slog.Logger, conc int,
 	oplq opelog.Queue, oplm opelog.OpeLogManager,
-	owo *config.OpeLogOptionsType,
+	oplTi *opelog.ToolInformation, owo *config.OpeLogOptionsType,
 	sds, tds dssa.Dssa, sRoot, tRoot string,
 	session, inventory string,
 ) OplWalker {
@@ -494,11 +505,12 @@ func NewOplWalker(lgr *slog.Logger, conc int,
 
 	return &oplWalkerImpl{
 		lgr:  lgr,
-		conc: conc, oplq: oplq, oplm: oplm, owo: owo,
+		conc: conc, oplq: oplq, oplm: oplm,
+		owo: owo, oplTi: oplTi,
 		sds: sds, tds: tds, sRoot: sRoot, tRoot: tRoot,
 		session: session, inventory: inventory,
 		wkCtlStopChan: make(chan bool),
 		wkCtlDoneChan: make(chan bool),
-		bg: context.Background(),
+		bg:            context.Background(),
 	}
 }

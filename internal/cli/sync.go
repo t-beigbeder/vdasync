@@ -13,6 +13,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/opelogimpl"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/walker"
+	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 func RunSyncCli(df *DssaFactory) {
@@ -160,9 +161,10 @@ func RunSyncCli(df *DssaFactory) {
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
 	}
+	opti := &opelog.ToolInformation{CmdLine: "TODO: setup ToolInformation"}
 	ow := opelogimpl.NewOplWalker(
 		lgr, *cf.ConcurrencyFlag, nil, oplm,
-		owo,
+		opti, owo,
 		sDss, tDss,
 		sourceRoot, targetRoot,
 		*svsf.OplSesFlag, *svsf.OplInvFlag,

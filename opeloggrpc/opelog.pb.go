@@ -899,18 +899,119 @@ func (x *LogicalEntry) GetIsIgnored() bool {
 	return false
 }
 
+type ToolInformation struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	StartTime     int64                  `protobuf:"varint,1,opt,name=start_time,json=startTime,proto3" json:"start_time,omitempty"`
+	CmdLine       string                 `protobuf:"bytes,2,opt,name=cmd_line,json=cmdLine,proto3" json:"cmd_line,omitempty"`
+	Version       string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	HostName      string                 `protobuf:"bytes,4,opt,name=host_name,json=hostName,proto3" json:"host_name,omitempty"`
+	SourceDssInfo string                 `protobuf:"bytes,5,opt,name=source_dss_info,json=sourceDssInfo,proto3" json:"source_dss_info,omitempty"`
+	TargetDssInfo string                 `protobuf:"bytes,6,opt,name=target_dss_info,json=targetDssInfo,proto3" json:"target_dss_info,omitempty"`
+	StopTime      int64                  `protobuf:"varint,7,opt,name=stop_time,json=stopTime,proto3" json:"stop_time,omitempty"`
+	ExecSummary   string                 `protobuf:"bytes,8,opt,name=exec_summary,json=execSummary,proto3" json:"exec_summary,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ToolInformation) Reset() {
+	*x = ToolInformation{}
+	mi := &file_grpc_opelog_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ToolInformation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ToolInformation) ProtoMessage() {}
+
+func (x *ToolInformation) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_opelog_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ToolInformation.ProtoReflect.Descriptor instead.
+func (*ToolInformation) Descriptor() ([]byte, []int) {
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ToolInformation) GetStartTime() int64 {
+	if x != nil {
+		return x.StartTime
+	}
+	return 0
+}
+
+func (x *ToolInformation) GetCmdLine() string {
+	if x != nil {
+		return x.CmdLine
+	}
+	return ""
+}
+
+func (x *ToolInformation) GetVersion() string {
+	if x != nil {
+		return x.Version
+	}
+	return ""
+}
+
+func (x *ToolInformation) GetHostName() string {
+	if x != nil {
+		return x.HostName
+	}
+	return ""
+}
+
+func (x *ToolInformation) GetSourceDssInfo() string {
+	if x != nil {
+		return x.SourceDssInfo
+	}
+	return ""
+}
+
+func (x *ToolInformation) GetTargetDssInfo() string {
+	if x != nil {
+		return x.TargetDssInfo
+	}
+	return ""
+}
+
+func (x *ToolInformation) GetStopTime() int64 {
+	if x != nil {
+		return x.StopTime
+	}
+	return 0
+}
+
+func (x *ToolInformation) GetExecSummary() string {
+	if x != nil {
+		return x.ExecSummary
+	}
+	return ""
+}
+
 type SessionInfo struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Comment       string                 `protobuf:"bytes,1,opt,name=comment,proto3" json:"comment,omitempty"`
 	ReferenceTime int64                  `protobuf:"varint,2,opt,name=reference_time,json=referenceTime,proto3" json:"reference_time,omitempty"`
 	IsInventory   bool                   `protobuf:"varint,3,opt,name=is_inventory,json=isInventory,proto3" json:"is_inventory,omitempty"`
+	ToolInfo      *ToolInformation       `protobuf:"bytes,4,opt,name=tool_info,json=toolInfo,proto3" json:"tool_info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *SessionInfo) Reset() {
 	*x = SessionInfo{}
-	mi := &file_grpc_opelog_proto_msgTypes[9]
+	mi := &file_grpc_opelog_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -922,7 +1023,7 @@ func (x *SessionInfo) String() string {
 func (*SessionInfo) ProtoMessage() {}
 
 func (x *SessionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[9]
+	mi := &file_grpc_opelog_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -935,7 +1036,7 @@ func (x *SessionInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SessionInfo.ProtoReflect.Descriptor instead.
 func (*SessionInfo) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{9}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *SessionInfo) GetComment() string {
@@ -959,6 +1060,13 @@ func (x *SessionInfo) GetIsInventory() bool {
 	return false
 }
 
+func (x *SessionInfo) GetToolInfo() *ToolInformation {
+	if x != nil {
+		return x.ToolInfo
+	}
+	return nil
+}
+
 type OpeLogMaster struct {
 	state         protoimpl.MessageState  `protogen:"open.v1"`
 	SourceRoot    string                  `protobuf:"bytes,1,opt,name=source_root,json=sourceRoot,proto3" json:"source_root,omitempty"`
@@ -970,7 +1078,7 @@ type OpeLogMaster struct {
 
 func (x *OpeLogMaster) Reset() {
 	*x = OpeLogMaster{}
-	mi := &file_grpc_opelog_proto_msgTypes[10]
+	mi := &file_grpc_opelog_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -982,7 +1090,7 @@ func (x *OpeLogMaster) String() string {
 func (*OpeLogMaster) ProtoMessage() {}
 
 func (x *OpeLogMaster) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[10]
+	mi := &file_grpc_opelog_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -995,7 +1103,7 @@ func (x *OpeLogMaster) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpeLogMaster.ProtoReflect.Descriptor instead.
 func (*OpeLogMaster) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{10}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *OpeLogMaster) GetSourceRoot() string {
@@ -1031,7 +1139,7 @@ type OpeLogAllInOne struct {
 
 func (x *OpeLogAllInOne) Reset() {
 	*x = OpeLogAllInOne{}
-	mi := &file_grpc_opelog_proto_msgTypes[11]
+	mi := &file_grpc_opelog_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1043,7 +1151,7 @@ func (x *OpeLogAllInOne) String() string {
 func (*OpeLogAllInOne) ProtoMessage() {}
 
 func (x *OpeLogAllInOne) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_opelog_proto_msgTypes[11]
+	mi := &file_grpc_opelog_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1056,7 +1164,7 @@ func (x *OpeLogAllInOne) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OpeLogAllInOne.ProtoReflect.Descriptor instead.
 func (*OpeLogAllInOne) Descriptor() ([]byte, []int) {
-	return file_grpc_opelog_proto_rawDescGZIP(), []int{11}
+	return file_grpc_opelog_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *OpeLogAllInOne) GetMaster() *OpeLogMaster {
@@ -1153,11 +1261,22 @@ const file_grpc_opelog_proto_rawDesc = "" +
 	"\n" +
 	"StatsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\x03R\x03key\x12+\n" +
-	"\x05value\x18\x02 \x01(\v2\x15.opelog.ComputedStatsR\x05value:\x028\x01\"q\n" +
+	"\x05value\x18\x02 \x01(\v2\x15.opelog.ComputedStatsR\x05value:\x028\x01\"\x92\x02\n" +
+	"\x0fToolInformation\x12\x1d\n" +
+	"\n" +
+	"start_time\x18\x01 \x01(\x03R\tstartTime\x12\x19\n" +
+	"\bcmd_line\x18\x02 \x01(\tR\acmdLine\x12\x18\n" +
+	"\aversion\x18\x03 \x01(\tR\aversion\x12\x1b\n" +
+	"\thost_name\x18\x04 \x01(\tR\bhostName\x12&\n" +
+	"\x0fsource_dss_info\x18\x05 \x01(\tR\rsourceDssInfo\x12&\n" +
+	"\x0ftarget_dss_info\x18\x06 \x01(\tR\rtargetDssInfo\x12\x1b\n" +
+	"\tstop_time\x18\a \x01(\x03R\bstopTime\x12!\n" +
+	"\fexec_summary\x18\b \x01(\tR\vexecSummary\"\xa7\x01\n" +
 	"\vSessionInfo\x12\x18\n" +
 	"\acomment\x18\x01 \x01(\tR\acomment\x12%\n" +
 	"\x0ereference_time\x18\x02 \x01(\x03R\rreferenceTime\x12!\n" +
-	"\fis_inventory\x18\x03 \x01(\bR\visInventory\"\xe2\x01\n" +
+	"\fis_inventory\x18\x03 \x01(\bR\visInventory\x124\n" +
+	"\ttool_info\x18\x04 \x01(\v2\x17.opelog.ToolInformationR\btoolInfo\"\xe2\x01\n" +
 	"\fOpeLogMaster\x12\x1f\n" +
 	"\vsource_root\x18\x01 \x01(\tR\n" +
 	"sourceRoot\x12\x1f\n" +
@@ -1210,29 +1329,30 @@ func file_grpc_opelog_proto_rawDescGZIP() []byte {
 }
 
 var file_grpc_opelog_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_grpc_opelog_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_grpc_opelog_proto_goTypes = []any{
-	(HalgoCode)(0),         // 0: opelog.HalgoCode
-	(EventCode)(0),         // 1: opelog.EventCode
-	(StateCode)(0),         // 2: opelog.StateCode
-	(*Rights)(nil),         // 3: opelog.Rights
-	(*StoredEntry)(nil),    // 4: opelog.StoredEntry
-	(*TypedChecksum)(nil),  // 5: opelog.TypedChecksum
-	(*Event)(nil),          // 6: opelog.Event
-	(*Events)(nil),         // 7: opelog.Events
-	(*AggInfo)(nil),        // 8: opelog.AggInfo
-	(*ComputedStats)(nil),  // 9: opelog.ComputedStats
-	(*State)(nil),          // 10: opelog.State
-	(*LogicalEntry)(nil),   // 11: opelog.LogicalEntry
-	(*SessionInfo)(nil),    // 12: opelog.SessionInfo
-	(*OpeLogMaster)(nil),   // 13: opelog.OpeLogMaster
-	(*OpeLogAllInOne)(nil), // 14: opelog.OpeLogAllInOne
-	nil,                    // 15: opelog.LogicalEntry.SourceStatesEntry
-	nil,                    // 16: opelog.LogicalEntry.TargetStatesEntry
-	nil,                    // 17: opelog.LogicalEntry.EventsListsEntry
-	nil,                    // 18: opelog.LogicalEntry.StatsEntry
-	nil,                    // 19: opelog.OpeLogMaster.SessionsEntry
-	nil,                    // 20: opelog.OpeLogAllInOne.LogicalEntriesEntry
+	(HalgoCode)(0),          // 0: opelog.HalgoCode
+	(EventCode)(0),          // 1: opelog.EventCode
+	(StateCode)(0),          // 2: opelog.StateCode
+	(*Rights)(nil),          // 3: opelog.Rights
+	(*StoredEntry)(nil),     // 4: opelog.StoredEntry
+	(*TypedChecksum)(nil),   // 5: opelog.TypedChecksum
+	(*Event)(nil),           // 6: opelog.Event
+	(*Events)(nil),          // 7: opelog.Events
+	(*AggInfo)(nil),         // 8: opelog.AggInfo
+	(*ComputedStats)(nil),   // 9: opelog.ComputedStats
+	(*State)(nil),           // 10: opelog.State
+	(*LogicalEntry)(nil),    // 11: opelog.LogicalEntry
+	(*ToolInformation)(nil), // 12: opelog.ToolInformation
+	(*SessionInfo)(nil),     // 13: opelog.SessionInfo
+	(*OpeLogMaster)(nil),    // 14: opelog.OpeLogMaster
+	(*OpeLogAllInOne)(nil),  // 15: opelog.OpeLogAllInOne
+	nil,                     // 16: opelog.LogicalEntry.SourceStatesEntry
+	nil,                     // 17: opelog.LogicalEntry.TargetStatesEntry
+	nil,                     // 18: opelog.LogicalEntry.EventsListsEntry
+	nil,                     // 19: opelog.LogicalEntry.StatsEntry
+	nil,                     // 20: opelog.OpeLogMaster.SessionsEntry
+	nil,                     // 21: opelog.OpeLogAllInOne.LogicalEntriesEntry
 }
 var file_grpc_opelog_proto_depIdxs = []int32{
 	3,  // 0: opelog.StoredEntry.user_rights:type_name -> opelog.Rights
@@ -1252,24 +1372,25 @@ var file_grpc_opelog_proto_depIdxs = []int32{
 	2,  // 14: opelog.State.stc:type_name -> opelog.StateCode
 	4,  // 15: opelog.LogicalEntry.shared_ses:type_name -> opelog.StoredEntry
 	5,  // 16: opelog.LogicalEntry.shared_tcss:type_name -> opelog.TypedChecksum
-	15, // 17: opelog.LogicalEntry.source_states:type_name -> opelog.LogicalEntry.SourceStatesEntry
-	16, // 18: opelog.LogicalEntry.target_states:type_name -> opelog.LogicalEntry.TargetStatesEntry
-	17, // 19: opelog.LogicalEntry.eventsLists:type_name -> opelog.LogicalEntry.EventsListsEntry
-	18, // 20: opelog.LogicalEntry.stats:type_name -> opelog.LogicalEntry.StatsEntry
-	19, // 21: opelog.OpeLogMaster.sessions:type_name -> opelog.OpeLogMaster.SessionsEntry
-	13, // 22: opelog.OpeLogAllInOne.master:type_name -> opelog.OpeLogMaster
-	20, // 23: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
-	10, // 24: opelog.LogicalEntry.SourceStatesEntry.value:type_name -> opelog.State
-	10, // 25: opelog.LogicalEntry.TargetStatesEntry.value:type_name -> opelog.State
-	7,  // 26: opelog.LogicalEntry.EventsListsEntry.value:type_name -> opelog.Events
-	9,  // 27: opelog.LogicalEntry.StatsEntry.value:type_name -> opelog.ComputedStats
-	12, // 28: opelog.OpeLogMaster.SessionsEntry.value:type_name -> opelog.SessionInfo
-	11, // 29: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
-	30, // [30:30] is the sub-list for method output_type
-	30, // [30:30] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	16, // 17: opelog.LogicalEntry.source_states:type_name -> opelog.LogicalEntry.SourceStatesEntry
+	17, // 18: opelog.LogicalEntry.target_states:type_name -> opelog.LogicalEntry.TargetStatesEntry
+	18, // 19: opelog.LogicalEntry.eventsLists:type_name -> opelog.LogicalEntry.EventsListsEntry
+	19, // 20: opelog.LogicalEntry.stats:type_name -> opelog.LogicalEntry.StatsEntry
+	12, // 21: opelog.SessionInfo.tool_info:type_name -> opelog.ToolInformation
+	20, // 22: opelog.OpeLogMaster.sessions:type_name -> opelog.OpeLogMaster.SessionsEntry
+	14, // 23: opelog.OpeLogAllInOne.master:type_name -> opelog.OpeLogMaster
+	21, // 24: opelog.OpeLogAllInOne.logical_entries:type_name -> opelog.OpeLogAllInOne.LogicalEntriesEntry
+	10, // 25: opelog.LogicalEntry.SourceStatesEntry.value:type_name -> opelog.State
+	10, // 26: opelog.LogicalEntry.TargetStatesEntry.value:type_name -> opelog.State
+	7,  // 27: opelog.LogicalEntry.EventsListsEntry.value:type_name -> opelog.Events
+	9,  // 28: opelog.LogicalEntry.StatsEntry.value:type_name -> opelog.ComputedStats
+	13, // 29: opelog.OpeLogMaster.SessionsEntry.value:type_name -> opelog.SessionInfo
+	11, // 30: opelog.OpeLogAllInOne.LogicalEntriesEntry.value:type_name -> opelog.LogicalEntry
+	31, // [31:31] is the sub-list for method output_type
+	31, // [31:31] is the sub-list for method input_type
+	31, // [31:31] is the sub-list for extension type_name
+	31, // [31:31] is the sub-list for extension extendee
+	0,  // [0:31] is the sub-list for field type_name
 }
 
 func init() { file_grpc_opelog_proto_init() }
@@ -1283,7 +1404,7 @@ func file_grpc_opelog_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_opelog_proto_rawDesc), len(file_grpc_opelog_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

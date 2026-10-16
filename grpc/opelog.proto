@@ -118,10 +118,22 @@ message LogicalEntry {
     bool is_ignored = 7;
 }
 
+message ToolInformation {
+    int64 start_time = 1;
+    string cmd_line = 2;
+    string version = 3;
+    string host_name = 4;
+    string source_dss_info = 5;
+    string target_dss_info = 6;
+    int64 stop_time = 7;
+    string exec_summary = 8;
+}
+
 message SessionInfo {
     string comment = 1;
     int64 reference_time = 2;
     bool is_inventory = 3;
+    ToolInformation tool_info = 4;
 }
 
 message OpeLogMaster {

@@ -10,6 +10,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/walker"
+	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 func TestCsvExport(t *testing.T) {
@@ -46,6 +47,7 @@ func TestCsvExport(t *testing.T) {
 
 	ow := NewOplWalker(
 		lgr, 4, nil, oplm,
+		&opelog.ToolInformation{CmdLine: "TestCsvExport"},
 		&config.OpeLogOptionsType{
 			SyncOptionsType: config.SyncOptionsType{
 				Check: true,

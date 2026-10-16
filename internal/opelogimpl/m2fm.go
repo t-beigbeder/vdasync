@@ -192,11 +192,14 @@ func (m *m2fOplMng) Olm() *opelog.OpeLogMaster {
 }
 
 // Sync implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Sync() error {
+func (m *m2fOplMng) Sync(olmChanged bool) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.isOpen {
 		return errors.New("m2fMng.Sync: not opened")
+	}
+	if olmChanged {
+		m.hasUpdates = true
 	}
 	if !m.hasUpdates {
 		return nil
