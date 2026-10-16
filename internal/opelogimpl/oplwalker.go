@@ -106,7 +106,8 @@ func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 }
 
 func (ow *oplWalkerImpl) startOrRestart() {
-	ow.toolStartTime = time.Now().Unix()
+	time.Sleep(time.Millisecond)
+	ow.toolStartTime = time.Now().UnixMilli()
 	ow.oplq.Put("")
 }
 

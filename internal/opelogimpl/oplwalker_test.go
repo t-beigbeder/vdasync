@@ -8,7 +8,6 @@ import (
 	"path"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/config"
@@ -199,7 +198,6 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 
 	// phase2: dryrun
-	time.Sleep(time.Second)
 	owt.owo.Dryrun = true
 	ow = owt.newOplWalker()
 	if err = ow.Run(); err != nil {
@@ -305,7 +303,7 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	// t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{

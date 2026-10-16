@@ -268,6 +268,10 @@ func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	stats := ose.getStats()
 	se := ose.se()
+	if se != nil && se.IsDir && size != 0 {
+		// sizes not relevant for directories
+		size = 0
+	}
 	if size == -1 {
 		if se != nil {
 			size = se.Size
