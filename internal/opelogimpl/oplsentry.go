@@ -349,6 +349,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		stats.NoOp.Number = 0
 		stats.NoOp.Size = 0
 	}
+	ose.lgr.Debug("processChildrenDone: start", "stats", stats.Display("summary"))
 	for _, child := range se.Children {
 		cle, ok := ose.ole.childrenLeCache[child]
 		if !ok {
@@ -363,30 +364,31 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 			errorsNum++
 		}
 		cStats := cle.GetStats(owi.sessionTime)
-		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
-		stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
-		stats.Read.Number += cStats.Read.Number
-		stats.Read.Size += cStats.Read.Size
-		stats.Create.Number += cStats.Create.Number
-		stats.Create.Size += cStats.Create.Size
-		stats.Update.Number += cStats.Update.Number
-		stats.Update.Size += cStats.Update.Size
-		stats.Remove.Number += cStats.Remove.Number
-		stats.Remove.Size += cStats.Remove.Size
-		stats.MetaChange.Number += cStats.MetaChange.Number
 		if !ose.isTarget {
+			stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
+			stats.Read.Number += cStats.Read.Number
+			stats.Read.Size += cStats.Read.Size
 			// computed just in case, reset in the end if inconsistent
 			stats.NoOp.Number += cStats.NoOp.Number
 			stats.NoOp.Size += cStats.NoOp.Size
+			stats.Error.Number += cStats.Error.Number
+		} else {
+			stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
+			stats.Create.Number += cStats.Create.Number
+			stats.Create.Size += cStats.Create.Size
+			stats.Update.Number += cStats.Update.Number
+			stats.Update.Size += cStats.Update.Size
+			stats.Remove.Number += cStats.Remove.Number
+			stats.Remove.Size += cStats.Remove.Size
+			stats.MetaChange.Number += cStats.MetaChange.Number
 		}
-		stats.Error.Number += cStats.Error.Number
 	}
 	if errorsNum > 0 {
 		ose.setState(opelog.STC_DESC_ERROR, "", se, nil, -1)
 		return nil
 	}
 	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, -1)
-	ose.lgr.Debug("processChildrenDone", "stats.NoOp", stats.NoOp)
+	ose.lgr.Debug("processChildrenDone: end", "stats", stats.Display("summary"))
 	return nil
 }
 

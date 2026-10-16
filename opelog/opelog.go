@@ -295,12 +295,12 @@ func (cs *ComputedStats) Display(kw string) string {
 	if kw == "summary" {
 		aiDispIf(cs.SourceListOrStat, "sSt", false)
 		aiDispIf(cs.TargetListOrStat, "tSt", false)
-		aiDispIf(cs.Read, "read", false)
-		aiDispIf(cs.Create, "create", false)
-		aiDispIf(cs.Remove, "remove", false)
-		aiDispIf(cs.Update, "update", false)
+		aiDispIf(cs.Read, "read", true)
+		aiDispIf(cs.Create, "create", true)
+		aiDispIf(cs.Remove, "remove", true)
+		aiDispIf(cs.Update, "update", true)
 		aiDispIf(cs.MetaChange, "meta", false)
-		aiDispIf(cs.NoOp, "noOp", false)
+		aiDispIf(cs.NoOp, "noOp", true)
 		aiDispIf(cs.Error, "error", false)
 		return strings.Join(sr, " - ")
 	}

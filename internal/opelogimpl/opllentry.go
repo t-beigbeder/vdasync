@@ -21,11 +21,11 @@ func (ole *oplLogicalEntry) setNoOp() {
 	if ole.source.getStats().IsSet() {
 		ole.source.getStats().NoOp.Number = 0
 		ole.source.getStats().NoOp.Size = 0
-		ole.lgr.Debug("setNoOp", "stats.NoOp", ole.source.getStats().NoOp)
+		ole.lgr.Debug("setNoOp: IsSet", "stats", ole.source.getStats().Display("summary"))
 		return
 	}
 	ole.source.setStatsFor("no", -1)
-	ole.lgr.Debug("setNoOp", "stats.NoOp", ole.source.getStats().NoOp)
+	ole.lgr.Debug("setNoOp: notSet", "stats", ole.source.getStats().Display("summary"))
 }
 
 // setChildrenQueue provides to walker children merged both from source and target

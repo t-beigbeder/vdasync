@@ -26,14 +26,14 @@ type owTest struct {
 	lgr                *slog.Logger
 	ftgen              func(root string) error
 	conc               int
-	oplTi *opelog.ToolInformation
+	oplTi              *opelog.ToolInformation
 	owo                *config.OpeLogOptionsType
 	oplm               opelog.OpeLogManager
 	oplq               opelog.Queue
 	hasLoadInv         bool
 	hasNoExpCsv        bool
-	hasNoPhase2 bool
-	hasNoExpCsv2 bool
+	hasNoPhase2        bool
+	hasNoExpCsv2       bool
 	csvName            string
 	std, ltd, ttd, ctd string
 	sDss, tDss         dssa.Dssa
@@ -325,12 +325,11 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "load c1 - medium - debug",
+			label: "update - c1 tiny simple",
+			lgr:   common.DbgLogger(),
+			ftgen: ftGenTiny,
 			conc:  1,
-			ftgen: ftGenMedium,
-			owo: &config.OpeLogOptionsType{
-				Goals:      "load",
-			},
+			owo:   &config.OpeLogOptionsType{},
 		},
 	}
 
