@@ -24,7 +24,7 @@ const (
 
 type csvExporter struct {
 	columns     []string
-	rowExporter func(string, *opelog.LogicalEntry, int64, int64) []string
+	rowExporter func(string, *opelog.LogicalEntry, int64, int64) [][]string
 }
 
 var exporters map[RptType]csvExporter = map[RptType]csvExporter{}
@@ -44,15 +44,15 @@ func init() {
 			"Meta",
 			"RelPath", "InvChks", "Sync", "Summary",
 			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
-			"SEvTime", "SEvKind",
+			"SEvTime", "SEvKind", "SEvChks",
 			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
-			"TEvTime", "TEvKind",
+			"TEvTime", "TEvKind", "TEvChks",
 		},
-		rowExporter: fullxporter,
+		rowExporter: fullExporter,
 	}
 }
 
-func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []string {
+func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]string {
 	ele := newExpLe(relPath, le, ti, ts)
 
 	cols := exporters[RPT_SYNTHETIC].columns
@@ -78,10 +78,10 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record[tBase+4] = ele.target.dispMtime()
 	record[tBase+5] = ele.target.dispChecksums()
 
-	return record
+	return [][]string{record}
 }
 
-func fullxporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []string {
+func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]string {
 	ele := newExpLe(relPath, le, ti, ts)
 
 	cols := exporters[RPT_FULL].columns
@@ -99,7 +99,7 @@ func fullxporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []string
 	record[sBase+4] = ele.source.dispMtime()
 	record[sBase+5] = ele.source.dispChecksums()
 
-	tBase := sBase + 6 + 2
+	tBase := sBase + 6 + 3
 	record[tBase] = ele.target.dispState()
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
@@ -107,7 +107,23 @@ func fullxporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []string
 	record[tBase+4] = ele.target.dispMtime()
 	record[tBase+5] = ele.target.dispChecksums()
 
-	return record
+	res := [][]string{record}
+
+	for _, sev := range ele.source.getEventsAsStrings() {
+		record = make([]string, len(cols))
+		record[sBase+6] = sev[0]
+		record[sBase+7] = sev[1]
+		record[sBase+8] = sev[2]
+		res = append(res, record)
+	}
+	for _, sev := range ele.target.getEventsAsStrings() {
+		record = make([]string, len(cols))
+		record[tBase+6] = sev[0]
+		record[tBase+7] = sev[1]
+		record[tBase+8] = sev[2]
+		res = append(res, record)
+	}
+	return res
 }
 
 type expLe struct {
@@ -125,6 +141,7 @@ type expSt struct {
 	isInvent bool
 	isTarget bool
 	ele      *expLe
+	events []*opelog.Event
 }
 
 func (ele *expLe) dispSyncStatus() (sys string) {
@@ -204,6 +221,10 @@ func (est *expSt) dispSize() string {
 	return fmt.Sprintf("%d", est.Se.Size)
 }
 
+func ts2s(ts int64) string {
+	return time.Unix(ts, 0).UTC().Format(time.RFC3339)
+}
+
 func (est *expSt) dispMtime() string {
 	if est.Se == nil {
 		return ""
@@ -211,7 +232,7 @@ func (est *expSt) dispMtime() string {
 	if est.Stc != opelog.STC_DONE_PRESENT {
 		return "-"
 	}
-	return time.Unix(est.Se.Mtime, 0).UTC().Format(time.RFC3339)
+	return ts2s(est.Se.Mtime)
 }
 
 func (est *expSt) dispChecksums() string {
@@ -220,6 +241,22 @@ func (est *expSt) dispChecksums() string {
 		return "e"
 	}
 	return css
+}
+
+func (est *expSt) getEventsAsStrings() (res [][]string) {
+	for _, ev := range est.events {
+		scs, err := common.TypedChecksums2Checksums(ev.Tcss)
+		if err != nil {
+			scs = "e"
+		}
+		sev := []string{
+			ts2s(ev.TimeStamp),
+			ev.Kind.String(),
+			scs,
+		}
+		res = append(res, sev)
+	}
+	return
 }
 
 func (est *expSt) setEmptySt() {
@@ -247,8 +284,10 @@ func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
 	}
 	if sTs != -1 {
 		ele.source.State = ele.LogicalEntry.GetState(sTs, false)
+		ele.source.events = ele.LogicalEntry.GetEvents(sTs, false)
 		ele.source.setEmptySt()
 		ele.target.State = ele.LogicalEntry.GetState(sTs, true)
+		ele.target.events = ele.LogicalEntry.GetEvents(sTs, true)
 		ele.target.setEmptySt()
 	}
 	return ele
@@ -295,9 +334,11 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	}
 
 	err = oplm.Walk(func(relPath string, le *opelog.LogicalEntry) error {
-		record := ce.rowExporter(relPath, le, ise.ReferenceTime, sse.ReferenceTime)
-		if err := cw.Write(record); err != nil {
-			return err
+		records := ce.rowExporter(relPath, le, ise.ReferenceTime, sse.ReferenceTime)
+		for _, record := range records {
+			if err := cw.Write(record); err != nil {
+				return err
+			}
 		}
 		return nil
 	})

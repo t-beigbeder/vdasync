@@ -77,6 +77,6 @@ func TestCsvExport(t *testing.T) {
 	csvPath := path.Join(ctd, "csv-test-full.csv")
 	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_FULL, "di", "ds", nil))
 
-	csvPath = path.Join(ltd, "oplm.csv")
+	csvPath = path.Join(ctd, "csv-test-synth.csv")
 	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_SYNTHETIC, "di", "ds", nil))
 }
