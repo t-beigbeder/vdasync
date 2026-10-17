@@ -22,6 +22,7 @@ import (
 type owTest struct {
 	t                  *testing.T
 	label              string
+	ctx string
 	unSkipped          bool
 	lgr                *slog.Logger
 	ftgen              func(root string) error
@@ -35,6 +36,8 @@ type owTest struct {
 	hasNoExpCsv        bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
+	hasNoPhase4        bool
+	hasNoExpCsv4       bool
 	csvName            string
 	std, ltd, ttd, ctd string
 	sDss, tDss         dssa.Dssa
@@ -52,6 +55,16 @@ var ftGenSmall = func(root string) error {
 
 var ftGenMedium = func(root string) error {
 	return common.FileTreeGenerate(root, 100, 3000, 2, 4096, false, 2)
+}
+
+var ftGenAugTiny = func(root string) error {
+	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 5, 20, 16, 1024)
+	return err
+}
+
+var ftUpdAugTiny = func(root string) error {
+	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
+	return err
 }
 
 var ftGenAugSmall = func(root string) error {
@@ -93,6 +106,9 @@ func (owt *owTest) invImport() error {
 
 func (owt *owTest) exportCsv(baseCtx string) error {
 	if owt.hasNoExpCsv {
+		return nil
+	}
+	if (baseCtx == "phase2" && owt.hasNoExpCsv2) || (baseCtx == "phase4" && owt.hasNoExpCsv4) {
 		return nil
 	}
 	csvName := strings.Join(strings.Split(owt.label, " "), "-")
@@ -139,7 +155,7 @@ func (owt *owTest) newOplWalker() OplWalker {
 		owt.oplTi = &opelog.ToolInformation{CmdLine: cl}
 	}
 	return NewOplWalker(
-		owt.lgr.With("test", owt.label), owt.conc,
+		owt.lgr.With("test", owt.label).With("ctx", owt.ctx), owt.conc,
 		nil, owt.oplm,
 		owt.oplTi, owt.owo,
 		owt.sDss, owt.tDss, owt.std, owt.ttd,
@@ -153,6 +169,7 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, stats *opelog.Compu
 			ctx = fmt.Sprintf("%s: %s", baseCtx, ctx)
 		}
 	}()
+	owt.ctx = baseCtx
 	ow := owt.newOplWalker()
 	if err = ow.Run(); err != nil {
 		ctx = "owRun"
@@ -251,11 +268,28 @@ func (owt *owTest) runOwTest() (err error) {
 
 	// phase3: update
 	if owt.ftupd != nil {
+		time.Sleep(time.Millisecond)
+		owt.owo.Dryrun = false
 		if err = owt.ftupd(owt.std); err != nil {
 			ctx = "ftupd"
 			return
 		}
+		if ctx, stats, err = owt.walkStatsCsv("phase3"); err != nil {
+			return
+		}
+	}
 
+	// phase4: dryrun for phase3 if applicable
+	if owt.ftupd != nil && !owt.hasNoPhase4 {
+		time.Sleep(time.Millisecond)
+		owt.owo.Dryrun = true
+		if ctx, stats, err = owt.walkStatsCsv("phase4"); err != nil {
+			return
+		}
+		if stats.IsSet() {
+			ctx = "phase4"
+			err = errors.New("stats is set")
+		}
 	}
 
 	return
@@ -298,7 +332,7 @@ func TestManyOplWalkers(t *testing.T) {
 			hasLoadInv: true,
 		},
 		{
-			label: "create - c4 tiny simple",
+			label: "create - c4 tiny",
 			ftgen: ftGenTiny,
 			conc:  4,
 			owo: &config.OpeLogOptionsType{
@@ -306,7 +340,7 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label: "update - c4 tiny simple",
+			label: "update - c4 tiny",
 			ftgen: ftGenTiny,
 			conc:  4,
 			owo:   &config.OpeLogOptionsType{},
@@ -336,14 +370,15 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	// t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "update - c1 tiny simple",
-			lgr:   common.DbgLogger(),
-			ftgen: ftGenTiny,
+			label: "update - c1 aug tiny",
+			lgr:   cliLgr,
+			ftgen: ftGenAugTiny,
+			ftupd: ftUpdAugTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
 		},
