@@ -154,7 +154,7 @@ func RunSyncCli(df *DssaFactory) {
 		Goals:           *oplCmdFlag,
 		NoInvCheck:      *oplNoInvCFlag,
 		SyncPeriod:      int64(syncPer),
-		ResetTimeout:    *oplRtoFlag,
+		ResetMilTimeout: *oplRtoFlag,
 		EnableRestart:   *oplRestartFlag,
 		ClearErrors:     *oplClErrFlag,
 		ExpFile:         *svsf.OplExpFlag,

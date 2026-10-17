@@ -25,6 +25,7 @@ type owTest struct {
 	unSkipped          bool
 	lgr                *slog.Logger
 	ftgen              func(root string) error
+	ftupd              func(root string) error
 	conc               int
 	oplTi              *opelog.ToolInformation
 	owo                *config.OpeLogOptionsType
@@ -55,6 +56,11 @@ var ftGenMedium = func(root string) error {
 
 var ftGenAugSmall = func(root string) error {
 	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 7, 100, 16, 1024)
+	return err
+}
+
+var ftUpdAugSmall = func(root string) error {
+	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 5, 10, 3, 1027)
 	return err
 }
 
@@ -221,7 +227,8 @@ func (owt *owTest) runOwTest() (err error) {
 	if owt.owo.Goals == "" {
 		owt.owo.Goals = "update"
 	}
-	owt.owo.ResetTimeout = -1
+	// WARN: not reliable, test may become flaky on low resource dev env
+	owt.owo.ResetMilTimeout = 250
 	owt.owo.SpecialInterest = owt.specialInterest
 
 	// phase1: initial sync request
@@ -240,6 +247,15 @@ func (owt *owTest) runOwTest() (err error) {
 			ctx = "phase2"
 			err = errors.New("stats is set")
 		}
+	}
+
+	// phase3: update
+	if owt.ftupd != nil {
+		if err = owt.ftupd(owt.std); err != nil {
+			ctx = "ftupd"
+			return
+		}
+
 	}
 
 	return
@@ -388,13 +404,13 @@ func TestOplWalker(t *testing.T) {
 			SyncOptionsType: config.SyncOptionsType{
 				Check: true,
 			},
-			Goals:        "update",
-			SyncPeriod:   5,
-			ResetTimeout: -1,
-			ExpPeriod:    6,
-			ExpFile:      csvPath,
-			InvCsAlgos:   "md5",
-			NoInvCheck:   false,
+			Goals:           "update",
+			SyncPeriod:      5,
+			ResetMilTimeout: 250,
+			ExpPeriod:       6,
+			ExpFile:         csvPath,
+			InvCsAlgos:      "md5",
+			NoInvCheck:      false,
 		},
 		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
 		std, ttd,

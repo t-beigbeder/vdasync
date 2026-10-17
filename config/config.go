@@ -53,7 +53,7 @@ type OpeLogOptionsType struct {
 	NoInvCheck      bool   `yaml:"noInvCheck"`
 	InvCsAlgos      string `yaml:"invCsAlgos"`
 	SyncPeriod      int64  `yaml:"syncPeriod"`
-	ResetTimeout    int64  `yaml:"resetTimeout"`
+	ResetMilTimeout int64  `yaml:"resetMilTimeout"`
 	EnableRestart   bool   `yaml:"enableRestart"`
 	ClearErrors     bool   `yaml:"clearErrors"`
 	ExpPeriod       int64  `yaml:"expPeriod"`

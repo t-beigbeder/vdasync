@@ -116,15 +116,11 @@ func (ow *oplWalkerImpl) workersController() {
 	lgr := ow.lgr.With("worker", "workerController")
 	stoppedWkNum := ow.conc
 	lgr.Debug("oplWalkerImpl", "start", true)
-	rsTo := ow.owo.ResetTimeout * int64(time.Second)
+	rsTo := ow.owo.ResetMilTimeout * int64(time.Millisecond)
 	hasTimeOut := true
 	if rsTo == 0 {
 		rsTo = int64(60 * time.Second)
 		hasTimeOut = false
-	}
-	if rsTo < 0 {
-		// not reliable, for testing only - FIXME: have it in millis
-		rsTo = int64(250 * time.Millisecond)
 	}
 	ticker := time.NewTicker(time.Duration(rsTo))
 	for stopped := false; !stopped; {
