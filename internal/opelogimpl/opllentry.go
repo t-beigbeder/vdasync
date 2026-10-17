@@ -279,7 +279,7 @@ func (ole *oplLogicalEntry) process() error {
 		return nil
 	}
 
-	// if nothing done on any side, set NoOp stats
+	// if nothing (but stat or list) done on any side, set NoOp stats
 	ole.setNoOp()
 
 	return nil

@@ -43,6 +43,7 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 
 // endOrNoOpDirPossible factorized test for DepCount nul (recursive op done) or empty dir
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
+	// FIXME: if DepCount has been reset, shall we loop in all circumstances?
 	return (ose.getState().DepCount <= 0 && !ose.toolRestarted) || len(ose.se().Children) == 0
 }
 
@@ -409,6 +410,7 @@ func (ose *oplStoredEntry) load() error {
 		// cf se.tryLoad
 		st.DepCount = 0
 		ose.ole.hasChanges = true
+
 		if !ose.hasError() && !ose.owo().KeepCached {
 			// by default full rescan of dirs/files
 			return ose.doLoad()
