@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"log/slog"
+	"os"
 	"path"
 	"testing"
 
@@ -71,6 +72,11 @@ func TestCsvExport(t *testing.T) {
 	require.NoError(t, err)
 	require.Zero(t, rLe.GetStats(sTs).Error.Number)
 
-	csvPath := path.Join(ltd, "oplm.csv")
+	ctd := path.Join(os.TempDir(), "oplCsv")
+	os.Mkdir(ctd, 0700)
+	csvPath := path.Join(ctd, "csv-test-full.csv")
+	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_FULL, "di", "ds", nil))
+
+	csvPath = path.Join(ltd, "oplm.csv")
 	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_SYNTHETIC, "di", "ds", nil))
 }

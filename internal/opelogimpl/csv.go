@@ -39,11 +39,22 @@ func init() {
 		},
 		rowExporter: syntheticExporter,
 	}
+	exporters[RPT_FULL] = csvExporter{
+		columns: []string{
+			"Meta",
+			"RelPath", "InvChks", "Sync", "Summary",
+			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
+			"SEvTime", "SEvKind",
+			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
+			"TEvTime", "TEvKind",
+		},
+		rowExporter: fullxporter,
+	}
 }
 
 func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []string {
 	ele := newExpLe(relPath, le, ti, ts)
-	_ = ele
+
 	cols := exporters[RPT_SYNTHETIC].columns
 	record := make([]string, len(cols))
 	record[1] = relPath
@@ -60,6 +71,35 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record[sBase+5] = ele.source.dispChecksums()
 
 	tBase := sBase + 6
+	record[tBase] = ele.target.dispState()
+	record[tBase+1] = ele.target.dispDir()
+	record[tBase+2] = ele.target.dispSymlink()
+	record[tBase+3] = ele.target.dispSize()
+	record[tBase+4] = ele.target.dispMtime()
+	record[tBase+5] = ele.target.dispChecksums()
+
+	return record
+}
+
+func fullxporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []string {
+	ele := newExpLe(relPath, le, ti, ts)
+
+	cols := exporters[RPT_FULL].columns
+	record := make([]string, len(cols))
+	record[1] = relPath
+	record[2] = ele.invent.dispChecksums()
+	record[3] = ele.dispSyncStatus()
+	record[4] = ele.dispSummary()
+
+	sBase := 5
+	record[sBase] = ele.source.dispState()
+	record[sBase+1] = ele.source.dispDir()
+	record[sBase+2] = ele.source.dispSymlink()
+	record[sBase+3] = ele.source.dispSize()
+	record[sBase+4] = ele.source.dispMtime()
+	record[sBase+5] = ele.source.dispChecksums()
+
+	tBase := sBase + 6 + 2
 	record[tBase] = ele.target.dispState()
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
