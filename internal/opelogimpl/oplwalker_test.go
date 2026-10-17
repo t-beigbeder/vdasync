@@ -43,6 +43,7 @@ type owTest struct {
 	sDss, tDss         dssa.Dssa
 	noTestMarsh        bool
 	specialInterest    []string
+	speIntPhase string
 }
 
 var ftGenTiny = func(root string) error {
@@ -171,6 +172,8 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, stats *opelog.Compu
 	}()
 	owt.ctx = baseCtx
 	ow := owt.newOplWalker()
+	owi := ow.(*oplWalkerImpl)
+	owi.testCtx = baseCtx
 	if err = ow.Run(); err != nil {
 		ctx = "owRun"
 		return
@@ -188,6 +191,7 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, stats *opelog.Compu
 	}
 	stats = rLe.GetStats(sTs)
 	if nbe := stats.Error.Number; nbe != 0 {
+		ctx = "errors"
 		err = fmt.Errorf("got %d errors", nbe)
 		return
 	}
@@ -247,6 +251,7 @@ func (owt *owTest) runOwTest() (err error) {
 	// WARN: not reliable, test may become flaky on low resource dev env
 	owt.owo.ResetMilTimeout = 250
 	owt.owo.SpecialInterest = owt.specialInterest
+	owt.owo.SpeIntPhase = owt.speIntPhase
 
 	// phase1: initial sync request
 	if ctx, _, err = owt.walkStatsCsv("phase1"); err != nil {
@@ -257,12 +262,14 @@ func (owt *owTest) runOwTest() (err error) {
 	if !owt.hasNoPhase2 {
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
+		owt.owo.KeepCached = true
 		if ctx, stats, err = owt.walkStatsCsv("phase2"); err != nil {
 			return
 		}
 		if stats.IsSet() {
 			ctx = "phase2"
 			err = errors.New("stats is set")
+			return
 		}
 	}
 
@@ -270,6 +277,7 @@ func (owt *owTest) runOwTest() (err error) {
 	if owt.ftupd != nil {
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = false
+		owt.owo.KeepCached = false
 		if err = owt.ftupd(owt.std); err != nil {
 			ctx = "ftupd"
 			return
@@ -376,11 +384,13 @@ func TestSingleOplWalkers(t *testing.T) {
 	owts := []owTest{
 		{
 			label: "update - c1 aug tiny",
-			lgr:   cliLgr,
+			lgr:   common.DbgLogger(),
 			ftgen: ftGenAugTiny,
 			ftupd: ftUpdAugTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
+			specialInterest: []string{"dau/dRO"},
+			speIntPhase: "phase3",
 		},
 	}
 

@@ -131,7 +131,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 			return err
 		}
 	}
-	if !ose.endOrNoOpDirPossible() {
+	if ose.toolRestarted || !ose.endOrNoOpDirPossible() {
 		ose.childrenQueued = true
 		return nil
 	}
@@ -405,10 +405,14 @@ func (ose *oplStoredEntry) load() error {
 	}
 	if st.DepCount == -1 {
 		// tool restarted implies new parent children cycle
-		// reseting DepCount on non-empty dir is a signal to walk again
+		// resetting DepCount on non-empty dir is a signal to walk again
 		// cf se.tryLoad
 		st.DepCount = 0
 		ose.ole.hasChanges = true
+		if !ose.hasError() && !ose.owo().KeepCached {
+			// by default full rescan of dirs/files
+			return ose.doLoad()
+		}
 	}
 	if st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR {
 		if ose.toolRestarted && ose.owo().ClearErrors {

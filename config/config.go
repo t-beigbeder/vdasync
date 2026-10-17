@@ -56,10 +56,12 @@ type OpeLogOptionsType struct {
 	ResetMilTimeout int64  `yaml:"resetMilTimeout"`
 	EnableRestart   bool   `yaml:"enableRestart"`
 	ClearErrors     bool   `yaml:"clearErrors"`
+	KeepCached      bool   `yaml:"keepCached"`
 	ExpPeriod       int64  `yaml:"expPeriod"`
 	ExpFile         string `yaml:"expFile"`
 	ExpBck          int    `yaml:"expBck"`
 	SpecialInterest []string
+	SpeIntPhase string
 }
 
 type SftpServerType struct {

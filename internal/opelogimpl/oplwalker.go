@@ -51,6 +51,7 @@ type oplWalkerImpl struct {
 	wkCtlStopChan chan bool
 	wkCtlDoneChan chan bool
 	bg            context.Context
+	testCtx string
 }
 
 func (ow *oplWalkerImpl) needInvCheck() bool {
@@ -295,7 +296,9 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 	}()
 	ow.detail(lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
 	if slices.Contains(ow.owo.SpecialInterest, relPath) {
-		lgr.Info("processEntry: SpecialInterest")
+		if ow.owo.SpeIntPhase == ow.testCtx || ow.owo.SpeIntPhase == "" {
+			lgr.Info("processEntry: SpecialInterest")
+		}
 	}
 	ole, err := ow.getLogicalEntry(lgr, relPath)
 	if err != nil {
