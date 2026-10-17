@@ -266,7 +266,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase2"); err != nil {
 			return
 		}
-		if stats.IsSet() {
+		if stats.IsSet(true) {
 			ctx = "phase2"
 			err = errors.New("stats is set")
 			return
@@ -294,7 +294,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase4"); err != nil {
 			return
 		}
-		if stats.IsSet() {
+		if stats.IsSet(true) {
 			ctx = "phase4"
 			err = errors.New("stats is set")
 		}
@@ -378,7 +378,7 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestSingleOplWalkers(t *testing.T) {
-	// t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
@@ -390,7 +390,7 @@ func TestSingleOplWalkers(t *testing.T) {
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
 			specialInterest: []string{"dau/dRO"},
-			speIntPhase: "phase3",
+			speIntPhase: "no-phase3",
 		},
 	}
 

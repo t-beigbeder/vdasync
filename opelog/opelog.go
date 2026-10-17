@@ -271,8 +271,12 @@ func (cs *ComputedStats) Reset() {
 }
 
 // IsSet checks Number set in any aggregated info except NoOp
-func (cs *ComputedStats) IsSet() bool {
-	return cs.SourceListOrStat.Number+cs.TargetListOrStat.Number+
+func (cs *ComputedStats) IsSet(noLs bool) bool {
+	ls := cs.SourceListOrStat.Number+cs.TargetListOrStat.Number
+	if noLs {
+		ls = 0
+	}
+	return ls+
 		cs.Read.Number+cs.Create.Number+
 		cs.Update.Number+cs.Remove.Number+cs.MetaChange.Number+cs.Error.Number != 0
 }
