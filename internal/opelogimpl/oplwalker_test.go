@@ -34,6 +34,7 @@ type owTest struct {
 	oplq               opelog.Queue
 	hasLoadInv         bool
 	hasNoExpCsv        bool
+	hasCacheDryrun     bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
 	hasNoPhase4        bool
@@ -262,7 +263,7 @@ func (owt *owTest) runOwTest() (err error) {
 	if !owt.hasNoPhase2 {
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
-		owt.owo.KeepCached = true
+		owt.owo.KeepCached = owt.hasCacheDryrun
 		if ctx, stats, err = owt.walkStatsCsv("phase2"); err != nil {
 			return
 		}
@@ -291,6 +292,7 @@ func (owt *owTest) runOwTest() (err error) {
 	if owt.ftupd != nil && !owt.hasNoPhase4 {
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
+		owt.owo.KeepCached = true
 		if ctx, stats, err = owt.walkStatsCsv("phase4"); err != nil {
 			return
 		}
@@ -394,12 +396,12 @@ func TestSingleOplWalkers(t *testing.T) {
 	owts := []owTest{
 		{
 			label: "test - single",
-			lgr:   cliLgr,
+			lgr:   common.DbgLogger(),
 			ftgen: ftGenAugTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
-			specialInterest: []string{""},
-			speIntPhase: "phase4",
+			specialInterest: []string{"dau/dRO/dRO"},
+			speIntPhase: "phase1",
 		},
 	}
 

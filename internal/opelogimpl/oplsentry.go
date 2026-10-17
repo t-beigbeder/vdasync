@@ -43,7 +43,7 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 
 // endOrNoOpDirPossible factorized test for DepCount nul (recursive op done) or empty dir
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
-	return ose.getState().DepCount <= 0 || len(ose.se().Children) == 0
+	return (ose.getState().DepCount <= 0 && !ose.toolRestarted) || len(ose.se().Children) == 0
 }
 
 // enableWrite enables an entry to be written if needed
@@ -131,7 +131,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 			return err
 		}
 	}
-	if ose.toolRestarted || !ose.endOrNoOpDirPossible() {
+	if !ose.endOrNoOpDirPossible() {
 		ose.childrenQueued = true
 		return nil
 	}

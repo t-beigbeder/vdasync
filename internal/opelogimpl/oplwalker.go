@@ -297,6 +297,7 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 	ow.detail(lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
 	if slices.Contains(ow.owo.SpecialInterest, relPath) {
 		if ow.owo.SpeIntPhase == ow.testCtx || ow.owo.SpeIntPhase == "" {
+			lgr.Debug("processEntry: SpecialInterest", "sRoot", ow.sRoot, "tRoot", ow.tRoot)
 			lgr.Info("processEntry: SpecialInterest")
 		}
 	}
