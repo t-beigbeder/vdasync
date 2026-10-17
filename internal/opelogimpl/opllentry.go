@@ -18,7 +18,7 @@ func (ole *oplLogicalEntry) recordEvents() {
 
 // setNoOp sets stats for NoOp
 func (ole *oplLogicalEntry) setNoOp() {
-	if ole.source.getStats().IsSet(false) {
+	if ole.source.getStats().IsSet(true) {
 		ole.source.getStats().NoOp.Number = 0
 		ole.source.getStats().NoOp.Size = 0
 		ole.lgr.Debug("setNoOp: IsSet", "stats", ole.source.getStats().Display("summary"))

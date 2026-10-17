@@ -359,6 +359,16 @@ func TestManyOplWalkers(t *testing.T) {
 			conc:  4,
 			owo:   &config.OpeLogOptionsType{},
 		},
+		{
+			label: "update - increment - c4 aug small",
+			lgr:   common.DbgLogger(),
+			ftgen: ftGenAugSmall,
+			ftupd: ftUpdAugSmall,
+			conc:  4,
+			owo:   &config.OpeLogOptionsType{},
+			specialInterest: []string{""},
+			speIntPhase: "phase4",
+		},
 	}
 
 	skipDefault := false
@@ -378,19 +388,18 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	//t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "update - c1 aug tiny",
-			lgr:   common.DbgLogger(),
+			label: "test - single",
+			lgr:   cliLgr,
 			ftgen: ftGenAugTiny,
-			ftupd: ftUpdAugTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
-			specialInterest: []string{"dau/dRO"},
-			speIntPhase: "no-phase3",
+			specialInterest: []string{""},
+			speIntPhase: "phase4",
 		},
 	}
 
