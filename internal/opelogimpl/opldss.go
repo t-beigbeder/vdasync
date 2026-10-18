@@ -167,7 +167,6 @@ func (ose *oplStoredEntry) dssMkdir(se *opelog.StoredEntry) error {
 	ose.detail("dss mkdir")
 	ose.metaChangeTime = time.Now().Unix()
 	cSe := se.ToDataEntry(ose.fullPath())
-	cSe.UserRights.Read, cSe.UserRights.Write, cSe.UserRights.Execute = true, true, true
 	if err := ose.dss().Mkdir(cSe); err != nil {
 		return ose.logErr("dss mkdir", err)
 	}

@@ -155,7 +155,8 @@ func (ose *oplStoredEntry) createDirOps() error {
 		return nil
 	}
 	rwSe := ose.ole.source.se().Clone()
-	if ose.ole.source.enableWriteNeeded() {
+	rwSe.Mtime = time.Now().Unix()
+	if ose.ole.source.enableWriteNeeded() && len(rwSe.Children) > 0 {
 		rwSe.UserRights.Write = true
 		rwSe.UserRights.Execute = true
 	}
@@ -164,7 +165,15 @@ func (ose *oplStoredEntry) createDirOps() error {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
 		return err
 	}
-	ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
+	if len(rwSe.Children) > 0 {
+		ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
+		return nil
+	}
+	se, err := ose.setMeta()
+	if err != nil {
+		return err
+	}
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, 0)
 	return nil
 }
 
@@ -382,6 +391,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 			stats.Remove.Number += cStats.Remove.Number
 			stats.Remove.Size += cStats.Remove.Size
 			stats.MetaChange.Number += cStats.MetaChange.Number
+			stats.Error.Number += cStats.Error.Number
 		}
 	}
 	if errorsNum > 0 {
@@ -400,6 +410,10 @@ func (ose *oplStoredEntry) load() error {
 	if st == nil {
 		return ose.doLoad()
 	}
+	if ose.toolRestarted && !ose.hasError() && !ose.owo().KeepCached {
+		// by default full rescan of dirs/files (not recommended in case of errors)
+		return ose.doLoad()
+	}
 	if st.DepCount == -1 && !ose.toolRestarted {
 		// load children state and propagate to current
 		return ose.processChildrenDone()
@@ -410,11 +424,6 @@ func (ose *oplStoredEntry) load() error {
 		// cf se.tryLoad
 		st.DepCount = 0
 		ose.ole.hasChanges = true
-
-		if !ose.hasError() && !ose.owo().KeepCached {
-			// by default full rescan of dirs/files
-			return ose.doLoad()
-		}
 	}
 	if st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR {
 		if ose.toolRestarted && ose.owo().ClearErrors {

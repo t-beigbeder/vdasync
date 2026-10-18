@@ -34,6 +34,7 @@ type owTest struct {
 	oplq               opelog.Queue
 	hasLoadInv         bool
 	hasNoExpCsv        bool
+	hasNoRm bool
 	hasCacheDryrun     bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
@@ -279,6 +280,7 @@ func (owt *owTest) runOwTest() (err error) {
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = false
 		owt.owo.KeepCached = false
+		owt.owo.Rm = !owt.hasNoRm
 		if err = owt.ftupd(owt.std); err != nil {
 			ctx = "ftupd"
 			return
@@ -368,8 +370,6 @@ func TestManyOplWalkers(t *testing.T) {
 			ftupd: ftUpdAugSmall,
 			conc:  4,
 			owo:   &config.OpeLogOptionsType{},
-			specialInterest: []string{""},
-			speIntPhase: "phase4",
 		},
 	}
 
@@ -398,10 +398,13 @@ func TestSingleOplWalkers(t *testing.T) {
 			label: "test - single",
 			lgr:   common.DbgLogger(),
 			ftgen: ftGenAugTiny,
+			ftupd: ftUpdAugTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
-			specialInterest: []string{"dau/dRO/dRO"},
-			speIntPhase: "phase1",
+			// specialInterest: []string{""},
+			// speIntPhase: "phase4",
+			specialInterest: []string{"dau/dAddFiles/fStay.dat"},
+			speIntPhase: "phase3",
 		},
 	}
 

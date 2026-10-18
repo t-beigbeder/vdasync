@@ -140,6 +140,15 @@ func (ose *oplStoredEntry) root() string {
 	}
 }
 
+// hasError checks se for descendant error, missing state has no error
+func (ose *oplStoredEntry) hasDescError() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc == opelog.STC_DESC_ERROR
+}
+
 // hasError checks se for error, missing state has no error
 func (ose *oplStoredEntry) hasError() bool {
 	st := ose.getState()
