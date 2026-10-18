@@ -61,7 +61,7 @@ type OpeLogOptionsType struct {
 	ExpFile         string `yaml:"expFile"`
 	ExpBck          int    `yaml:"expBck"`
 	SpecialInterest []string
-	SpeIntPhase string
+	SpeIntPhase     string
 }
 
 type SftpServerType struct {

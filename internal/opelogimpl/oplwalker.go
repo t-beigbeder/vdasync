@@ -51,7 +51,7 @@ type oplWalkerImpl struct {
 	wkCtlStopChan chan bool
 	wkCtlDoneChan chan bool
 	bg            context.Context
-	testCtx string
+	testCtx       string
 }
 
 func (ow *oplWalkerImpl) needInvCheck() bool {

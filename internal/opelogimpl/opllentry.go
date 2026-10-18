@@ -110,10 +110,11 @@ func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 	if !seEqual {
 		return true
 	}
-	if owo.CsAlgos == "" {
+	csAlgos := ole.getCsAlgos(false)
+	if csAlgos == "" {
 		return false
 	}
-	eq, err := common.CompareTcss(sOse.getState().Tcss, tOse.getState().Tcss, owo.CsAlgos)
+	eq, err := common.CompareTcss(sOse.getState().Tcss, tOse.getState().Tcss, csAlgos)
 	if err != nil {
 		return true
 	}

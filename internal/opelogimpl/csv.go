@@ -141,7 +141,7 @@ type expSt struct {
 	isInvent bool
 	isTarget bool
 	ele      *expLe
-	events []*opelog.Event
+	events   []*opelog.Event
 }
 
 func (ele *expLe) dispSyncStatus() (sys string) {

@@ -22,7 +22,7 @@ import (
 type owTest struct {
 	t                  *testing.T
 	label              string
-	ctx string
+	ctx                string
 	unSkipped          bool
 	lgr                *slog.Logger
 	ftgen              func(root string) error
@@ -34,7 +34,8 @@ type owTest struct {
 	oplq               opelog.Queue
 	hasLoadInv         bool
 	hasNoExpCsv        bool
-	hasNoRm bool
+	hasNoRm            bool
+	hasNoCheck         bool
 	hasCacheDryrun     bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
@@ -45,7 +46,7 @@ type owTest struct {
 	sDss, tDss         dssa.Dssa
 	noTestMarsh        bool
 	specialInterest    []string
-	speIntPhase string
+	speIntPhase        string
 }
 
 var ftGenTiny = func(root string) error {
@@ -192,17 +193,17 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, stats *opelog.Compu
 		return
 	}
 	stats = rLe.GetStats(sTs)
-	if nbe := stats.Error.Number; nbe != 0 {
-		ctx = "errors"
-		err = fmt.Errorf("got %d errors", nbe)
-		return
-	}
 	if err = owt.oplm.Close(); err != nil {
 		ctx = "oplmClose"
 		return
 	}
 	if err = owt.exportCsv(baseCtx); err != nil {
 		ctx = "exportCsv"
+		return
+	}
+	if nbe := stats.Error.Number; nbe != 0 {
+		ctx = "errors"
+		err = fmt.Errorf("got %d errors", nbe)
 		return
 	}
 	return
@@ -254,6 +255,10 @@ func (owt *owTest) runOwTest() (err error) {
 	owt.owo.ResetMilTimeout = 250
 	owt.owo.SpecialInterest = owt.specialInterest
 	owt.owo.SpeIntPhase = owt.speIntPhase
+	owt.owo.Check = !owt.hasNoCheck
+	if !owt.hasNoCheck && !owt.hasLoadInv {
+		owt.owo.NoInvCheck = true
+	}
 
 	// phase1: initial sync request
 	if ctx, _, err = owt.walkStatsCsv("phase1"); err != nil {
@@ -404,7 +409,7 @@ func TestSingleOplWalkers(t *testing.T) {
 			// specialInterest: []string{""},
 			// speIntPhase: "phase4",
 			specialInterest: []string{"dau/dAddFiles/fStay.dat"},
-			speIntPhase: "phase3",
+			speIntPhase:     "phase3",
 		},
 	}
 
