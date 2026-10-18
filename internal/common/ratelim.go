@@ -26,15 +26,15 @@ func RateLimit(lter *rate.Limiter, tokens int, doer func(int), delayCb func(time
 }
 
 type EvBdwLter struct {
-	mx sync.Mutex
-	evLter     *rate.Limiter
-	bdwLter    *rate.Limiter
-	delayCb    func(kw string, d time.Duration)
-	evCount    int64
-	bytesCount int64
-	sT time.Time
-	sRt time.Time
-	dEvCount int64
+	mx          sync.Mutex
+	evLter      *rate.Limiter
+	bdwLter     *rate.Limiter
+	delayCb     func(kw string, d time.Duration)
+	evCount     int64
+	bytesCount  int64
+	sT          time.Time
+	sRt         time.Time
+	dEvCount    int64
 	dBytesCount int64
 }
 
@@ -59,7 +59,7 @@ func (ebl *EvBdwLter) Counts() (evCount int64, bytesCount int64, du time.Duratio
 	return
 }
 
-func (ebl *EvBdwLter) Record() time.Time{
+func (ebl *EvBdwLter) Record() time.Time {
 	ebl.mx.Lock()
 	defer ebl.mx.Unlock()
 	now := time.Now()

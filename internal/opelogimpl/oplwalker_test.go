@@ -378,8 +378,8 @@ func TestManyOplWalkers(t *testing.T) {
 			lgr:   common.DbgLogger(),
 			ftgen: ftGenAugSmall,
 			// ftupd: ftUpdAugSmall, // FIXME: test
-			conc:  4,
-			owo:   &config.OpeLogOptionsType{},
+			conc: 4,
+			owo:  &config.OpeLogOptionsType{},
 		},
 	}
 

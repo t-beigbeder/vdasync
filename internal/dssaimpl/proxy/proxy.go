@@ -21,6 +21,7 @@ type ProxyHdlArgs struct {
 	Algos   string
 	Old     string
 	New     string
+	Buf     []byte
 }
 
 type ProxyHdlRess struct {
@@ -30,6 +31,7 @@ type ProxyHdlRess struct {
 	RC     io.ReadCloser
 	WC     io.WriteCloser
 	ChSums string
+	NRdWr  int
 }
 
 type ProxyHandler interface {
@@ -66,6 +68,9 @@ func (ph *noOpHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess {
 		ress.ChSums, ress.Err = ph.underlying.Checksum(args.Algos, args.Path)
 	case "GetReadCloser":
 		ress.RC, ress.Err = ph.underlying.GetReadCloser(args.Path)
+		urc := ress.RC
+		prc := makePReader(ph, urc)
+		_ = prc
 	case "GetWriteCloser":
 		ress.WC, ress.Err = ph.underlying.GetWriteCloser(args.Path)
 	case "Rm":

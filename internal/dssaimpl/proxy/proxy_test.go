@@ -14,6 +14,7 @@ import (
 
 func TestBasicProxy(t *testing.T) {
 	lgr := common.GetLogger()
+	lgr = common.DbgLogger()
 	udss := localfiles.MakeLocalFilesDssa()
 	pdss := MakeProxyDssa(lgr, udss, nil)
 
@@ -99,4 +100,22 @@ func TestBasicProxy(t *testing.T) {
 	des, err := pdss.List(td1)
 	require.NoError(t, err)
 	_ = des
+
+	ft = path.Join(td1, "TestBasicProxyLarge.dat")
+	common.MakeTestFile(ft, 1e7)
+	h1, err = common.FileChecksum(ft, "sha256")
+	require.NoError(t, err)
+	tt = path.Join(t.TempDir(), "TestBasicProxyLargeCopied.dat")
+	rc, err = pdss.GetReadCloser(ft)
+	require.Nil(t, err)
+	defer rc.Close()
+	wc, err = pdss.GetWriteCloser(tt)
+	require.Nil(t, err)
+	defer wc.Close()
+	lw, err = io.Copy(wc, rc)
+	require.Nil(t, err)
+	require.Equal(t, int64(1e7), lw)
+	h2, err := common.FileChecksum(tt, "sha256")
+	require.Nil(t, err)
+	require.Equal(t, h1, h2)
 }
