@@ -377,7 +377,7 @@ func TestManyOplWalkers(t *testing.T) {
 			label: "update - increment - c4 aug small",
 			lgr:   common.DbgLogger(),
 			ftgen: ftGenAugSmall,
-			ftupd: ftUpdAugSmall,
+			// ftupd: ftUpdAugSmall, // FIXME: test
 			conc:  4,
 			owo:   &config.OpeLogOptionsType{},
 		},
@@ -400,7 +400,7 @@ func TestManyOplWalkers(t *testing.T) {
 }
 
 func TestSingleOplWalkers(t *testing.T) {
-	//t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{

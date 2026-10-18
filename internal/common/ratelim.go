@@ -3,6 +3,7 @@ package common
 import (
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -25,11 +26,16 @@ func RateLimit(lter *rate.Limiter, tokens int, doer func(int), delayCb func(time
 }
 
 type EvBdwLter struct {
+	mx sync.Mutex
 	evLter     *rate.Limiter
 	bdwLter    *rate.Limiter
 	delayCb    func(kw string, d time.Duration)
 	evCount    int64
 	bytesCount int64
+	sT time.Time
+	sRt time.Time
+	dEvCount int64
+	dBytesCount int64
 }
 
 func NewEvBdwLter(evFreq float64, bdw float64, delayCb func(string, time.Duration)) *EvBdwLter {
@@ -43,8 +49,36 @@ func NewEvBdwLter(evFreq float64, bdw float64, delayCb func(string, time.Duratio
 	return ebl
 }
 
-func (ebl *EvBdwLter) Counts() (int64, int64) {
-	return ebl.evCount, ebl.bytesCount
+func (ebl *EvBdwLter) Counts() (evCount int64, bytesCount int64, du time.Duration, evr float64, bdw float64) {
+	if !ebl.sT.IsZero() {
+		du = time.Since(ebl.sT)
+		evr = float64(ebl.evCount) / du.Seconds()
+		bdw = float64(ebl.bytesCount) / du.Seconds()
+	}
+	evCount, bytesCount = ebl.evCount, ebl.bytesCount
+	return
+}
+
+func (ebl *EvBdwLter) Record() time.Time{
+	ebl.mx.Lock()
+	defer ebl.mx.Unlock()
+	now := time.Now()
+	if ebl.sT.IsZero() {
+		ebl.sT = now
+		ebl.evCount, ebl.bytesCount = 0, 0
+	}
+	ebl.sRt = now
+	ebl.dEvCount, ebl.dBytesCount = 0, 0
+	return ebl.sRt
+}
+
+func (ebl *EvBdwLter) Stats() (time.Duration, float64, float64) {
+	ebl.mx.Lock()
+	defer ebl.mx.Unlock()
+	du := time.Since(ebl.sRt)
+	curEvr := float64(ebl.dEvCount) / du.Seconds()
+	curBdw := float64(ebl.dBytesCount) / du.Seconds()
+	return du, curEvr, curBdw
 }
 
 func (ebl *EvBdwLter) RtlThis(nBytes int) error {
@@ -58,7 +92,10 @@ func (ebl *EvBdwLter) RtlThis(nBytes int) error {
 			ebl.delayCb("e", d)
 		}
 		time.Sleep(d)
+		ebl.mx.Lock()
 		ebl.evCount++
+		ebl.dEvCount++
+		ebl.mx.Unlock()
 	}
 	if ebl.bdwLter != nil && nBytes > 0 {
 		rsv := ebl.bdwLter.ReserveN(time.Now(), nBytes)
@@ -70,7 +107,10 @@ func (ebl *EvBdwLter) RtlThis(nBytes int) error {
 			ebl.delayCb("b", d)
 		}
 		time.Sleep(d)
+		ebl.mx.Lock()
 		ebl.bytesCount += int64(nBytes)
+		ebl.dBytesCount += int64(nBytes)
+		ebl.mx.Unlock()
 	}
 	return nil
 }
