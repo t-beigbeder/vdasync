@@ -181,6 +181,11 @@ func (ose *oplStoredEntry) createDirOps() error {
 //
 // when copying also sets meta and updates state
 func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
+	if !isCreated && !ose.owo().Dryrun && ose.enableWriteNeeded() {
+		if err := ose.enableWrite(); err != nil {
+			return err
+		}
+	}
 	size := ose.ole.source.se().Size
 	sTcss := ose.ole.source.getState().Tcss
 	var tCss [][]byte

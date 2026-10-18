@@ -128,6 +128,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
 		return nil
 	}
+	// FIXME: may need to create dir child => enable update
 	if !ole.checkForUpdate(false) {
 		return nil
 	}
