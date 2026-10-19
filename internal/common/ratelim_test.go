@@ -182,6 +182,28 @@ func TestEvBdwLterBoth(t *testing.T) {
 	lgr.Debug("test bandwidth", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
 }
 
+func TestEvBdwLterPond(t *testing.T) {
+	lgr := DbgLogger()
+	i := 0
+
+	ebl := NewEvBdwLter(1400, 1e8, func(kw string, d time.Duration) {
+		lgr.Debug("waiting", "kw", kw, "d", d, "i", i)
+	})
+	ebl.Record()
+	for ; i < 400; i++ {
+		if (i+1)%10 == 0 {
+			lgr.Debug("sleep...", "i", i)
+			time.Sleep(100 * time.Microsecond)
+			du, evr, bdw := ebl.Stats()
+			lgr.Debug("cur bandwidth", "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+		}
+		err := ebl.PondeRtlThis(99, 80000)
+		require.NoError(t, err)
+	}
+	nEv, nBytes, du, evr, bdw := ebl.Counts()
+	lgr.Debug("test bandwidth", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+}
+
 func TestParseEvBdwbRates(t *testing.T) {
 	e, b, err := ParseEvBdwbRates("")
 	require.NoError(t, err)

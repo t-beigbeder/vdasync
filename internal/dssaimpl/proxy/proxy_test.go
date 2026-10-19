@@ -129,10 +129,10 @@ func TestRtLimBaseProxy(t *testing.T) {
 	lgr := common.GetLogger()
 	lgr = common.DbgLogger()
 	sDss := localfiles.MakeLocalFilesDssa()
-	sRtlHdl := MakeRateLimHandler(lgr, sDss, 300, 6e6)
+	sRtlHdl := MakeRateLimHandler(lgr.With("isTarget", false), sDss, 3, 6e6)
 	sRtlHdl.GetEbl().Record()
 	tDss := localfiles.MakeLocalFilesDssa()
-	tRtlHdl := MakeRateLimHandler(lgr, tDss, 200, 6e6)
+	tRtlHdl := MakeRateLimHandler(lgr.With("isTarget", true), tDss, 2, 6e6)
 	tRtlHdl.GetEbl().Record()
 	doTestProxy(t, lgr, sDss, tDss, sRtlHdl, tRtlHdl)
 	nEv, nBytes, du, evr, bdw := sRtlHdl.GetEbl().Counts()
@@ -144,8 +144,8 @@ func TestRtLimBaseProxy(t *testing.T) {
 func TestRtLimDirectProxy(t *testing.T) {
 	lgr := common.GetLogger()
 	lgr = common.DbgLogger()
-	sDss := MakeRateLimitedDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), 300, 6e6)
-	tDss := MakeRateLimitedDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), 200, 6e6)
+	sDss := MakeRateLimitedDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), 2, 6e6)
+	tDss := MakeRateLimitedDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), 2, 6e6)
 
 	td1 := t.TempDir()
 	ft := path.Join(td1, "TestBasicProxyLarge.dat")
