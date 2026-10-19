@@ -92,10 +92,6 @@ func (ebl *EvBdwLter) RtlThis(nBytes int) error {
 			ebl.delayCb("e", d)
 		}
 		time.Sleep(d)
-		ebl.mx.Lock()
-		ebl.evCount++
-		ebl.dEvCount++
-		ebl.mx.Unlock()
 	}
 	if ebl.bdwLter != nil && nBytes > 0 {
 		rsv := ebl.bdwLter.ReserveN(time.Now(), nBytes)
@@ -107,10 +103,15 @@ func (ebl *EvBdwLter) RtlThis(nBytes int) error {
 			ebl.delayCb("b", d)
 		}
 		time.Sleep(d)
-		ebl.mx.Lock()
-		ebl.bytesCount += int64(nBytes)
-		ebl.dBytesCount += int64(nBytes)
-		ebl.mx.Unlock()
 	}
+	if ebl.evLter == nil && ebl.bdwLter == nil && ebl.delayCb != nil {
+		ebl.delayCb("", 0)
+	}
+	ebl.mx.Lock()
+	ebl.evCount++
+	ebl.dEvCount++
+	ebl.bytesCount += int64(nBytes)
+	ebl.dBytesCount += int64(nBytes)
+	ebl.mx.Unlock()
 	return nil
 }

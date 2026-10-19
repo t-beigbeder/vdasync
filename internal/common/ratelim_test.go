@@ -97,7 +97,30 @@ func TestSlowMotionLter(t *testing.T) {
 	}
 }
 
+func TestEvBdwLterCountsOnly(t *testing.T) {
+	lgr := DbgLogger()
+	i := 0
+	done := false
+
+	ebl := NewEvBdwLter(0.0, 0.0, func(kw string, d time.Duration) {
+		lgr.Debug("waiting", "kw", kw, "d", d, "i", i)
+		if i >= 1000 {
+			done = true
+		}
+	})
+	ebl.Record()
+	for ; !done; i++ {
+		err := ebl.RtlThis(10e6)
+		require.NoError(t, err)
+	}
+	nEv, nBytes, du, evr, bdw := ebl.Counts()
+	lgr.Debug("test bandwidth", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+}
+
 func TestEvBdwLterEvOnly(t *testing.T) {
+	if os.Getenv("OTVL_TEST_FULL") == "" {
+		t.Skip("OTVL_TEST_FULL not set")
+	}
 	lgr := DbgLogger()
 	i := 0
 	done := false
@@ -108,10 +131,13 @@ func TestEvBdwLterEvOnly(t *testing.T) {
 			done = true
 		}
 	})
+	ebl.Record()
 	for ; !done; i++ {
-		err := ebl.RtlThis(0)
+		err := ebl.RtlThis(10e6)
 		require.NoError(t, err)
 	}
+	nEv, nBytes, du, evr, bdw := ebl.Counts()
+	lgr.Debug("test bandwidth", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
 }
 
 func TestEvBdwLterBdwOnly(t *testing.T) {
@@ -130,8 +156,8 @@ func TestEvBdwLterBdwOnly(t *testing.T) {
 		err := ebl.RtlThis(10e6)
 		require.NoError(t, err)
 	}
-	_, nBytes, du, _, bdw := ebl.Counts()
-	lgr.Debug("test bandwidth", "nbytes", nBytes, "duration", du.Seconds(), "bdw", bdw)
+	nEv, nBytes, du, evr, bdw := ebl.Counts()
+	lgr.Debug("test bandwidth", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
 }
 
 func TestEvBdwLterBoth(t *testing.T) {
