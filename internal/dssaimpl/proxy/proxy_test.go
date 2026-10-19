@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"io"
+	"log/slog"
 	"os"
 	"path"
 	"testing"
@@ -12,13 +13,9 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 )
 
-func TestBasicProxy(t *testing.T) {
-	lgr := common.GetLogger()
-	lgr = common.DbgLogger()
-	udss := localfiles.MakeLocalFilesDssa()
-	pdss := MakeProxyDssa(lgr, udss, nil)
+func doTestProxy(t *testing.T, lgr *slog.Logger, udss dssa.Dssa, handler ProxyHandler) {
+	pdss := MakeProxyDssa(lgr, udss, handler)
 
-	require.True(t, true)
 	td1 := t.TempDir()
 	ft := path.Join(td1, "TestBasicProxy.dat")
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
@@ -102,7 +99,7 @@ func TestBasicProxy(t *testing.T) {
 	_ = des
 
 	ft = path.Join(td1, "TestBasicProxyLarge.dat")
-	common.MakeTestFile(ft, 1e7)
+	common.MakeTestFile(ft, 200000)
 	h1, err = common.FileChecksum(ft, "sha256")
 	require.NoError(t, err)
 	tt = path.Join(t.TempDir(), "TestBasicProxyLargeCopied.dat")
@@ -114,8 +111,26 @@ func TestBasicProxy(t *testing.T) {
 	defer wc.Close()
 	lw, err = io.Copy(wc, rc)
 	require.Nil(t, err)
-	require.Equal(t, int64(1e7), lw)
+	require.Equal(t, int64(200000), lw)
 	h2, err := common.FileChecksum(tt, "sha256")
 	require.Nil(t, err)
 	require.Equal(t, h1, h2)
+}
+
+func TestBasicProxy(t *testing.T) {
+	lgr := common.GetLogger()
+	lgr = common.DbgLogger()
+	udss := localfiles.MakeLocalFilesDssa()
+	doTestProxy(t, lgr, udss, nil)
+}
+
+func TestRtLimProxy(t *testing.T) {
+	lgr := common.GetLogger()
+	lgr = common.DbgLogger()
+	udss := localfiles.MakeLocalFilesDssa()
+	rtlHdl :=  MakeRateLimHandler(lgr, udss, 16000, 1000.)
+	rtlHdl.GetEbl().Record()
+	doTestProxy(t, lgr, udss, rtlHdl)
+	nEv, nBytes, du, evr, bdw := rtlHdl.GetEbl().Counts()
+	lgr.Debug("test bandwidth", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
 }

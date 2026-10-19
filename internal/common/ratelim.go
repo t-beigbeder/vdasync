@@ -44,7 +44,11 @@ func NewEvBdwLter(evFreq float64, bdw float64, delayCb func(string, time.Duratio
 		ebl.evLter = rate.NewLimiter(rate.Limit(evFreq), 1)
 	}
 	if bdw != 0.0 {
-		ebl.bdwLter = rate.NewLimiter(rate.Limit(bdw/1.3), int(bdw/30)+1)
+		burst := int(bdw*0.01) + 1
+		if burst < 131072 {
+			burst = 131072
+		}
+		ebl.bdwLter = rate.NewLimiter(rate.Limit(bdw*0.8), burst)
 	}
 	return ebl
 }
@@ -83,23 +87,25 @@ func (ebl *EvBdwLter) Stats() (time.Duration, float64, float64) {
 
 func (ebl *EvBdwLter) RtlThis(nBytes int) error {
 	if ebl.evLter != nil {
-		rsv := ebl.evLter.Reserve()
+		now := time.Now()
+		rsv := ebl.evLter.ReserveN(now, 1)
 		if !rsv.OK() {
 			return errors.New("cannot reserve a single token for events")
 		}
-		d := rsv.Delay()
+		d := rsv.DelayFrom(now)
 		if d > 0 && ebl.delayCb != nil {
 			ebl.delayCb("e", d)
 		}
 		time.Sleep(d)
 	}
 	if ebl.bdwLter != nil && nBytes > 0 {
-		rsv := ebl.bdwLter.ReserveN(time.Now(), nBytes)
+		now := time.Now()
+		rsv := ebl.bdwLter.ReserveN(now, nBytes)
 		if !rsv.OK() {
 			return fmt.Errorf("cannot rate limit %d bytes (max %d)", nBytes, ebl.bdwLter.Burst())
 		}
-		d := rsv.Delay()
-		if d > time.Millisecond && ebl.delayCb != nil {
+		d := rsv.DelayFrom(now)
+		if d > 100*time.Microsecond && ebl.delayCb != nil {
 			ebl.delayCb("b", d)
 		}
 		time.Sleep(d)

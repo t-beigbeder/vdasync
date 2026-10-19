@@ -144,16 +144,16 @@ func TestEvBdwLterBdwOnly(t *testing.T) {
 	lgr := DbgLogger()
 	i := 0
 
-	ebl := NewEvBdwLter(0.0, 128*10e6, func(kw string, d time.Duration) {
+	ebl := NewEvBdwLter(0.0, 1e8, func(kw string, d time.Duration) {
 		lgr.Debug("waiting", "kw", kw, "d", d, "i", i)
 	})
 	ebl.Record()
-	for ; i < 50; i++ {
+	for ; i < 200; i++ {
 		if (i+1)%10 == 0 {
 			lgr.Debug("sleep...", "i", i)
-			time.Sleep(30 * time.Millisecond)
+			time.Sleep(1* time.Millisecond)
 		}
-		err := ebl.RtlThis(10e6)
+		err := ebl.RtlThis(20000)
 		require.NoError(t, err)
 	}
 	nEv, nBytes, du, evr, bdw := ebl.Counts()
@@ -164,18 +164,18 @@ func TestEvBdwLterBoth(t *testing.T) {
 	lgr := DbgLogger()
 	i := 0
 
-	ebl := NewEvBdwLter(160, 128*10e6, func(kw string, d time.Duration) {
+	ebl := NewEvBdwLter(1400, 1e8, func(kw string, d time.Duration) {
 		lgr.Debug("waiting", "kw", kw, "d", d, "i", i)
 	})
 	ebl.Record()
-	for ; i < 100; i++ {
+	for ; i < 400; i++ {
 		if (i+1)%10 == 0 {
 			lgr.Debug("sleep...", "i", i)
-			time.Sleep(30 * time.Millisecond)
+			time.Sleep(100 * time.Microsecond)
 			du, evr, bdw := ebl.Stats()
 			lgr.Debug("cur bandwidth", "duration", du.Seconds(), "evr", evr, "bdw", bdw)
 		}
-		err := ebl.RtlThis(10e6)
+		err := ebl.RtlThis(80000)
 		require.NoError(t, err)
 	}
 	nEv, nBytes, du, evr, bdw := ebl.Counts()

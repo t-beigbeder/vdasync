@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"io"
 	"log/slog"
 
@@ -21,6 +20,8 @@ type ProxyHdlArgs struct {
 	Algos   string
 	Old     string
 	New     string
+	RC     io.ReadCloser
+	WC     io.WriteCloser
 	Buf     []byte
 }
 
@@ -42,54 +43,6 @@ type proxyDssa struct {
 	lgr        *slog.Logger
 	underlying dssa.Dssa
 	handler    ProxyHandler
-}
-
-type noOpHandler struct {
-	lgr        *slog.Logger
-	underlying dssa.Dssa
-}
-
-func (ph *noOpHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess {
-	ress := &ProxyHdlRess{}
-	switch fcName {
-	case "NewSession":
-		ress.Err = ph.underlying.NewSession()
-	case "EndSession":
-		ress.Err = ph.underlying.EndSession()
-	case "List":
-		ress.Des, ress.Err = ph.underlying.List(args.Path)
-	case "Mkdir":
-		ress.Err = ph.underlying.Mkdir(args.De)
-	case "Stat":
-		ress.De, ress.Err = ph.underlying.Stat(args.Path)
-	case "SetStat":
-		ress.Err = ph.underlying.SetStat(args.De, args.NoPerm, args.NoMtime)
-	case "Checksum":
-		ress.ChSums, ress.Err = ph.underlying.Checksum(args.Algos, args.Path)
-	case "GetReadCloser":
-		ress.RC, ress.Err = ph.underlying.GetReadCloser(args.Path)
-		urc := ress.RC
-		prc := makePReader(ph, urc)
-		_ = prc
-	case "GetWriteCloser":
-		ress.WC, ress.Err = ph.underlying.GetWriteCloser(args.Path)
-	case "Rm":
-		ress.Err = ph.underlying.Rm(args.Path)
-	case "Symlink":
-		ress.Err = ph.underlying.Symlink(args.Old, args.New)
-	default:
-		ress.Err = fmt.Errorf("invalid function name %s to handle", fcName)
-	}
-	dep := ""
-	if args.De != nil {
-		dep = args.De.Path
-	}
-	rdep := ""
-	if ress.De != nil {
-		rdep = ress.De.Path
-	}
-	ph.lgr.Debug(fcName, "path", args.Path, "de", dep, "err", ress.Err, "rde", rdep, "des", len(ress.Des))
-	return ress
 }
 
 // NewSession implements [ProxyDssa].
