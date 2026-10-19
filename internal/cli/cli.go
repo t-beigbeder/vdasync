@@ -62,6 +62,8 @@ type ServicesFlagsType struct {
 	CsalFlag    *string
 	ExclFlag    *string
 	InclFlag    *string
+	SrcRtlFlag  *string
+	TgtRtlFlag  *string
 	OplSesFlag  *string
 	OplInvFlag  *string
 	OplPathFlag *string
@@ -77,6 +79,8 @@ func ServicesFlags() *ServicesFlagsType {
 		CsalFlag:    flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
 		ExclFlag:    flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
 		InclFlag:    flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
+		SrcRtlFlag:  flag.String("srtl", "", "events:bandwidth rates limits per second on source DSS: 1e5:128e6 => 10000 events/s 1Gbps"),
+		TgtRtlFlag:  flag.String("trtl", "", "events:bandwidth rates limits per second on target DSS: 200:128e6"),
 		OplSesFlag:  flag.String("oplses", "", "operation logs session name"),
 		OplInvFlag:  flag.String("oplinv", "", "operation logs inventory name"),
 		OplPathFlag: flag.String("oplpath", "", "operation logs master file"),

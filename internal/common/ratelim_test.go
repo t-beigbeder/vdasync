@@ -151,7 +151,7 @@ func TestEvBdwLterBdwOnly(t *testing.T) {
 	for ; i < 200; i++ {
 		if (i+1)%10 == 0 {
 			lgr.Debug("sleep...", "i", i)
-			time.Sleep(1* time.Millisecond)
+			time.Sleep(1 * time.Millisecond)
 		}
 		err := ebl.RtlThis(20000)
 		require.NoError(t, err)
@@ -180,4 +180,27 @@ func TestEvBdwLterBoth(t *testing.T) {
 	}
 	nEv, nBytes, du, evr, bdw := ebl.Counts()
 	lgr.Debug("test bandwidth", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+}
+
+func TestParseEvBdwbRates(t *testing.T) {
+	e, b, err := ParseEvBdwbRates("")
+	require.NoError(t, err)
+	require.Equal(t, float64(0), e)
+	require.Equal(t, float64(0), b)
+	e, b, err = ParseEvBdwbRates("1e5")
+	require.NoError(t, err)
+	require.Equal(t, float64(100000), e)
+	require.Equal(t, float64(0), b)
+	e, b, err = ParseEvBdwbRates("1e5:")
+	require.NoError(t, err)
+	require.Equal(t, float64(100000), e)
+	require.Equal(t, float64(0), b)
+	e, b, err = ParseEvBdwbRates("1e5:128e6")
+	require.NoError(t, err)
+	require.Equal(t, float64(100000), e)
+	require.Equal(t, float64(128000000), b)
+	e, b, err = ParseEvBdwbRates(":128e6")
+	require.NoError(t, err)
+	require.Equal(t, float64(0), e)
+	require.Equal(t, float64(128000000), b)
 }

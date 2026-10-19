@@ -20,8 +20,8 @@ type ProxyHdlArgs struct {
 	Algos   string
 	Old     string
 	New     string
-	RC     io.ReadCloser
-	WC     io.WriteCloser
+	RC      io.ReadCloser
+	WC      io.WriteCloser
 	Buf     []byte
 }
 

@@ -93,12 +93,12 @@ func RunSyncCli(df *DssaFactory) {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
 
-	sDss, sourceRoot, err := GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps, df)
+	sDss, sourceRoot, err := GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps, df, *svsf.SrcRtlFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
 	defer sDss.EndSession()
-	tDss, targetRoot, err := GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps, df)
+	tDss, targetRoot, err := GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps, df, *svsf.TgtRtlFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}

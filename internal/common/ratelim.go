@@ -3,6 +3,8 @@ package common
 import (
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -120,4 +122,21 @@ func (ebl *EvBdwLter) RtlThis(nBytes int) error {
 	ebl.dBytesCount += int64(nBytes)
 	ebl.mx.Unlock()
 	return nil
+}
+
+// ParseEvBdwbRates provides the events rate per second and bandwidth from string such as 10000:128e6
+func ParseEvBdwbRates(ebrs string) (evRate, bandwidth float64, err error) {
+	if ebrs == "" {
+		return
+	}
+	ebrss := strings.Split(ebrs, ":")
+	if ebrss[0] != "" {
+		if evRate, err = strconv.ParseFloat(ebrss[0], 64); err != nil {
+			return
+		}
+	}
+	if len(ebrss) > 1 && ebrss[1] != "" {
+		bandwidth, err = strconv.ParseFloat(ebrss[1], 64)
+	}
+	return
 }

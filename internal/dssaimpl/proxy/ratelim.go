@@ -26,6 +26,11 @@ type RateLimProxyHandler interface {
 	GetEbl() *common.EvBdwLter
 }
 
+type RateLimitedDss interface {
+	dssa.Dssa
+	GetEbl() *common.EvBdwLter
+}
+
 var _ RateLimProxyHandler = &rateLimHandler{}
 
 func (ph *rateLimHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess {
@@ -117,4 +122,24 @@ func MakeRateLimHandler(lgr *slog.Logger, underlying dssa.Dssa, evFreq float64, 
 		},
 	)
 	return rlh
+}
+
+type rlDssa struct {
+	*proxyDssa
+	rlh RateLimProxyHandler
+}
+
+// GetEbl implements [RateLimitedDss].
+func (r *rlDssa) GetEbl() *common.EvBdwLter {
+	return r.rlh.GetEbl()
+}
+
+func MakeRateLimitedDss(lgr *slog.Logger, underlying dssa.Dssa, evr float64, bdw float64) RateLimitedDss {
+	handler := MakeRateLimHandler(lgr, underlying, evr, bdw)
+	dss := &rlDssa{
+		proxyDssa: &proxyDssa{lgr: lgr, underlying: underlying, handler: handler},
+		rlh:       handler,
+	}
+	dss.GetEbl().Record()
+	return dss
 }

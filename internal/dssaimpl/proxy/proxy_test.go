@@ -125,18 +125,50 @@ func TestBasicProxy(t *testing.T) {
 	doTestProxy(t, lgr, udss, udss, nil, nil)
 }
 
-func TestRtLimProxy(t *testing.T) {
+func TestRtLimBaseProxy(t *testing.T) {
 	lgr := common.GetLogger()
 	lgr = common.DbgLogger()
 	sDss := localfiles.MakeLocalFilesDssa()
-	sRtlHdl :=  MakeRateLimHandler(lgr, sDss, 300, 6e6)
+	sRtlHdl := MakeRateLimHandler(lgr, sDss, 300, 6e6)
 	sRtlHdl.GetEbl().Record()
 	tDss := localfiles.MakeLocalFilesDssa()
-	tRtlHdl :=  MakeRateLimHandler(lgr, tDss, 200, 6e6)
+	tRtlHdl := MakeRateLimHandler(lgr, tDss, 200, 6e6)
 	tRtlHdl.GetEbl().Record()
 	doTestProxy(t, lgr, sDss, tDss, sRtlHdl, tRtlHdl)
 	nEv, nBytes, du, evr, bdw := sRtlHdl.GetEbl().Counts()
 	lgr.Debug("test bandwidth src", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
 	nEv, nBytes, du, evr, bdw = tRtlHdl.GetEbl().Counts()
 	lgr.Debug("test bandwidth tgt", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+}
+
+func TestRtLimDirectProxy(t *testing.T) {
+	lgr := common.GetLogger()
+	lgr = common.DbgLogger()
+	sDss := MakeRateLimitedDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), 300, 6e6)
+	tDss := MakeRateLimitedDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), 200, 6e6)
+
+	td1 := t.TempDir()
+	ft := path.Join(td1, "TestBasicProxyLarge.dat")
+	common.MakeTestFile(ft, 1000000)
+	h1, err := common.FileChecksum(ft, "sha256")
+	require.NoError(t, err)
+	tt := path.Join(t.TempDir(), "TestBasicProxyLargeCopied.dat")
+	rc, err := sDss.GetReadCloser(ft)
+	require.Nil(t, err)
+	defer rc.Close()
+	wc, err := tDss.GetWriteCloser(tt)
+	require.Nil(t, err)
+	defer wc.Close()
+	lw, err := io.Copy(wc, rc)
+	require.Nil(t, err)
+	require.Equal(t, int64(1000000), lw)
+	h2, err := common.FileChecksum(tt, "sha256")
+	require.Nil(t, err)
+	require.Equal(t, h1, h2)
+
+	nEv, nBytes, du, evr, bdw := sDss.GetEbl().Counts()
+	lgr.Debug("test bandwidth src", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+	nEv, nBytes, du, evr, bdw = tDss.GetEbl().Counts()
+	lgr.Debug("test bandwidth tgt", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+
 }

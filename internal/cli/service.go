@@ -22,6 +22,7 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/encrypted"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/proxy"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/remote"
 	"github.com/t-beigbeder/vdasync/internal/walker"
@@ -68,7 +69,7 @@ func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	}
 }
 
-func DoGetDssAndRootFor(
+func getNativeDssAndRootFor(
 	lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig,
 	isTarget bool, url string,
 	rps []*plugin.RunningPlugin, makeNewSession bool,
@@ -93,7 +94,7 @@ func DoGetDssAndRootFor(
 	}
 	if pName != "" && pName[0:1] == "_" {
 		if host != "" || port != 0 {
-			err = fmt.Errorf("%s: url %s: underscore prefixed dss don't support host/port", sot, url)
+			err = fmt.Errorf("%s: url %s: underscore prefixed dss doesn't support host/port", sot, url)
 			return
 		}
 		sfs, args := config.SftpServer(cfg, pName[1:])
@@ -137,8 +138,36 @@ func DoGetDssAndRootFor(
 	return
 }
 
-func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin, df *DssaFactory) (dssa.Dssa, string, error) {
-	return DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df)
+func DoGetDssAndRootFor(
+	lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig,
+	isTarget bool, url string,
+	rps []*plugin.RunningPlugin, makeNewSession bool,
+	df *DssaFactory,
+) (dss dssa.Dssa, root string, err error) {
+	if dss, root, err = getNativeDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
+		return
+	}
+	return
+}
+
+func GetDssAndRootFor(
+	lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig,
+	isTarget bool, url string,
+	rps []*plugin.RunningPlugin,
+	df *DssaFactory,
+	rtlFlag string,
+) (dss dssa.Dssa, root string, err error) {
+	var evr, bdw float64
+	if evr, bdw, err = common.ParseEvBdwbRates(rtlFlag); err != nil {
+		return
+	}
+	if dss, root, err = DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
+		return
+	}
+	if rtlFlag != "" {
+		dss = proxy.MakeRateLimitedDss(lgr.With("isTarget", isTarget), dss, evr, bdw)
+	}
+	return
 }
 
 func GetGrpcClient(lgr *slog.Logger, cf *CommonFlagsType, host string, port int) (dssa.Dssa, error) {
