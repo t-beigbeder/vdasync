@@ -91,10 +91,10 @@ func (ph *rateLimHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRes
 		ph.Ebl.PondeRtlThis(20, 0)
 		ress.Err = args.WC.Close()
 	case "Rm":
-		ph.Ebl.PondeRtlThis(40, 0)
+		ph.Ebl.PondeRtlThis(50, 0)
 		ress.Err = ph.underlying.Rm(args.Path)
 	case "Symlink":
-		ph.Ebl.PondeRtlThis(40, 0)
+		ph.Ebl.PondeRtlThis(50, 0)
 		ress.Err = ph.underlying.Symlink(args.Old, args.New)
 	default:
 		ress.Err = fmt.Errorf("invalid function name %s to handle", fcName)

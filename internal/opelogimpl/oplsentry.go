@@ -3,7 +3,6 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
-	"path"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -353,50 +352,22 @@ func (ose *oplStoredEntry) doLoad() error {
 	return nil
 }
 
-// processChildrenDone loads children state/stats, propagate to current's accordingly
 func (ose *oplStoredEntry) processChildrenDone() error {
-	var err error
+	var (
+		cle *opelog.LogicalEntry
+		err error
+	)
 	se := ose.se()
 	owi := ose.ole.owi
 	errorsNum := 0
-	stats := ose.getStats()
-	if !ose.isTarget {
-		stats.NoOp.Number = 0
-		stats.NoOp.Size = 0
-	}
-	ose.lgr.Debug("processChildrenDone: start", "stats", stats.Display("summary"))
 	for _, child := range se.Children {
-		cle, ok := ose.ole.childrenLeCache[child]
-		if !ok {
-			cle, err = owi.oplm.GetLogicalEntry(path.Join(ose.ole.relPath, child))
-			if err != nil {
-				ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
-				return err
-			}
+		if cle, err = ose.ole.loadClientCache(child); err != nil {
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
+			return err
 		}
 		cSt := cle.GetState(owi.sessionTime, ose.isTarget)
 		if cSt.Stc == opelog.STC_DESC_ERROR || cSt.Stc == opelog.STC_SE_ERROR {
 			errorsNum++
-		}
-		cStats := cle.GetStats(owi.sessionTime)
-		if !ose.isTarget {
-			stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
-			stats.Read.Number += cStats.Read.Number
-			stats.Read.Size += cStats.Read.Size
-			// computed just in case, reset in the end if inconsistent
-			stats.NoOp.Number += cStats.NoOp.Number
-			stats.NoOp.Size += cStats.NoOp.Size
-			stats.Error.Number += cStats.Error.Number
-		} else {
-			stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
-			stats.Create.Number += cStats.Create.Number
-			stats.Create.Size += cStats.Create.Size
-			stats.Update.Number += cStats.Update.Number
-			stats.Update.Size += cStats.Update.Size
-			stats.Remove.Number += cStats.Remove.Number
-			stats.Remove.Size += cStats.Remove.Size
-			stats.MetaChange.Number += cStats.MetaChange.Number
-			stats.Error.Number += cStats.Error.Number
 		}
 	}
 	if errorsNum > 0 {
@@ -404,7 +375,6 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 		return nil
 	}
 	ose.setState(opelog.STC_DONE_PRESENT, "", se, nil, -1)
-	ose.lgr.Debug("processChildrenDone: end", "stats", stats.Display("summary"))
 	return nil
 }
 

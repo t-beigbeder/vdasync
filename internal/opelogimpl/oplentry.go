@@ -99,6 +99,17 @@ func (ole *oplLogicalEntry) isIncluded() bool {
 	return common.IsIncluded(ole.relPath, ole.owi.inclRegs, ole.owi.exclRegs)
 }
 
+// getStats provides computed stats for the entry in the active session
+// Returned ComputedStats may be modified, provided the le's hasChanges flag is set
+func (ole *oplLogicalEntry) getStats() *opelog.ComputedStats {
+	stats := ole.le.GetStats(ole.owi.sessionTime)
+	if stats == nil {
+		stats = opelog.NewComputedStats()
+		ole.le.SetStats(ole.owi.sessionTime, stats)
+	}
+	return stats
+}
+
 // oplStoredEntry groups operations and state relevant either for source or for target
 //
 // errors returned by its services are logged but are only relevant to oplLogicalEntry
@@ -263,12 +274,7 @@ func (ose *oplStoredEntry) getState() *opelog.State {
 // getStats provides computed stats for the entry in the active session
 // Returned ComputedStats may be modified, provided the le's hasChanges flag is set
 func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
-	stats := ose.ole.le.GetStats(ose.ole.owi.sessionTime)
-	if stats == nil {
-		stats = opelog.NewComputedStats()
-		ose.ole.le.SetStats(ose.ole.owi.sessionTime, stats)
-	}
-	return stats
+	return ose.ole.getStats()
 }
 
 // setStatsFor updates the entry's stats according to given keyword
@@ -308,13 +314,8 @@ func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	case "mc":
 		stats.MetaChange.Number = 1
 	case "no":
-		if se != nil && se.IsDir {
-			stats.NoOp.Number++
-			stats.NoOp.Size += size
-		} else if se != nil {
-			stats.NoOp.Number = 1
-			stats.NoOp.Size = size
-		}
+		stats.NoOp.Number = 1
+		stats.NoOp.Size = size
 	case "er":
 		stats.Error.Number = 1
 	default:

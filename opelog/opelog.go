@@ -271,6 +271,8 @@ func (cs *ComputedStats) Reset() {
 }
 
 // IsSet checks Number set in any aggregated info except NoOp
+//
+// noLs ignores lists or stats
 func (cs *ComputedStats) IsSet(noLs bool) bool {
 	ls := cs.SourceListOrStat.Number + cs.TargetListOrStat.Number
 	if noLs {

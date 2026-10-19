@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"path"
 	"slices"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -18,14 +19,12 @@ func (ole *oplLogicalEntry) recordEvents() {
 
 // setNoOp sets stats for NoOp
 func (ole *oplLogicalEntry) setNoOp() {
-	if ole.source.getStats().IsSet(true) {
-		ole.source.getStats().NoOp.Number = 0
-		ole.source.getStats().NoOp.Size = 0
-		ole.lgr.Debug("setNoOp: IsSet", "stats", ole.source.getStats().Display("summary"))
+	if ole.getStats().IsSet(true) {
+		ole.getStats().NoOp.Number = 0
+		ole.getStats().NoOp.Size = 0
 		return
 	}
 	ole.source.setStatsFor("no", -1)
-	ole.lgr.Debug("setNoOp: notSet", "stats", ole.source.getStats().Display("summary"))
 }
 
 // setChildrenQueue provides to walker children merged both from source and target
@@ -49,6 +48,87 @@ func (ole *oplLogicalEntry) setChildrenQueue() []string {
 	}
 
 	return mChildren
+}
+
+func (ole *oplLogicalEntry) loadClientCache(child string) (cle *opelog.LogicalEntry, err error) {
+	var ok bool
+	if cle, ok = ole.childrenLeCache[child]; ok {
+		return cle, nil
+	}
+	if cle, err = ole.owi.oplm.GetLogicalEntry(path.Join(ole.relPath, child)); err != nil {
+		return
+	}
+	ole.childrenLeCache[child] = cle
+	return
+}
+
+// propagateChildrenStats loads children stats, propagate to current's accordingly
+func (ole *oplLogicalEntry) propagateChildrenStats() error {
+	var (
+		cle *opelog.LogicalEntry
+		err error
+	)
+	sChildren, tChildren := []string{}, []string{}
+	stats := opelog.NewComputedStats()
+	if ole.source.se() != nil {
+		sChildren = ole.source.se().Children
+	}
+	if ole.target.se() != nil {
+		tChildren = ole.target.se().Children
+	}
+
+	for _, child := range sChildren {
+		if cle, err = ole.loadClientCache(child); err != nil {
+			return err
+		}
+		cStats := cle.GetStats(ole.owi.sessionTime)
+		if cStats == nil {
+			continue
+		}
+		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
+		stats.Read.Number += cStats.Read.Number
+		stats.Read.Size += cStats.Read.Size
+		stats.Error.Number += cStats.Error.Number
+		stats.NoOp.Number += cStats.NoOp.Number
+		stats.NoOp.Size += cStats.NoOp.Size
+	}
+
+	for _, child := range tChildren {
+		if cle, err = ole.loadClientCache(child); err != nil {
+			return err
+		}
+		cStats := cle.GetStats(ole.owi.sessionTime)
+		if cStats == nil {
+			continue
+		}
+		stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
+		stats.Create.Number += cStats.Create.Number
+		stats.Create.Size += cStats.Create.Size
+		stats.Update.Number += cStats.Update.Number
+		stats.Update.Size += cStats.Update.Size
+		stats.Remove.Number += cStats.Remove.Number
+		stats.Remove.Size += cStats.Remove.Size
+		stats.MetaChange.Number += cStats.MetaChange.Number
+		if !slices.Contains(sChildren, child) {
+			stats.Error.Number += cStats.Error.Number
+			stats.NoOp.Number += cStats.NoOp.Number
+			stats.NoOp.Size += cStats.NoOp.Size
+		}
+	}
+	hasChanges := false
+	if stats.IsSet(true) {
+		hasChanges = true
+		stats.NoOp.Number = 0
+		stats.NoOp.Size = 0
+	} else if stats.NoOp.Number > 0 {
+		hasChanges = true
+		stats.NoOp.Number += 1
+	}
+	if !hasChanges {
+		return nil
+	}
+	ole.hasChanges = true
+	return nil
 }
 
 // checkForRemove checks if source absent/target present of if their types differ

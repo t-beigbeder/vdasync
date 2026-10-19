@@ -314,6 +314,9 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 
 	children := ole.setChildrenQueue() // side effect hasChanges
 	if ole.hasChanges {
+		if err = ole.propagateChildrenStats(); err != nil {
+			ow.owErr(ole.lgr, "oplWalkerImpl: children stats propagation:", err)
+		}
 		if sst := ole.source.getState(); sst != nil {
 			sst.ToolStartTime = ow.toolStartTime
 		}
@@ -334,7 +337,9 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 	if len(children) != 0 || relPath == "" {
 		return
 	}
-	_ = ow.notifyParent(ole)
+	if err = ow.notifyParent(ole); err != nil {
+		ow.owErr(ole.lgr, "oplWalkerImpl: parent notification:", err)
+	}
 }
 
 func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
