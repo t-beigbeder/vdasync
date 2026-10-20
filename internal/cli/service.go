@@ -8,12 +8,10 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"os/signal"
 	"path"
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -47,19 +45,7 @@ func RunPlugins(lgr *slog.Logger, cliCfg *config.CliConfig, cf *CommonFlagsType)
 	return rps, nil
 }
 
-func SetSignalHandler(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		for sig := range c {
-			lgr.Error("main: signal received, preparing to exit", "signal", sig)
-			CleanUp(lgr, rps)
-			os.Exit(1)
-		}
-	}()
-}
-
-func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
+func CleanupPlugins(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	lgr.Info("CleanUp: plugins Shutdown")
 	plugin.Shutdown(rps)
 	lgr.Info("CleanUp: plugins WaitFor")
@@ -212,8 +198,8 @@ type ServiceCtx struct {
 	OplPath     string
 	OplSes      string
 	OplInv      string
-	SrcRoot      string
-	TgtRoot      string
+	SrcRoot     string
+	TgtRoot     string
 	Lgr         *slog.Logger
 	OutFile     io.Writer
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"runtime/pprof"
 	"time"
@@ -80,14 +81,16 @@ func RunSyncCli(df *DssaFactory) {
 		}
 		if len(plugin.Errors(rps)) > 0 {
 			lgr.Error("some errors occured in plugins", "errs", plugin.Errors(rps))
-			CleanUp(lgr, rps)
+			CleanupPlugins(lgr, rps)
 			common.Fatal(lgr, errors.New("plugins error(s)"))
 		}
-		defer CleanUp(lgr, rps)
+		defer CleanupPlugins(lgr, rps)
 	}
-	if rps != nil {
-		SetSignalHandler(lgr, rps)
-	}
+	sh := MakeSignalHandler(lgr)
+	sh.RegisterCleanupFunction(func(lgr *slog.Logger) error {
+		CleanupPlugins(lgr, rps)
+		return nil
+	})
 
 	if *sourceFlag == "" || *targetFlag == "" {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
@@ -169,6 +172,9 @@ func RunSyncCli(df *DssaFactory) {
 		sourceRoot, targetRoot,
 		*svsf.OplSesFlag, *svsf.OplInvFlag,
 	)
+	sh.RegisterCleanupFunction(func(lgr *slog.Logger) error {
+		return ow.Shutdown(lgr)
+	})
 	if err = ow.Run(); err != nil {
 		common.Fatal(lgr, err)
 	}

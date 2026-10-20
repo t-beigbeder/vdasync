@@ -20,6 +20,7 @@ import (
 
 type OplWalker interface {
 	Run() error
+	Shutdown(*slog.Logger) error
 }
 
 type workerNotif struct {
@@ -28,30 +29,31 @@ type workerNotif struct {
 }
 
 type oplWalkerImpl struct {
-	mx            sync.Mutex
-	lgr           *slog.Logger
-	conc          int
-	oplq          opelog.Queue
-	oplm          opelog.OpeLogManager
-	oplTi         *opelog.ToolInformation
-	owo           *config.OpeLogOptionsType
-	sds           dssa.Dssa
-	tds           dssa.Dssa
-	sRoot         string
-	tRoot         string
-	inclRegs      []*regexp.Regexp
-	exclRegs      []*regexp.Regexp
-	toolStartTime int64
-	session       string
-	sessionTime   int64
-	inventory     string
-	invTime       int64
-	gErrs         []error
-	wkNtfChan     chan workerNotif
-	wkCtlStopChan chan bool
-	wkCtlDoneChan chan bool
-	bg            context.Context
-	testCtx       string
+	mx             sync.Mutex
+	lgr            *slog.Logger
+	conc           int
+	oplq           opelog.Queue
+	oplm           opelog.OpeLogManager
+	oplTi          *opelog.ToolInformation
+	owo            *config.OpeLogOptionsType
+	sds            dssa.Dssa
+	tds            dssa.Dssa
+	sRoot          string
+	tRoot          string
+	inclRegs       []*regexp.Regexp
+	exclRegs       []*regexp.Regexp
+	toolStartTime  int64
+	session        string
+	sessionTime    int64
+	inventory      string
+	invTime        int64
+	gErrs          []error
+	wkNtfChan      chan workerNotif
+	wkCtlStopChan  chan bool
+	wkCtlDoneChan  chan bool
+	shdownDoneChan chan bool
+	bg             context.Context
+	testCtx        string
 }
 
 func (ow *oplWalkerImpl) needInvCheck() bool {
@@ -415,6 +417,8 @@ func (ow *oplWalkerImpl) Run() error {
 		syncJob   *common.PeriodicJob
 		exportJob *common.PeriodicJob
 	)
+	defer close(ow.shdownDoneChan)
+
 	ow.lgr.Info("oplWalkerImpl: Run")
 	ow.inclRegs, err = common.ReFromFile(ow.owo.InclListPath, "inclusion list")
 	if err != nil {
@@ -496,6 +500,22 @@ func (ow *oplWalkerImpl) Run() error {
 	return nil
 }
 
+func (ow *oplWalkerImpl) Shutdown(lgr *slog.Logger) error {
+	ow.mx.Lock()
+	ow.lgr.Info("oplWalkerImpl: Shutdown requested")
+	lgr.Info("oplWalkerImpl Shutdown in progress...")
+	if err := ow.oplq.Close(); err != nil {
+		ow.mx.Unlock()
+		return err
+	}
+	ow.mx.Unlock()
+	ow.lgr.Debug("oplWalkerImpl: waiting for Run termination")
+	<-ow.shdownDoneChan
+	ow.lgr.Debug("oplWalkerImpl: Run terminated")
+	lgr.Info("oplWalkerImpl Shutdown done")
+	return nil
+}
+
 func NewOplWalker(lgr *slog.Logger, conc int,
 	oplq opelog.Queue, oplm opelog.OpeLogManager,
 	oplTi *opelog.ToolInformation, owo *config.OpeLogOptionsType,
@@ -515,8 +535,9 @@ func NewOplWalker(lgr *slog.Logger, conc int,
 		owo: owo, oplTi: oplTi,
 		sds: sds, tds: tds, sRoot: sRoot, tRoot: tRoot,
 		session: session, inventory: inventory,
-		wkCtlStopChan: make(chan bool),
-		wkCtlDoneChan: make(chan bool),
-		bg:            context.Background(),
+		wkCtlStopChan:  make(chan bool),
+		wkCtlDoneChan:  make(chan bool),
+		shdownDoneChan: make(chan bool),
+		bg:             context.Background(),
 	}
 }

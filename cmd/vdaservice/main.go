@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
 	"time"
 
@@ -26,8 +27,8 @@ func main() {
 		latencyFlag      = flag.String("latency", "100us", "latency")
 		countFlag        = flag.Int("count", 100000, "test count, number of files")
 		sizeFlag         = flag.Int("size", 1024, "maximum file size")
-		sRootFlag= flag.String("sroot", "", "root path for source DSS")
-		tRootFlag= flag.String("troot", "", "root path for target DSS")
+		sRootFlag        = flag.String("sroot", "", "root path for source DSS")
+		tRootFlag        = flag.String("troot", "", "root path for target DSS")
 		ageEncIdfFlag    = flag.String("ageeidf", "", "DSS encryption age identities (secrets) file name")
 		ageEncRecfFlag   = flag.String("ageerecf", "", "DSS encryption age recipients (public keys) file name")
 		ageTrustRecfFlag = flag.String("agetrecf", "", "trusted server age recipients (public keys) file name")
@@ -87,14 +88,16 @@ func main() {
 		}
 		if len(plugin.Errors(rps)) > 0 {
 			lgr.Error("some errors occured in plugins", "errs", plugin.Errors(rps))
-			cli.CleanUp(lgr, rps)
+			cli.CleanupPlugins(lgr, rps)
 			common.Fatal(lgr, errors.New("plugins error(s)"))
 		}
-		defer cli.CleanUp(lgr, rps)
+		defer cli.CleanupPlugins(lgr, rps)
 	}
-	if rps != nil {
-		cli.SetSignalHandler(lgr, rps)
-	}
+	sh := cli.MakeSignalHandler(lgr)
+	sh.RegisterCleanupFunction(func(lgr *slog.Logger) error {
+		cli.CleanupPlugins(lgr, rps)
+		return nil
+	})
 
 	if *dssFlag == "" && *cmdFlag != "oplcreate" {
 		common.Fatal(lgr, errors.New("dss must be provided"))
@@ -131,8 +134,8 @@ func main() {
 		OplPath:     *svsf.OplPathFlag,
 		OplSes:      *svsf.OplSesFlag,
 		OplInv:      *svsf.OplInvFlag,
-		SrcRoot: *sRootFlag,
-		TgtRoot: *tRootFlag,
+		SrcRoot:     *sRootFlag,
+		TgtRoot:     *tRootFlag,
 		Lgr:         lgr,
 		OutFile:     outFile,
 	})
