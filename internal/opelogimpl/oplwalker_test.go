@@ -377,8 +377,8 @@ func TestManyOplWalkers(t *testing.T) {
 			label: "update - increment - c4 aug small",
 			ftgen: ftGenAugSmall,
 			ftupd: ftUpdAugSmall,
-			conc: 4,
-			owo:  &config.OpeLogOptionsType{},
+			conc:  4,
+			owo:   &config.OpeLogOptionsType{},
 		},
 	}
 

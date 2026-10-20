@@ -45,10 +45,11 @@ func (ole *oplLogicalEntry) loadClientCache(child string) (cle *opelog.LogicalEn
 	if cle, ok = ole.childrenLeCache[child]; ok {
 		return cle, nil
 	}
-	if cle, err = ole.owi.oplm.GetLogicalEntry(path.Join(ole.relPath, child)); err != nil {
+	if cle, err = ole.owi.oplm.GetLogicalEntry(path.Join(ole.relPath, child)); cle == nil || err != nil {
 		return
 	}
 	ole.childrenLeCache[child] = cle
+
 	return
 }
 
@@ -76,6 +77,9 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		if cle, err = ole.loadClientCache(child); err != nil {
 			return err
 		}
+		if cle == nil {
+			continue
+		}
 		cStats := cle.GetStats(ole.owi.sessionTime)
 		if cStats == nil {
 			continue
@@ -92,6 +96,9 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 	for _, child := range tChildren {
 		if cle, err = ole.loadClientCache(child); err != nil {
 			return err
+		}
+		if cle == nil {
+			continue
 		}
 		cStats := cle.GetStats(ole.owi.sessionTime)
 		if cStats == nil {

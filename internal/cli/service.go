@@ -23,10 +23,12 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/proxy"
+	"github.com/t-beigbeder/vdasync/internal/opelogimpl"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/remote"
 	"github.com/t-beigbeder/vdasync/internal/walker"
 	"github.com/t-beigbeder/vdasync/opegrpc"
+	"github.com/t-beigbeder/vdasync/opelog"
 	"google.golang.org/grpc"
 )
 
@@ -207,6 +209,11 @@ type ServiceCtx struct {
 	Count       int
 	Size        int
 	Concurrency int
+	OplPath     string
+	OplSes      string
+	OplInv      string
+	SrcRoot      string
+	TgtRoot      string
 	Lgr         *slog.Logger
 	OutFile     io.Writer
 }
@@ -225,6 +232,8 @@ func DoService(sc *ServiceCtx) error {
 		return doLatency(sc)
 	case "ftgen":
 		return doFtGen(sc)
+	case "oplcreate":
+		return doOplCreate(sc)
 	case "version":
 		return doVersion(sc)
 	case "shutdown":
@@ -427,6 +436,43 @@ func doLatency(sc *ServiceCtx) error {
 
 func doFtGen(sc *ServiceCtx) error {
 	return common.FileTreeGenerate(sc.Root, sc.Count/1000, sc.Count, 3, sc.Size, false, sc.Concurrency)
+}
+
+func doOplCreate(sc *ServiceCtx) error {
+	if sc.OplPath == "" {
+		return errors.New("doOplCreate: no oplpath")
+	}
+	if sc.SrcRoot == "" {
+		return errors.New("doOplCreate: no sroot")
+	}
+	if sc.TgtRoot == "" {
+		return errors.New("doOplCreate: no troot")
+	}
+	oplm, err := opelogimpl.MakeM2fManager(sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	if err = oplm.Create(sc.SrcRoot, sc.TgtRoot); err != nil {
+		return err
+	}
+	if err = oplm.Open(false); err != nil {
+		return err
+	}
+	defer oplm.Close()
+	if sc.OplSes != "" {
+		if _, err = oplm.AddSession(sc.OplSes, &opelog.SessionInfo{}); err != nil {
+			return err
+		}
+	}
+	if sc.OplInv != "" {
+		if _, err = oplm.AddSession(sc.OplInv, &opelog.SessionInfo{IsInventory: true}); err != nil {
+			return err
+		}
+	}
+	if err = oplm.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func doVersion(sc *ServiceCtx) error {

@@ -429,6 +429,7 @@ func (ow *oplWalkerImpl) Run() error {
 	if err = ow.oplm.Open(false); err != nil {
 		return err
 	}
+	defer ow.oplm.Close()
 	if err = ow.checkConsistency(); err != nil {
 		return err
 	}
