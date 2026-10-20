@@ -250,7 +250,7 @@ func (ose *oplStoredEntry) setState(stc opelog.StateCode, sErr string, se *opelo
 		stc, sErr, se, tcss, depCount)
 	ose.ole.hasChanges = true
 	if sErr != "" {
-		ose.setStatsFor("er", 0) // FIXME
+		ose.setStatsFor("er", 0)
 	}
 }
 

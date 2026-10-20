@@ -17,16 +17,6 @@ func (ole *oplLogicalEntry) recordEvents() {
 	ole.target.recordEvents()
 }
 
-// setNoOp sets stats for NoOp
-func (ole *oplLogicalEntry) setNoOp() {
-	if ole.getStats().IsSet(true) {
-		ole.getStats().NoOp.Number = 0
-		ole.getStats().NoOp.Size = 0
-		return
-	}
-	ole.source.setStatsFor("no", -1) // FIXME
-}
-
 // setChildrenQueue provides to walker children merged both from source and target
 func (ole *oplLogicalEntry) setChildrenQueue() []string {
 	var mChildren []string
@@ -212,11 +202,10 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
 		return nil
 	}
-	// FIXME: may need to create dir child => enable update
-	if !ole.checkForUpdate(false) {
+	tOse := ole.target
+	if !ole.checkForUpdate(false) && !tOse.isDir() {
 		return nil
 	}
-	tOse := ole.target
 	if tOse.isDir() {
 		if err := tOse.updateDirOps(); err != nil {
 			return err
@@ -365,8 +354,14 @@ func (ole *oplLogicalEntry) process() error {
 		return nil
 	}
 
-	// if nothing (but stat or list) done on any side, set NoOp stats
-	ole.setNoOp()
+	// if nothing (incl. stat or list) done on any side, set NoOp stats
+	if !ole.getStats().IsSet(true) && ole.source.se() != nil {
+		size := ole.source.se().Size
+		if ole.source.isDir() {
+			size = 0
+		}
+		ole.source.setStatsFor("no", size)
+	}
 
 	return nil
 }
