@@ -178,7 +178,7 @@ func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 		return false
 	}
 	seEqual := tOse.se().Equal(sOse.se(), owo.NoEqMtime, owo.NoMtime, owo.NoMtLink, noRights, false)
-	if sOse.isDir() {
+	if sOse.isDir() || sOse.isSymLink() {
 		return !seEqual
 	}
 	if !seEqual {

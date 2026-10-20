@@ -132,12 +132,10 @@ func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 //
 // when actually doing also sets meta and updates state
 func (ose *oplStoredEntry) updateDirOps() error {
-	if ose.enableWriteNeeded() {
+	if !ose.endOrNoOpDirPossible() {
 		if err := ose.enableWrite(); err != nil {
 			return err
 		}
-	}
-	if !ose.endOrNoOpDirPossible() {
 		ose.childrenQueued = true
 		return nil
 	}

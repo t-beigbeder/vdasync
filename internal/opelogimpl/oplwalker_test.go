@@ -376,7 +376,7 @@ func TestManyOplWalkers(t *testing.T) {
 		{
 			label: "update - increment - c4 aug small",
 			ftgen: ftGenAugSmall,
-			// ftupd: ftUpdAugSmall, // FIXME: test
+			ftupd: ftUpdAugSmall,
 			conc: 4,
 			owo:  &config.OpeLogOptionsType{},
 		},
@@ -415,10 +415,10 @@ func TestSingleOplWalkers(t *testing.T) {
 			ftupd: ftUpdAugTiny,
 			conc:  1,
 			owo:   &config.OpeLogOptionsType{},
-			specialInterest: []string{""},
-			speIntPhase: "phase2",
-			// specialInterest: []string{"dau/dRO/dLinks"},
-			// speIntPhase:     "phase3",
+			// specialInterest: []string{""},
+			// speIntPhase: "phase2",
+			specialInterest: []string{"dau/dAddFiles/dStay/dLinks/dotDot.lnk"},
+			speIntPhase:     "phase4",
 		},
 	}
 
