@@ -67,12 +67,17 @@ func (ose *oplStoredEntry) enableWrite() error {
 
 // remove an entry or empty dir, just update stats in dryrun
 func (ose *oplStoredEntry) remove() error {
-	ose.setStatsFor("rm", -1)
+	se := ose.se()
+	size := se.Size
+	if se.IsDir {
+		size = 0
+	}
+	ose.setStatsFor("rm", size)
 	if ose.owo().Dryrun {
 		return nil
 	}
 	if err := ose.dssRm(false); err != nil {
-		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 		return err
 	}
 	ose.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
@@ -98,6 +103,7 @@ func (ose *oplStoredEntry) rmDir() error {
 
 // setMeta sets an entry metadata from its source
 func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
+	// TODO: set stats "mc" if end of dir update or simple meta adjust
 	if ose.owo().Dryrun {
 		return nil, nil
 	}
@@ -150,6 +156,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 //
 // when creating also sets meta and updates state
 func (ose *oplStoredEntry) createDirOps() error {
+	ose.setStatsFor("cr", 0)
 	if ose.owo().Dryrun {
 		return nil
 	}

@@ -24,7 +24,7 @@ func (ole *oplLogicalEntry) setNoOp() {
 		ole.getStats().NoOp.Size = 0
 		return
 	}
-	ole.source.setStatsFor("no", -1)
+	ole.source.setStatsFor("no", -1) // FIXME
 }
 
 // setChildrenQueue provides to walker children merged both from source and target
@@ -69,7 +69,12 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		err error
 	)
 	sChildren, tChildren := []string{}, []string{}
-	stats := opelog.NewComputedStats()
+	stats := ole.getStats()
+	statsInited := ole.statsInited
+	propagate := false
+	if !statsInited {
+		stats = opelog.NewComputedStats()
+	}
 	if ole.source.se() != nil {
 		sChildren = ole.source.se().Children
 	}
@@ -91,6 +96,7 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		stats.Error.Number += cStats.Error.Number
 		stats.NoOp.Number += cStats.NoOp.Number
 		stats.NoOp.Size += cStats.NoOp.Size
+		propagate = true
 	}
 
 	for _, child := range tChildren {
@@ -114,20 +120,18 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 			stats.NoOp.Number += cStats.NoOp.Number
 			stats.NoOp.Size += cStats.NoOp.Size
 		}
+		propagate = true
 	}
-	hasChanges := false
-	if stats.IsSet(true) {
-		hasChanges = true
-		stats.NoOp.Number = 0
-		stats.NoOp.Size = 0
-	} else if stats.NoOp.Number > 0 {
-		hasChanges = true
+	if propagate {
+		// dirs stats always up-to-date
+		ole.hasChanges = true
+	}
+	if !stats.IsSet(true) {
 		stats.NoOp.Number += 1
 	}
-	if !hasChanges {
-		return nil
+	if !statsInited {
+		ole.le.SetStats(ole.owi.sessionTime, stats)
 	}
-	ole.hasChanges = true
 	return nil
 }
 

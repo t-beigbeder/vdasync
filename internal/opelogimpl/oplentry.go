@@ -56,6 +56,8 @@ type oplLogicalEntry struct {
 	parentTSt *opelog.State
 	// share source/target
 	childrenLeCache map[string]*opelog.LogicalEntry
+	// should stats be reinitialized
+	statsInited bool
 }
 
 func (ole *oplLogicalEntry) detail(msg string, args ...any) {
@@ -248,7 +250,7 @@ func (ose *oplStoredEntry) setState(stc opelog.StateCode, sErr string, se *opelo
 		stc, sErr, se, tcss, depCount)
 	ose.ole.hasChanges = true
 	if sErr != "" {
-		ose.setStatsFor("er", 0)
+		ose.setStatsFor("er", 0) // FIXME
 	}
 }
 
@@ -279,20 +281,13 @@ func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
 
 // setStatsFor updates the entry's stats according to given keyword
 //
-// size -1 asks to read cached state for entry's size
+// first call reset stats on the entry
 func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	stats := ose.getStats()
-	se := ose.se()
-	if se != nil && se.IsDir && size != 0 {
-		// sizes not relevant for directories
-		size = 0
-	}
-	if size == -1 {
-		if se != nil {
-			size = se.Size
-		} else {
-			size = 0
-		}
+	if !ose.ole.statsInited {
+		stats = opelog.NewComputedStats()
+		ose.ole.le.SetStats(ose.ole.owi.sessionTime, stats)
+		ose.ole.statsInited = true
 	}
 	switch kw {
 	case "sls":
@@ -317,7 +312,7 @@ func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 		stats.NoOp.Number = 1
 		stats.NoOp.Size = size
 	case "er":
-		stats.Error.Number = 1
+		stats.Error.Number += 1
 	default:
 		return
 	}
