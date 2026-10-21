@@ -60,12 +60,16 @@ func (ow *oplWalkerImpl) needInvCheck() bool {
 	return ow.owo.Check && !ow.owo.NoInvCheck && ow.inventory != ""
 }
 
-func (ow *oplWalkerImpl) owErr(lgr *slog.Logger, msg string, err error) error {
+func (ow *oplWalkerImpl) lockedOwErr(lgr *slog.Logger, msg string, err error) error {
 	lgr.Error(msg, "err", err)
-	ow.mx.Lock()
-	defer ow.mx.Unlock()
 	ow.gErrs = append(ow.gErrs, fmt.Errorf("%s: %v", msg, err))
 	return err
+}
+
+func (ow *oplWalkerImpl) owErr(lgr *slog.Logger, msg string, err error) error {
+	ow.mx.Lock()
+	defer ow.mx.Unlock()
+	return ow.lockedOwErr(lgr, msg, err)
 }
 
 func (ow *oplWalkerImpl) detail(lgr *slog.Logger, msg string, args ...any) {
@@ -238,7 +242,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	pRelPath := common.ParentPath(ole.relPath)
 	ple, err := ow.oplm.GetLogicalEntry(pRelPath)
 	if err != nil {
-		ow.owErr(ole.lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
+		ow.lockedOwErr(ole.lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
 		return err
 	}
 	cName := path.Base(ole.relPath)
@@ -250,7 +254,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 		ole.lgr.Debug("notifyParent", "parentSSt.DepCount", parentSSt.DepCount)
 		if parentSSt.DepCount <= 0 {
 			err := fmt.Errorf("source child %s notifies twice parent", ole.relPath)
-			ow.owErr(ole.lgr, "oplWalkerImpl: internal", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
 		hasChanges = true
@@ -262,7 +266,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	if isChildInState(cName, parentTSt) {
 		if parentTSt.DepCount <= 0 {
 			err := fmt.Errorf("target child %s notifies twice parent", ole.relPath)
-			ow.owErr(ole.lgr, "oplWalkerImpl: internal", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
 		hasChanges = true
@@ -273,7 +277,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	}
 	if hasChanges {
 		if err := ow.oplm.PutLogicalEntry(pRelPath, ple); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: put parent le", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent le", err)
 			return err
 		}
 	}
@@ -284,7 +288,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 
 		// notifies parent
 		if err := ow.oplq.Put(pRelPath); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: put parent in queue", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent in queue", err)
 			return err
 		}
 	}
