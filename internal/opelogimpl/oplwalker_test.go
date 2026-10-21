@@ -37,6 +37,7 @@ type owTest struct {
 	hasNoRm            bool
 	hasNoCheck         bool
 	hasCacheDryrun     bool
+	nbIterPhase1       int
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
 	hasNoPhase4        bool
@@ -261,8 +262,13 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 
 	// phase1: initial sync request
-	if ctx, _, err = owt.walkStatsCsv("phase1"); err != nil {
-		return
+	if owt.nbIterPhase1 == 0 {
+		owt.nbIterPhase1 = 1
+	}
+	for range owt.nbIterPhase1 {
+		if ctx, _, err = owt.walkStatsCsv("phase1"); err != nil {
+			return
+		}
 	}
 
 	// phase2: dryrun
@@ -404,21 +410,22 @@ func TestManyOplWalkers(t *testing.T) {
 // =======================================================================
 // =======================================================================
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	//t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "test - single",
-			lgr:   common.DbgLogger(),
-			ftgen: ftGenAugTiny,
-			ftupd: ftUpdAugTiny,
+			label: "test load",
+			lgr:   cliLgr,
 			conc:  1,
-			owo:   &config.OpeLogOptionsType{},
-			// specialInterest: []string{""},
-			// speIntPhase: "phase2",
-			specialInterest: []string{"dau/dAddFiles/dStay/dLinks/dotDot.lnk"},
-			speIntPhase:     "phase4",
+			ftgen: ftGenTiny,
+			owo: &config.OpeLogOptionsType{
+				Goals: "load",
+			},
+			specialInterest: []string{""},
+			speIntPhase:     "phase1",
+			noTestMarsh:     true,
+			nbIterPhase1:    2,
 		},
 	}
 

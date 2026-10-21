@@ -24,6 +24,7 @@ func RunSyncCli(df *DssaFactory) {
 		oplRtoFlag     = flag.Int64("oplrto", 0, "operation logs reset timeout in milliseconds")
 		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
 		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
+		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operation logs keep cache on (re)start")
 		sourceFlag     = flag.String("source", "", "source of the command")
 		targetFlag     = flag.String("target", "", "target of the command")
 		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -160,6 +161,7 @@ func RunSyncCli(df *DssaFactory) {
 		ResetMilTimeout: *oplRtoFlag,
 		EnableRestart:   *oplRestartFlag,
 		ClearErrors:     *oplClErrFlag,
+		KeepCached:      *oplKeepCFlag,
 		ExpFile:         *svsf.OplCsvFlag,
 		ExpRpt:          *svsf.OplRptFlag,
 		ExpPeriod:       int64(expPer),

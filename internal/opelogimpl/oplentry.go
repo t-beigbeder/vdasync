@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"path"
@@ -235,7 +236,41 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 }
 
 // createEvent creates an event in the current session with given data
+//
+// same event providing the same state as the immediate previous one will only keep the latest
 func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
+	equalSe := func(se1, se2 *opelog.StoredEntry) bool {
+		if se1 == nil && se2 == nil {
+			return true
+		}
+		if se1 != nil && se2 != nil {
+			return se1.Equal(se2, false, false, false, false, false)
+		}
+		return false
+	}
+	equalTcss := func(t1, t2 [][]byte) bool {
+		if len(t1) == 0 && len(t2) == 0 {
+			return true
+		}
+		if len(t1) != len(t2) {
+			return false
+		}
+		for i, tcs := range t1 {
+			if !bytes.Equal(tcs, t2[i]) {
+				return false
+			}
+		}
+		return true
+	}
+	prevEvents := ose.getEvents()
+	if len(prevEvents) > 0 {
+		imPrEv := prevEvents[len(prevEvents)-1]
+		if imPrEv.Kind == kind && equalSe(se, imPrEv.Se) && equalTcss(tcss, imPrEv.Tcss) {
+			imPrEv.TimeStamp = ts
+			ose.ole.hasChanges = true
+			return
+		}
+	}
 	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ts, ose.isTarget, kind, se, tcss)
 	ose.ole.hasChanges = true
 }
