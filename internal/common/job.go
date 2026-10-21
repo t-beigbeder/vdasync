@@ -5,12 +5,16 @@ import (
 	"time"
 )
 
+type BgJob struct {
+	lgr      *slog.Logger
+	job      func()
+	stopChan chan bool
+	doneChan chan bool
+}
+
 type PeriodicJob struct {
-	lgr        *slog.Logger
-	job        func()
+	BgJob
 	periodSecs int64
-	stopChan   chan bool
-	doneChan   chan bool
 }
 
 func (pb *PeriodicJob) Start() {
@@ -31,21 +35,23 @@ LOOP:
 	close(pb.doneChan)
 }
 
-func (pb *PeriodicJob) Stop() {
+func (pb *BgJob) Stop() {
 	pb.lgr.Debug("stopping")
 	close(pb.stopChan)
 }
 
-func (pb *PeriodicJob) Done() chan bool {
+func (pb *BgJob) Done() chan bool {
 	return pb.doneChan
 }
 
 func NewPeriodicJob(lgr *slog.Logger, periodSecs int64, job func()) *PeriodicJob {
 	return &PeriodicJob{
-		lgr:        lgr,
+		BgJob: BgJob{
+			lgr:      lgr,
+			job:      job,
+			stopChan: make(chan bool),
+			doneChan: make(chan bool),
+		},
 		periodSecs: periodSecs,
-		job:        job,
-		stopChan:   make(chan bool),
-		doneChan:   make(chan bool),
 	}
 }

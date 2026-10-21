@@ -11,6 +11,58 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
+type expLe struct {
+	relPath string
+	*opelog.LogicalEntry
+	iTs    int64
+	sTs    int64
+	invent *expSt
+	source *expSt
+	target *expSt
+}
+
+type expSt struct {
+	*opelog.State
+	isInvent bool
+	isTarget bool
+	ele      *expLe
+	events   []*opelog.Event
+}
+
+func (est *expSt) setEmptySt() {
+	if est.State == nil {
+		est.State = &opelog.State{}
+	}
+}
+
+func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
+	ele := &expLe{
+		relPath:      relPath,
+		LogicalEntry: le,
+		iTs:          iTs,
+		sTs:          sTs,
+		invent:       &expSt{isInvent: true},
+		source:       &expSt{},
+		target:       &expSt{isTarget: true},
+	}
+	ele.invent.ele = ele
+	ele.source.ele = ele
+	ele.target.ele = ele
+	if iTs != -1 {
+		ele.invent.State = ele.LogicalEntry.GetState(iTs, false)
+	}
+	if sTs != -1 {
+		ele.source.State = ele.LogicalEntry.GetState(sTs, false)
+		ele.source.events = ele.LogicalEntry.GetEvents(sTs, false)
+		ele.target.State = ele.LogicalEntry.GetState(sTs, true)
+		ele.target.events = ele.LogicalEntry.GetEvents(sTs, true)
+	}
+	ele.invent.setEmptySt()
+	ele.source.setEmptySt()
+	ele.target.setEmptySt()
+	return ele
+}
+
 type RptConfig struct {
 	ToolInfo *opelog.ToolInformation
 }
@@ -126,24 +178,6 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 	return res
 }
 
-type expLe struct {
-	relPath string
-	*opelog.LogicalEntry
-	iTs    int64
-	sTs    int64
-	invent *expSt
-	source *expSt
-	target *expSt
-}
-
-type expSt struct {
-	*opelog.State
-	isInvent bool
-	isTarget bool
-	ele      *expLe
-	events   []*opelog.Event
-}
-
 func (ele *expLe) dispSyncStatus() (sys string) {
 	csts := ele.GetStats(ele.sTs)
 	if csts.Remove.Number > 0 {
@@ -257,40 +291,6 @@ func (est *expSt) getEventsAsStrings() (res [][]string) {
 		res = append(res, sev)
 	}
 	return
-}
-
-func (est *expSt) setEmptySt() {
-	if est.State == nil {
-		est.State = &opelog.State{}
-	}
-}
-
-func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
-	ele := &expLe{
-		relPath:      relPath,
-		LogicalEntry: le,
-		iTs:          iTs,
-		sTs:          sTs,
-		invent:       &expSt{isInvent: true},
-		source:       &expSt{},
-		target:       &expSt{isTarget: true},
-	}
-	ele.invent.ele = ele
-	ele.source.ele = ele
-	ele.target.ele = ele
-	if iTs != -1 {
-		ele.invent.State = ele.LogicalEntry.GetState(iTs, false)
-		ele.invent.setEmptySt()
-	}
-	if sTs != -1 {
-		ele.source.State = ele.LogicalEntry.GetState(sTs, false)
-		ele.source.events = ele.LogicalEntry.GetEvents(sTs, false)
-		ele.source.setEmptySt()
-		ele.target.State = ele.LogicalEntry.GetState(sTs, true)
-		ele.target.events = ele.LogicalEntry.GetEvents(sTs, true)
-		ele.target.setEmptySt()
-	}
-	return ele
 }
 
 func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,

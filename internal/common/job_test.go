@@ -11,7 +11,7 @@ import (
 
 func TestPeriodicJob(t *testing.T) {
 	if os.Getenv("OTVL_TEST_FULL") == "" {
-		t.Skip("OTVL_TEST_FULL not set")
+		//t.Skip("OTVL_TEST_FULL not set")
 	}
 	var (
 		lgr *slog.Logger
@@ -20,7 +20,7 @@ func TestPeriodicJob(t *testing.T) {
 	lgr = GetLogger()
 	// lgr = InfoLogger()
 	// lgr, err = CliLogger("TestPeriodicJob", "DEBUG+2", "stderr")
-	// lgr = DbgLogger()
+	lgr = DbgLogger()
 	require.NoError(t, err)
 	pb := NewPeriodicJob(lgr, 1, func() { lgr.Debug("job") })
 	go pb.Start()
