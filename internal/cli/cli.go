@@ -69,6 +69,7 @@ type ServicesFlagsType struct {
 	OplPathFlag *string
 	OplStoFlag  *string
 	OplCsvFlag  *string
+	OplRptFlag  *string
 	OplSyncFlag *string
 	OplExpFlag  *string
 }
@@ -86,6 +87,7 @@ func ServicesFlags() *ServicesFlagsType {
 		OplPathFlag: flag.String("oplpath", "", "operation logs master file"),
 		OplStoFlag:  flag.String("oplsto", "aio", "operation logs storage: aio|pbf"),
 		OplCsvFlag:  flag.String("oplcsv", "", "operation logs csv export path"),
+		OplRptFlag:  flag.String("oplrpt", "synth", "operation logs csv report type: synth|full"),
 		OplSyncFlag: flag.String("oplsync", "600:5", "operation logs synchronization to disk, periodicity and number of backups seconds:backups"),
 		OplExpFlag:  flag.String("oplexp", "3600:24", "operation logs csv export, periodicity and number of backups seconds:backups"),
 	}

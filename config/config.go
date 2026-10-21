@@ -59,6 +59,7 @@ type OpeLogOptionsType struct {
 	KeepCached      bool   `yaml:"keepCached"`
 	ExpPeriod       int64  `yaml:"expPeriod"`
 	ExpFile         string `yaml:"expFile"`
+	ExpRpt          string `yaml:"expRpt"`
 	ExpBck          int    `yaml:"expBck"`
 	SpecialInterest []string
 	SpeIntPhase     string

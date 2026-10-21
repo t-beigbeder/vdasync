@@ -21,7 +21,7 @@ func RunSyncCli(df *DssaFactory) {
 	var (
 		oplCmdFlag     = flag.String("oplcmd", "", "operation logs command: load,create,update")
 		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operation logs won't check inventory")
-		oplRtoFlag     = flag.Int64("oplrto", 0, "operation logs reset timeout in seconds")
+		oplRtoFlag     = flag.Int64("oplrto", 0, "operation logs reset timeout in milliseconds")
 		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
 		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
 		sourceFlag     = flag.String("source", "", "source of the command")
@@ -160,7 +160,8 @@ func RunSyncCli(df *DssaFactory) {
 		ResetMilTimeout: *oplRtoFlag,
 		EnableRestart:   *oplRestartFlag,
 		ClearErrors:     *oplClErrFlag,
-		ExpFile:         *svsf.OplExpFlag,
+		ExpFile:         *svsf.OplCsvFlag,
+		ExpRpt:          *svsf.OplRptFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
 	}

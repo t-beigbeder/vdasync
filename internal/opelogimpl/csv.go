@@ -180,6 +180,9 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 
 func (ele *expLe) dispSyncStatus() (sys string) {
 	csts := ele.GetStats(ele.sTs)
+	if csts == nil {
+		return
+	}
 	if csts.Remove.Number > 0 {
 		sys += "r"
 	}
@@ -202,7 +205,11 @@ func (ele *expLe) dispSyncStatus() (sys string) {
 }
 
 func (ele *expLe) dispSummary() string {
-	return ele.GetStats(ele.sTs).Display("summary")
+	stats := ele.GetStats(ele.sTs)
+	if stats == nil {
+		return ""
+	}
+	return stats.Display("summary")
 }
 
 func (est *expSt) dispState() string {

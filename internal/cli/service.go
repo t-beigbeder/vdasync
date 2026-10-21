@@ -198,6 +198,8 @@ type ServiceCtx struct {
 	OplPath     string
 	OplSes      string
 	OplInv      string
+	OplCsv      string
+	OplRpt      string
 	SrcRoot     string
 	TgtRoot     string
 	Lgr         *slog.Logger
@@ -220,6 +222,8 @@ func DoService(sc *ServiceCtx) error {
 		return doFtGen(sc)
 	case "oplcreate":
 		return doOplCreate(sc)
+	case "oplexp":
+		return doOplExp(sc)
 	case "version":
 		return doVersion(sc)
 	case "shutdown":
@@ -454,6 +458,40 @@ func doOplCreate(sc *ServiceCtx) error {
 		if _, err = oplm.AddSession(sc.OplInv, &opelog.SessionInfo{IsInventory: true}); err != nil {
 			return err
 		}
+	}
+	if err = oplm.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func doOplExp(sc *ServiceCtx) error {
+	if sc.OplPath == "" {
+		return errors.New("doOplExp: no oplpath")
+	}
+	if sc.OplCsv == "" {
+		return errors.New("doOplExp: no oplcsv")
+	}
+	rpt := opelogimpl.RPT_SYNTHETIC
+	if sc.OplRpt == "full" {
+		rpt = opelogimpl.RPT_FULL
+	} else if sc.OplRpt != "synth" {
+		return fmt.Errorf("doOplExp: unknown owrpt %s", sc.OplRpt)
+	}
+	oplm, err := opelogimpl.MakeM2fManager(sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	if err = oplm.Open(true); err != nil {
+		return err
+	}
+	defer oplm.Close()
+	if err := opelogimpl.OplCsvExport(
+		sc.Lgr, oplm, sc.OplCsv, rpt, sc.OplInv, sc.OplSes,
+		&opelogimpl.RptConfig{ToolInfo: &opelog.ToolInformation{}},
+	); err != nil {
+
+		return err
 	}
 	if err = oplm.Close(); err != nil {
 		return err

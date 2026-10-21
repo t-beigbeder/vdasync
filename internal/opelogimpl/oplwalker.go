@@ -15,6 +15,7 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
@@ -100,15 +101,26 @@ func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
 }
 
 func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
-	lgr.Debug("doing")
+	ow.detail(lgr, "doOplmSync")
 	if err := ow.oplm.Sync(false); err != nil {
 		ow.owErr(lgr, "failed to synchronize logs", err)
 	}
 }
 
 func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
-	lgr.Debug("doing")
-	if err := OplCsvExport(ow.lgr, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.inventory, ow.session, &RptConfig{ToolInfo: ow.oplTi}); err != nil {
+	ow.detail(lgr, "doOplmExport")
+	if ow.owo.ExpBck > 0 {
+		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), ow.owo.ExpFile, ow.owo.ExpBck); err != nil {
+			ow.owErr(lgr, "failed to backup export logs", err)
+		}
+	}
+	rpt := RPT_SYNTHETIC
+	if ow.owo.ExpRpt == "full" {
+		rpt = RPT_FULL
+	} else if ow.owo.ExpRpt != "synth" {
+		lgr.Warn("doOplmExport: unknown oplrpt", "rpt", ow.owo.ExpRpt)
+	}
+	if err := OplCsvExport(ow.lgr, ow.oplm, ow.owo.ExpFile, rpt, ow.inventory, ow.session, &RptConfig{ToolInfo: ow.oplTi}); err != nil {
 		ow.owErr(lgr, "failed to export logs", err)
 	}
 }
@@ -454,7 +466,7 @@ func (ow *oplWalkerImpl) Run() error {
 		syncJob = common.NewPeriodicJob(lgr, ow.owo.SyncPeriod, func() { ow.doOplmSync(lgr) })
 		go syncJob.Start()
 	}
-	if ow.owo.ExpPeriod != 0 {
+	if ow.owo.ExpFile != "" && ow.owo.ExpPeriod != 0 {
 		lgr := ow.lgr.With("exportJob", ow.owo.ExpPeriod)
 		exportJob = common.NewPeriodicJob(lgr, ow.owo.ExpPeriod, func() { ow.doOplmExport(lgr) })
 		go exportJob.Start()
@@ -470,11 +482,11 @@ func (ow *oplWalkerImpl) Run() error {
 	// wait workers done
 	wg.Wait()
 	// stop periodic jobs
-	if ow.owo.SyncPeriod != 0 {
+	if syncJob != nil {
 		syncJob.Stop()
 		<-syncJob.Done()
 	}
-	if ow.owo.ExpPeriod != 0 {
+	if exportJob != nil {
 		exportJob.Stop()
 		<-exportJob.Done()
 	}

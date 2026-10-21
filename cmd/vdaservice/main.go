@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -16,7 +18,7 @@ import (
 
 func main() {
 	var (
-		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency ftgen oplcreate version shutdown interactive")
+		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency ftgen oplcreate oplexp version shutdown interactive")
 		dssFlag          = flag.String("dss", "", "dss on which the command applies")
 		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
 		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")
@@ -99,7 +101,8 @@ func main() {
 		return nil
 	})
 
-	if *dssFlag == "" && *cmdFlag != "oplcreate" {
+	cmdExclDss := strings.Split("oplcreate,oplexp", ",")
+	if *dssFlag == "" && !slices.Contains(cmdExclDss, *cmdFlag) {
 		common.Fatal(lgr, errors.New("dss must be provided"))
 	}
 
@@ -134,6 +137,8 @@ func main() {
 		OplPath:     *svsf.OplPathFlag,
 		OplSes:      *svsf.OplSesFlag,
 		OplInv:      *svsf.OplInvFlag,
+		OplCsv:      *svsf.OplCsvFlag,
+		OplRpt:      *svsf.OplRptFlag,
 		SrcRoot:     *sRootFlag,
 		TgtRoot:     *tRootFlag,
 		Lgr:         lgr,
