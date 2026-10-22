@@ -49,7 +49,7 @@ type oplWalkerImpl struct {
 	inventory      string
 	invTime        int64
 	gErrs          []error
-	closedQKnown bool
+	closedQKnown   bool
 	wkNtfChan      chan workerNotif
 	wkCtlStopChan  chan bool
 	wkCtlDoneChan  chan bool

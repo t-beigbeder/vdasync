@@ -153,6 +153,12 @@ func RunSyncCli(df *DssaFactory) {
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	if *svsf.OplPathFlag == "" {
+		if err := oplm.Create(sourceRoot, targetRoot); err != nil {
+			common.Fatal(lgr, err)
+		}
+
+	}
 	owo := &config.OpeLogOptionsType{
 		SyncOptionsType: swo,
 		Goals:           *oplCmdFlag,

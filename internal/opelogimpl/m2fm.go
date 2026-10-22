@@ -110,6 +110,7 @@ func (m *m2fOplMng) Create(source, target string) error {
 	}
 	if m.pathOpt == "" {
 		m.om = om
+		m.om.StoreType = "mem"
 		m.les = map[string]*opelog.LogicalEntry{}
 		m.marshLes = map[string][]byte{}
 		return nil
@@ -141,7 +142,6 @@ func (m *m2fOplMng) Open(readOnly bool) error {
 		}
 		m.isOpen = true
 		m.readOnly = readOnly
-		m.om.StoreType = "mem"
 		return nil
 	}
 	lock := fmt.Sprintf("%s.lock", m.pathOpt)

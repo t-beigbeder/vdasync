@@ -546,6 +546,7 @@ func (olm *OpeLogMaster) Clone() *OpeLogMaster {
 		sis[k] = v.Clone()
 	}
 	return &OpeLogMaster{
+		StoreType:  olm.StoreType,
 		SourceRoot: olm.SourceRoot,
 		TargetRoot: olm.TargetRoot,
 		Sessions:   sis,

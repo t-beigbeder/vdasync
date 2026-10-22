@@ -371,6 +371,9 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 		}
 		return nil
 	})
+	if err != nil {
+		return err
+	}
 	cw.Flush()
 	return wrw.Close()
 }

@@ -561,3 +561,46 @@ func TestGoals(t *testing.T) {
 	require.True(t, owi.impliesGoal("create"))
 	require.True(t, owi.impliesGoal("update"))
 }
+
+func TestAutoSession(t *testing.T) {
+	var (
+		lgr *slog.Logger
+		err error
+	)
+	lgr = common.GetLogger()
+	// lgr = common.InfoLogger()
+	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	lgr = common.DbgLogger()
+	require.NoError(t, err)
+
+	oplm, err := MakeM2fManager("", 0)
+	require.NoError(t, err)
+	std, ttd := t.TempDir(), t.TempDir()
+	defer walker.SetTestDirRW(std, "source")
+	defer walker.SetTestDirRW(ttd, "target")
+	require.NoError(t, ftGenAugTiny(std))
+	err = oplm.Create(std, ttd)
+	require.NoError(t, err)
+	require.Equal(t, "mem", oplm.Olm().StoreType)
+	ow := NewOplWalker(
+		lgr, 4, nil, oplm,
+		&opelog.ToolInformation{CmdLine: "TestAutoSession"},
+		&config.OpeLogOptionsType{
+			SyncOptionsType: config.SyncOptionsType{
+				Check: true,
+			},
+			Goals:           "update",
+			NoInvCheck:      true,
+			ResetMilTimeout: 250,
+		},
+		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
+		std, ttd, "", "",
+	)
+	err = ow.Run()
+	require.NoError(t, err)
+	ctd := path.Join(os.TempDir(), "oplCsv")
+	csvPath := path.Join(ctd, "csv-test-auto.csv")
+	oplm.Open(true)
+	err = OplCsvExport(lgr, oplm, csvPath, RPT_SYNTHETIC, "", "auto", nil)
+	require.NoError(t, err)
+}
