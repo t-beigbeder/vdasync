@@ -36,7 +36,6 @@ type owTest struct {
 	hasNoExpCsv        bool
 	hasNoRm            bool
 	hasNoCheck         bool
-	hasCacheDryrun     bool
 	nbIterPhase1       int
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
@@ -272,11 +271,10 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 
 	// phase2: dryrun
-	owt.owo.Check = false // FIXME: understand why dryrun+check imply bad stats
 	if !owt.hasNoPhase2 {
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
-		owt.owo.KeepCached = owt.hasCacheDryrun
+		owt.owo.KeepCached = true // to compare w/o resetting state
 		if ctx, stats, err = owt.walkStatsCsv("phase2"); err != nil {
 			return
 		}
@@ -410,7 +408,7 @@ func TestManyOplWalkers(t *testing.T) {
 // =======================================================================
 // =======================================================================
 func TestSingleOplWalkers(t *testing.T) {
-	//t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
@@ -419,13 +417,9 @@ func TestSingleOplWalkers(t *testing.T) {
 			lgr:   cliLgr,
 			conc:  1,
 			ftgen: ftGenTiny,
-			owo: &config.OpeLogOptionsType{
-				Goals: "load",
-			},
-			specialInterest: []string{""},
-			speIntPhase:     "phase1",
-			noTestMarsh:     true,
-			nbIterPhase1:    2,
+			owo:   &config.OpeLogOptionsType{},
+			specialInterest: []string{"d0000"},
+			speIntPhase: "phase2",
 		},
 	}
 
