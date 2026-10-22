@@ -49,6 +49,7 @@ type oplWalkerImpl struct {
 	inventory      string
 	invTime        int64
 	gErrs          []error
+	closedQKnown bool
 	wkNtfChan      chan workerNotif
 	wkCtlStopChan  chan bool
 	wkCtlDoneChan  chan bool
@@ -62,6 +63,13 @@ func (ow *oplWalkerImpl) needInvCheck() bool {
 }
 
 func (ow *oplWalkerImpl) lockedOwErr(lgr *slog.Logger, msg string, err error) error {
+	sErr := err.Error()
+	if strings.Contains(sErr, "closed queue") {
+		if ow.closedQKnown {
+			return err
+		}
+		ow.closedQKnown = true
+	}
 	lgr.Error(msg, "err", err)
 	ow.gErrs = append(ow.gErrs, fmt.Errorf("%s: %v", msg, err))
 	return err
