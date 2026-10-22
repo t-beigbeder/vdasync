@@ -46,9 +46,9 @@ func RunTrustedServer() {
 		common.Fatal(lgr, errors.New("root empty"))
 	}
 
-	dss, err := encrypted.MakeProxyDssa(lgr, *rootFlag, identities)
+	dss, err := encrypted.MakeProxyEncDssa(lgr, *rootFlag, identities)
 	if err != nil {
-		common.Fatal(lgr, fmt.Errorf("encrypted.MakeProxyDssa: %s: %v", exe, err))
+		common.Fatal(lgr, fmt.Errorf("encrypted.MakeProxyEncDssa: %s: %v", exe, err))
 	}
 
 	sop, err := cli.GetServerOrPluginTls(cf)

@@ -37,6 +37,7 @@ type SyncOptionsType struct {
 	Check        bool   `yaml:"check"`
 	CsAlgos      string `yaml:"csAlgos"`
 	NoPerm       bool   `yaml:"noPerm"`
+	NoEqMtime    bool   `yaml:"noEqMtime"`
 	NoMtime      bool   `yaml:"noMtime"`
 	NoMtLink     bool   `yaml:"noMtLink"`
 	Rm           bool   `yaml:"rm"`
@@ -52,11 +53,16 @@ type OpeLogOptionsType struct {
 	NoInvCheck      bool   `yaml:"noInvCheck"`
 	InvCsAlgos      string `yaml:"invCsAlgos"`
 	SyncPeriod      int64  `yaml:"syncPeriod"`
-	ResetTimeout    int64  `yaml:"resetTimeout"`
+	ResetMilTimeout int64  `yaml:"resetMilTimeout"`
 	EnableRestart   bool   `yaml:"enableRestart"`
 	ClearErrors     bool   `yaml:"clearErrors"`
+	KeepCached      bool   `yaml:"keepCached"`
 	ExpPeriod       int64  `yaml:"expPeriod"`
 	ExpFile         string `yaml:"expFile"`
+	ExpRpt          string `yaml:"expRpt"`
+	ExpBck          int    `yaml:"expBck"`
+	SpecialInterest []string
+	SpeIntPhase     string
 }
 
 type SftpServerType struct {

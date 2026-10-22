@@ -58,21 +58,58 @@ func CommonFlags() *CommonFlagsType {
 }
 
 type ServicesFlagsType struct {
-	OplDirFlag *string
-	CheckFlag  *bool
-	CsalFlag   *string
-	ExclFlag   *string
-	InclFlag   *string
+	CheckFlag   *bool
+	CsalFlag    *string
+	ExclFlag    *string
+	InclFlag    *string
+	SrcRtlFlag  *string
+	TgtRtlFlag  *string
+	OplSesFlag  *string
+	OplInvFlag  *string
+	OplPathFlag *string
+	OplStoFlag  *string
+	OplCsvFlag  *string
+	OplRptFlag  *string
+	OplSyncFlag *string
+	OplExpFlag  *string
 }
 
 func ServicesFlags() *ServicesFlagsType {
 	return &ServicesFlagsType{
-		OplDirFlag: flag.String("opldir", "", "operations logs directory if applies"),
-		CheckFlag:  flag.Bool("check", false, "compute checksums"),
-		CsalFlag:   flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
-		ExclFlag:   flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
-		InclFlag:   flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
+		CheckFlag:   flag.Bool("check", false, "compute checksums"),
+		CsalFlag:    flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
+		ExclFlag:    flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
+		InclFlag:    flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
+		SrcRtlFlag:  flag.String("srtl", "", "events:bandwidth rates limits per second on source DSS: 1e5:128e6 => 10000 events/s 1Gbps"),
+		TgtRtlFlag:  flag.String("trtl", "", "events:bandwidth rates limits per second on target DSS: 200:128e6"),
+		OplSesFlag:  flag.String("oplses", "", "operation logs session name"),
+		OplInvFlag:  flag.String("oplinv", "", "operation logs inventory name"),
+		OplPathFlag: flag.String("oplpath", "", "operation logs master file"),
+		OplStoFlag:  flag.String("oplsto", "aio", "operation logs storage: aio|pbf"),
+		OplCsvFlag:  flag.String("oplcsv", "", "operation logs csv export path"),
+		OplRptFlag:  flag.String("oplrpt", "synth", "operation logs csv report type: synth|full"),
+		OplSyncFlag: flag.String("oplsync", "600:5", "operation logs synchronization to disk, periodicity and number of backups seconds:backups"),
+		OplExpFlag:  flag.String("oplexp", "3600:24", "operation logs csv export, periodicity and number of backups seconds:backups"),
 	}
+}
+
+func ParsePeriodBackups(flag_ string) (seconds, backups int, err error) {
+	if flag_ == "" {
+		return
+	}
+	fs := strings.Split(flag_, ":")
+	if len(fs) > 2 {
+		err = fmt.Errorf("invalid period:backup format: %s", flag_)
+		return
+	}
+	seconds, err = strconv.Atoi(fs[0])
+	if err != nil {
+		return
+	}
+	if len(fs) == 2 {
+		backups, err = strconv.Atoi(fs[1])
+	}
+	return
 }
 
 func parseUrlPlugin(protocol string) (pluginName string, err error) {

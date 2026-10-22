@@ -152,6 +152,53 @@ func ProtoBuf2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 	return le
 }
 
+func protobuf2ToolInformation(gti *opeloggrpc.ToolInformation) *ToolInformation {
+	if gti == nil {
+		return nil
+	}
+	return &ToolInformation{
+		StartTime:     gti.StartTime,
+		CmdLine:       gti.CmdLine,
+		Version:       gti.Version,
+		HostName:      gti.HostName,
+		SourceDssInfo: gti.SourceDssInfo,
+		TargetDssInfo: gti.TargetDssInfo,
+		StopTime:      gti.StopTime,
+		ExecSummary:   gti.ExecSummary,
+	}
+}
+
+func protobuf2SessionInfo(gsi *opeloggrpc.SessionInfo) *SessionInfo {
+	if gsi == nil {
+		return nil
+	}
+	return &SessionInfo{
+		Comment:       gsi.Comment,
+		ReferenceTime: gsi.ReferenceTime,
+		IsInventory:   gsi.IsInventory,
+		ToolInfo:      protobuf2ToolInformation(gsi.ToolInfo),
+	}
+}
+
+func protoBuf2SessionInfos(gsis map[string]*opeloggrpc.SessionInfo) map[string]*SessionInfo {
+	sis := make(map[string]*SessionInfo, len(gsis))
+	for k, v := range maps.All(gsis) {
+		sis[k] = protobuf2SessionInfo(v)
+	}
+	return sis
+}
+
+func ProtoBuf2OpeLogMaster(gom *opeloggrpc.OpeLogMaster) *OpeLogMaster {
+	if gom == nil {
+		return nil
+	}
+	return &OpeLogMaster{
+		SourceRoot: gom.SourceRoot,
+		TargetRoot: gom.TargetRoot,
+		Sessions:   protoBuf2SessionInfos(gom.Sessions),
+	}
+}
+
 func ser2gr(ser *Rights) *opeloggrpc.Rights {
 	if ser == nil {
 		return nil
@@ -309,5 +356,55 @@ func LogicalEntry2ProtoBuf(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 		EventsLists:  eventsLists2ProtoBuf(le.eventsLists),
 		Stats:        computedStatsMap2ProtoBuf(le.stats),
 		IsIgnored:    le.IsIgnored,
+	}
+}
+
+func toolInformation2ProtoBuf(ti *ToolInformation) *opeloggrpc.ToolInformation {
+	if ti == nil {
+		return nil
+	}
+	return &opeloggrpc.ToolInformation{
+		StartTime:     ti.StartTime,
+		CmdLine:       ti.CmdLine,
+		Version:       ti.Version,
+		HostName:      ti.HostName,
+		SourceDssInfo: ti.SourceDssInfo,
+		TargetDssInfo: ti.SourceDssInfo,
+		StopTime:      ti.StopTime,
+		ExecSummary:   ti.ExecSummary,
+	}
+}
+
+func sessionInfo2ProtoBuf(si *SessionInfo) *opeloggrpc.SessionInfo {
+	if si == nil {
+		return nil
+	}
+	return &opeloggrpc.SessionInfo{
+		Comment:       si.Comment,
+		ReferenceTime: si.ReferenceTime,
+		IsInventory:   si.IsInventory,
+		ToolInfo:      toolInformation2ProtoBuf(si.ToolInfo),
+	}
+}
+
+func sessionInfos2ProtoBuf(sis map[string]*SessionInfo) map[string]*opeloggrpc.SessionInfo {
+	if sis == nil {
+		return nil
+	}
+	gsis := make(map[string]*opeloggrpc.SessionInfo, len(sis))
+	for k, v := range maps.All(sis) {
+		gsis[k] = sessionInfo2ProtoBuf(v)
+	}
+	return gsis
+}
+
+func OpeLogMaster2ProtoBuf(om *OpeLogMaster) *opeloggrpc.OpeLogMaster {
+	if om == nil {
+		return nil
+	}
+	return &opeloggrpc.OpeLogMaster{
+		SourceRoot: om.SourceRoot,
+		TargetRoot: om.TargetRoot,
+		Sessions:   sessionInfos2ProtoBuf(om.Sessions),
 	}
 }

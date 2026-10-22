@@ -8,12 +8,10 @@ import (
 	"io"
 	"log/slog"
 	"os"
-	"os/signal"
 	"path"
 	"slices"
 	"strings"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -22,10 +20,13 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/encrypted"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/proxy"
+	"github.com/t-beigbeder/vdasync/internal/opelogimpl"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/remote"
 	"github.com/t-beigbeder/vdasync/internal/walker"
 	"github.com/t-beigbeder/vdasync/opegrpc"
+	"github.com/t-beigbeder/vdasync/opelog"
 	"google.golang.org/grpc"
 )
 
@@ -44,19 +45,7 @@ func RunPlugins(lgr *slog.Logger, cliCfg *config.CliConfig, cf *CommonFlagsType)
 	return rps, nil
 }
 
-func SetSignalHandler(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	go func() {
-		for sig := range c {
-			lgr.Error("main: signal received, preparing to exit", "signal", sig)
-			CleanUp(lgr, rps)
-			os.Exit(1)
-		}
-	}()
-}
-
-func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
+func CleanupPlugins(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	lgr.Info("CleanUp: plugins Shutdown")
 	plugin.Shutdown(rps)
 	lgr.Info("CleanUp: plugins WaitFor")
@@ -68,7 +57,7 @@ func CleanUp(lgr *slog.Logger, rps []*plugin.RunningPlugin) {
 	}
 }
 
-func DoGetDssAndRootFor(
+func getNativeDssAndRootFor(
 	lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig,
 	isTarget bool, url string,
 	rps []*plugin.RunningPlugin, makeNewSession bool,
@@ -93,7 +82,7 @@ func DoGetDssAndRootFor(
 	}
 	if pName != "" && pName[0:1] == "_" {
 		if host != "" || port != 0 {
-			err = fmt.Errorf("%s: url %s: underscore prefixed dss don't support host/port", sot, url)
+			err = fmt.Errorf("%s: url %s: underscore prefixed dss doesn't support host/port", sot, url)
 			return
 		}
 		sfs, args := config.SftpServer(cfg, pName[1:])
@@ -137,8 +126,36 @@ func DoGetDssAndRootFor(
 	return
 }
 
-func GetDssAndRootFor(lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig, isTarget bool, url string, rps []*plugin.RunningPlugin, df *DssaFactory) (dssa.Dssa, string, error) {
-	return DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df)
+func DoGetDssAndRootFor(
+	lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig,
+	isTarget bool, url string,
+	rps []*plugin.RunningPlugin, makeNewSession bool,
+	df *DssaFactory,
+) (dss dssa.Dssa, root string, err error) {
+	if dss, root, err = getNativeDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
+		return
+	}
+	return
+}
+
+func GetDssAndRootFor(
+	lgr *slog.Logger, cf *CommonFlagsType, cfg *config.CliConfig,
+	isTarget bool, url string,
+	rps []*plugin.RunningPlugin,
+	df *DssaFactory,
+	rtlFlag string,
+) (dss dssa.Dssa, root string, err error) {
+	var evr, bdw float64
+	if evr, bdw, err = common.ParseEvBdwbRates(rtlFlag); err != nil {
+		return
+	}
+	if dss, root, err = DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
+		return
+	}
+	if rtlFlag != "" {
+		dss = proxy.MakeRateLimitedDss(lgr.With("isTarget", isTarget), dss, evr, bdw)
+	}
+	return
 }
 
 func GetGrpcClient(lgr *slog.Logger, cf *CommonFlagsType, host string, port int) (dssa.Dssa, error) {
@@ -178,6 +195,13 @@ type ServiceCtx struct {
 	Count       int
 	Size        int
 	Concurrency int
+	OplPath     string
+	OplSes      string
+	OplInv      string
+	OplCsv      string
+	OplRpt      string
+	SrcRoot     string
+	TgtRoot     string
 	Lgr         *slog.Logger
 	OutFile     io.Writer
 }
@@ -196,6 +220,10 @@ func DoService(sc *ServiceCtx) error {
 		return doLatency(sc)
 	case "ftgen":
 		return doFtGen(sc)
+	case "oplcreate":
+		return doOplCreate(sc)
+	case "oplexp":
+		return doOplExp(sc)
 	case "version":
 		return doVersion(sc)
 	case "shutdown":
@@ -398,6 +426,77 @@ func doLatency(sc *ServiceCtx) error {
 
 func doFtGen(sc *ServiceCtx) error {
 	return common.FileTreeGenerate(sc.Root, sc.Count/1000, sc.Count, 3, sc.Size, false, sc.Concurrency)
+}
+
+func doOplCreate(sc *ServiceCtx) error {
+	if sc.OplPath == "" {
+		return errors.New("doOplCreate: no oplpath")
+	}
+	if sc.SrcRoot == "" {
+		return errors.New("doOplCreate: no sroot")
+	}
+	if sc.TgtRoot == "" {
+		return errors.New("doOplCreate: no troot")
+	}
+	oplm, err := opelogimpl.MakeM2fManager(sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	if err = oplm.Create(sc.SrcRoot, sc.TgtRoot); err != nil {
+		return err
+	}
+	if err = oplm.Open(false); err != nil {
+		return err
+	}
+	defer oplm.Close()
+	if sc.OplSes != "" {
+		if _, err = oplm.AddSession(sc.OplSes, &opelog.SessionInfo{}); err != nil {
+			return err
+		}
+	}
+	if sc.OplInv != "" {
+		if _, err = oplm.AddSession(sc.OplInv, &opelog.SessionInfo{IsInventory: true}); err != nil {
+			return err
+		}
+	}
+	if err = oplm.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func doOplExp(sc *ServiceCtx) error {
+	if sc.OplPath == "" {
+		return errors.New("doOplExp: no oplpath")
+	}
+	if sc.OplCsv == "" {
+		return errors.New("doOplExp: no oplcsv")
+	}
+	rpt := opelogimpl.RPT_SYNTHETIC
+	if sc.OplRpt == "full" {
+		rpt = opelogimpl.RPT_FULL
+	} else if sc.OplRpt != "synth" {
+		return fmt.Errorf("doOplExp: unknown owrpt %s", sc.OplRpt)
+	}
+	oplm, err := opelogimpl.MakeM2fManager(sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	if err = oplm.Open(true); err != nil {
+		return err
+	}
+	defer oplm.Close()
+	if err := opelogimpl.OplCsvExport(
+		sc.Lgr, oplm, sc.OplCsv, rpt, sc.OplInv, sc.OplSes,
+		&opelogimpl.RptConfig{ToolInfo: &opelog.ToolInformation{}},
+	); err != nil {
+
+		return err
+	}
+	if err = oplm.Close(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func doVersion(sc *ServiceCtx) error {

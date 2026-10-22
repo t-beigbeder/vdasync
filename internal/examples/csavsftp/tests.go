@@ -77,13 +77,11 @@ func GetTestCsAvSftpClient(user, address, identity, _ string) (*sftp.Client, err
 		},
 		HostKeyCallback: func(hostname string, remote net.Addr, key ssh.PublicKey) error {
 			hks := key.Type() + " " + base64.StdEncoding.EncodeToString(key.Marshal())
-			_ = hks
-			for ix, khln := range khlns {
+			for _, khln := range khlns {
 				marker, hosts, pubKey, comment, rest, err := ssh.ParseKnownHosts([]byte(khln))
 				_, _, _, _, _, _ = marker, hosts, pubKey, comment, rest, err
 				khs := pubKey.Type() + " " + base64.StdEncoding.EncodeToString(pubKey.Marshal())
 				if hks == khs {
-					_ = ix
 					return nil
 				}
 			}

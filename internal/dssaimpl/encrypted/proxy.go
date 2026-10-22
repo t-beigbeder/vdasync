@@ -19,7 +19,7 @@ type SessionMonitor interface {
 	SomethingServed()
 }
 
-type ProxyDssa interface {
+type ProxyEncDssa interface {
 	dssa.Dssa
 	GetValueSetCb() func(string, []byte) error
 	GetEncryptedDssa() EncryptedDssa
@@ -37,7 +37,7 @@ type proxyDss struct {
 	sm                  *sessionMon
 }
 
-// StopSessionMonitor implements [ProxyDssa].
+// StopSessionMonitor implements [ProxyEncDssa].
 func (p *proxyDss) StopSessionMonitor() {
 	p.mx.Lock()
 	defer p.mx.Unlock()
@@ -49,14 +49,14 @@ func (p *proxyDss) StopSessionMonitor() {
 	p.dss = nil
 }
 
-// GetEncryptedDssa implements [ProxyDssa].
+// GetEncryptedDssa implements [ProxyEncDssa].
 func (p *proxyDss) GetEncryptedDssa() EncryptedDssa {
 	p.mx.Lock()
 	defer p.mx.Unlock()
 	return p.dss
 }
 
-// GetValueSetCb implements [ProxyDssa].
+// GetValueSetCb implements [ProxyEncDssa].
 func (p *proxyDss) GetValueSetCb() func(string, []byte) error {
 	return p.setValue
 }
@@ -261,13 +261,13 @@ func (p *proxyDss) Symlink(old string, new_ string) error {
 	return dss.Symlink(old, new_)
 }
 
-var _ ProxyDssa = &proxyDss{}
+var _ ProxyEncDssa = &proxyDss{}
 
-func MakeProxyDssa(
+func MakeProxyEncDssa(
 	lgr *slog.Logger,
 	rootPath string,
 	ageIdentities []string,
-) (ProxyDssa, error) {
+) (ProxyEncDssa, error) {
 	pxd := &proxyDss{
 		lgr:                 lgr,
 		rootPath:            rootPath,

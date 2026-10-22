@@ -7,10 +7,65 @@ import (
 	"os"
 	"time"
 
-	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
+
+type expLe struct {
+	relPath string
+	*opelog.LogicalEntry
+	iTs    int64
+	sTs    int64
+	invent *expSt
+	source *expSt
+	target *expSt
+}
+
+type expSt struct {
+	*opelog.State
+	isInvent bool
+	isTarget bool
+	ele      *expLe
+	events   []*opelog.Event
+}
+
+func (est *expSt) setEmptySt() {
+	if est.State == nil {
+		est.State = &opelog.State{}
+	}
+}
+
+func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
+	ele := &expLe{
+		relPath:      relPath,
+		LogicalEntry: le,
+		iTs:          iTs,
+		sTs:          sTs,
+		invent:       &expSt{isInvent: true},
+		source:       &expSt{},
+		target:       &expSt{isTarget: true},
+	}
+	ele.invent.ele = ele
+	ele.source.ele = ele
+	ele.target.ele = ele
+	if iTs != -1 {
+		ele.invent.State = ele.LogicalEntry.GetState(iTs, false)
+	}
+	if sTs != -1 {
+		ele.source.State = ele.LogicalEntry.GetState(sTs, false)
+		ele.source.events = ele.LogicalEntry.GetEvents(sTs, false)
+		ele.target.State = ele.LogicalEntry.GetState(sTs, true)
+		ele.target.events = ele.LogicalEntry.GetEvents(sTs, true)
+	}
+	ele.invent.setEmptySt()
+	ele.source.setEmptySt()
+	ele.target.setEmptySt()
+	return ele
+}
+
+type RptConfig struct {
+	ToolInfo *opelog.ToolInformation
+}
 
 type RptType int
 
@@ -21,148 +76,273 @@ const (
 
 type csvExporter struct {
 	columns     []string
-	rowExporter func(owi *oplWalkerImpl, relPath string, ole *opelog.LogicalEntry) []string
+	rowExporter func(string, *opelog.LogicalEntry, int64, int64) [][]string
 }
 
 var exporters map[RptType]csvExporter = map[RptType]csvExporter{}
 
-type rptLe struct {
-	*oplLogicalEntry
-	rseSrc *rptSe
-	rseTgt *rptSe
-}
-
-func newRptLe(owi *oplWalkerImpl, relPath string, le *opelog.LogicalEntry) *rptLe {
-	ole := &oplLogicalEntry{
-		relPath: relPath,
-		owi:     owi,
-		le:      le,
+func init() {
+	exporters[RPT_SYNTHETIC] = csvExporter{
+		columns: []string{
+			"Meta",
+			"RelPath", "InvChks", "Sync", "Summary",
+			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
+			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
+		},
+		rowExporter: syntheticExporter,
 	}
-	ole.source = &oplStoredEntry{ole: ole}
-	ole.target = &oplStoredEntry{ole: ole, isTarget: true}
-
-	rptLe := &rptLe{oplLogicalEntry: ole}
-	rptLe.rseSrc = &rptSe{oplStoredEntry: ole.source}
-	rptLe.rseTgt = &rptSe{oplStoredEntry: ole.target}
-	return rptLe
+	exporters[RPT_FULL] = csvExporter{
+		columns: []string{
+			"Meta",
+			"RelPath", "InvChks", "Sync", "Summary",
+			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
+			"SEvTime", "SEvKind", "SEvState", "SEvChildren", "SEvSymLink", "SEvSize", "SEvMtime", "SEvChks",
+			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
+			"TEvTime", "TEvKind", "TEvState", "TEvChildren", "TevSymLink", "TevSize", "TevMtime", "TEvChks",
+		},
+		rowExporter: fullExporter,
+	}
 }
 
-type rptSe struct {
-	*oplStoredEntry
+func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]string {
+	ele := newExpLe(relPath, le, ti, ts)
+
+	cols := exporters[RPT_SYNTHETIC].columns
+	record := make([]string, len(cols))
+	record[1] = relPath
+	record[2] = ele.invent.dispChecksums()
+	record[3] = ele.dispSyncStatus()
+	record[4] = ele.dispSummary()
+
+	sBase := 5
+	record[sBase] = ele.source.dispState()
+	record[sBase+1] = ele.source.dispDir()
+	record[sBase+2] = ele.source.dispSymlink()
+	record[sBase+3] = ele.source.dispSize()
+	record[sBase+4] = ele.source.dispMtime()
+	record[sBase+5] = ele.source.dispChecksums()
+
+	tBase := sBase + 6
+	record[tBase] = ele.target.dispState()
+	record[tBase+1] = ele.target.dispDir()
+	record[tBase+2] = ele.target.dispSymlink()
+	record[tBase+3] = ele.target.dispSize()
+	record[tBase+4] = ele.target.dispMtime()
+	record[tBase+5] = ele.target.dispChecksums()
+
+	return [][]string{record}
 }
 
-func (rse *rptSe) dispPres() string {
-	st := rse.getState()
-	if st == nil {
+func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]string {
+	ele := newExpLe(relPath, le, ti, ts)
+
+	cols := exporters[RPT_FULL].columns
+	record := make([]string, len(cols))
+	record[1] = relPath
+	record[2] = ele.invent.dispChecksums()
+	record[3] = ele.dispSyncStatus()
+	record[4] = ele.dispSummary()
+
+	sBase := 5
+	record[sBase] = ele.source.dispState()
+	record[sBase+1] = ele.source.dispDir()
+	record[sBase+2] = ele.source.dispSymlink()
+	record[sBase+3] = ele.source.dispSize()
+	record[sBase+4] = ele.source.dispMtime()
+	record[sBase+5] = ele.source.dispChecksums()
+
+	tBase := sBase + 6 + 8 // 8 == len(getEventsAsStrings())
+	record[tBase] = ele.target.dispState()
+	record[tBase+1] = ele.target.dispDir()
+	record[tBase+2] = ele.target.dispSymlink()
+	record[tBase+3] = ele.target.dispSize()
+	record[tBase+4] = ele.target.dispMtime()
+	record[tBase+5] = ele.target.dispChecksums()
+
+	res := [][]string{record}
+
+	for _, sev := range ele.source.getEventsAsStrings() {
+		record = make([]string, len(cols))
+		for i := range sev {
+			record[sBase+6+i] = sev[i]
+		}
+		res = append(res, record)
+	}
+	for _, sev := range ele.target.getEventsAsStrings() {
+		record = make([]string, len(cols))
+		for i := range sev {
+			record[tBase+6+i] = sev[i]
+		}
+		res = append(res, record)
+	}
+	return res
+}
+
+func (ele *expLe) dispSyncStatus() (sys string) {
+	csts := ele.GetStats(ele.sTs)
+	if csts == nil {
+		return
+	}
+	if csts.Remove.Number > 0 {
+		sys += "r"
+	}
+	if csts.Create.Number > 0 {
+		sys += "c"
+	}
+	if csts.Update.Number > 0 {
+		sys += "u"
+	}
+	if csts.MetaChange.Number > 0 {
+		sys += "m"
+	}
+	if csts.Error.Number > 0 {
+		sys += "e"
+	}
+	if sys == "" && (csts.NoOp.Number > 0 || csts.Read.Number > 0) {
+		sys = "-"
+	}
+	return sys
+}
+
+func (ele *expLe) dispSummary() string {
+	stats := ele.GetStats(ele.sTs)
+	if stats == nil {
 		return ""
 	}
-	if st.Error != "" {
-		return "e"
-	}
-	if st.Stc == opelog.STC_DONE_ABSENT {
-		return "-"
-	}
-	if rse.ole.le.IsIgnored {
-		return "i"
-	}
-	return "x"
+	return stats.Display("summary")
 }
 
-func (rse *rptSe) dispCss() string {
-	st := rse.getState()
-	if st == nil {
-		return "error"
+func (est *expSt) dispState() string {
+	if est.Stc == opelog.STC_DONE_PRESENT {
+		return est.Se.ToDataEntry("").ModString()
 	}
-	tcss := st.Tcss
-	css, err := common.TypedChecksums2Checksums(tcss)
+	if est.Stc == opelog.STC_DONE_ABSENT {
+		return "-"
+	}
+	if est.Stc == opelog.STC_SE_ERROR {
+		return "e"
+	}
+	if est.Stc == opelog.STC_DESC_ERROR {
+		return "^e"
+	}
+	return "?"
+}
+
+func (est *expSt) dispDir() string {
+	if est.Se == nil {
+		return ""
+	}
+	if !est.Se.IsDir {
+		return "-"
+	}
+	sdc := ""
+	if est.DepCount > 0 {
+		sdc = fmt.Sprintf("(%d)", est.DepCount)
+	}
+	return fmt.Sprintf("%d%s", len(est.Se.Children), sdc)
+}
+
+func (est *expSt) dispSymlink() string {
+	if est.Se == nil {
+		return ""
+	}
+	if !est.Se.IsSymLink {
+		return "-"
+	}
+	return est.Se.SymLinkTarget
+}
+
+func (est *expSt) dispSize() string {
+	if est.Se == nil {
+		return ""
+	}
+	if est.Se.IsDir || est.Se.IsSymLink || est.Stc != opelog.STC_DONE_PRESENT {
+		return "-"
+	}
+	return fmt.Sprintf("%d", est.Se.Size)
+}
+
+func ts2s(ts int64) string {
+	return time.Unix(ts, 0).UTC().Format(time.RFC3339)
+}
+
+func (est *expSt) dispMtime() string {
+	if est.Se == nil {
+		return ""
+	}
+	if est.Stc != opelog.STC_DONE_PRESENT {
+		return "-"
+	}
+	return ts2s(est.Se.Mtime)
+}
+
+func (est *expSt) dispChecksums() string {
+	css, err := common.TypedChecksums2Checksums(est.Tcss)
 	if err != nil {
-		return "error"
+		return "e"
 	}
 	return css
 }
 
-type dispBool bool
+func (est *expSt) getEventsAsStrings() (res [][]string) {
 
-func (db dispBool) String() string {
-	if db {
-		return "x"
+	for _, ev := range est.events {
+		var err error
+		sEvs, sEvCn, sEvSL, sEvSz, sEvMt, sEvCss := "-", "", "", "", "", "?css"
+		se := ev.Se
+		if se != nil {
+			sEvs = se.ToDataEntry("").ModString()
+			if se.IsDir {
+				sEvCn = fmt.Sprintf("%d", len(se.Children))
+			}
+			sEvSL = se.SymLinkTarget
+			if !se.IsDir && !se.IsSymLink {
+				sEvSz = fmt.Sprintf("%d", se.Size)
+			}
+			sEvMt = ts2s(se.Mtime)
+		}
+		if sEvCss, err = common.TypedChecksums2Checksums(ev.Tcss); err != nil {
+			sEvCss = "e"
+		}
+		if err != nil {
+			sEvCss = "e"
+		}
+		sev := []string{
+			ts2s(ev.TimeStamp),
+			ev.Kind.String(),
+			sEvs,
+			sEvCn,
+			sEvSL,
+			sEvSz,
+			sEvMt,
+			sEvCss,
+		}
+		res = append(res, sev)
 	}
-	return ""
+	return
 }
 
-func dispDirChildren(se *opelog.StoredEntry) string {
-	if se == nil || !se.IsDir {
-		return "-"
-	}
-	return fmt.Sprintf("%d", len(se.Children))
-}
-
-func dispSize(se *opelog.StoredEntry) string {
-	if se == nil {
-		return ""
-	}
-	if se.IsDir || se.IsSymLink {
-		return "-"
-	}
-	return fmt.Sprintf("%d", se.Size)
-}
-
-func dispMtime(se *opelog.StoredEntry) string {
-	if se == nil {
-		return ""
-	}
-	return time.Unix(se.Mtime, 0).Format(time.RFC3339)
-}
-
-func syntheticExporter(owi *oplWalkerImpl, relPath string, le *opelog.LogicalEntry) []string {
-	rle := newRptLe(owi, relPath, le)
-	scs := rle.rseSrc.se()
-	tcs := rle.rseTgt.se()
-	record := make([]string, len(exporters[RPT_SYNTHETIC].columns))
-	record[0] = relPath
-	record[1] = "" // FIXME: le.InvChecksums
-	sBase := 2
-	record[sBase] = rle.rseSrc.dispPres()
-	record[sBase+1] = dispDirChildren(scs)
-	record[sBase+2] = "" // FIXME: scs.SymLinkrseTgt
-	record[sBase+3] = dispSize(scs)
-	record[sBase+4] = dispMtime(scs)
-	record[sBase+5] = rle.rseSrc.dispCss()
-	tBase := 8
-	record[tBase] = rle.rseTgt.dispPres()
-	record[tBase+1] = dispDirChildren(tcs)
-	record[tBase+2] = "" // FIXME: tcs.SymLinkrseTgt
-	record[tBase+3] = dispSize(tcs)
-	record[tBase+4] = dispMtime(tcs)
-	record[tBase+5] = rle.rseTgt.dispCss()
-
-	return record
-}
-
-func init() {
-	exporters[RPT_SYNTHETIC] = csvExporter{
-		columns: []string{
-			"RelPath", "InvChecksums",
-			"rseSrc", "SChildren", "SSymLink", "SSize", "SMtime", "SCs",
-			"rseTgt", "TChildren", "TSymLink", "TSize", "TMtime", "TCs",
-		},
-		rowExporter: syntheticExporter,
-	}
-}
-
-func OplCsvExport(lgr *slog.Logger, ow OplWalker, oplm opelog.OpeLogManager,
-	csvPath string, rt RptType, session string,
+func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
+	csvPath string, rt RptType, invent, session string,
+	rptCfg *RptConfig,
 ) error {
-	var ok bool
-	if ow == nil {
-		ow = NewOplWalker(
-			lgr, 1, nil, oplm, &config.OpeLogOptionsType{},
-			nil, nil, "", "", session, "",
-		)
+	if rptCfg == nil {
+		rptCfg = &RptConfig{ToolInfo: &opelog.ToolInformation{CmdLine: "no tool information"}}
 	}
-	owi, ok := ow.(*oplWalkerImpl)
-	if !ok {
-		return fmt.Errorf("OplCsvExport need an oplWalkerImpl")
+	ise := &opelog.SessionInfo{ReferenceTime: -1}
+	sse := &opelog.SessionInfo{ReferenceTime: -1}
+	var ok bool
+	if invent != "" {
+		ise, ok = oplm.Olm().Sessions[invent]
+		if !ok {
+			return fmt.Errorf("inventory %s not found", invent)
+		}
+	}
+	if session != "" {
+		sse, ok = oplm.Olm().Sessions[session]
+		if !ok {
+			return fmt.Errorf("session %s not found", session)
+		}
 	}
 	ce, ok := exporters[rt]
 	if !ok {
@@ -177,9 +357,17 @@ func OplCsvExport(lgr *slog.Logger, ow OplWalker, oplm opelog.OpeLogManager,
 	if err := cw.Write(ce.columns); err != nil {
 		return err
 	}
-	err = oplm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
-		if err := cw.Write(ce.rowExporter(owi, relPath, ole)); err != nil {
-			return err
+	meta := fmt.Sprintf("%v\nexport timestamp: %s", *rptCfg.ToolInfo, time.Now().Format(time.RFC3339))
+	if err := cw.Write([]string{meta}); err != nil {
+		return err
+	}
+
+	err = oplm.Walk(func(relPath string, le *opelog.LogicalEntry) error {
+		records := ce.rowExporter(relPath, le, ise.ReferenceTime, sse.ReferenceTime)
+		for _, record := range records {
+			if err := cw.Write(record); err != nil {
+				return err
+			}
 		}
 		return nil
 	})

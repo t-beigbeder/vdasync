@@ -116,8 +116,6 @@ func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error
 			User:       os.Getuid(),
 			UserRights: dssa.Rights{Read: true, Write: true},
 		}
-		ap := ed.actualPath(de)
-		_ = ap
 		if err = common.MakeParents(ed.underlying, path.Dir(ed.actualPath(de))); err != nil {
 			return nil, err
 		}

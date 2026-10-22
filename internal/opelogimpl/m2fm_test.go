@@ -13,51 +13,77 @@ import (
 )
 
 func TestM2fBaseOpeLogs(t *testing.T) {
-	lgr := common.DbgLogger()
-	lgr.Debug("TestM2fOpeLogs: start")
+	lgr := common.GetLogger()
+	lgr.Debug("TestM2fBaseOpeLogs: start")
 
 	std := t.TempDir()
 	ltd := t.TempDir()
 	ttd := t.TempDir()
 
-	olm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 0, true, std, ttd)
 	require.NoError(t, err)
-	_, _, err = olm.Create("ds", "di", std, ttd)
-	require.NoError(t, err)
-	_, _, err = olm.Open("ds", "di", false)
-	require.NoError(t, err)
+
 	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
+	require.NoError(t, olm.Sync(false))
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync())
-	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	require.NoError(t, olm.Sync(false))
+
+	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
-	_, _, err = olm2.Open("ds", "di", false)
-	require.Error(t, err)
-	_, _, err = olm2.Open("ds", "di", true)
-	require.NoError(t, err)
+	require.Error(t, olm2.Open(false))
+	require.NoError(t, olm2.Open(true))
 	require.NoError(t, olm.Close())
 	require.NoError(t, olm2.Close())
-	lgr.Debug("TestM2fOpeLogs: end")
+	lgr.Debug("TestM2fBaseOpeLogs: end")
+}
+
+func TestM2fNoFileOpeLogs(t *testing.T) {
+	lgr := common.GetLogger()
+	lgr.Debug("TestM2fNoFileOpeLogs: start")
+
+	std := t.TempDir()
+	ttd := t.TempDir()
+
+	olm, err := makeTestM2fManager("", 0, true, std, ttd)
+	require.NoError(t, err)
+
+	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
+	require.NoError(t, olm.Sync(false))
+	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
+	require.NoError(t, olm.Sync(false))
+
+	require.Error(t, olm.Open(false))
+	require.Error(t, olm.Open(true))
+	require.NoError(t, olm.Close())
+	require.NoError(t, olm.Open(true))
+	require.NoError(t, olm.Close())
+
+	olm, err = makeTestM2fManager("", 0, false, std, ttd)
+	require.NoError(t, err)
+	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
+	require.NoError(t, olm.Sync(false))
+	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
+	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Close())
+	lgr.Debug("TestM2fNoFileOpeLogs: end")
 }
 
 func TestM2fWriteOpeLogs(t *testing.T) {
-	lgr := common.DbgLogger()
-	lgr.Debug("TestM2fOpeLogs: start")
+	lgr := common.GetLogger()
+	lgr.Debug("TestM2fWriteOpeLogs: start")
 
 	std := t.TempDir()
 	require.NoError(t, common.FileTreeGenerate(std, 250, 25000, 2, 2025, false, 0))
-	lgr.Debug("TestM2fOpeLogs: FileTreeGenerated")
+	lgr.Debug("TestM2fWriteOpeLogs: FileTreeGenerated")
 
 	ltd := t.TempDir()
 	ttd := t.TempDir()
 
-	olm, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 0, true, std, ttd)
 	require.NoError(t, err)
-	sTs, _, err := olm.Create("ds", "di", std, ttd)
-	require.NoError(t, err)
-	_, _, err = olm.Open("ds", "di", false)
-	require.NoError(t, err)
+	require.Contains(t, olm.Olm().Sessions, "ds")
+	sTs := olm.Olm().Sessions["ds"].ReferenceTime
+
 	tSt := time.Now().Unix()
 	err = filepath.Walk(std, func(path string, info fs.FileInfo, err error) error {
 		le := opelog.NewLogicalEntry()
@@ -67,38 +93,32 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 		return olm.PutLogicalEntry(path, le)
 	})
 	require.NoError(t, err)
-	require.NoError(t, olm.Sync())
-	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	require.NoError(t, olm.Sync(false))
+
+	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
-	_, _, err = olm2.Open("ds", "di", false)
-	require.Error(t, err)
-	_, _, err = olm2.Open("ds", "di", true)
-	require.NoError(t, err)
+	require.Error(t, olm2.Open(false))
+	require.NoError(t, olm2.Open(true))
 	require.NoError(t, olm.Close())
 	require.NoError(t, olm2.Close())
-	lgr.Debug("TestM2fOpeLogs: end")
+	lgr.Debug("TestM2fWriteOpeLogs: end")
 }
 
-func TestM2fMarshOpeLogs(t *testing.T) {
-	lgr := common.DbgLogger()
-	lgr.Debug("TestM2fMarshOpeLogs: start")
+func TestM2fWriteNoFileOpeLogs(t *testing.T) {
+	lgr := common.GetLogger()
+	lgr.Debug("TestM2fWriteNoFileOpeLogs: start")
 
 	std := t.TempDir()
 	require.NoError(t, common.FileTreeGenerate(std, 250, 25000, 2, 2025, false, 0))
-	lgr.Debug("TestM2fMarshOpeLogs: FileTreeGenerated")
+	lgr.Debug("TestM2fWriteNoFileOpeLogs: FileTreeGenerated")
 
-	ltd := t.TempDir()
 	ttd := t.TempDir()
 
-	olmi, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
+	olm, err := makeTestM2fManager("", 0, false, std, ttd)
 	require.NoError(t, err)
-	olm, ok := olmi.(*m2fOplMng)
-	require.True(t, ok)
-	olm.testMarsh = true
-	sTs, _, err := olm.Create("ds", "di", std, ttd)
-	require.NoError(t, err)
-	_, _, err = olm.Open("ds", "di", false)
-	require.NoError(t, err)
+	require.Contains(t, olm.Olm().Sessions, "ds")
+	sTs := olm.Olm().Sessions["ds"].ReferenceTime
+
 	tSt := time.Now().Unix()
 	err = filepath.Walk(std, func(path string, info fs.FileInfo, err error) error {
 		le := opelog.NewLogicalEntry()
@@ -108,17 +128,8 @@ func TestM2fMarshOpeLogs(t *testing.T) {
 		return olm.PutLogicalEntry(path, le)
 	})
 	require.NoError(t, err)
-	require.NoError(t, olm.Sync())
-	olmi2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"))
-	olm2, ok := olmi2.(*m2fOplMng)
-	require.True(t, ok)
-	olm2.testMarsh = true
-	require.NoError(t, err)
-	_, _, err = olm2.Open("ds", "di", false)
-	require.Error(t, err)
-	_, _, err = olm2.Open("ds", "di", true)
-	require.NoError(t, err)
+	require.NoError(t, olm.Sync(false))
+
 	require.NoError(t, olm.Close())
-	require.NoError(t, olm2.Close())
-	lgr.Debug("TestM2fMarshOpeLogs: end")
+	lgr.Debug("TestM2fWriteNoFileOpeLogs: end")
 }

@@ -3,40 +3,33 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
-	"maps"
 	"os"
 	"sync"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/opelog"
 	"github.com/t-beigbeder/vdasync/opeloggrpc"
 	"google.golang.org/protobuf/proto"
 )
 
 type m2fOplMng struct {
-	path        string
-	mx          sync.Mutex
-	source      string
-	target      string
-	les         map[string]*opelog.LogicalEntry
-	sessions    map[string]int64
-	inventories map[string]int64
-	readOnly    bool
-	isOpen      bool
-	hasUpdates  bool
-	testMarsh   bool
-	marshLes    map[string][]byte
+	pathOpt    string
+	bckLimit   int
+	mx         sync.Mutex
+	om         *opelog.OpeLogMaster
+	les        map[string]*opelog.LogicalEntry
+	readOnly   bool
+	isOpen     bool
+	hasUpdates bool
+	testMarsh  bool
+	marshLes   map[string][]byte
 }
 
 func (m *m2fOplMng) tsInUse(ts int64) (yes bool) {
-	for sTs := range maps.Values(m.sessions) {
-		if sTs == ts {
-			return true
-		}
-	}
-	for iTs := range maps.Values(m.inventories) {
-		if iTs == ts {
+	for _, sTs := range m.om.Sessions {
+		if sTs.ReferenceTime == ts {
 			return true
 		}
 	}
@@ -52,12 +45,12 @@ func (m *m2fOplMng) nextTimeStamp() int64 {
 }
 
 func (m *m2fOplMng) save() error {
+	if m.pathOpt == "" {
+		return nil
+	}
 	aio := opeloggrpc.OpeLogAllInOne{
-		SourceRoot:     m.source,
-		TargetRoot:     m.target,
+		Master:         opelog.OpeLogMaster2ProtoBuf(m.om),
 		LogicalEntries: make(map[string]*opeloggrpc.LogicalEntry, len(m.les)),
-		Sessions:       maps.Clone(m.sessions),
-		Inventories:    maps.Clone(m.inventories),
 	}
 	for rp, le := range m.les {
 		if m.testMarsh {
@@ -75,112 +68,95 @@ func (m *m2fOplMng) save() error {
 	if err != nil {
 		return err
 	}
-	if err = common.WriteFile(m.path, bs); err != nil {
+	if err = common.WriteFile(m.pathOpt, bs); err != nil {
 		return err
 	}
 	return nil
 }
 
-// AddInventory implements [opelog.OpeLogManager].
-func (m *m2fOplMng) AddInventory(label string) (int64, error) {
-	_, ok := m.inventories[label]
-	if ok {
-		return 0, fmt.Errorf("inventory %s already exists", label)
-	}
-	m.inventories[label] = m.nextTimeStamp()
-	return m.inventories[label], nil
-}
-
 // AddSession implements [opelog.OpeLogManager].
-func (m *m2fOplMng) AddSession(label string) (int64, error) {
-	_, ok := m.inventories[label]
+func (m *m2fOplMng) AddSession(label string, si *opelog.SessionInfo) (int64, error) {
+	_, ok := m.om.Sessions[label]
 	if ok {
 		return 0, fmt.Errorf("session %s already exists", label)
 	}
-	m.sessions[label] = m.nextTimeStamp()
-	return m.sessions[label], nil
+	rt := m.nextTimeStamp()
+	m.om.Sessions[label] = &opelog.SessionInfo{
+		Comment:       si.Comment,
+		ReferenceTime: rt,
+		IsInventory:   si.IsInventory,
+	}
+	m.hasUpdates = true
+	return rt, nil
 }
 
 // Create implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Create(session, inventory, source, target string) (int64, int64, error) {
+func (m *m2fOplMng) Create(source, target string) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
-	if common.FileExists(m.path) {
-		return 0, 0, fmt.Errorf("m2fMng.Create: %s already exists", m.path)
+	if m.pathOpt != "" && common.FileExists(m.pathOpt) {
+		return fmt.Errorf("m2fMng.Create: %s already exists", m.pathOpt)
 	}
 	if m.les != nil {
-		return 0, 0, fmt.Errorf("m2fMng.Create: %s should be created without entries", m.path)
+		return fmt.Errorf("m2fMng.Create: %s should be created without entries", m.pathOpt)
 	}
-	if len(m.sessions) != 0 {
-		return 0, 0, fmt.Errorf("m2fMng.Create: %s should be created without sessions", m.path)
+	if m.om != nil && len(m.om.Sessions) != 0 {
+		return fmt.Errorf("m2fMng.Create: %s should be created without sessions", m.pathOpt)
 	}
-	if len(m.inventories) != 0 {
-		return 0, 0, fmt.Errorf("m2fMng.Create: %s should be created without inventories", m.path)
+	om := &opelog.OpeLogMaster{
+		SourceRoot: source,
+		TargetRoot: target,
+		Sessions:   map[string]*opelog.SessionInfo{},
 	}
-	var (
-		sTs, iTs int64
-	)
-	if session != "" {
-		sTs = m.nextTimeStamp()
-		m.sessions = map[string]int64{session: sTs}
-	}
-	if inventory != "" {
-		iTs = m.nextTimeStamp()
-		m.inventories = map[string]int64{inventory: iTs}
+	if m.pathOpt == "" {
+		m.om = om
+		m.om.StoreType = "mem"
+		m.les = map[string]*opelog.LogicalEntry{}
+		m.marshLes = map[string][]byte{}
+		return nil
 	}
 	aio := opeloggrpc.OpeLogAllInOne{
-		SourceRoot:  source,
-		TargetRoot:  target,
-		Sessions:    maps.Clone(m.sessions),
-		Inventories: maps.Clone(m.inventories),
+		Master:         opelog.OpeLogMaster2ProtoBuf(om),
+		LogicalEntries: nil,
 	}
 	bs, err := proto.Marshal(&aio)
 	if err != nil {
-		return 0, 0, err
+		return err
 	}
-	if err = common.WriteFile(m.path, bs); err != nil {
-		return 0, 0, err
+	if err = common.WriteFile(m.pathOpt, bs); err != nil {
+		return err
 	}
-	return sTs, iTs, nil
+	return nil
 }
 
-// NewSession implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Open(session, inventory string, readOnly bool) (int64, int64, error) {
+// Open implements [opelog.OpeLogManager].
+func (m *m2fOplMng) Open(readOnly bool) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
-	lock := fmt.Sprintf("%s.lock", m.path)
 	if m.isOpen {
-		return 0, 0, errors.New("m2fMng.Open: already opened")
+		return errors.New("m2fMng.Open: already opened")
 	}
+	if m.pathOpt == "" {
+		if m.om == nil {
+			return errors.New("m2fMng.Open: memory-only m2f master has not been created")
+		}
+		m.isOpen = true
+		m.readOnly = readOnly
+		return nil
+	}
+	lock := fmt.Sprintf("%s.lock", m.pathOpt)
 	if !readOnly && common.FileExists(lock) {
-		return 0, 0, fmt.Errorf("m2fMng.Open: locked (%s)", lock)
+		return fmt.Errorf("m2fMng.Open: locked (%s)", lock)
 	}
-	bs, err := common.UnsafeLoadFile(m.path)
+	bs, err := common.UnsafeLoadFile(m.pathOpt)
 	if err != nil {
-		return 0, 0, err
+		return err
 	}
 	var aio opeloggrpc.OpeLogAllInOne
 	if err = proto.Unmarshal(bs, &aio); err != nil {
-		return 0, 0, err
+		return err
 	}
-	m.source = aio.SourceRoot
-	m.target = aio.TargetRoot
-	m.sessions = maps.Clone(aio.Sessions)
-	if m.sessions == nil {
-		m.sessions = map[string]int64{}
-	}
-	sTs, ok := m.sessions[session]
-	if session != "" && !ok {
-		return 0, 0, fmt.Errorf("unknown session: %s", session)
-	}
-	m.inventories = maps.Clone(aio.Inventories)
-	if m.inventories == nil {
-		m.inventories = map[string]int64{}
-	}
-	iTs, ok := m.inventories[inventory]
-	if inventory != "" && !ok {
-		return 0, 0, fmt.Errorf("unknown inventory: %s", inventory)
-	}
+	m.om = opelog.ProtoBuf2OpeLogMaster(aio.Master)
 	m.les = make(map[string]*opelog.LogicalEntry, len(aio.LogicalEntries))
 	if m.testMarsh {
 		m.marshLes = make(map[string][]byte, len(aio.LogicalEntries))
@@ -191,7 +167,7 @@ func (m *m2fOplMng) Open(session, inventory string, readOnly bool) (int64, int64
 			gle = opelog.LogicalEntry2ProtoBuf(ole)
 			bs, err := proto.Marshal(gle)
 			if err != nil {
-				return 0, 0, err
+				return err
 			}
 			m.marshLes[rp] = bs
 			m.les[rp] = nil
@@ -201,23 +177,40 @@ func (m *m2fOplMng) Open(session, inventory string, readOnly bool) (int64, int64
 	}
 	if !readOnly {
 		if err := common.WriteFile(lock, []byte{}); err != nil {
-			return 0, 0, err
+			return err
 		}
 	}
 	m.isOpen = true
 	m.readOnly = readOnly
-	return sTs, iTs, nil
+	m.om.StoreType = "aio"
+	return nil
+}
+
+// Olm implements [opelog.OpeLogManager].
+func (m *m2fOplMng) Olm() *opelog.OpeLogMaster {
+	return m.om.Clone()
 }
 
 // Sync implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Sync() error {
+func (m *m2fOplMng) Sync(olmChanged bool) error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.isOpen {
 		return errors.New("m2fMng.Sync: not opened")
 	}
+	if olmChanged {
+		m.hasUpdates = true
+	}
 	if !m.hasUpdates {
 		return nil
+	}
+	if m.pathOpt == "" {
+		return nil
+	}
+	if m.bckLimit > 0 {
+		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), m.pathOpt, m.bckLimit); err != nil {
+			return err
+		}
 	}
 	if err := m.save(); err != nil {
 		return err
@@ -240,8 +233,8 @@ func (m *m2fOplMng) Close() error {
 	}
 	m.hasUpdates = false
 	m.isOpen = false
-	if !m.readOnly {
-		if err := os.Remove(fmt.Sprintf("%s.lock", m.path)); err != nil {
+	if !m.readOnly && m.pathOpt != "" {
+		if err := os.Remove(fmt.Sprintf("%s.lock", m.pathOpt)); err != nil {
 			return err
 		}
 	}
@@ -319,6 +312,6 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 
 var _ opelog.OpeLogManager = &m2fOplMng{}
 
-func MakeM2fManager(path string) (opelog.OpeLogManager, error) {
-	return &m2fOplMng{path: path}, nil
+func MakeM2fManager(pathOpt string, bckLimit int) (opelog.OpeLogManager, error) {
+	return &m2fOplMng{pathOpt: pathOpt, bckLimit: bckLimit}, nil
 }

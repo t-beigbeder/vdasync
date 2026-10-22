@@ -52,7 +52,6 @@ func TestNewServerCert(t *testing.T) {
 	_, _, _ = pool, caCert, caPrik
 	tlsCert, err := NewCert([]string{"0.0.0.0", "localhost"}, caCert, caPrik)
 	require.NoError(t, err)
-	_ = tlsCert
 
 	cfg := &tls.Config{Certificates: []tls.Certificate{*tlsCert}}
 	srv := &http.Server{

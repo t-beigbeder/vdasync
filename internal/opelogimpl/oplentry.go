@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"bytes"
 	"fmt"
 	"log/slog"
 	"path"
@@ -56,6 +57,8 @@ type oplLogicalEntry struct {
 	parentTSt *opelog.State
 	// share source/target
 	childrenLeCache map[string]*opelog.LogicalEntry
+	// should stats be reinitialized
+	statsInited bool
 }
 
 func (ole *oplLogicalEntry) detail(msg string, args ...any) {
@@ -94,9 +97,20 @@ func (ole *oplLogicalEntry) getCsAlgos(withInv bool) string {
 	return csAlgos
 }
 
-// isIncluded checks relPath is included (empty list means all) or not excluded
+// isIncluded checks relPath is included (empty list means all) and not excluded
 func (ole *oplLogicalEntry) isIncluded() bool {
 	return common.IsIncluded(ole.relPath, ole.owi.inclRegs, ole.owi.exclRegs)
+}
+
+// getStats provides computed stats for the entry in the active session
+// Returned ComputedStats may be modified, provided the le's hasChanges flag is set
+func (ole *oplLogicalEntry) getStats() *opelog.ComputedStats {
+	stats := ole.le.GetStats(ole.owi.sessionTime)
+	if stats == nil {
+		stats = opelog.NewComputedStats()
+		ole.le.SetStats(ole.owi.sessionTime, stats)
+	}
+	return stats
 }
 
 // oplStoredEntry groups operations and state relevant either for source or for target
@@ -108,6 +122,8 @@ type oplStoredEntry struct {
 	ole      *oplLogicalEntry
 	isTarget bool
 	// processing state
+	// toolRestarted tracks need to reload state/stats (from cache or clearing errors)
+	// after tool restart
 	toolRestarted bool
 	// events information, to be created once full processing done
 	loadTime       int64
@@ -138,6 +154,16 @@ func (ose *oplStoredEntry) root() string {
 	}
 }
 
+// hasError checks se for descendant error, missing state has no error
+func (ose *oplStoredEntry) hasDescError() bool {
+	st := ose.getState()
+	if st == nil {
+		return false
+	}
+	return st.Stc == opelog.STC_DESC_ERROR
+}
+
+// hasError checks se for error, missing state has no error
 func (ose *oplStoredEntry) hasError() bool {
 	st := ose.getState()
 	if st == nil {
@@ -146,7 +172,7 @@ func (ose *oplStoredEntry) hasError() bool {
 	return st.Stc == opelog.STC_SE_ERROR || st.Stc == opelog.STC_DESC_ERROR
 }
 
-// isPresent detects entry not absent, state may be in progress or have error
+// isPresent detects entry not absent, state may be in progress or have error, missing state is not present
 func (ose *oplStoredEntry) isPresent() bool {
 	st := ose.getState()
 	if st == nil {
@@ -155,7 +181,7 @@ func (ose *oplStoredEntry) isPresent() bool {
 	return st.Stc != opelog.STC_DONE_ABSENT
 }
 
-// isAbsent detects entry absent
+// isAbsent detects entry absent, missing state is not absent
 func (ose *oplStoredEntry) isAbsent() bool {
 	st := ose.getState()
 	if st == nil {
@@ -209,7 +235,42 @@ func (ose *oplStoredEntry) dss() (ds dssa.Dssa) {
 	return
 }
 
+// createEvent creates an event in the current session with given data
+//
+// same event providing the same state as the immediate previous one will only keep the latest
 func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opelog.StoredEntry, tcss [][]byte) {
+	equalSe := func(se1, se2 *opelog.StoredEntry) bool {
+		if se1 == nil && se2 == nil {
+			return true
+		}
+		if se1 != nil && se2 != nil {
+			return se1.Equal(se2, false, false, false, false, false)
+		}
+		return false
+	}
+	equalTcss := func(t1, t2 [][]byte) bool {
+		if len(t1) == 0 && len(t2) == 0 {
+			return true
+		}
+		if len(t1) != len(t2) {
+			return false
+		}
+		for i, tcs := range t1 {
+			if !bytes.Equal(tcs, t2[i]) {
+				return false
+			}
+		}
+		return true
+	}
+	prevEvents := ose.getEvents()
+	if len(prevEvents) > 0 {
+		imPrEv := prevEvents[len(prevEvents)-1]
+		if imPrEv.Kind == kind && equalSe(se, imPrEv.Se) && equalTcss(tcss, imPrEv.Tcss) {
+			imPrEv.TimeStamp = ts
+			ose.ole.hasChanges = true
+			return
+		}
+	}
 	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ts, ose.isTarget, kind, se, tcss)
 	ose.ole.hasChanges = true
 }
@@ -230,7 +291,9 @@ func (ose *oplStoredEntry) setState(stc opelog.StateCode, sErr string, se *opelo
 
 // getState may be nil or Se may be nil meaning simply listed by parent
 //
-// toolRestarted if loaded state differs
+// toolRestarted is set if loaded state differs from tool (re)start time,
+// and stats collecting is reset on first call.
+// Returned State may be modified, provided the le's hasChanges flag is set
 func (ose *oplStoredEntry) getState() *opelog.State {
 	owi := ose.ole.owi
 	st := ose.ole.le.GetState(owi.sessionTime, ose.isTarget)
@@ -245,27 +308,21 @@ func (ose *oplStoredEntry) getState() *opelog.State {
 	return st
 }
 
+// getStats provides computed stats for the entry in the active session
+// Returned ComputedStats may be modified, provided the le's hasChanges flag is set
 func (ose *oplStoredEntry) getStats() *opelog.ComputedStats {
-	stats := ose.ole.le.GetStats(ose.ole.owi.sessionTime)
-	if stats == nil {
-		stats = opelog.NewComputedStats()
-		ose.ole.le.SetStats(ose.ole.owi.sessionTime, stats)
-	}
-	return stats
+	return ose.ole.getStats()
 }
 
 // setStatsFor updates the entry's stats according to given keyword
 //
-// size -1 asks to read cached state for entry's size
+// first call reset stats on the entry
 func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	stats := ose.getStats()
-	if size == -1 {
-		se := ose.se()
-		if se != nil {
-			size = se.Size
-		} else {
-			size = 0
-		}
+	if !ose.ole.statsInited {
+		stats = opelog.NewComputedStats()
+		ose.ole.le.SetStats(ose.ole.owi.sessionTime, stats)
+		ose.ole.statsInited = true
 	}
 	switch kw {
 	case "sls":
@@ -290,7 +347,7 @@ func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 		stats.NoOp.Number = 1
 		stats.NoOp.Size = size
 	case "er":
-		stats.Error.Number = 1
+		stats.Error.Number += 1
 	default:
 		return
 	}

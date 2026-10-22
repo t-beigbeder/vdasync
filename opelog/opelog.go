@@ -2,8 +2,10 @@ package opelog
 
 import (
 	"bytes"
+	"fmt"
 	"maps"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/dssa"
@@ -12,11 +14,11 @@ import (
 )
 
 type OpeLogManager interface {
-	Create(session, inventory, source, target string) (int64, int64, error)
-	AddSession(label string) (int64, error)
-	AddInventory(label string) (int64, error)
-	Open(session, inventory string, readOnly bool) (int64, int64, error)
-	Sync() error
+	Create(source, target string) error
+	AddSession(label string, si *SessionInfo) (int64, error)
+	Open(readOnly bool) error
+	Olm() *OpeLogMaster
+	Sync(olmChanged bool) error
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
@@ -47,14 +49,14 @@ func (nr *Rights) Equal(or *Rights) (result bool) {
 	return
 }
 
-func cmpRights(nrp, orp **Rights) (result bool) {
-	if *nrp == nil && *orp == nil {
+func cmpRights(nrp, orp *Rights) (result bool) {
+	if nrp == nil && orp == nil {
 		return true
 	}
-	if *nrp == nil || *orp == nil {
+	if nrp == nil || orp == nil {
 		return
 	}
-	return (*nrp).Equal(*orp)
+	return nrp.Equal(orp)
 }
 
 type StoredEntry struct {
@@ -84,9 +86,9 @@ func (tse *StoredEntry) Clone() *StoredEntry {
 		IsDir:         tse.IsDir,
 		Size:          tse.Size,
 		Mtime:         tse.Mtime,
-		User:          int32(tse.User),
+		User:          tse.User,
 		UserRights:    cloneRights(tse.UserRights),
-		Group:         int32(tse.Group),
+		Group:         tse.Group,
 		GroupRights:   cloneRights(tse.GroupRights),
 		OtherRights:   cloneRights(tse.OtherRights),
 		IsSymLink:     tse.IsSymLink,
@@ -111,33 +113,24 @@ func (tse *StoredEntry) Equal(ose *StoredEntry, noEqMtime, noMtime, noMtLink, no
 		return
 	}
 	if tse.Mtime != ose.Mtime {
-		if !noEqMtime {
-			return
-		}
-		if ose.Mtime > tse.Mtime {
-			return
-		}
-		if ose.IsSymLink && !noMtime && !noMtLink {
-			return
-		}
-		if !ose.IsSymLink && !noMtime {
-			return
+		if (!noMtime || (ose.IsSymLink && !noMtLink)) && (ose.Mtime > tse.Mtime || !noEqMtime) {
+			return false
 		}
 	}
 	if !noRights {
 		if tse.User != ose.User {
 			return
 		}
-		if !cmpRights(&tse.UserRights, &ose.UserRights) {
+		if !cmpRights(tse.UserRights, ose.UserRights) {
 			return
 		}
 		if tse.Group != ose.Group {
 			return
 		}
-		if !cmpRights(&tse.GroupRights, &ose.GroupRights) {
+		if !cmpRights(tse.GroupRights, ose.GroupRights) {
 			return
 		}
-		if !cmpRights(&tse.OtherRights, &ose.OtherRights) {
+		if !cmpRights(tse.OtherRights, ose.OtherRights) {
 			return
 		}
 	}
@@ -277,11 +270,47 @@ func (cs *ComputedStats) Reset() {
 	cs.Error = &AggInfo{}
 }
 
-func (cs *ComputedStats) IsSet() bool {
-	return cs.SourceListOrStat.Number+cs.TargetListOrStat.Number+
+// IsSet checks Number set in any aggregated info except NoOp
+//
+// noLs ignores lists or stats
+func (cs *ComputedStats) IsSet(noLs bool) bool {
+	ls := cs.SourceListOrStat.Number + cs.TargetListOrStat.Number
+	if noLs {
+		ls = 0
+	}
+	return ls+
 		cs.Read.Number+cs.Create.Number+
 		cs.Update.Number+cs.Remove.Number+cs.MetaChange.Number+cs.Error.Number != 0
+}
 
+func (cs *ComputedStats) Display(kw string) string {
+	sr := []string{}
+	aiDispIf := func(ai *AggInfo, pfx string, hasSize bool) {
+		if ai.Number == 0 {
+			return
+		}
+		if hasSize {
+			sr = append(sr, fmt.Sprintf("%s(%d/%d)", pfx, ai.Number, ai.Size))
+		} else {
+			sr = append(sr, fmt.Sprintf("%s(%d)", pfx, ai.Number))
+		}
+	}
+	if cs == nil {
+		return "-"
+	}
+	if kw == "summary" {
+		aiDispIf(cs.SourceListOrStat, "sSt", false)
+		aiDispIf(cs.TargetListOrStat, "tSt", false)
+		aiDispIf(cs.Read, "read", true)
+		aiDispIf(cs.Create, "create", true)
+		aiDispIf(cs.Remove, "remove", true)
+		aiDispIf(cs.Update, "update", true)
+		aiDispIf(cs.MetaChange, "meta", false)
+		aiDispIf(cs.NoOp, "noOp", true)
+		aiDispIf(cs.Error, "error", false)
+		return strings.Join(sr, " - ")
+	}
+	return fmt.Sprintf("display stats: unknown kw: %s", kw)
 }
 
 type StateCode opeloggrpc.StateCode
@@ -302,7 +331,7 @@ func (sc StateCode) String() string {
 
 type State struct {
 	Stc StateCode
-	// after tool (re)start, entry with on-going STC_DIR state
+	// after tool (re)start, entry with state implying on-going activity
 	// needs children requeuing after proper evaluation
 	ToolStartTime int64
 	Error         string
@@ -478,14 +507,59 @@ func (le *LogicalEntry) addOrShareTcss(tcss [][]byte) []int32 {
 	return tcssNums
 }
 
-// For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
-type OpeLogAllInOne struct {
+type ToolInformation struct {
+	StartTime     int64
+	CmdLine       string
+	Version       string
+	HostName      string
+	SourceDssInfo string
+	TargetDssInfo string
+	StopTime      int64
+	ExecSummary   string
+}
+
+type SessionInfo struct {
+	Comment       string
+	ReferenceTime int64
+	IsInventory   bool
+	ToolInfo      *ToolInformation
+}
+
+func (si *SessionInfo) Clone() *SessionInfo {
+	return &SessionInfo{
+		Comment:       si.Comment,
+		ReferenceTime: si.ReferenceTime,
+		IsInventory:   si.IsInventory,
+	}
+}
+
+type OpeLogMaster struct {
+	StoreType  string // set at open time mem, aio, pbf
 	SourceRoot string
 	TargetRoot string
+	Sessions   map[string]*SessionInfo
+}
+
+func (olm *OpeLogMaster) Clone() *OpeLogMaster {
+	sis := make(map[string]*SessionInfo, len(olm.Sessions))
+	for k, v := range olm.Sessions {
+		sis[k] = v.Clone()
+	}
+	return &OpeLogMaster{
+		StoreType:  olm.StoreType,
+		SourceRoot: olm.SourceRoot,
+		TargetRoot: olm.TargetRoot,
+		Sessions:   sis,
+	}
+}
+func (olm *OpeLogMaster) Session(label string) *SessionInfo {
+	si, _ := olm.Sessions[label]
+	return si
+}
+
+// For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
+type OpeLogAllInOne struct {
+	Master *OpeLogMaster
 	// the key is the relative path
 	LogicalEntries map[string]*LogicalEntry
-	// the key is the session label the value is its unique reference time
-	Sessions map[string]int64
-	// the key is the inventory label the value is its unique reference time
-	Inventories map[string]int64
 }

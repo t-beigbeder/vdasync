@@ -3,7 +3,6 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
-	"path"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -35,7 +34,7 @@ func (ose *oplStoredEntry) recordEvents() {
 // enableWriteNeeded assumes cache state loaded and checks if write (and execute for dirs) access is enabled
 func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 	se := ose.se()
-	if se.UserRights.Write && (!se.IsDir || se.UserRights.Execute) {
+	if !se.UserRights.Write || (se.IsDir && !se.UserRights.Execute) {
 		yes = true
 	}
 	return
@@ -43,7 +42,8 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 
 // endOrNoOpDirPossible factorized test for DepCount nul (recursive op done) or empty dir
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
-	return ose.getState().DepCount <= 0 || len(ose.se().Children) == 0
+	// FIXME: if DepCount has been reset, shall we loop in all circumstances?
+	return (ose.getState().DepCount <= 0 && !ose.toolRestarted) || len(ose.se().Children) == 0
 }
 
 // enableWrite enables an entry to be written if needed
@@ -67,12 +67,17 @@ func (ose *oplStoredEntry) enableWrite() error {
 
 // remove an entry or empty dir, just update stats in dryrun
 func (ose *oplStoredEntry) remove() error {
-	ose.setStatsFor("rm", -1)
+	se := ose.se()
+	size := se.Size
+	if se.IsDir {
+		size = 0
+	}
+	ose.setStatsFor("rm", size)
 	if ose.owo().Dryrun {
 		return nil
 	}
 	if err := ose.dssRm(false); err != nil {
-		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 		return err
 	}
 	ose.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
@@ -98,6 +103,7 @@ func (ose *oplStoredEntry) rmDir() error {
 
 // setMeta sets an entry metadata from its source
 func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
+	// TODO: set stats "mc" if end of dir update or simple meta adjust
 	if ose.owo().Dryrun {
 		return nil, nil
 	}
@@ -126,12 +132,10 @@ func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 //
 // when actually doing also sets meta and updates state
 func (ose *oplStoredEntry) updateDirOps() error {
-	if ose.enableWriteNeeded() {
+	if !ose.endOrNoOpDirPossible() {
 		if err := ose.enableWrite(); err != nil {
 			return err
 		}
-	}
-	if !ose.endOrNoOpDirPossible() {
 		ose.childrenQueued = true
 		return nil
 	}
@@ -150,13 +154,24 @@ func (ose *oplStoredEntry) updateDirOps() error {
 //
 // when creating also sets meta and updates state
 func (ose *oplStoredEntry) createDirOps() error {
+	ose.setStatsFor("cr", 0)
 	if ose.owo().Dryrun {
 		return nil
 	}
-	if err := ose.dssMkdir(ose.ole.source.se()); err != nil {
+	rwSe := ose.ole.source.se().Clone()
+	rwSe.Mtime = time.Now().Unix()
+	if ose.ole.source.enableWriteNeeded() && len(rwSe.Children) > 0 {
+		rwSe.UserRights.Write = true
+		rwSe.UserRights.Execute = true
+	}
+	if err := ose.dssMkdir(rwSe); err != nil {
 		err = fmt.Errorf("createDirOps: mkdir error %s", err)
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
 		return err
+	}
+	if len(rwSe.Children) > 0 {
+		ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
+		return nil
 	}
 	se, err := ose.setMeta()
 	if err != nil {
@@ -170,6 +185,11 @@ func (ose *oplStoredEntry) createDirOps() error {
 //
 // when copying also sets meta and updates state
 func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
+	if !isCreated && !ose.owo().Dryrun && ose.enableWriteNeeded() {
+		if err := ose.enableWrite(); err != nil {
+			return err
+		}
+	}
 	size := ose.ole.source.se().Size
 	sTcss := ose.ole.source.getState().Tcss
 	var tCss [][]byte
@@ -300,7 +320,8 @@ func (ose *oplStoredEntry) tryLoad() error {
 		// another action is ongoing, will progress (including -1 meaning that side is done)
 		return nil
 	}
-	// means change actions have been inhibited
+	// DepCount nul means change actions have been inhibited
+	// (initial state, or reset after tool (re)start)
 	ose.childrenQueued = true
 	return nil
 }
@@ -336,41 +357,23 @@ func (ose *oplStoredEntry) doLoad() error {
 	return nil
 }
 
-// processChildrenDone loads children state, set current's accordingly, and propagate to parent
 func (ose *oplStoredEntry) processChildrenDone() error {
-	var err error
+	var (
+		cle *opelog.LogicalEntry
+		err error
+	)
 	se := ose.se()
 	owi := ose.ole.owi
 	errorsNum := 0
-	stats := ose.getStats()
 	for _, child := range se.Children {
-		cle, ok := ose.ole.childrenLeCache[child]
-		if !ok {
-			cle, err = owi.oplm.GetLogicalEntry(path.Join(ose.ole.relPath, child))
-			if err != nil {
-				ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
-				return err
-			}
+		if cle, err = ose.ole.loadClientCache(child); err != nil {
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
+			return err
 		}
 		cSt := cle.GetState(owi.sessionTime, ose.isTarget)
 		if cSt.Stc == opelog.STC_DESC_ERROR || cSt.Stc == opelog.STC_SE_ERROR {
 			errorsNum++
 		}
-		cStats := cle.GetStats(owi.sessionTime)
-		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
-		stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
-		stats.Read.Number += cStats.Read.Number
-		stats.Read.Size += cStats.Read.Size
-		stats.Create.Number += cStats.Create.Number
-		stats.Create.Size += cStats.Create.Size
-		stats.Update.Number += cStats.Update.Number
-		stats.Update.Size += cStats.Update.Size
-		stats.Remove.Number += cStats.Remove.Number
-		stats.Remove.Size += cStats.Remove.Size
-		stats.MetaChange.Number += cStats.MetaChange.Number
-		stats.NoOp.Number += cStats.NoOp.Number
-		stats.NoOp.Size += cStats.NoOp.Size
-		stats.Error.Number += cStats.Error.Number
 	}
 	if errorsNum > 0 {
 		ose.setState(opelog.STC_DESC_ERROR, "", se, nil, -1)
@@ -387,12 +390,18 @@ func (ose *oplStoredEntry) load() error {
 	if st == nil {
 		return ose.doLoad()
 	}
+	if ose.toolRestarted && !ose.hasError() && !ose.owo().KeepCached {
+		// by default full rescan of dirs/files (not recommended in case of errors)
+		return ose.doLoad()
+	}
 	if st.DepCount == -1 && !ose.toolRestarted {
-		// load children state and propagate to parent
+		// load children state and propagate to current
 		return ose.processChildrenDone()
 	}
 	if st.DepCount == -1 {
 		// tool restarted implies new parent children cycle
+		// resetting DepCount on non-empty dir is a signal to walk again
+		// cf se.tryLoad
 		st.DepCount = 0
 		ose.ole.hasChanges = true
 	}

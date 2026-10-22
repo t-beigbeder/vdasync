@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"path"
@@ -14,11 +15,13 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 type OplWalker interface {
 	Run() error
+	Shutdown(*slog.Logger) error
 }
 
 type workerNotif struct {
@@ -27,38 +30,55 @@ type workerNotif struct {
 }
 
 type oplWalkerImpl struct {
-	mx            sync.Mutex
-	lgr           *slog.Logger
-	conc          int
-	oplq          opelog.Queue
-	oplm          opelog.OpeLogManager
-	owo           *config.OpeLogOptionsType
-	sds           dssa.Dssa
-	tds           dssa.Dssa
-	sRoot         string
-	tRoot         string
-	inclRegs      []*regexp.Regexp
-	exclRegs      []*regexp.Regexp
-	toolStartTime int64
-	session       string
-	sessionTime   int64
-	inventory     string
-	invTime       int64
-	gErrs         []error
-	wkNtfChan     chan workerNotif
-	bg            context.Context
+	mx             sync.Mutex
+	lgr            *slog.Logger
+	conc           int
+	oplq           opelog.Queue
+	oplm           opelog.OpeLogManager
+	oplTi          *opelog.ToolInformation
+	owo            *config.OpeLogOptionsType
+	sds            dssa.Dssa
+	tds            dssa.Dssa
+	sRoot          string
+	tRoot          string
+	inclRegs       []*regexp.Regexp
+	exclRegs       []*regexp.Regexp
+	toolStartTime  int64
+	session        string
+	sessionTime    int64
+	inventory      string
+	invTime        int64
+	gErrs          []error
+	closedQKnown   bool
+	wkNtfChan      chan workerNotif
+	wkCtlStopChan  chan bool
+	wkCtlDoneChan  chan bool
+	shdownDoneChan chan bool
+	bg             context.Context
+	testCtx        string
 }
 
 func (ow *oplWalkerImpl) needInvCheck() bool {
 	return ow.owo.Check && !ow.owo.NoInvCheck && ow.inventory != ""
 }
 
-func (ow *oplWalkerImpl) owErr(lgr *slog.Logger, msg string, err error) error {
+func (ow *oplWalkerImpl) lockedOwErr(lgr *slog.Logger, msg string, err error) error {
+	sErr := err.Error()
+	if strings.Contains(sErr, "closed queue") {
+		if ow.closedQKnown {
+			return err
+		}
+		ow.closedQKnown = true
+	}
 	lgr.Error(msg, "err", err)
-	ow.mx.Lock()
-	defer ow.mx.Unlock()
 	ow.gErrs = append(ow.gErrs, fmt.Errorf("%s: %v", msg, err))
 	return err
+}
+
+func (ow *oplWalkerImpl) owErr(lgr *slog.Logger, msg string, err error) error {
+	ow.mx.Lock()
+	defer ow.mx.Unlock()
+	return ow.lockedOwErr(lgr, msg, err)
 }
 
 func (ow *oplWalkerImpl) detail(lgr *slog.Logger, msg string, args ...any) {
@@ -89,21 +109,33 @@ func (ow *oplWalkerImpl) impliesGoal(goal string) bool {
 }
 
 func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
-	lgr.Debug("doing")
-	if err := ow.oplm.Sync(); err != nil {
+	ow.detail(lgr, "doOplmSync")
+	if err := ow.oplm.Sync(false); err != nil {
 		ow.owErr(lgr, "failed to synchronize logs", err)
 	}
 }
 
 func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
-	lgr.Debug("doing")
-	if err := OplCsvExport(ow.lgr, ow, ow.oplm, ow.owo.ExpFile, RPT_SYNTHETIC, ow.session); err != nil {
+	ow.detail(lgr, "doOplmExport")
+	if ow.owo.ExpBck > 0 {
+		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), ow.owo.ExpFile, ow.owo.ExpBck); err != nil {
+			ow.owErr(lgr, "failed to backup export logs", err)
+		}
+	}
+	rpt := RPT_SYNTHETIC
+	if ow.owo.ExpRpt == "full" {
+		rpt = RPT_FULL
+	} else if ow.owo.ExpRpt != "synth" {
+		lgr.Warn("doOplmExport: unknown oplrpt", "rpt", ow.owo.ExpRpt)
+	}
+	if err := OplCsvExport(ow.lgr, ow.oplm, ow.owo.ExpFile, rpt, ow.inventory, ow.session, &RptConfig{ToolInfo: ow.oplTi}); err != nil {
 		ow.owErr(lgr, "failed to export logs", err)
 	}
 }
 
 func (ow *oplWalkerImpl) startOrRestart() {
-	ow.toolStartTime = time.Now().Unix()
+	time.Sleep(time.Millisecond)
+	ow.toolStartTime = time.Now().UnixMilli()
 	ow.oplq.Put("")
 }
 
@@ -111,21 +143,19 @@ func (ow *oplWalkerImpl) workersController() {
 	lgr := ow.lgr.With("worker", "workerController")
 	stoppedWkNum := ow.conc
 	lgr.Debug("oplWalkerImpl", "start", true)
-	rsTo := ow.owo.ResetTimeout * int64(time.Second)
+	rsTo := ow.owo.ResetMilTimeout * int64(time.Millisecond)
 	hasTimeOut := true
 	if rsTo == 0 {
 		rsTo = int64(60 * time.Second)
 		hasTimeOut = false
 	}
-	if rsTo < 0 {
-		// not reliable, for testing only
-		rsTo = int64(50 * time.Millisecond)
-		hasTimeOut = true
-	}
 	ticker := time.NewTicker(time.Duration(rsTo))
-
-	for {
+	for stopped := false; !stopped; {
 		select {
+		case <-ow.wkCtlStopChan:
+			lgr.Debug("oplWalkerImpl", "wkCtlStopChan", "received")
+			stopped = true
+			ticker.Stop()
 		case notif := <-ow.wkNtfChan:
 			if notif.isStart {
 				ticker.Reset(time.Duration(rsTo))
@@ -147,6 +177,8 @@ func (ow *oplWalkerImpl) workersController() {
 			}
 		}
 	}
+	lgr.Debug("oplWalkerImpl", "wkCtlDoneChan", "sending")
+	ow.wkCtlDoneChan <- true
 }
 
 // newOplLogicalEntry initializes oplLogicalEntry state from loaded state in le
@@ -173,7 +205,7 @@ func (ow *oplWalkerImpl) newOplLogicalEntry(plgr *slog.Logger, relPath string, l
 	return ole
 }
 
-// getLogicalEntry ensures entry is loaded or newly created and retrieves related parent state if needed
+// getLogicalEntry ensures entry is loaded or newly created and retrieves related parent state if applies
 //
 // as an optimization, absent parent's state is propagated to (current) child
 func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*oplLogicalEntry, error) {
@@ -196,7 +228,7 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 	ole.parentSSt = ple.GetState(ow.sessionTime, false)
 	ole.parentTSt = ple.GetState(ow.sessionTime, true)
 
-	// absent parent's state is propagated directly to child
+	// absent parent's state is propagated directly to new child
 	pOle := ow.newOplLogicalEntry(lgr, pRelPath, ple)
 	if pOle.source.isAbsent() && ole.source.getState() == nil {
 		ole.source.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
@@ -230,7 +262,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	pRelPath := common.ParentPath(ole.relPath)
 	ple, err := ow.oplm.GetLogicalEntry(pRelPath)
 	if err != nil {
-		ow.owErr(ole.lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
+		ow.lockedOwErr(ole.lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
 		return err
 	}
 	cName := path.Base(ole.relPath)
@@ -242,7 +274,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 		ole.lgr.Debug("notifyParent", "parentSSt.DepCount", parentSSt.DepCount)
 		if parentSSt.DepCount <= 0 {
 			err := fmt.Errorf("source child %s notifies twice parent", ole.relPath)
-			ow.owErr(ole.lgr, "oplWalkerImpl: internal", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
 		hasChanges = true
@@ -254,7 +286,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	if isChildInState(cName, parentTSt) {
 		if parentTSt.DepCount <= 0 {
 			err := fmt.Errorf("target child %s notifies twice parent", ole.relPath)
-			ow.owErr(ole.lgr, "oplWalkerImpl: internal", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
 		hasChanges = true
@@ -265,18 +297,18 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	}
 	if hasChanges {
 		if err := ow.oplm.PutLogicalEntry(pRelPath, ple); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: notify parent: put ple", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent le", err)
 			return err
 		}
 	}
 
-	// both branches either just terminated or inactive
+	// if one branche just terminated and other one too or inactive
 	if (parentSSt.DepCount == -1 && parentTSt.DepCount <= 0) ||
 		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
 
 		// notifies parent
 		if err := ow.oplq.Put(pRelPath); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put parent in queue", err)
+			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent in queue", err)
 			return err
 		}
 	}
@@ -289,6 +321,12 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 		ow.wkNtfChan <- workerNotif{wkn: wkn}
 	}()
 	ow.detail(lgr, "oplWalkerImpl", "readPathFromQueue", relPath)
+	if slices.Contains(ow.owo.SpecialInterest, relPath) {
+		if ow.owo.SpeIntPhase == ow.testCtx || ow.owo.SpeIntPhase == "" {
+			lgr.Debug("processEntry: SpecialInterest", "sRoot", ow.sRoot, "tRoot", ow.tRoot)
+			lgr.Info("processEntry: SpecialInterest")
+		}
+	}
 	ole, err := ow.getLogicalEntry(lgr, relPath)
 	if err != nil {
 		return
@@ -296,27 +334,38 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 
 	if err := ole.process(); err != nil {
 		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
-		ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put err le", err)
+		ow.owErr(ole.lgr, "oplWalkerImpl: process entry", err)
 		return
 	}
 
-	children := ole.setChildrenQueue()
+	children := ole.setChildrenQueue() // side effect hasChanges
 	if ole.hasChanges {
+		if err = ole.propagateChildrenStats(); err != nil {
+			ow.owErr(ole.lgr, "oplWalkerImpl: children stats propagation:", err)
+		}
+		if sst := ole.source.getState(); sst != nil {
+			sst.ToolStartTime = ow.toolStartTime
+		}
+		if tst := ole.target.getState(); tst != nil {
+			tst.ToolStartTime = ow.toolStartTime
+		}
 		if err := ow.oplm.PutLogicalEntry(relPath, ole.le); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put le", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: put le", err)
 			return
 		}
 	}
 	for _, child := range children {
 		if err := ow.oplq.Put(path.Join(relPath, child)); err != nil {
-			ow.owErr(ole.lgr, "oplWalkerImpl: process entry: put child in queue", err)
+			ow.owErr(ole.lgr, "oplWalkerImpl: put child in queue", err)
 			return
 		}
 	}
 	if len(children) != 0 || relPath == "" {
 		return
 	}
-	_ = ow.notifyParent(ole)
+	if err = ow.notifyParent(ole); err != nil {
+		ow.owErr(ole.lgr, "oplWalkerImpl: parent notification:", err)
+	}
 }
 
 func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
@@ -336,12 +385,64 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 	lgr.Debug("oplWalkerImpl: stop")
 }
 
+func (ow *oplWalkerImpl) checkConsistency() (err error) {
+	defer func() {
+		if err != nil {
+			ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
+		}
+	}()
+
+	if ow.sRoot != ow.oplm.Olm().SourceRoot {
+		err = fmt.Errorf("source root in opelog path differs from %s", ow.sRoot)
+		return
+	}
+	if ow.tRoot != ow.oplm.Olm().TargetRoot {
+		err = fmt.Errorf("target root in opelog path differs from %s", ow.tRoot)
+		return
+	}
+	if ow.session != "" {
+		sSi := ow.oplm.Olm().Session(ow.session)
+		if sSi == nil {
+			err = fmt.Errorf("no such session %s", ow.session)
+			return
+		}
+		if sSi.IsInventory {
+			err = fmt.Errorf("cannot use inventory %s as a synchronization session", ow.session)
+			return
+		}
+		ow.sessionTime = sSi.ReferenceTime
+	} else if ow.oplm.Olm().StoreType == "mem" {
+		ow.session = "auto"
+		if ow.sessionTime, err = ow.oplm.AddSession("auto", &opelog.SessionInfo{}); err != nil {
+			return
+		}
+	} else {
+		err = errors.New("no session provided")
+		return
+	}
+	if ow.inventory != "" {
+		iSi := ow.oplm.Olm().Session(ow.inventory)
+		if iSi == nil {
+			err = fmt.Errorf("no such inventory %s", ow.inventory)
+			return
+		}
+		ow.invTime = iSi.ReferenceTime
+	}
+	if ow.owo.Check && !ow.owo.NoInvCheck && ow.inventory == "" {
+		err = errors.New("an inventory must be provided as check enabled")
+		return
+	}
+	return
+}
+
 func (ow *oplWalkerImpl) Run() error {
 	var (
 		err       error
 		syncJob   *common.PeriodicJob
 		exportJob *common.PeriodicJob
 	)
+	defer close(ow.shdownDoneChan)
+
 	ow.lgr.Info("oplWalkerImpl: Run")
 	ow.inclRegs, err = common.ReFromFile(ow.owo.InclListPath, "inclusion list")
 	if err != nil {
@@ -353,12 +454,13 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
 		return err
 	}
-	sTs, iTs, err := ow.oplm.Open(ow.session, ow.inventory, false)
-	if err != nil {
-		ow.lgr.Error("oplWalkerImpl: Run: open logs", "err", err)
+	if err = ow.oplm.Open(false); err != nil {
 		return err
 	}
-	ow.sessionTime, ow.invTime = sTs, iTs
+	defer ow.oplm.Close()
+	if err = ow.checkConsistency(); err != nil {
+		return err
+	}
 	ow.wkNtfChan = make(chan workerNotif)
 	go ow.workersController()
 
@@ -372,26 +474,42 @@ func (ow *oplWalkerImpl) Run() error {
 		syncJob = common.NewPeriodicJob(lgr, ow.owo.SyncPeriod, func() { ow.doOplmSync(lgr) })
 		go syncJob.Start()
 	}
-	if ow.owo.ExpPeriod != 0 {
+	if ow.owo.ExpFile != "" && ow.owo.ExpPeriod != 0 {
 		lgr := ow.lgr.With("exportJob", ow.owo.ExpPeriod)
 		exportJob = common.NewPeriodicJob(lgr, ow.owo.ExpPeriod, func() { ow.doOplmExport(lgr) })
 		go exportJob.Start()
 	}
 
 	// start walker
+	ow.oplm.Olm().Sessions[ow.session].ToolInfo = ow.oplTi
+	if err := ow.oplm.Sync(true); err != nil {
+		ow.lgr.Error("oplWalkerImpl: Run: log initial tool info", "err", err)
+		return err
+	}
 	ow.startOrRestart()
 	// wait workers done
 	wg.Wait()
 	// stop periodic jobs
-	if ow.owo.SyncPeriod != 0 {
+	if syncJob != nil {
 		syncJob.Stop()
 		<-syncJob.Done()
 	}
-	if ow.owo.ExpPeriod != 0 {
+	if exportJob != nil {
 		exportJob.Stop()
 		<-exportJob.Done()
 	}
+	// stopping controller
+	ow.lgr.Debug("oplWalkerImpl", "wkCtlStopChan", "sending")
+	ow.wkCtlStopChan <- true
+	ow.lgr.Debug("oplWalkerImpl", "wkCtlDoneChan", "receiving")
+	<-ow.wkCtlDoneChan
+
 	// all done
+	ow.oplm.Olm().Sessions[ow.session].ToolInfo = ow.oplTi
+	if err := ow.oplm.Sync(true); err != nil {
+		ow.lgr.Error("oplWalkerImpl: Run: log final tool info", "err", err)
+		return err
+	}
 	if err := ow.oplm.Close(); err != nil {
 		ow.lgr.Error("oplWalkerImpl: Run: close logs", "err", err)
 		return err
@@ -406,9 +524,25 @@ func (ow *oplWalkerImpl) Run() error {
 	return nil
 }
 
+func (ow *oplWalkerImpl) Shutdown(lgr *slog.Logger) error {
+	ow.mx.Lock()
+	ow.lgr.Info("oplWalkerImpl: Shutdown requested")
+	lgr.Info("oplWalkerImpl Shutdown in progress...")
+	if err := ow.oplq.Close(); err != nil {
+		ow.mx.Unlock()
+		return err
+	}
+	ow.mx.Unlock()
+	ow.lgr.Debug("oplWalkerImpl: waiting for Run termination")
+	<-ow.shdownDoneChan
+	ow.lgr.Debug("oplWalkerImpl: Run terminated")
+	lgr.Info("oplWalkerImpl Shutdown done")
+	return nil
+}
+
 func NewOplWalker(lgr *slog.Logger, conc int,
 	oplq opelog.Queue, oplm opelog.OpeLogManager,
-	owo *config.OpeLogOptionsType,
+	oplTi *opelog.ToolInformation, owo *config.OpeLogOptionsType,
 	sds, tds dssa.Dssa, sRoot, tRoot string,
 	session, inventory string,
 ) OplWalker {
@@ -421,9 +555,13 @@ func NewOplWalker(lgr *slog.Logger, conc int,
 
 	return &oplWalkerImpl{
 		lgr:  lgr,
-		conc: conc, oplq: oplq, oplm: oplm, owo: owo,
+		conc: conc, oplq: oplq, oplm: oplm,
+		owo: owo, oplTi: oplTi,
 		sds: sds, tds: tds, sRoot: sRoot, tRoot: tRoot,
 		session: session, inventory: inventory,
-		bg: context.Background(),
+		wkCtlStopChan:  make(chan bool),
+		wkCtlDoneChan:  make(chan bool),
+		shdownDoneChan: make(chan bool),
+		bg:             context.Background(),
 	}
 }

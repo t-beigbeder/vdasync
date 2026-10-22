@@ -44,9 +44,9 @@ func runSyncTest(lgr *slog.Logger, sDss, tDss dssa.Dssa, sde *dssa.DataEntry, tR
 	return
 }
 
-func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, encrypted.ProxyDssa, context.CancelFunc) {
+func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dssa.Dssa, dssa.Dssa, s3msts.S3DssaWithMsts, dssa.Dssa, encrypted.EncryptedDssa, encrypted.ProxyEncDssa, context.CancelFunc) {
 	var (
-		dss6 encrypted.ProxyDssa
+		dss6 encrypted.ProxyEncDssa
 		rec1 string
 		id1  string
 		err  error
@@ -57,7 +57,7 @@ func getTestDss(t *testing.T, hasS3, hasSftp, hasEncrypt, hasRencrypt bool) (dss
 		rec1, id1, err = common.AgeNewKeyPair()
 		require.NoError(t, err)
 		td := t.TempDir()
-		dss6, err = encrypted.MakeProxyDssa(common.GetNullLogger(), td, []string{id1})
+		dss6, err = encrypted.MakeProxyEncDssa(common.GetNullLogger(), td, []string{id1})
 		require.NoError(t, err)
 	}
 	if hasEncrypt || hasRencrypt {
@@ -747,7 +747,12 @@ func TestInclSynczer(t *testing.T) {
 	ilp := path.Join(td1, "il.txt")
 	common.Lines2file(
 		[]string{
+			"^$",
+			"^d00$",
+			"^d00/d00$",
+			"^d00/d00/d00$",
 			"^d00/d00/d00/f12",
+			"^d00/d00/d01$",
 			"^d00/d00/d01/f0.$",
 		},
 		ilp)

@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"path"
 	"slices"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -14,15 +15,6 @@ import (
 func (ole *oplLogicalEntry) recordEvents() {
 	ole.source.recordEvents()
 	ole.target.recordEvents()
-}
-
-// setNoOp sets stats for NoOp
-func (ole *oplLogicalEntry) setNoOp() {
-	var size int64
-	if ole.source.se() != nil {
-		size = ole.source.se().Size
-	}
-	ole.source.setStatsFor("no", size)
 }
 
 // setChildrenQueue provides to walker children merged both from source and target
@@ -46,6 +38,98 @@ func (ole *oplLogicalEntry) setChildrenQueue() []string {
 	}
 
 	return mChildren
+}
+
+func (ole *oplLogicalEntry) loadClientCache(child string) (cle *opelog.LogicalEntry, err error) {
+	var ok bool
+	if cle, ok = ole.childrenLeCache[child]; ok {
+		return cle, nil
+	}
+	if cle, err = ole.owi.oplm.GetLogicalEntry(path.Join(ole.relPath, child)); cle == nil || err != nil {
+		return
+	}
+	ole.childrenLeCache[child] = cle
+
+	return
+}
+
+// propagateChildrenStats loads children stats, propagate to current's accordingly
+func (ole *oplLogicalEntry) propagateChildrenStats() error {
+	var (
+		cle *opelog.LogicalEntry
+		err error
+	)
+	sChildren, tChildren := []string{}, []string{}
+	stats := ole.getStats()
+	statsInited := ole.statsInited
+	propagate := false
+	if !statsInited {
+		stats = opelog.NewComputedStats()
+	}
+	if ole.source.se() != nil {
+		sChildren = ole.source.se().Children
+	}
+	if ole.target.se() != nil {
+		tChildren = ole.target.se().Children
+	}
+
+	for _, child := range sChildren {
+		if cle, err = ole.loadClientCache(child); err != nil {
+			return err
+		}
+		if cle == nil {
+			continue
+		}
+		cStats := cle.GetStats(ole.owi.sessionTime)
+		if cStats == nil {
+			continue
+		}
+		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
+		stats.Read.Number += cStats.Read.Number
+		stats.Read.Size += cStats.Read.Size
+		stats.Error.Number += cStats.Error.Number
+		stats.NoOp.Number += cStats.NoOp.Number
+		stats.NoOp.Size += cStats.NoOp.Size
+		propagate = true
+	}
+
+	for _, child := range tChildren {
+		if cle, err = ole.loadClientCache(child); err != nil {
+			return err
+		}
+		if cle == nil {
+			continue
+		}
+		cStats := cle.GetStats(ole.owi.sessionTime)
+		if cStats == nil {
+			continue
+		}
+		stats.TargetListOrStat.Number += cStats.TargetListOrStat.Number
+		stats.Create.Number += cStats.Create.Number
+		stats.Create.Size += cStats.Create.Size
+		stats.Update.Number += cStats.Update.Number
+		stats.Update.Size += cStats.Update.Size
+		stats.Remove.Number += cStats.Remove.Number
+		stats.Remove.Size += cStats.Remove.Size
+		stats.MetaChange.Number += cStats.MetaChange.Number
+		if !slices.Contains(sChildren, child) {
+			stats.Error.Number += cStats.Error.Number
+			stats.NoOp.Number += cStats.NoOp.Number
+			stats.NoOp.Size += cStats.NoOp.Size
+		}
+		propagate = true
+	}
+	if propagate {
+		// dirs stats always up-to-date
+		ole.hasChanges = true
+	}
+	if !stats.IsSet(true) {
+		stats.NoOp.Number += 1
+	}
+	if !statsInited {
+		ole.le.SetStats(ole.owi.sessionTime, stats)
+	}
+	return nil
 }
 
 // checkForRemove checks if source absent/target present of if their types differ
@@ -95,18 +179,23 @@ func (ole *oplLogicalEntry) tryRm() error {
 }
 
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
-func (ole *oplLogicalEntry) checkForUpdate() bool {
-	sOse, tOse := ole.source, ole.target
+func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
+	sOse, tOse, owo := ole.source, ole.target, ole.owo()
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
-	if !tOse.se().Equal(sOse.se(), true, ole.owo().NoMtime, ole.owo().NoMtLink, true, false) {
+	seEqual := tOse.se().Equal(sOse.se(), owo.NoEqMtime, owo.NoMtime, owo.NoMtLink, noRights, false)
+	if sOse.isDir() || sOse.isSymLink() {
+		return !seEqual
+	}
+	if !seEqual {
 		return true
 	}
-	if ole.owo().CsAlgos == "" {
+	csAlgos := ole.getCsAlgos(false)
+	if csAlgos == "" {
 		return false
 	}
-	eq, err := common.CompareTcss(sOse.getState().Tcss, tOse.getState().Tcss, ole.owo().CsAlgos)
+	eq, err := common.CompareTcss(sOse.getState().Tcss, tOse.getState().Tcss, csAlgos)
 	if err != nil {
 		return true
 	}
@@ -120,14 +209,22 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
 		return nil
 	}
-	if !ole.checkForUpdate() {
+	tOse := ole.target
+	if !ole.checkForUpdate(false) && !tOse.isDir() {
 		return nil
 	}
-	tOse := ole.target
 	if tOse.isDir() {
 		if err := tOse.updateDirOps(); err != nil {
 			return err
 		}
+		return nil
+	}
+	if !ole.checkForUpdate(true) {
+		se, err := tOse.setMeta()
+		if err != nil {
+			return err
+		}
+		tOse.setState(opelog.STC_DONE_PRESENT, "", se, tOse.getState().Tcss, 0)
 		return nil
 	}
 	if tOse.isRegularFile() {
@@ -250,7 +347,7 @@ func (ole *oplLogicalEntry) process() error {
 	defer ole.recordEvents()
 
 	// initializes state for both stored entries
-	// clear errors if possible, (re)start dir loading if possible
+	// clear errors if possible, (re)start dir loading if necessary
 	_ = ole.source.load()
 	_ = ole.target.load()
 
@@ -264,9 +361,13 @@ func (ole *oplLogicalEntry) process() error {
 		return nil
 	}
 
-	// if nothing done on any side, set NoOp stats
-	if !ole.source.getStats().IsSet() {
-		ole.setNoOp()
+	// if nothing (incl. stat or list) done on any side, set NoOp stats
+	if !ole.getStats().IsSet(true) && ole.source.se() != nil {
+		size := ole.source.se().Size
+		if ole.source.isDir() {
+			size = 0
+		}
+		ole.source.setStatsFor("no", size)
 	}
 
 	return nil

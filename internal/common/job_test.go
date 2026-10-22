@@ -18,7 +18,7 @@ func TestPeriodicJob(t *testing.T) {
 		err error
 	)
 	lgr = GetLogger()
-	lgr = InfoLogger()
+	// lgr = InfoLogger()
 	// lgr, err = CliLogger("TestPeriodicJob", "DEBUG+2", "stderr")
 	lgr = DbgLogger()
 	require.NoError(t, err)

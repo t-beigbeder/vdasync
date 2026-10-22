@@ -4,8 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
-	"path"
 	"runtime/pprof"
 	"time"
 
@@ -14,21 +14,27 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/opelogimpl"
 	"github.com/t-beigbeder/vdasync/internal/plugin"
 	"github.com/t-beigbeder/vdasync/internal/walker"
+	"github.com/t-beigbeder/vdasync/opelog"
 )
 
 func RunSyncCli(df *DssaFactory) {
 	var (
-		cmdFlag      = flag.String("cmd", "", "operations log command: load,create,update,verify")
-		sourceFlag   = flag.String("source", "", "source of the command")
-		targetFlag   = flag.String("target", "", "target of the command")
-		dryRunFlag   = flag.Bool("dryrun", false, "don't run operation, just report actions")
-		rmFlag       = flag.Bool("rm", false, "remove files in sync target")
-		forceFlag    = flag.Bool("force", false, "force removing read-only files in sync target")
-		iirregFlag   = flag.Bool("iirreg", false, "ignore irregular files (sockets, pipes, devices...)")
-		noPermFlag   = flag.Bool("noperm", false, "neither check nor set permissions")
-		noMtimeFlag  = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
-		noMtLinkFlag = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
-		cProfFlag    = flag.String("cprof", "", "cpu.prof file")
+		oplCmdFlag     = flag.String("oplcmd", "", "operation logs command: load,create,update")
+		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operation logs won't check inventory")
+		oplRtoFlag     = flag.Int64("oplrto", 0, "operation logs reset timeout in milliseconds")
+		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
+		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
+		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operation logs keep cache on (re)start")
+		sourceFlag     = flag.String("source", "", "source of the command")
+		targetFlag     = flag.String("target", "", "target of the command")
+		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
+		rmFlag         = flag.Bool("rm", false, "remove files in sync target")
+		forceFlag      = flag.Bool("force", false, "force removing read-only files in sync target")
+		iirregFlag     = flag.Bool("iirreg", false, "ignore irregular files (sockets, pipes, devices...)")
+		noPermFlag     = flag.Bool("noperm", false, "neither check nor set permissions")
+		noMtimeFlag    = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
+		noMtLinkFlag   = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
+		cProfFlag      = flag.String("cprof", "", "cpu.prof file")
 	)
 	cf := CommonFlags()
 	svsf := ServicesFlags()
@@ -76,38 +82,47 @@ func RunSyncCli(df *DssaFactory) {
 		}
 		if len(plugin.Errors(rps)) > 0 {
 			lgr.Error("some errors occured in plugins", "errs", plugin.Errors(rps))
-			CleanUp(lgr, rps)
+			CleanupPlugins(lgr, rps)
 			common.Fatal(lgr, errors.New("plugins error(s)"))
 		}
-		defer CleanUp(lgr, rps)
+		defer CleanupPlugins(lgr, rps)
 	}
-	if rps != nil {
-		SetSignalHandler(lgr, rps)
-	}
+	sh := MakeSignalHandler(lgr)
+	sh.RegisterCleanupFunction(func(lgr *slog.Logger) error {
+		CleanupPlugins(lgr, rps)
+		return nil
+	})
 
 	if *sourceFlag == "" || *targetFlag == "" {
 		common.Fatal(lgr, errors.New("source and target must be provided"))
 	}
 
-	sDss, sourceRoot, err := GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps, df)
+	sDss, sourceRoot, err := GetDssAndRootFor(lgr, cf, cfg, false, *sourceFlag, rps, df, *svsf.SrcRtlFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
 	defer sDss.EndSession()
-	tDss, targetRoot, err := GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps, df)
+	tDss, targetRoot, err := GetDssAndRootFor(lgr, cf, cfg, true, *targetFlag, rps, df, *svsf.TgtRtlFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
 	defer tDss.EndSession()
 
 	swo := config.SyncOptionsType{
-		Dryrun: *dryRunFlag, Rm: *rmFlag, Force: *forceFlag, IgnoreIrreg: *iirregFlag,
-		Check: *svsf.CheckFlag, CsAlgos: *svsf.CsalFlag,
-		NoPerm: *noPermFlag, NoMtime: *noMtimeFlag, NoMtLink: *noMtLinkFlag,
-		ExclListPath: *svsf.ExclFlag, InclListPath: *svsf.InclFlag,
+		Dryrun:       *dryRunFlag,
+		Rm:           *rmFlag,
+		Force:        *forceFlag,
+		IgnoreIrreg:  *iirregFlag,
+		Check:        *svsf.CheckFlag,
+		CsAlgos:      *svsf.CsalFlag,
+		NoPerm:       *noPermFlag,
+		NoMtime:      *noMtimeFlag,
+		NoMtLink:     *noMtLinkFlag,
+		ExclListPath: *svsf.ExclFlag,
+		InclListPath: *svsf.InclFlag,
 	}
 
-	if *svsf.OplDirFlag == "" {
+	if *oplCmdFlag == "" {
 		swk, err := walker.RunSynchronizer(
 			lgr, *cf.ConcurrencyFlag,
 			&swo,
@@ -126,21 +141,49 @@ func RunSyncCli(df *DssaFactory) {
 		time.Sleep(10 * time.Millisecond)
 		return
 	}
-	owo := &config.OpeLogOptionsType{
-		SyncOptionsType: swo,
-		Goals:           *cmdFlag,
-	}
-	oplm, err := opelogimpl.MakeM2fManager(path.Join(*svsf.OplDirFlag, "m2f.opl"))
+	syncPer, syncBck, err := ParsePeriodBackups(*svsf.OplSyncFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	expPer, expBck, err := ParsePeriodBackups(*svsf.OplExpFlag)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
+	oplm, err := opelogimpl.MakeM2fManager(*svsf.OplPathFlag, syncBck)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
+	if *svsf.OplPathFlag == "" {
+		if err := oplm.Create(sourceRoot, targetRoot); err != nil {
+			common.Fatal(lgr, err)
+		}
+
+	}
+	owo := &config.OpeLogOptionsType{
+		SyncOptionsType: swo,
+		Goals:           *oplCmdFlag,
+		NoInvCheck:      *oplNoInvCFlag,
+		SyncPeriod:      int64(syncPer),
+		ResetMilTimeout: *oplRtoFlag,
+		EnableRestart:   *oplRestartFlag,
+		ClearErrors:     *oplClErrFlag,
+		KeepCached:      *oplKeepCFlag,
+		ExpFile:         *svsf.OplCsvFlag,
+		ExpRpt:          *svsf.OplRptFlag,
+		ExpPeriod:       int64(expPer),
+		ExpBck:          expBck,
+	}
+	opti := &opelog.ToolInformation{CmdLine: "TODO: setup ToolInformation"}
 	ow := opelogimpl.NewOplWalker(
 		lgr, *cf.ConcurrencyFlag, nil, oplm,
-		owo,
+		opti, owo,
 		sDss, tDss,
 		sourceRoot, targetRoot,
-		"ds", "di",
+		*svsf.OplSesFlag, *svsf.OplInvFlag,
 	)
+	sh.RegisterCleanupFunction(func(lgr *slog.Logger) error {
+		return ow.Shutdown(lgr)
+	})
 	if err = ow.Run(); err != nil {
 		common.Fatal(lgr, err)
 	}

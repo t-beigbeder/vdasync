@@ -4,7 +4,10 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"log/slog"
 	"os"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -15,7 +18,7 @@ import (
 
 func main() {
 	var (
-		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency version shutdown interactive ftgen oplcreate")
+		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency ftgen oplcreate oplexp version shutdown interactive")
 		dssFlag          = flag.String("dss", "", "dss on which the command applies")
 		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
 		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")
@@ -26,6 +29,8 @@ func main() {
 		latencyFlag      = flag.String("latency", "100us", "latency")
 		countFlag        = flag.Int("count", 100000, "test count, number of files")
 		sizeFlag         = flag.Int("size", 1024, "maximum file size")
+		sRootFlag        = flag.String("sroot", "", "root path for source DSS")
+		tRootFlag        = flag.String("troot", "", "root path for target DSS")
 		ageEncIdfFlag    = flag.String("ageeidf", "", "DSS encryption age identities (secrets) file name")
 		ageEncRecfFlag   = flag.String("ageerecf", "", "DSS encryption age recipients (public keys) file name")
 		ageTrustRecfFlag = flag.String("agetrecf", "", "trusted server age recipients (public keys) file name")
@@ -85,21 +90,23 @@ func main() {
 		}
 		if len(plugin.Errors(rps)) > 0 {
 			lgr.Error("some errors occured in plugins", "errs", plugin.Errors(rps))
-			cli.CleanUp(lgr, rps)
+			cli.CleanupPlugins(lgr, rps)
 			common.Fatal(lgr, errors.New("plugins error(s)"))
 		}
-		defer cli.CleanUp(lgr, rps)
+		defer cli.CleanupPlugins(lgr, rps)
 	}
-	if rps != nil {
-		cli.SetSignalHandler(lgr, rps)
-	}
+	sh := cli.MakeSignalHandler(lgr)
+	sh.RegisterCleanupFunction(func(lgr *slog.Logger) error {
+		cli.CleanupPlugins(lgr, rps)
+		return nil
+	})
 
-	if *dssFlag == "" {
+	cmdExclDss := strings.Split("oplcreate,oplexp", ",")
+	if *dssFlag == "" && !slices.Contains(cmdExclDss, *cmdFlag) {
 		common.Fatal(lgr, errors.New("dss must be provided"))
 	}
 
 	dss, root, err := cli.DoGetDssAndRootFor(lgr, cf, cfg, false, *dssFlag, rps, *cmdFlag != "trust" && *cmdFlag != "untrust", nil)
-	_ = root
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
@@ -127,6 +134,13 @@ func main() {
 		Count:       *countFlag,
 		Size:        *sizeFlag,
 		Concurrency: *cf.ConcurrencyFlag,
+		OplPath:     *svsf.OplPathFlag,
+		OplSes:      *svsf.OplSesFlag,
+		OplInv:      *svsf.OplInvFlag,
+		OplCsv:      *svsf.OplCsvFlag,
+		OplRpt:      *svsf.OplRptFlag,
+		SrcRoot:     *sRootFlag,
+		TgtRoot:     *tRootFlag,
 		Lgr:         lgr,
 		OutFile:     outFile,
 	})

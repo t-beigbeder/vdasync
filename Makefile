@@ -34,6 +34,7 @@ build-this: export BDIR = bin/lamd64
 build-this: export BEXT =
 build-this:
 	go build -o $(BDIR)/vdasync$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasync/main.go
+	go build -o $(BDIR)/vdaservice$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdaservice/main.go
 
 .PHONY: test-again
 test-again:	export OTVL_TEST_FULL = 1
@@ -82,7 +83,7 @@ release:	## go build and release tgz
 	mkdir -p tmp
 	tar czf tmp/vdasync-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 vdasync vdaservice vdaserver vdatserver
 	tar czf tmp/vdasync-all-linux-amd64-$(VERSION).tgz --exclude .gitignore -C bin/lamd64 .
-	tar czf tmp/vdasync-sftp-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasftpsync.exe
+	tar czf tmp/vdasync-sftp-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 vdasftpsync.exe vdaservice.exe
 	tar czf tmp/vdasync-all-windows-amd64-$(VERSION).tgz --exclude .gitignore -C bin/wamd64 .
 
 .PHONY: certs

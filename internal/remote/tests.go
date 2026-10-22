@@ -16,12 +16,12 @@ import (
 
 const testHost = "localhost"
 
-type TestProxyDssa interface {
+type TestProxyEncDssa interface {
 	dssa.Dssa
 	GetValueSetCb() func(string, []byte) error
 }
 
-func doRunGrpcTestServer(tToListen time.Duration, tpDss TestProxyDssa, opt ...grpc.ServerOption) (int, context.CancelFunc, error) {
+func doRunGrpcTestServer(tToListen time.Duration, tpDss TestProxyEncDssa, opt ...grpc.ServerOption) (int, context.CancelFunc, error) {
 	_, cCancel := context.WithCancel(context.Background())
 	var (
 		err  error
@@ -81,7 +81,7 @@ func checkLocalServerReadiness(port int, copt grpc.DialOption) (
 }
 
 func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDelay time.Duration,
-	tDss TestProxyDssa,
+	tDss TestProxyEncDssa,
 	copt grpc.DialOption, sopt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
@@ -108,7 +108,7 @@ func doGrpcGetTestClient(serverTToListen time.Duration, retryCount int, retryDel
 	return cli, cancel, nil
 }
 
-func GrpcGetTestClient(tDss TestProxyDssa, copt grpc.DialOption, sopt ...grpc.ServerOption) (
+func GrpcGetTestClient(tDss TestProxyEncDssa, copt grpc.DialOption, sopt ...grpc.ServerOption) (
 	OpeDssaClient, context.CancelFunc, error,
 ) {
 	return doGrpcGetTestClient(0, 3, 20*time.Millisecond, tDss, copt, sopt...)
