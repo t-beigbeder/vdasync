@@ -128,3 +128,5 @@ func (gc *grpcClient) GetClient() remote.OpeDssaClient {
 func MakeGrpcClient(lgr *slog.Logger, ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
 	return &grpcClient{lgr, ctx, client}
 }
+
+var _ GrpcClient = &grpcClient{}
