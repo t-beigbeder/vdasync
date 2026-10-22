@@ -75,10 +75,85 @@ func (ed *encryptedDssaImpl) actualPath(de *dssa.DataEntry) string {
 	return path.Join(ed.rootPath, common.Id2Path(de.Id))
 }
 
+// NewSession implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) NewSession() error {
+	ed.lgr.Debug("encryptedDssaImpl.NewSession")
+	return ed.msts.NewSession()
+}
+
 // EndSession implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) EndSession() error {
 	ed.lgr.Debug("encryptedDssaImpl.EndSession")
 	return ed.msts.EndSession()
+}
+
+// IsGrpcClient implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) IsGrpcClient() bool { return false }
+
+// List implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) List(path_ string) ([]*dssa.DataEntry, error) {
+	ed.somethingServed()
+	return ed.msts.List(path_)
+}
+
+// Mkdir implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Mkdir(de *dssa.DataEntry) error {
+	ed.writingServed()
+	de.IsDir = true // implicit for localfiles
+	if err := ed.msts.Put(de); err != nil {
+		return err
+	}
+	pp := path.Dir(de.Path)
+	if de.Path == "/" {
+		pp = "/.."
+	}
+	pde, err := ed.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
+}
+
+// Stat implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
+	ed.somethingServed()
+	de, err := ed.getDe(path_)
+	if err != nil {
+		return nil, err
+	}
+	if de == nil {
+		de = &dssa.DataEntry{Path: path_, Error: fs.ErrNotExist, ErrNotExist: true}
+	}
+	return de, de.Error
+}
+
+// SetStat implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
+	ed.writingServed()
+	ede, err := ed.getDe(de.Path)
+	if err != nil {
+		return err
+	}
+	cde := *de
+	if ede != nil {
+		cde.Id = ede.Id
+		if noPerm {
+			cde.User, cde.UserRights = ede.User, ede.UserRights
+			cde.Group, cde.GroupRights = ede.Group, ede.GroupRights
+			cde.OtherRights = ede.OtherRights
+		}
+		if noMtime {
+			cde.Mtime = ede.Mtime
+		}
+	}
+	return ed.msts.Put(&cde)
+}
+
+// Checksum implements [dssa.Dssa].
+func (ed *encryptedDssaImpl) Checksum(algos, path_ string) (string, error) {
+	return common.DssaEntryChecksum(ed, path_, algos)
+	// if !ed.underlyingCheck || !underIsGc {
 }
 
 // GetReadCloser implements [dssa.Dssa].
@@ -142,37 +217,6 @@ func (ed *encryptedDssaImpl) GetWriteCloser(path_ string) (io.WriteCloser, error
 	return ewc, err
 }
 
-// List implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) List(path_ string) ([]*dssa.DataEntry, error) {
-	ed.somethingServed()
-	return ed.msts.List(path_)
-}
-
-// Mkdir implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) Mkdir(de *dssa.DataEntry) error {
-	ed.writingServed()
-	de.IsDir = true // implicit for localfiles
-	if err := ed.msts.Put(de); err != nil {
-		return err
-	}
-	pp := path.Dir(de.Path)
-	if de.Path == "/" {
-		pp = "/.."
-	}
-	pde, err := ed.msts.Get(pp)
-	if err != nil {
-		return err
-	}
-	pde.Mtime = time.Now().Unix()
-	return nil
-}
-
-// NewSession implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) NewSession() error {
-	ed.lgr.Debug("encryptedDssaImpl.NewSession")
-	return ed.msts.NewSession()
-}
-
 // Rm implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) Rm(path_ string) error {
 	ed.writingServed()
@@ -199,47 +243,6 @@ func (ed *encryptedDssaImpl) Rm(path_ string) error {
 	}
 	pde.Mtime = time.Now().Unix()
 	return nil
-}
-
-// SetStat implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
-	ed.writingServed()
-	ede, err := ed.getDe(de.Path)
-	if err != nil {
-		return err
-	}
-	cde := *de
-	if ede != nil {
-		cde.Id = ede.Id
-		if noPerm {
-			cde.User, cde.UserRights = ede.User, ede.UserRights
-			cde.Group, cde.GroupRights = ede.Group, ede.GroupRights
-			cde.OtherRights = ede.OtherRights
-		}
-		if noMtime {
-			cde.Mtime = ede.Mtime
-		}
-	}
-	return ed.msts.Put(&cde)
-}
-
-// Stat implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) Stat(path_ string) (*dssa.DataEntry, error) {
-	ed.somethingServed()
-	de, err := ed.getDe(path_)
-	if err != nil {
-		return nil, err
-	}
-	if de == nil {
-		de = &dssa.DataEntry{Path: path_, Error: fs.ErrNotExist, ErrNotExist: true}
-	}
-	return de, de.Error
-}
-
-// Checksum implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) Checksum(algos, path_ string) (string, error) {
-	return common.DssaEntryChecksum(ed, path_, algos)
-	// if !ed.underlyingCheck || !underIsGc {
 }
 
 // Symlink implements [dssa.Dssa].

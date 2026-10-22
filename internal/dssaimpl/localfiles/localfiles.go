@@ -13,15 +13,18 @@ import (
 type localFiles struct {
 }
 
+// NewSession implements [dssa.Dssa].
+func (d *localFiles) NewSession() error {
+	return nil
+}
+
 // EndSession implements [dssa.Dssa].
 func (d *localFiles) EndSession() error {
 	return nil
 }
 
-// NewSession implements [dssa.Dssa].
-func (d *localFiles) NewSession() error {
-	return nil
-}
+// IsGrpcClient implements [dssa.Dssa].
+func (d *localFiles) IsGrpcClient() bool { return false }
 
 // List implements [dssa.Dssa].
 func (d *localFiles) List(path_ string) ([]*dssa.DataEntry, error) {

@@ -134,16 +134,12 @@ func (p *proxyDss) checkProxied() (dssa.Dssa, error) {
 	return p.dss, nil
 }
 
-// Checksum implements [dssa.Dssa].
-func (p *proxyDss) Checksum(algos string, path_ string) (string, error) {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return "", err
+// NewSession implements [dssa.Dssa].
+func (p *proxyDss) NewSession() error {
+	if _, err := p.checkProxied(); err != nil {
+		return err
 	}
-	return dss.Checksum(algos, path_)
+	return nil
 }
 
 // EndSession implements [dssa.Dssa].
@@ -155,6 +151,69 @@ func (p *proxyDss) EndSession() error {
 	}
 	p.sm.endSession()
 	return nil
+}
+
+// IsGrpcClient implements [dssa.Dssa].
+func (p *proxyDss) IsGrpcClient() bool { return false }
+
+// List implements [dssa.Dssa].
+func (p *proxyDss) List(path_ string) ([]*dssa.DataEntry, error) {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return nil, err
+	}
+	return dss.List(path_)
+}
+
+// Mkdir implements [dssa.Dssa].
+func (p *proxyDss) Mkdir(de *dssa.DataEntry) error {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return err
+	}
+	return dss.Mkdir(de)
+}
+
+// Stat implements [dssa.Dssa].
+func (p *proxyDss) Stat(path_ string) (*dssa.DataEntry, error) {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return nil, err
+	}
+	return dss.Stat(path_)
+}
+
+// SetStat implements [dssa.Dssa].
+func (p *proxyDss) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return err
+	}
+	return dss.SetStat(de, noPerm, noMtime)
+}
+
+// Checksum implements [dssa.Dssa].
+func (p *proxyDss) Checksum(algos string, path_ string) (string, error) {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return "", err
+	}
+	return dss.Checksum(algos, path_)
 }
 
 // GetReadCloser implements [dssa.Dssa].
@@ -181,38 +240,6 @@ func (p *proxyDss) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 	return dss.GetWriteCloser(path_)
 }
 
-// List implements [dssa.Dssa].
-func (p *proxyDss) List(path_ string) ([]*dssa.DataEntry, error) {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return nil, err
-	}
-	return dss.List(path_)
-}
-
-// Mkdir implements [dssa.Dssa].
-func (p *proxyDss) Mkdir(de *dssa.DataEntry) error {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return err
-	}
-	return dss.Mkdir(de)
-}
-
-// NewSession implements [dssa.Dssa].
-func (p *proxyDss) NewSession() error {
-	if _, err := p.checkProxied(); err != nil {
-		return err
-	}
-	return nil
-}
-
 // Rm implements [dssa.Dssa].
 func (p *proxyDss) Rm(path_ string) error {
 	var (
@@ -223,30 +250,6 @@ func (p *proxyDss) Rm(path_ string) error {
 		return err
 	}
 	return dss.Rm(path_)
-}
-
-// SetStat implements [dssa.Dssa].
-func (p *proxyDss) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return err
-	}
-	return dss.SetStat(de, noPerm, noMtime)
-}
-
-// Stat implements [dssa.Dssa].
-func (p *proxyDss) Stat(path_ string) (*dssa.DataEntry, error) {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return nil, err
-	}
-	return dss.Stat(path_)
 }
 
 // Symlink implements [dssa.Dssa].

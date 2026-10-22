@@ -57,6 +57,9 @@ func (pd *proxyDssa) EndSession() error {
 	return ress.Err
 }
 
+// IsGrpcClient implements [dssa.Dssa].
+func (pd *proxyDssa) IsGrpcClient() bool { return pd.underlying.IsGrpcClient() }
+
 // List implements [ProxyDssa].
 func (pd *proxyDssa) List(path_ string) ([]*dssa.DataEntry, error) {
 	ress := pd.handler.Handle("List", &ProxyHdlArgs{Path: path_})

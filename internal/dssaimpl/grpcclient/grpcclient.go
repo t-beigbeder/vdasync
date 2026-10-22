@@ -23,6 +23,13 @@ type GrpcClient interface {
 
 var _ GrpcClient = &grpcClient{}
 
+// NewSession implements [dssa.Dssa].
+func (gc *grpcClient) NewSession() error {
+	gc.lgr.Debug("grpcClient.NewSession")
+	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
+	return err
+}
+
 // EndSession implements [dssa.Dssa].
 func (gc *grpcClient) EndSession() error {
 	gc.lgr.Debug("grpcClient.EndSession")
@@ -30,12 +37,8 @@ func (gc *grpcClient) EndSession() error {
 	return err
 }
 
-// NewSession implements [dssa.Dssa].
-func (gc *grpcClient) NewSession() error {
-	gc.lgr.Debug("grpcClient.NewSession")
-	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
-	return err
-}
+// IsGrpcClient implements [dssa.Dssa].
+func (gc *grpcClient) IsGrpcClient() bool { return true }
 
 // List implements [dssa.Dssa].
 func (gc *grpcClient) List(path_ string) ([]*dssa.DataEntry, error) {

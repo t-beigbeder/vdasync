@@ -413,13 +413,13 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "test load",
-			lgr:   cliLgr,
-			conc:  1,
-			ftgen: ftGenTiny,
-			owo:   &config.OpeLogOptionsType{},
+			label:           "test load",
+			lgr:             cliLgr,
+			conc:            1,
+			ftgen:           ftGenTiny,
+			owo:             &config.OpeLogOptionsType{},
 			specialInterest: []string{"d0000"},
-			speIntPhase: "phase2",
+			speIntPhase:     "phase2",
 		},
 	}
 

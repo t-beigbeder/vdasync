@@ -62,6 +62,7 @@ func (de *DataEntry) ModString() string {
 type Dssa interface {
 	NewSession() error
 	EndSession() error
+	IsGrpcClient() bool
 	List(string) ([]*DataEntry, error)
 	Mkdir(*DataEntry) error
 	Stat(string) (*DataEntry, error)

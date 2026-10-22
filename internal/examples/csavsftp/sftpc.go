@@ -22,6 +22,9 @@ type sftpClient struct {
 	root string
 }
 
+// IsGrpcClient implements [dssa.Dssa].
+func (sf *sftpClient) IsGrpcClient() bool { return false }
+
 // EndSession implements [dssa.Dssa].
 func (sf *sftpClient) EndSession() error {
 	return nil

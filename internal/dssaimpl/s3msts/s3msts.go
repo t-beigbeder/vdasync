@@ -31,16 +31,6 @@ type s3MetaSts struct {
 	msts       metasts.MetaStorageSvc
 }
 
-// EndSession implements [S3DssaWithMsts].
-func (s3m *s3MetaSts) EndSession() error {
-	return s3m.Msts().EndSession()
-}
-
-// NewSession implements [S3DssaWithMsts].
-func (s3m *s3MetaSts) NewSession() error {
-	return s3m.Msts().NewSession()
-}
-
 // RootPrefix implements [S3DssaWithMsts].
 func (s3m *s3MetaSts) RootPrefix() string {
 	return s3m.rootPrefix
@@ -56,6 +46,19 @@ func (s3m *s3MetaSts) S3Repo() *s3common.S3RepoClient {
 	return s3m.s3repo
 }
 
+// NewSession implements [S3DssaWithMsts].
+func (s3m *s3MetaSts) NewSession() error {
+	return s3m.Msts().NewSession()
+}
+
+// EndSession implements [S3DssaWithMsts].
+func (s3m *s3MetaSts) EndSession() error {
+	return s3m.Msts().EndSession()
+}
+
+// IsGrpcClient implements [dssa.Dssa].
+func (s3m *s3MetaSts) IsGrpcClient() bool { return false }
+
 func (s3m *s3MetaSts) getDe(path_ string) (*dssa.DataEntry, error) {
 	ok, err := s3m.msts.Exists(path_)
 	if err != nil {
@@ -65,6 +68,66 @@ func (s3m *s3MetaSts) getDe(path_ string) (*dssa.DataEntry, error) {
 		return nil, nil
 	}
 	return s3m.msts.Get(path_)
+}
+
+// List implements [dssa.Dssa].
+func (s3m *s3MetaSts) List(path_ string) ([]*dssa.DataEntry, error) {
+	return s3m.msts.List(path_)
+}
+
+// Mkdir implements [dssa.Dssa].
+func (s3m *s3MetaSts) Mkdir(de *dssa.DataEntry) error {
+	de.IsDir = true // implicit for localfiles
+	if err := s3m.msts.Put(de); err != nil {
+		return err
+	}
+	pp := path.Dir(de.Path)
+	if de.Path == "/" {
+		pp = "/.."
+	}
+	pde, err := s3m.msts.Get(pp)
+	if err != nil {
+		return err
+	}
+	pde.Mtime = time.Now().Unix()
+	return nil
+}
+
+// Stat implements [dssa.Dssa].
+func (s3m *s3MetaSts) Stat(path_ string) (*dssa.DataEntry, error) {
+	de, err := s3m.getDe(path_)
+	if err != nil {
+		return nil, err
+	}
+	if de == nil {
+		de = &dssa.DataEntry{Path: path_, Error: fs.ErrNotExist, ErrNotExist: true}
+	}
+	return de, de.Error
+}
+
+// SetStat implements [dssa.Dssa].
+func (s3m *s3MetaSts) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
+	ede, err := s3m.getDe(de.Path)
+	if err != nil {
+		return err
+	}
+	cde := *de
+	if ede != nil {
+		if noPerm {
+			cde.User, cde.UserRights = ede.User, ede.UserRights
+			cde.Group, cde.GroupRights = ede.Group, ede.GroupRights
+			cde.OtherRights = ede.OtherRights
+		}
+		if noMtime {
+			cde.Mtime = ede.Mtime
+		}
+	}
+	return s3m.msts.Put(&cde)
+}
+
+// Checksum implements [dssa.Dssa].
+func (s3m *s3MetaSts) Checksum(algos string, path_ string) (string, error) {
+	return common.DssaEntryChecksum(s3m, path_, algos)
 }
 
 // GetReadCloser implements [dssa.Dssa].
@@ -103,29 +166,6 @@ func (s3m *s3MetaSts) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 	}, nil
 }
 
-// List implements [dssa.Dssa].
-func (s3m *s3MetaSts) List(path_ string) ([]*dssa.DataEntry, error) {
-	return s3m.msts.List(path_)
-}
-
-// Mkdir implements [dssa.Dssa].
-func (s3m *s3MetaSts) Mkdir(de *dssa.DataEntry) error {
-	de.IsDir = true // implicit for localfiles
-	if err := s3m.msts.Put(de); err != nil {
-		return err
-	}
-	pp := path.Dir(de.Path)
-	if de.Path == "/" {
-		pp = "/.."
-	}
-	pde, err := s3m.msts.Get(pp)
-	if err != nil {
-		return err
-	}
-	pde.Mtime = time.Now().Unix()
-	return nil
-}
-
 // Rm implements [dssa.Dssa].
 func (s3m *s3MetaSts) Rm(path_ string) error {
 	ok, err := s3m.msts.Exists(path_)
@@ -155,43 +195,6 @@ func (s3m *s3MetaSts) Rm(path_ string) error {
 	}
 	pde.Mtime = time.Now().Unix()
 	return nil
-}
-
-// SetStat implements [dssa.Dssa].
-func (s3m *s3MetaSts) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
-	ede, err := s3m.getDe(de.Path)
-	if err != nil {
-		return err
-	}
-	cde := *de
-	if ede != nil {
-		if noPerm {
-			cde.User, cde.UserRights = ede.User, ede.UserRights
-			cde.Group, cde.GroupRights = ede.Group, ede.GroupRights
-			cde.OtherRights = ede.OtherRights
-		}
-		if noMtime {
-			cde.Mtime = ede.Mtime
-		}
-	}
-	return s3m.msts.Put(&cde)
-}
-
-// Stat implements [dssa.Dssa].
-func (s3m *s3MetaSts) Stat(path_ string) (*dssa.DataEntry, error) {
-	de, err := s3m.getDe(path_)
-	if err != nil {
-		return nil, err
-	}
-	if de == nil {
-		de = &dssa.DataEntry{Path: path_, Error: fs.ErrNotExist, ErrNotExist: true}
-	}
-	return de, de.Error
-}
-
-// Checksum implements [dssa.Dssa].
-func (s3m *s3MetaSts) Checksum(algos string, path_ string) (string, error) {
-	return common.DssaEntryChecksum(s3m, path_, algos)
 }
 
 // Symlink implements [dssa.Dssa].

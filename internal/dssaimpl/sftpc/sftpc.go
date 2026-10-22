@@ -20,32 +20,18 @@ type sftpClient struct {
 	root string
 }
 
+// NewSession implements [dssa.Dssa].
+func (sf *sftpClient) NewSession() error {
+	return nil
+}
+
 // EndSession implements [dssa.Dssa].
 func (sf *sftpClient) EndSession() error {
 	return nil
 }
 
-// GetReadCloser implements [dssa.Dssa].
-func (sf *sftpClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
-	sfc := <-sf.sfcs
-	rr, err := sfc.Open(path.Join(sf.root, path_))
-	if err != nil {
-		sf.sfcs <- sfc
-		return nil, err
-	}
-	return &sftpReader{reader: rr, cb: func() { sf.sfcs <- sfc }}, nil
-}
-
-// GetWriteCloser implements [dssa.Dssa].
-func (sf *sftpClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	sfc := <-sf.sfcs
-	wr, err := sfc.Create(path.Join(sf.root, path_))
-	if err != nil {
-		sf.sfcs <- sfc
-		return nil, err
-	}
-	return &sftpWriter{writer: wr, cb: func() { sf.sfcs <- sfc }}, nil
-}
+// IsGrpcClient implements [dssa.Dssa].
+func (sf *sftpClient) IsGrpcClient() bool { return false }
 
 // List implements [dssa.Dssa].
 func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
@@ -89,43 +75,6 @@ func (sf *sftpClient) Mkdir(de *dssa.DataEntry) error {
 	return sfc.Mkdir(path.Join(sf.root, de.Path))
 }
 
-// NewSession implements [dssa.Dssa].
-func (sf *sftpClient) NewSession() error {
-	return nil
-}
-
-// Rm implements [dssa.Dssa].
-func (sf *sftpClient) Rm(path_ string) error {
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
-	return sfc.Remove(path.Join(sf.root, path_))
-}
-
-// SetStat implements [dssa.Dssa].
-func (sf *sftpClient) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
-	fp := path.Join(sf.root, de.Path)
-	if !noPerm && !de.IsSymLink {
-		ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
-		if err := sfc.Chmod(fp, common.Rights2Mod([3]dssa.Rights(ugor))); err != nil {
-			return err
-		}
-	}
-	// No Lutime equivalent with sftp client
-	if !noMtime && !de.IsSymLink {
-		t := time.Unix(de.Mtime, 0)
-		if err := sfc.Chtimes(fp, t, t); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 // Stat implements [dssa.Dssa].
 func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
 	sfc := <-sf.sfcs
@@ -165,9 +114,63 @@ func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
 	}, nil
 }
 
+// SetStat implements [dssa.Dssa].
+func (sf *sftpClient) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
+	sfc := <-sf.sfcs
+	defer func() {
+		sf.sfcs <- sfc
+	}()
+	fp := path.Join(sf.root, de.Path)
+	if !noPerm && !de.IsSymLink {
+		ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
+		if err := sfc.Chmod(fp, common.Rights2Mod([3]dssa.Rights(ugor))); err != nil {
+			return err
+		}
+	}
+	// No Lutime equivalent with sftp client
+	if !noMtime && !de.IsSymLink {
+		t := time.Unix(de.Mtime, 0)
+		if err := sfc.Chtimes(fp, t, t); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Checksum implements [dssa.Dssa].
 func (sf *sftpClient) Checksum(algos string, path_ string) (string, error) {
 	return common.DssaEntryChecksum(sf, path_, algos)
+}
+
+// GetReadCloser implements [dssa.Dssa].
+func (sf *sftpClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
+	sfc := <-sf.sfcs
+	rr, err := sfc.Open(path.Join(sf.root, path_))
+	if err != nil {
+		sf.sfcs <- sfc
+		return nil, err
+	}
+	return &sftpReader{reader: rr, cb: func() { sf.sfcs <- sfc }}, nil
+}
+
+// GetWriteCloser implements [dssa.Dssa].
+func (sf *sftpClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	sfc := <-sf.sfcs
+	wr, err := sfc.Create(path.Join(sf.root, path_))
+	if err != nil {
+		sf.sfcs <- sfc
+		return nil, err
+	}
+	return &sftpWriter{writer: wr, cb: func() { sf.sfcs <- sfc }}, nil
+}
+
+// Rm implements [dssa.Dssa].
+func (sf *sftpClient) Rm(path_ string) error {
+	sfc := <-sf.sfcs
+	defer func() {
+		sf.sfcs <- sfc
+	}()
+	return sfc.Remove(path.Join(sf.root, path_))
 }
 
 // Symlink implements [dssa.Dssa].
