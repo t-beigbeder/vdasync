@@ -151,7 +151,7 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 	record[sBase+4] = ele.source.dispMtime()
 	record[sBase+5] = ele.source.dispChecksums()
 
-	tBase := sBase + 6 + 3
+	tBase := sBase + 6 + 3 // 3 == len(getEventsAsStrings())
 	record[tBase] = ele.target.dispState()
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
