@@ -96,9 +96,9 @@ func init() {
 			"Meta",
 			"RelPath", "InvChks", "Sync", "Summary",
 			"SState", "SChildren", "SSymLink", "SSize", "SMtime", "SChks",
-			"SEvTime", "SEvKind", "SEvChks",
+			"SEvTime", "SEvKind", "SEvState", "SEvChildren", "SEvSymLink", "SEvSize", "SEvMtime", "SEvChks",
 			"TState", "TChildren", "TSymLink", "TSize", "TMtime", "TChks",
-			"TEvTime", "TEvKind", "TEvChks",
+			"TEvTime", "TEvKind", "TEvState", "TEvChildren", "TevSymLink", "TevSize", "TevMtime", "TEvChks",
 		},
 		rowExporter: fullExporter,
 	}
@@ -151,7 +151,7 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 	record[sBase+4] = ele.source.dispMtime()
 	record[sBase+5] = ele.source.dispChecksums()
 
-	tBase := sBase + 6 + 3 // 3 == len(getEventsAsStrings())
+	tBase := sBase + 6 + 8 // 8 == len(getEventsAsStrings())
 	record[tBase] = ele.target.dispState()
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
@@ -163,16 +163,16 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 
 	for _, sev := range ele.source.getEventsAsStrings() {
 		record = make([]string, len(cols))
-		record[sBase+6] = sev[0]
-		record[sBase+7] = sev[1]
-		record[sBase+8] = sev[2]
+		for i := range sev {
+			record[sBase+6+i] = sev[i]
+		}
 		res = append(res, record)
 	}
 	for _, sev := range ele.target.getEventsAsStrings() {
 		record = make([]string, len(cols))
-		record[tBase+6] = sev[0]
-		record[tBase+7] = sev[1]
-		record[tBase+8] = sev[2]
+		for i := range sev {
+			record[tBase+6+i] = sev[i]
+		}
 		res = append(res, record)
 	}
 	return res
@@ -285,15 +285,37 @@ func (est *expSt) dispChecksums() string {
 }
 
 func (est *expSt) getEventsAsStrings() (res [][]string) {
+
 	for _, ev := range est.events {
-		scs, err := common.TypedChecksums2Checksums(ev.Tcss)
+		var err error
+		sEvs, sEvCn, sEvSL, sEvSz, sEvMt, sEvCss := "-", "", "", "", "", "?css"
+		se := ev.Se
+		if se != nil {
+			sEvs = se.ToDataEntry("").ModString()
+			if se.IsDir {
+				sEvCn = fmt.Sprintf("%d", len(se.Children))
+			}
+			sEvSL = se.SymLinkTarget
+			if !se.IsDir && !se.IsSymLink {
+				sEvSz = fmt.Sprintf("%d", se.Size)
+			}
+			sEvMt = ts2s(se.Mtime)
+		}
+		if sEvCss, err = common.TypedChecksums2Checksums(ev.Tcss); err != nil {
+			sEvCss = "e"
+		}
 		if err != nil {
-			scs = "e"
+			sEvCss = "e"
 		}
 		sev := []string{
 			ts2s(ev.TimeStamp),
 			ev.Kind.String(),
-			scs,
+			sEvs,
+			sEvCn,
+			sEvSL,
+			sEvSz,
+			sEvMt,
+			sEvCss,
 		}
 		res = append(res, sev)
 	}
