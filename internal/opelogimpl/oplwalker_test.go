@@ -15,6 +15,7 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/proxy"
 	"github.com/t-beigbeder/vdasync/internal/walker"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
@@ -44,6 +45,8 @@ type owTest struct {
 	csvName            string
 	std, ltd, ttd, ctd string
 	sDss, tDss         dssa.Dssa
+	sIoeOpts           *proxy.IoErrOpts
+	tIoeOpts           *proxy.IoErrOpts
 	noTestMarsh        bool
 	specialInterest    []string
 	speIntPhase        string
@@ -124,7 +127,11 @@ func (owt *owTest) exportCsv(baseCtx string) error {
 		return err
 	}
 	defer owt.oplm.Close()
-	if err := OplCsvExport(owt.lgr, owt.oplm, cPath, RPT_SYNTHETIC, "di", "ds", &RptConfig{ToolInfo: owt.oplTi}); err != nil {
+	rpt := RPT_SYNTHETIC
+	if owt.owo.ExpRpt == "full" {
+		rpt = RPT_FULL
+	}
+	if err := OplCsvExport(owt.lgr, owt.oplm, cPath, rpt, "di", "ds", &RptConfig{ToolInfo: owt.oplTi}); err != nil {
 		return err
 	}
 	owt.lgr.Info("exportCsv", "cPath", cPath)
@@ -150,9 +157,15 @@ func (owt *owTest) setDefLogger() error {
 func (owt *owTest) newOplWalker() OplWalker {
 	if owt.sDss == nil {
 		owt.sDss = localfiles.MakeLocalFilesDssa()
+		if owt.sIoeOpts != nil {
+			owt.sDss = proxy.MakeIoErrDss(owt.lgr, owt.sDss, owt.sIoeOpts)
+		}
 	}
 	if owt.tDss == nil {
 		owt.tDss = localfiles.MakeLocalFilesDssa()
+		if owt.tIoeOpts != nil {
+			owt.tDss = proxy.MakeIoErrDss(owt.lgr, owt.tDss, owt.tIoeOpts)
+		}
 	}
 	cl := fmt.Sprintf("%s-%s", owt.t.Name(), owt.label)
 	if owt.oplTi == nil {
@@ -413,13 +426,17 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:           "test load",
-			lgr:             cliLgr,
-			conc:            1,
-			ftgen:           ftGenTiny,
-			owo:             &config.OpeLogOptionsType{},
-			specialInterest: []string{"d0000"},
-			speIntPhase:     "phase2",
+			label: "test load",
+			lgr:   cliLgr,
+			conc:  1,
+			ftgen: ftGenTiny,
+			owo: &config.OpeLogOptionsType{
+				ErrorRate: "20",
+				ExpRpt:    "full",
+			},
+			sIoeOpts: &proxy.IoErrOpts{
+				ListRate: 5, StatRate: 5, GetReadCloserRate: 5,
+			},
 		},
 	}
 

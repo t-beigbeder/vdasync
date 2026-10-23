@@ -115,7 +115,7 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record[4] = ele.dispSummary()
 
 	sBase := 5
-	record[sBase] = ele.source.dispState()
+	record[sBase] = ele.source.dispState(false)
 	record[sBase+1] = ele.source.dispDir()
 	record[sBase+2] = ele.source.dispSymlink()
 	record[sBase+3] = ele.source.dispSize()
@@ -123,7 +123,7 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record[sBase+5] = ele.source.dispChecksums()
 
 	tBase := sBase + 6
-	record[tBase] = ele.target.dispState()
+	record[tBase] = ele.target.dispState(false)
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
 	record[tBase+3] = ele.target.dispSize()
@@ -144,7 +144,7 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 	record[4] = ele.dispSummary()
 
 	sBase := 5
-	record[sBase] = ele.source.dispState()
+	record[sBase] = ele.source.dispState(true)
 	record[sBase+1] = ele.source.dispDir()
 	record[sBase+2] = ele.source.dispSymlink()
 	record[sBase+3] = ele.source.dispSize()
@@ -152,7 +152,7 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 	record[sBase+5] = ele.source.dispChecksums()
 
 	tBase := sBase + 6 + 8 // 8 == len(getEventsAsStrings())
-	record[tBase] = ele.target.dispState()
+	record[tBase] = ele.target.dispState(true)
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
 	record[tBase+3] = ele.target.dispSize()
@@ -212,7 +212,7 @@ func (ele *expLe) dispSummary() string {
 	return stats.Display("summary")
 }
 
-func (est *expSt) dispState() string {
+func (est *expSt) dispState(full bool) string {
 	if est.Stc == opelog.STC_DONE_PRESENT {
 		return est.Se.ToDataEntry("").ModString()
 	}
@@ -220,6 +220,9 @@ func (est *expSt) dispState() string {
 		return "-"
 	}
 	if est.Stc == opelog.STC_SE_ERROR {
+		if full {
+			return fmt.Sprintf("e: \"%s\"", est.Error)
+		}
 		return "e"
 	}
 	if est.Stc == opelog.STC_DESC_ERROR {

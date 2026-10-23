@@ -413,7 +413,7 @@ func (ow *oplWalkerImpl) setupErtl() (err error) {
 		return
 	}
 	ow.errRtl, ow.errRtlCFunc = common.NewCancelEvLter(ow.eRate, func(doing chan any, d time.Duration) {
-		ow.lgr.With("ertl", true).Debug("error rate limit raised", "delay", d)
+		ow.lgr.With("ertl", true).Info("error rate limit raised", "delay", d)
 	})
 	return nil
 }

@@ -11,14 +11,14 @@ import (
 )
 
 type IoErrOpts struct {
-	ListRate  int
-	MkdirRate int
-	StatRate int
-	SetStatRate int
-	GetReadCloserRate int
+	ListRate           int
+	MkdirRate          int
+	StatRate           int
+	SetStatRate        int
+	GetReadCloserRate  int
 	GetWriteCloserRate int
-	RmRate int
-	SymlinkRate int
+	RmRate             int
+	SymlinkRate        int
 }
 
 type ioErrHandler struct {
