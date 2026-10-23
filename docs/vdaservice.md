@@ -55,7 +55,7 @@ For instance
     -config string
         configuration file, see documentation
     -level string
-        log level, defaults to ERROR
+        log level, defaults to INFO
     -log string
         log file, defaults to vdasync-<pid>.log in temp dir, "std[out|err]" are known keywords
     -out string

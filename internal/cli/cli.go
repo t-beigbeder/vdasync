@@ -38,7 +38,7 @@ func CommonFlags() *CommonFlagsType {
 	return &CommonFlagsType{
 		ConfigFlag:         flag.String("config", "", "configuration file, see documentation"),
 		ConcurrencyFlag:    flag.Int("conc", 0, "number of concurrent activities"),
-		LogLevelFlag:       flag.String("level", "", "log level, defaults to ERROR"),
+		LogLevelFlag:       flag.String("level", "", "log level, defaults to INFO"),
 		LogFlag:            flag.String("log", "", "log file, defaults to vdasync-<pid>.log in temp dir, \"std[out|err]\" are known keywords"),
 		OutFlag:            flag.String("out", "stdout", "file for output, defaults to stdout, \"std[out|err]\" are known keywords"),
 		SilentFlag:         flag.Bool("silent", false, "no output, or simple summary in case also verbose"),

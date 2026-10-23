@@ -45,7 +45,7 @@ It can be configured as a systemd service on Linux platforms as following
 ### General purpose
 
     -level string
-        log level, defaults to ERROR
+        log level, defaults to INFO
     -log string
         log file, defaults to vdasync-<pid>.log in temp dir, "std[out|err]" are known keywords
 
