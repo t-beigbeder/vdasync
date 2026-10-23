@@ -13,6 +13,12 @@ import (
 type IoErrOpts struct {
 	ListRate  int
 	MkdirRate int
+	StatRate int
+	SetStatRate int
+	GetReadCloserRate int
+	GetWriteCloserRate int
+	RmRate int
+	SymlinkRate int
 }
 
 type ioErrHandler struct {
@@ -25,13 +31,13 @@ var _ ProxyHandler = &ioErrHandler{}
 
 func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess {
 	ress := &ProxyHdlRess{}
-	doWithError := func(rate int, f func()) {
+	doBeforeWithError := func(rate int, f func()) {
 		f()
 		if rate == 0 {
 			return
 		}
 		if ress.Err != nil {
-			ph.lgr.Debug("ioerr useless", "err", ress.Err)
+			ph.lgr.Debug("ioerr before useless", "err", ress.Err)
 			return
 		}
 		if mrand.Intn(rate) == 0 {
@@ -40,50 +46,74 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			return
 		}
 	}
+	doAfterWithError := func(rate int, f func()) {
+		if rate == 0 {
+			f()
+			return
+		}
+		if mrand.Intn(rate) == 0 {
+			v := time.Now().UnixNano()
+			ress.Err = fmt.Errorf("rand %d 1/%d", v, ph.opts.ListRate)
+			return
+		}
+		ph.lgr.Debug("ioerr after", "err", ress.Err)
+		f()
+	}
 	switch fcName {
 	case "NewSession":
 		ress.Err = ph.underlying.NewSession()
 	case "EndSession":
 		ress.Err = ph.underlying.EndSession()
 	case "List":
-		doWithError(ph.opts.ListRate, func() {
+		doBeforeWithError(ph.opts.ListRate, func() {
 			ress.Des, ress.Err = ph.underlying.List(args.Path)
 		})
 	case "Mkdir":
-		doWithError(ph.opts.MkdirRate, func() {
+		doAfterWithError(ph.opts.MkdirRate, func() {
 			ress.Err = ph.underlying.Mkdir(args.De)
 		})
 	case "Stat":
-		ress.De, ress.Err = ph.underlying.Stat(args.Path)
+		doBeforeWithError(ph.opts.StatRate, func() {
+			ress.De, ress.Err = ph.underlying.Stat(args.Path)
+		})
 	case "SetStat":
-		ress.Err = ph.underlying.SetStat(args.De, args.NoPerm, args.NoMtime)
+		doAfterWithError(ph.opts.SetStatRate, func() {
+			ress.Err = ph.underlying.SetStat(args.De, args.NoPerm, args.NoMtime)
+		})
 	case "Checksum":
 		ress.ChSums, ress.Err = ph.underlying.Checksum(args.Algos, args.Path)
 	case "GetReadCloser":
-		var urc io.ReadCloser
-		if urc, ress.Err = ph.underlying.GetReadCloser(args.Path); ress.Err != nil {
-			break
-		}
-		ress.RC = makePReader(ph, urc)
+		doAfterWithError(ph.opts.GetReadCloserRate, func() {
+			var urc io.ReadCloser
+			urc, ress.Err = ph.underlying.GetReadCloser(args.Path)
+			if ress.Err == nil {
+				ress.RC = makePReader(ph, urc)
+			}
+		})
 	case "Read":
 		ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
 	case "RClose":
 		ress.Err = args.RC.Close()
 	case "GetWriteCloser":
-		var uwc io.WriteCloser
-		if uwc, ress.Err = ph.underlying.GetWriteCloser(args.Path); ress.Err != nil {
-			break
-		}
-		ress.WC = makePWriter(ph, uwc)
+		doAfterWithError(ph.opts.GetWriteCloserRate, func() {
+			var uwc io.WriteCloser
+			uwc, ress.Err = ph.underlying.GetWriteCloser(args.Path)
+			if ress.Err == nil {
+				ress.WC = makePWriter(ph, uwc)
+			}
+		})
 	case "Write":
 		ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
-
 	case "WClose":
 		ress.Err = args.WC.Close()
 	case "Rm":
-		ress.Err = ph.underlying.Rm(args.Path)
+		doAfterWithError(ph.opts.RmRate, func() {
+			ress.Err = ph.underlying.Rm(args.Path)
+		})
 	case "Symlink":
-		ress.Err = ph.underlying.Symlink(args.Old, args.New)
+		doAfterWithError(ph.opts.SymlinkRate, func() {
+			ress.Err = ph.underlying.Symlink(args.Old, args.New)
+		})
 	default:
 		ress.Err = fmt.Errorf("invalid function name %s to handle", fcName)
 	}

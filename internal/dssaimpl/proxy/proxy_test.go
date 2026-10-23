@@ -209,7 +209,7 @@ func TestIoErrDirectProxy(t *testing.T) {
 
 func TestRetryErrStandardProxy(t *testing.T) {
 	lgr := common.GetLogger()
-	lgr = common.DbgLogger()
+	// lgr = common.DbgLogger()
 	sDss := MakeRetryErrDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), nil)
 	tDss := MakeRetryErrDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), nil)
 
@@ -218,14 +218,16 @@ func TestRetryErrStandardProxy(t *testing.T) {
 }
 
 func TestIoErrStandardProxy(t *testing.T) {
-	t.Skip("idempotency")
 	lgr := common.GetLogger()
-	lgr = common.DbgLogger()
-	opts := &IoErrOpts{ListRate: 2, MkdirRate: 2}
+	// lgr = common.DbgLogger()
+	opts := &IoErrOpts{
+		ListRate: 100, MkdirRate: 100, StatRate: 100, SetStatRate: 100,
+		GetReadCloserRate: 100, GetWriteCloserRate: 100, RmRate: 100, SymlinkRate: 100,
+	}
 	sIoeDss := MakeIoErrDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), opts)
 	tIoeDss := MakeIoErrDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), opts)
-	sDss := MakeRetryErrDss(lgr.With("source", true), sIoeDss, &RetryErrOpts{max: 2})
-	tDss := MakeRetryErrDss(lgr.With("target", true), tIoeDss, &RetryErrOpts{max: 2})
+	sDss := MakeRetryErrDss(lgr.With("source", true), sIoeDss, &RetryErrOpts{max: 3})
+	tDss := MakeRetryErrDss(lgr.With("target", true), tIoeDss, &RetryErrOpts{max: 3})
 	doTestProxy(t, lgr, sDss, tDss, nil, nil)
 
 }

@@ -49,36 +49,47 @@ func (ph *retryErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRe
 			ress.Err = ph.underlying.Mkdir(args.De)
 		})
 	case "Stat":
-		ress.De, ress.Err = ph.underlying.Stat(args.Path)
+		doUntil(func() {
+			ress.De, ress.Err = ph.underlying.Stat(args.Path)
+		})
 	case "SetStat":
-		ress.Err = ph.underlying.SetStat(args.De, args.NoPerm, args.NoMtime)
+		doUntil(func() {
+			ress.Err = ph.underlying.SetStat(args.De, args.NoPerm, args.NoMtime)
+		})
 	case "Checksum":
 		ress.ChSums, ress.Err = ph.underlying.Checksum(args.Algos, args.Path)
 	case "GetReadCloser":
-		var urc io.ReadCloser
-		if urc, ress.Err = ph.underlying.GetReadCloser(args.Path); ress.Err != nil {
-			break
-		}
-		ress.RC = makePReader(ph, urc)
+		doUntil(func() {
+			var urc io.ReadCloser
+			urc, ress.Err = ph.underlying.GetReadCloser(args.Path)
+			if ress.Err == nil {
+				ress.RC = makePReader(ph, urc)
+			}
+		})
 	case "Read":
 		ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
 	case "RClose":
 		ress.Err = args.RC.Close()
 	case "GetWriteCloser":
-		var uwc io.WriteCloser
-		if uwc, ress.Err = ph.underlying.GetWriteCloser(args.Path); ress.Err != nil {
-			break
-		}
-		ress.WC = makePWriter(ph, uwc)
+		doUntil(func() {
+			var uwc io.WriteCloser
+			uwc, ress.Err = ph.underlying.GetWriteCloser(args.Path)
+			if ress.Err == nil {
+				ress.WC = makePWriter(ph, uwc)
+			}
+		})
 	case "Write":
 		ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
-
 	case "WClose":
 		ress.Err = args.WC.Close()
 	case "Rm":
-		ress.Err = ph.underlying.Rm(args.Path)
+		doUntil(func() {
+			ress.Err = ph.underlying.Rm(args.Path)
+		})
 	case "Symlink":
-		ress.Err = ph.underlying.Symlink(args.Old, args.New)
+		doUntil(func() {
+			ress.Err = ph.underlying.Symlink(args.Old, args.New)
+		})
 	default:
 		ress.Err = fmt.Errorf("invalid functretryn name %s to handle", fcName)
 	}
