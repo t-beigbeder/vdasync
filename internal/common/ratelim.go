@@ -210,29 +210,47 @@ func NewCancelEvLter(evFreq float64, cancelableCb func(doing chan any, d time.Du
 	cel.evLter = rate.NewLimiter(rate.Limit(evFreq), 1)
 	cel.doing = make(chan any)
 	cel.done = make(chan any)
-	go func ()  {
-
-	}()
 	return cel, func() { close(cel.doing) }
 }
 
 func (cel *CancelEvLter) RtlThis() error {
-	now := time.Now()
-	rsv := cel.evLter.ReserveN(now, 1)
-	if !rsv.OK() {
-		return errors.New("cannot reserve a single token for events")
+	var (
+		isCanceled bool
+		d          time.Duration
+		tmer       *time.Timer
+	)
+	select {
+	case <-cel.doing:
+		isCanceled = true
+	default:
+		now := time.Now()
+		rsv := cel.evLter.ReserveN(now, 1)
+		if !rsv.OK() {
+			return errors.New("cannot reserve a single token for events")
+		}
+		d = rsv.DelayFrom(now)
 	}
-	d := rsv.DelayFrom(now)
+	if isCanceled {
+		return errors.New("event limiter canceled")
+	}
+	if d == 0 {
+		return nil
+	}
 	if d > 0 && cel.cancelableCb != nil {
 		cel.cancelableCb(cel.doing, d)
 	}
-	tmer := time.NewTimer(d)
+	tmer = time.NewTimer(d)
 	select {
 	case <-tmer.C:
+		tmer.Stop()
 	case <-cel.doing:
 		tmer.Stop()
 	}
 	return nil
+}
+
+func (cel *CancelEvLter) Stop() {
+	close(cel.done)
 }
 
 func (cel *CancelEvLter) Wait() {

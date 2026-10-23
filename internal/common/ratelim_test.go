@@ -3,6 +3,7 @@ package common
 import (
 	"context"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -15,7 +16,7 @@ func TestSimpleLter(t *testing.T) {
 		t.Skip("OTVL_TEST_FULL not set")
 	}
 	ctx := context.Background()
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	require.True(t, true)
 	l10 := rate.Limit(10.0)
 	l10ter := rate.NewLimiter(l10, 5)
@@ -34,7 +35,7 @@ func TestLterCb(t *testing.T) {
 	if os.Getenv("OTVL_TEST_FULL") == "" {
 		t.Skip("OTVL_TEST_FULL not set")
 	}
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	l10 := rate.Limit(10.0)
 	l10ter := rate.NewLimiter(l10, 5)
 	for i := range 30 {
@@ -54,7 +55,7 @@ func TestLterCb(t *testing.T) {
 
 func TestLargeLter(t *testing.T) {
 	ctx := context.Background()
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	l10gbps := rate.Limit(128 * 10e6)
 	l10gbpser := rate.NewLimiter(l10gbps, 10e6)
 	for i := range 1000 {
@@ -64,7 +65,7 @@ func TestLargeLter(t *testing.T) {
 }
 
 func TestLargeCbLter(t *testing.T) {
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	l10gbps := rate.Limit(128 * 10e6)
 	l10gbpser := rate.NewLimiter(l10gbps, 10e6)
 	for i := range 1000 {
@@ -79,7 +80,7 @@ func TestSlowMotionLter(t *testing.T) {
 	if os.Getenv("OTVL_TEST_FULL") == "" {
 		t.Skip("OTVL_TEST_FULL not set")
 	}
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	lim := rate.Limit(3. / 20)
 	limTer := rate.NewLimiter(lim, 3)
 	done := false
@@ -98,7 +99,7 @@ func TestSlowMotionLter(t *testing.T) {
 }
 
 func TestEvBdwLterCountsOnly(t *testing.T) {
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	i := 0
 	done := false
 
@@ -121,7 +122,7 @@ func TestEvBdwLterEvOnly(t *testing.T) {
 	if os.Getenv("OTVL_TEST_FULL") == "" {
 		t.Skip("OTVL_TEST_FULL not set")
 	}
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	i := 0
 	done := false
 
@@ -141,7 +142,7 @@ func TestEvBdwLterEvOnly(t *testing.T) {
 }
 
 func TestEvBdwLterBdwOnly(t *testing.T) {
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	i := 0
 
 	ebl := NewEvBdwLter(0.0, 1e8, func(kw string, d time.Duration) {
@@ -161,7 +162,7 @@ func TestEvBdwLterBdwOnly(t *testing.T) {
 }
 
 func TestEvBdwLterBoth(t *testing.T) {
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	i := 0
 
 	ebl := NewEvBdwLter(1400, 1e8, func(kw string, d time.Duration) {
@@ -183,7 +184,7 @@ func TestEvBdwLterBoth(t *testing.T) {
 }
 
 func TestEvBdwLterPond(t *testing.T) {
-	lgr := DbgLogger()
+	lgr := GetLogger()
 	i := 0
 
 	ebl := NewEvBdwLter(1400, 1e8, func(kw string, d time.Duration) {
@@ -225,4 +226,49 @@ func TestParseEvBdwbRates(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, float64(0), e)
 	require.Equal(t, float64(128000000), b)
+}
+
+func TestCancelEvLter(t *testing.T) {
+	if os.Getenv("OTVL_TEST_FULL") == "" {
+		t.Skip("OTVL_TEST_FULL not set")
+	}
+	lgr := GetLogger()
+	cel, cf := NewCancelEvLter(5, func(doing chan any, d time.Duration) {
+		lgr.Debug("cb", "d", d)
+		tmer := time.NewTimer(100 * time.Millisecond)
+		select {
+		case <-doing:
+			tmer.Stop()
+			lgr.Debug("callback received doing")
+		case <-tmer.C:
+			lgr.Debug("callback received tmer expiration")
+		}
+	})
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		lgr.Debug("producing...")
+		for i := range 20 {
+			lgr.Debug("RtlThis", "i", i)
+			if err := cel.RtlThis(); err != nil {
+				lgr.Debug("RtlThis returned", "err", err)
+				break
+			}
+		}
+		time.Sleep(100 * time.Millisecond)
+		lgr.Debug("producing stopping cel")
+		cel.Stop()
+		time.Sleep(100 * time.Millisecond)
+		lgr.Debug("producing done")
+		wg.Done()
+	}()
+	time.Sleep(2 * time.Second)
+	lgr.Debug("test canceling cel")
+	cf()
+	lgr.Debug("test waiting done...")
+	cel.Wait()
+	lgr.Debug("test waiting sync...")
+	wg.Wait()
+	lgr.Debug("test done")
 }
