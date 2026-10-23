@@ -8,6 +8,7 @@ import (
 	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -48,6 +49,9 @@ type oplWalkerImpl struct {
 	sessionTime    int64
 	inventory      string
 	invTime        int64
+	eRate          float64
+	errRtl         *common.CancelEvLter
+	errRtlCFunc    func()
 	gErrs          []error
 	closedQKnown   bool
 	wkNtfChan      chan workerNotif
@@ -77,7 +81,14 @@ func (ow *oplWalkerImpl) lockedOwErr(lgr *slog.Logger, msg string, err error) er
 
 func (ow *oplWalkerImpl) owErr(lgr *slog.Logger, msg string, err error) error {
 	ow.mx.Lock()
-	defer ow.mx.Unlock()
+	defer func() {
+		ow.mx.Unlock()
+		if ow.errRtl != nil {
+			if err := ow.errRtl.RtlThis(); err != nil {
+				ow.lgr.Debug("owErr", "err", err)
+			}
+		}
+	}()
 	return ow.lockedOwErr(lgr, msg, err)
 }
 
@@ -256,13 +267,21 @@ func isChildInState(cName string, st *opelog.State) bool {
 // notifyParent merges source and target state after processing and notifies parent if last child
 // from both branches
 func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
+	var ratedErr error
 	// reload parent and locks to modify
 	ow.mx.Lock()
-	defer ow.mx.Unlock()
+	defer func() {
+		ow.mx.Unlock()
+		if ratedErr != nil && ow.errRtl != nil {
+			if err := ow.errRtl.RtlThis(); err != nil {
+				ow.lgr.Debug("notifyParent", "err", err)
+			}
+		}
+	}()
 	pRelPath := common.ParentPath(ole.relPath)
 	ple, err := ow.oplm.GetLogicalEntry(pRelPath)
 	if err != nil {
-		ow.lockedOwErr(ole.lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
+		ratedErr = ow.lockedOwErr(ole.lgr, "oplWalkerImpl: GetLogicalEntry on parent final", err)
 		return err
 	}
 	cName := path.Base(ole.relPath)
@@ -274,7 +293,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 		ole.lgr.Debug("notifyParent", "parentSSt.DepCount", parentSSt.DepCount)
 		if parentSSt.DepCount <= 0 {
 			err := fmt.Errorf("source child %s notifies twice parent", ole.relPath)
-			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
+			ratedErr = ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
 		hasChanges = true
@@ -286,7 +305,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	if isChildInState(cName, parentTSt) {
 		if parentTSt.DepCount <= 0 {
 			err := fmt.Errorf("target child %s notifies twice parent", ole.relPath)
-			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
+			ratedErr = ow.lockedOwErr(ole.lgr, "oplWalkerImpl: internal", err)
 			return err
 		}
 		hasChanges = true
@@ -297,7 +316,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 	}
 	if hasChanges {
 		if err := ow.oplm.PutLogicalEntry(pRelPath, ple); err != nil {
-			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent le", err)
+			ratedErr = ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent le", err)
 			return err
 		}
 	}
@@ -308,7 +327,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 
 		// notifies parent
 		if err := ow.oplq.Put(pRelPath); err != nil {
-			ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent in queue", err)
+			ratedErr = ow.lockedOwErr(ole.lgr, "oplWalkerImpl: put parent in queue", err)
 			return err
 		}
 	}
@@ -385,6 +404,20 @@ func (ow *oplWalkerImpl) work(wkn int, wg *sync.WaitGroup) {
 	lgr.Debug("oplWalkerImpl: stop")
 }
 
+func (ow *oplWalkerImpl) setupErtl() (err error) {
+	if ow.owo.ErrorRate == "" {
+		return
+	}
+	if ow.eRate, err = strconv.ParseFloat(ow.owo.ErrorRate, 64); err != nil {
+		err = fmt.Errorf("error rate: %s", err.Error())
+		return
+	}
+	ow.errRtl, ow.errRtlCFunc = common.NewCancelEvLter(ow.eRate, func(doing chan any, d time.Duration) {
+		ow.lgr.With("ertl", true).Debug("error rate limit raised", "delay", d)
+	})
+	return nil
+}
+
 func (ow *oplWalkerImpl) checkConsistency() (err error) {
 	defer func() {
 		if err != nil {
@@ -392,6 +425,9 @@ func (ow *oplWalkerImpl) checkConsistency() (err error) {
 		}
 	}()
 
+	if err = ow.setupErtl(); err != nil {
+		return
+	}
 	if ow.sRoot != ow.oplm.Olm().SourceRoot {
 		err = fmt.Errorf("source root in opelog path differs from %s", ow.sRoot)
 		return
@@ -525,8 +561,12 @@ func (ow *oplWalkerImpl) Run() error {
 }
 
 func (ow *oplWalkerImpl) Shutdown(lgr *slog.Logger) error {
-	ow.mx.Lock()
 	ow.lgr.Info("oplWalkerImpl: Shutdown requested")
+	if ow.errRtl != nil {
+		ow.detail(ow.lgr, "oplWalkerImpl: canceling error limits")
+		ow.errRtlCFunc()
+	}
+	ow.mx.Lock()
 	lgr.Info("oplWalkerImpl Shutdown in progress...")
 	if err := ow.oplq.Close(); err != nil {
 		ow.mx.Unlock()

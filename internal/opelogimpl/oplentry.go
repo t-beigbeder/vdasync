@@ -67,11 +67,6 @@ func (ole *oplLogicalEntry) detail(msg string, args ...any) {
 
 func (ole *oplLogicalEntry) owo() *config.OpeLogOptionsType { return ole.owi.owo }
 
-func (ole *oplLogicalEntry) logErr(msg string, err error) error {
-	ole.lgr.Error(msg, "err", err)
-	return err
-}
-
 func (ole *oplLogicalEntry) seEqualType() bool {
 	if ole.target.se() == nil {
 		return false
@@ -141,6 +136,11 @@ func (ose *oplStoredEntry) detail(msg string, args ...any) {
 
 func (ose *oplStoredEntry) logErr(msg string, err error) error {
 	ose.lgr.Error(msg, "err", err)
+	if ose.ole.owi.errRtl != nil {
+		if err := ose.ole.owi.errRtl.RtlThis(); err != nil {
+			ose.lgr.Debug("rate limit err", "err", err)
+		}
+	}
 	return err
 }
 

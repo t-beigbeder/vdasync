@@ -14,8 +14,13 @@ import (
 )
 
 func doTestProxy(t *testing.T, lgr *slog.Logger, sDss, tDss dssa.Dssa, sHdl, tHdl ProxyHandler) {
-	sPDss := MakeProxyDssa(lgr, sDss, sHdl)
-	tPDss := MakeProxyDssa(lgr, tDss, tHdl)
+	sPDss, tPDss := sDss, tDss
+	if sHdl != nil {
+		sPDss = MakeProxyDssa(lgr, sDss, sHdl)
+	}
+	if tHdl != nil {
+		tPDss = MakeProxyDssa(lgr, tDss, tHdl)
+	}
 
 	td1 := t.TempDir()
 	ft := path.Join(td1, "TestBasicProxy.dat")
@@ -122,7 +127,8 @@ func TestBasicProxy(t *testing.T) {
 	lgr := common.GetLogger()
 	// lgr = common.DbgLogger()
 	udss := localfiles.MakeLocalFilesDssa()
-	doTestProxy(t, lgr, udss, udss, nil, nil)
+	noh := &noOpHandler{lgr: lgr, underlying: udss}
+	doTestProxy(t, lgr, udss, udss, noh, noh)
 }
 
 func TestRtLimBaseProxy(t *testing.T) {
@@ -170,5 +176,56 @@ func TestRtLimDirectProxy(t *testing.T) {
 	lgr.Debug("test bandwidth src", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
 	nEv, nBytes, du, evr, bdw = tDss.GetEbl().Counts()
 	lgr.Debug("test bandwidth tgt", "nev", nEv, "nbytes", nBytes, "duration", du.Seconds(), "evr", evr, "bdw", bdw)
+
+}
+
+func TestIoErrDirectProxy(t *testing.T) {
+	lgr := common.GetLogger()
+	//lgr = common.DbgLogger()
+	sDss := MakeIoErrDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), nil)
+	tDss := MakeIoErrDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), nil)
+
+	td1 := t.TempDir()
+	ft := path.Join(td1, "TestBasicProxyLarge.dat")
+	common.MakeTestFile(ft, 1000000)
+	h1, err := common.FileChecksum(ft, "sha256")
+	require.NoError(t, err)
+
+	tt := path.Join(t.TempDir(), "TestBasicProxyLargeCopied.dat")
+	rc, err := sDss.GetReadCloser(ft)
+	require.Nil(t, err)
+	defer rc.Close()
+	wc, err := tDss.GetWriteCloser(tt)
+	require.Nil(t, err)
+	defer wc.Close()
+	lw, err := io.Copy(wc, rc)
+	require.Nil(t, err)
+	require.Equal(t, int64(1000000), lw)
+	h2, err := common.FileChecksum(tt, "sha256")
+	require.Nil(t, err)
+	require.Equal(t, h1, h2)
+
+}
+
+func TestRetryErrStandardProxy(t *testing.T) {
+	lgr := common.GetLogger()
+	lgr = common.DbgLogger()
+	sDss := MakeRetryErrDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), nil)
+	tDss := MakeRetryErrDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), nil)
+
+	doTestProxy(t, lgr, sDss, tDss, nil, nil)
+
+}
+
+func TestIoErrStandardProxy(t *testing.T) {
+	t.Skip("idempotency")
+	lgr := common.GetLogger()
+	lgr = common.DbgLogger()
+	opts := &IoErrOpts{ListRate: 2, MkdirRate: 2}
+	sIoeDss := MakeIoErrDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), opts)
+	tIoeDss := MakeIoErrDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), opts)
+	sDss := MakeRetryErrDss(lgr.With("source", true), sIoeDss, &RetryErrOpts{max: 2})
+	tDss := MakeRetryErrDss(lgr.With("target", true), tIoeDss, &RetryErrOpts{max: 2})
+	doTestProxy(t, lgr, sDss, tDss, nil, nil)
 
 }

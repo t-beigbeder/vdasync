@@ -67,6 +67,6 @@ func (ph *noOpHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess {
 	if ress.De != nil {
 		rdep = ress.De.Path
 	}
-	ph.lgr.Debug(fcName, "path", args.Path, "de", dep, "err", ress.Err, "rde", rdep, "des", len(ress.Des))
+	ph.lgr.Debug(fmt.Sprintf("noOp: %s", fcName), "path", args.Path, "de", dep, "err", ress.Err, "rde", rdep, "des", len(ress.Des))
 	return ress
 }
