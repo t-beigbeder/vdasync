@@ -25,6 +25,7 @@ func RunSyncCli(df *DssaFactory) {
 		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
 		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
 		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operation logs keep cache on (re)start")
+		oplErrRtlFlag  = flag.String("oplertl", "1.67e-2", "operation logs errors rate limit")
 		sourceFlag     = flag.String("source", "", "source of the command")
 		targetFlag     = flag.String("target", "", "target of the command")
 		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -172,6 +173,7 @@ func RunSyncCli(df *DssaFactory) {
 		ExpRpt:          *svsf.OplRptFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
+		ErrorRate:       *oplErrRtlFlag,
 	}
 	opti := &opelog.ToolInformation{CmdLine: "TODO: setup ToolInformation"}
 	ow := opelogimpl.NewOplWalker(

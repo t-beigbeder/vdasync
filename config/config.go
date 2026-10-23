@@ -61,6 +61,7 @@ type OpeLogOptionsType struct {
 	ExpFile         string `yaml:"expFile"`
 	ExpRpt          string `yaml:"expRpt"`
 	ExpBck          int    `yaml:"expBck"`
+	ErrorRate       string `yaml:"errorRate"`
 	SpecialInterest []string
 	SpeIntPhase     string
 }
