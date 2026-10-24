@@ -25,7 +25,7 @@ func (ph *retryErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRe
 	doUntil := func(f func()) {
 		for count := range ph.opts.max + 1 {
 			f()
-			if ress.Err == nil {
+			if ress.Err == nil || ress.Err == io.EOF {
 				if count != 0 {
 					ph.lgr.Debug("retry succeeded", "count", count, "max", ph.opts.max+1)
 				}
@@ -67,9 +67,13 @@ func (ph *retryErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRe
 			}
 		})
 	case "Read":
-		ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
+		doUntil(func() {
+			ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
+		})
 	case "RClose":
-		ress.Err = args.RC.Close()
+		doUntil(func() {
+			ress.Err = args.RC.Close()
+		})
 	case "GetWriteCloser":
 		doUntil(func() {
 			var uwc io.WriteCloser
@@ -79,9 +83,13 @@ func (ph *retryErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRe
 			}
 		})
 	case "Write":
-		ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
+		doUntil(func() {
+			ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
+		})
 	case "WClose":
-		ress.Err = args.WC.Close()
+		doUntil(func() {
+			ress.Err = args.WC.Close()
+		})
 	case "Rm":
 		doUntil(func() {
 			ress.Err = ph.underlying.Rm(args.Path)

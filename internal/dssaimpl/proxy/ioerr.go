@@ -16,7 +16,11 @@ type IoErrOpts struct {
 	StatRate           int
 	SetStatRate        int
 	GetReadCloserRate  int
+	ReadRate int
+	RCloseRate int
 	GetWriteCloserRate int
+	WriteRate int
+	WCloseRate int
 	RmRate             int
 	SymlinkRate        int
 }
@@ -91,9 +95,13 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			}
 		})
 	case "Read":
-		ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
+		doAfterWithError(ph.opts.ReadRate, func() {
+			ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
+		})
 	case "RClose":
-		ress.Err = args.RC.Close()
+		doAfterWithError(ph.opts.RCloseRate, func() {
+			ress.Err = args.RC.Close()
+		})
 	case "GetWriteCloser":
 		doAfterWithError(ph.opts.GetWriteCloserRate, func() {
 			var uwc io.WriteCloser
@@ -103,9 +111,13 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			}
 		})
 	case "Write":
-		ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
+		doAfterWithError(ph.opts.WriteRate, func() {
+			ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
+		})
 	case "WClose":
-		ress.Err = args.WC.Close()
+		doAfterWithError(ph.opts.WCloseRate, func() {
+			ress.Err = args.WC.Close()
+		})
 	case "Rm":
 		doAfterWithError(ph.opts.RmRate, func() {
 			ress.Err = ph.underlying.Rm(args.Path)

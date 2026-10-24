@@ -219,10 +219,12 @@ func TestRetryErrStandardProxy(t *testing.T) {
 
 func TestIoErrStandardProxy(t *testing.T) {
 	lgr := common.GetLogger()
-	// lgr = common.DbgLogger()
+	lgr = common.DbgLogger()
 	opts := &IoErrOpts{
 		ListRate: 100, MkdirRate: 100, StatRate: 100, SetStatRate: 100,
-		GetReadCloserRate: 100, GetWriteCloserRate: 100, RmRate: 100, SymlinkRate: 100,
+		GetReadCloserRate: 100, ReadRate: 200, RCloseRate: 100,
+		GetWriteCloserRate: 100, WriteRate: 20,
+		RmRate: 100, SymlinkRate: 100,
 	}
 	sIoeDss := MakeIoErrDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), opts)
 	tIoeDss := MakeIoErrDss(lgr.With("target", true), localfiles.MakeLocalFilesDssa(), opts)
