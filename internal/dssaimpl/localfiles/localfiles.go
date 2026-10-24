@@ -1,6 +1,7 @@
 package localfiles
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -11,15 +12,24 @@ import (
 )
 
 type localFiles struct {
+	hasSession bool
 }
 
 // NewSession implements [dssa.Dssa].
 func (d *localFiles) NewSession() error {
+	if d.hasSession {
+		return errors.New("localFiles: there is already an active session")
+	}
+	d.hasSession = true
 	return nil
 }
 
 // EndSession implements [dssa.Dssa].
 func (d *localFiles) EndSession() error {
+	if !d.hasSession {
+		return errors.New("localFiles: no active session")
+	}
+	d.hasSession = false
 	return nil
 }
 

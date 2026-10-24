@@ -45,7 +45,7 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			return
 		}
 		if mrand.Intn(rate) == 0 {
-			v := time.Now().UnixNano()
+			v := time.Now().UnixNano() % int64(time.Microsecond)
 			ress.Err = fmt.Errorf("%s rand %d 1/%d", fcName, v, rate)
 			return
 		}
@@ -56,7 +56,7 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			return
 		}
 		if mrand.Intn(rate) == 0 {
-			v := time.Now().UnixNano()
+			v := time.Now().UnixNano() % int64(time.Microsecond)
 			ress.Err = fmt.Errorf("%s rand %d 1/%d", fcName, v, rate)
 			return
 		}

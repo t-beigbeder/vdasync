@@ -433,9 +433,11 @@ func TestSingleOplWalkers(t *testing.T) {
 			owo: &config.OpeLogOptionsType{
 				ErrorRate: "20",
 				ExpRpt:    "full",
+				EnableRestart: true,
+				ClearErrors: true,
 			},
 			sIoeOpts: &proxy.IoErrOpts{
-				ListRate: 5, StatRate: 5, GetReadCloserRate: 5,
+				ListRate: 90, StatRate: 90, GetReadCloserRate: 90, ReadRate: 900, RCloseRate: 90,
 			},
 		},
 	}

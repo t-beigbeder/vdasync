@@ -16,17 +16,26 @@ import (
 )
 
 type sftpClient struct {
+	hasSession bool
 	sfcs chan *sftp.Client
 	root string
 }
 
 // NewSession implements [dssa.Dssa].
 func (sf *sftpClient) NewSession() error {
+	if sf.hasSession {
+		return errors.New("sftpClient: there is already an active session")
+	}
+	sf.hasSession = true
 	return nil
 }
 
 // EndSession implements [dssa.Dssa].
 func (sf *sftpClient) EndSession() error {
+	if !sf.hasSession {
+		return errors.New("sftpClient: no active session")
+	}
+	sf.hasSession = false
 	return nil
 }
 
