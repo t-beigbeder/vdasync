@@ -41,12 +41,12 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			return
 		}
 		if ress.Err != nil {
-			ph.lgr.Debug("ioerr before useless", "err", ress.Err)
+			ph.lgr.Debug("ioerr before useless", "fcName", fcName, "err", ress.Err)
 			return
 		}
 		if mrand.Intn(rate) == 0 {
 			v := time.Now().UnixNano()
-			ress.Err = fmt.Errorf("rand %d 1/%d", v, ph.opts.ListRate)
+			ress.Err = fmt.Errorf("%s rand %d 1/%d", fcName, v, rate)
 			return
 		}
 	}
@@ -57,10 +57,10 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 		}
 		if mrand.Intn(rate) == 0 {
 			v := time.Now().UnixNano()
-			ress.Err = fmt.Errorf("rand %d 1/%d", v, ph.opts.ListRate)
+			ress.Err = fmt.Errorf("%s rand %d 1/%d", fcName, v, rate)
 			return
 		}
-		ph.lgr.Debug("ioerr after", "err", ress.Err)
+		ph.lgr.Debug("ioerr after", "fcName", fcName, "err", ress.Err)
 		f()
 	}
 	switch fcName {

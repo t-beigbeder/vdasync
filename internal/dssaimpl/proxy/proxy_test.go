@@ -223,7 +223,7 @@ func TestIoErrStandardProxy(t *testing.T) {
 	opts := &IoErrOpts{
 		ListRate: 100, MkdirRate: 100, StatRate: 100, SetStatRate: 100,
 		GetReadCloserRate: 100, ReadRate: 200, RCloseRate: 100,
-		GetWriteCloserRate: 100, WriteRate: 20,
+		GetWriteCloserRate: 100, WriteRate: 200, WCloseRate: 100,
 		RmRate: 100, SymlinkRate: 100,
 	}
 	sIoeDss := MakeIoErrDss(lgr.With("source", true), localfiles.MakeLocalFilesDssa(), opts)

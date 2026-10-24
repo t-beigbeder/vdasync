@@ -27,13 +27,13 @@ func (ph *retryErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRe
 			f()
 			if ress.Err == nil || ress.Err == io.EOF {
 				if count != 0 {
-					ph.lgr.Debug("retry succeeded", "count", count, "max", ph.opts.max+1)
+					ph.lgr.Debug("retry succeeded", "fcName", fcName, "count", count, "max", ph.opts.max+1)
 				}
 				return
 			}
-			ph.lgr.Debug("retry pending", "err", ress.Err.Error(), "count", count, "max", ph.opts.max+1)
+			ph.lgr.Debug("retry pending", "fcName", fcName, "err", ress.Err.Error(), "count", count, "max", ph.opts.max+1)
 		}
-		ph.lgr.Debug("retry failed", "err", ress.Err.Error(), "max", ph.opts.max+1)
+		ph.lgr.Debug("retry failed", "fcName", fcName, "err", ress.Err.Error(), "max", ph.opts.max+1)
 	}
 	switch fcName {
 	case "NewSession":
