@@ -61,6 +61,7 @@ type oplWalkerImpl struct {
 	shdownDoneChan chan bool
 	bg             context.Context
 	testCtx        string
+	restartCb      func(testCtx string, count int) bool
 }
 
 func (ow *oplWalkerImpl) needInvCheck() bool {
@@ -160,7 +161,7 @@ func (ow *oplWalkerImpl) startOrRestart(restart bool) bool {
 			ow.lgr.Error("oplWalkerImpl: startOrRestart: target DSS", "err", err)
 		}
 		ow.restartCount++
-		if ow.owo.RestartCallback == nil || ow.owo.RestartCallback(ow.restartCount) {
+		if ow.restartCb == nil || ow.restartCb(ow.testCtx, ow.restartCount) {
 			ow.detail(ow.lgr, "oplWalkerImpl: startOrRestart", "count", ow.restartCount, "restart", true)
 		} else {
 			ow.detail(ow.lgr, "oplWalkerImpl: startOrRestart", "count", ow.restartCount, "restart", false)

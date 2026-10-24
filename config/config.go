@@ -64,7 +64,6 @@ type OpeLogOptionsType struct {
 	ErrorRate       string `yaml:"errorRate"`
 	SpecialInterest []string
 	SpeIntPhase     string
-	RestartCallback func(count int) bool
 }
 
 type SftpServerType struct {

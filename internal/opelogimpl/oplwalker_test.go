@@ -38,13 +38,13 @@ type owTest struct {
 	hasNoRm            bool
 	hasNoCheck         bool
 	restartCb          func(phase string, count int) bool
-	nbIterPhase1       int
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
 	hasNoPhase4        bool
 	hasNoExpCsv4       bool
 	csvName            string
 	std, ltd, ttd, ctd string
+	noGenSDs, noGenTDs bool
 	sDss, tDss         dssa.Dssa
 	sIoeOpts           *proxy.IoErrOpts
 	tIoeOpts           *proxy.IoErrOpts
@@ -156,13 +156,13 @@ func (owt *owTest) setDefLogger() error {
 }
 
 func (owt *owTest) newOplWalker() OplWalker {
-	if owt.sDss == nil {
+	if owt.sDss == nil || !owt.noGenSDs {
 		owt.sDss = localfiles.MakeLocalFilesDssa()
 		if owt.sIoeOpts != nil {
 			owt.sDss = proxy.MakeIoErrDss(owt.lgr, owt.sDss, owt.sIoeOpts)
 		}
 	}
-	if owt.tDss == nil {
+	if owt.tDss == nil || !owt.noGenTDs {
 		owt.tDss = localfiles.MakeLocalFilesDssa()
 		if owt.tIoeOpts != nil {
 			owt.tDss = proxy.MakeIoErrDss(owt.lgr, owt.tDss, owt.tIoeOpts)
@@ -199,12 +199,7 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, stats *opelog.Compu
 	}
 	owi := ow.(*oplWalkerImpl)
 	owi.testCtx = baseCtx
-	owt.owo.RestartCallback = func(count int) bool {
-		if owt.restartCb == nil {
-			return true
-		}
-		return owt.restartCb(baseCtx, count)
-	}
+	owi.restartCb = owt.restartCb
 	if err = ow.Run(); err != nil {
 		ctx = "owRun"
 		return
@@ -289,13 +284,8 @@ func (owt *owTest) runOwTest() (err error) {
 	}
 
 	// phase1: initial sync request
-	if owt.nbIterPhase1 == 0 {
-		owt.nbIterPhase1 = 1
-	}
-	for range owt.nbIterPhase1 {
-		if ctx, _, err = owt.walkStatsCsv("phase1"); err != nil {
-			return
-		}
+	if ctx, _, err = owt.walkStatsCsv("phase1"); err != nil {
+		return
 	}
 
 	// phase2: dryrun
@@ -434,6 +424,33 @@ func TestManyOplWalkers(t *testing.T) {
 				return true
 			},
 		},
+		{
+			label: "update - read write io errors",
+			conc:  1,
+			ftgen: ftGenAugSmall,
+			owo: &config.OpeLogOptionsType{
+				ErrorRate:     "200",
+				ExpRpt:        "full",
+				EnableRestart: true,
+				ClearErrors:   true,
+				KeepCached:    true,
+			},
+			sIoeOpts: &proxy.IoErrOpts{
+				ResetOnNew: true,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
+			},
+			tIoeOpts: &proxy.IoErrOpts{
+				ResetOnNew: true,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
+				MkdirRate: 7, SetStatRate: 7, GetWriteCloserRate: 7, WriteRate: 70, WCloseRate: 7, RmRate: 7, SymlinkRate: 7,
+			},
+			restartCb: func(phase string, count int) bool {
+				if phase != "phase1" || count >= 2 {
+					return false
+				}
+				return true
+			},
+		},
 	}
 
 	skipDefault := false
@@ -463,20 +480,27 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "test ioerrors",
-			lgr:   cliLgr,
+			label: "test io errors",
+			lgr:   common.DbgLogger(),
 			conc:  1,
-			ftgen: ftGenTiny,
+			ftgen: ftGenAugSmall,
 			owo: &config.OpeLogOptionsType{
 				ErrorRate:     "200",
 				ExpRpt:        "full",
 				EnableRestart: true,
 				ClearErrors:   true,
-				KeepCached:    true,
+				KeepCached:    false,
 			},
+			specialInterest: []string{""},
+			speIntPhase:     "phase2",
 			sIoeOpts: &proxy.IoErrOpts{
 				ResetOnNew: true,
-				ListRate:   13, StatRate: 13, GetReadCloserRate: 13, ReadRate: 130, RCloseRate: 13,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
+			},
+			tIoeOpts: &proxy.IoErrOpts{
+				ResetOnNew: true,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
+				MkdirRate: 7, SetStatRate: 7, GetWriteCloserRate: 7, WriteRate: 70, WCloseRate: 7, RmRate: 7, SymlinkRate: 7,
 			},
 			restartCb: func(phase string, count int) bool {
 				if phase != "phase1" || count >= 2 {
