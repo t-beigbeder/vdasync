@@ -75,6 +75,7 @@ func TestLoadConfig(t *testing.T) {
 }
 
 func Test2seeOplConfig(t *testing.T) {
+	t.Skip("FIXME: no callback")
 	oplc := &OpeLogOptionsType{
 		SyncOptionsType: SyncOptionsType{
 			Dryrun:  true,

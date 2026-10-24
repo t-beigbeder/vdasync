@@ -17,8 +17,8 @@ import (
 
 type sftpClient struct {
 	hasSession bool
-	sfcs chan *sftp.Client
-	root string
+	sfcs       chan *sftp.Client
+	root       string
 }
 
 // NewSession implements [dssa.Dssa].

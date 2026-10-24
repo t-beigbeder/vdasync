@@ -11,16 +11,17 @@ import (
 )
 
 type IoErrOpts struct {
+	ResetOnNew         bool
 	ListRate           int
 	MkdirRate          int
 	StatRate           int
 	SetStatRate        int
 	GetReadCloserRate  int
-	ReadRate int
-	RCloseRate int
+	ReadRate           int
+	RCloseRate         int
 	GetWriteCloserRate int
-	WriteRate int
-	WCloseRate int
+	WriteRate          int
+	WCloseRate         int
 	RmRate             int
 	SymlinkRate        int
 }
@@ -29,6 +30,7 @@ type ioErrHandler struct {
 	lgr        *slog.Logger
 	underlying dssa.Dssa
 	opts       *IoErrOpts
+	sesCount   int
 }
 
 var _ ProxyHandler = &ioErrHandler{}
@@ -66,6 +68,11 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 	switch fcName {
 	case "NewSession":
 		ress.Err = ph.underlying.NewSession()
+		if ph.opts.ResetOnNew && ph.sesCount > 0 {
+			ph.lgr.Debug("ioerr options reset")
+			ph.opts = &IoErrOpts{}
+		}
+		ph.sesCount++
 	case "EndSession":
 		ress.Err = ph.underlying.EndSession()
 	case "List":

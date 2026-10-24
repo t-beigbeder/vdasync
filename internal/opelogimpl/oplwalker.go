@@ -45,6 +45,7 @@ type oplWalkerImpl struct {
 	inclRegs       []*regexp.Regexp
 	exclRegs       []*regexp.Regexp
 	toolStartTime  int64
+	restartCount   int
 	session        string
 	sessionTime    int64
 	inventory      string
@@ -144,10 +145,32 @@ func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	}
 }
 
-func (ow *oplWalkerImpl) startOrRestart() {
+func (ow *oplWalkerImpl) startOrRestart(restart bool) bool {
+	if restart {
+		if err := ow.sds.EndSession(); err != nil {
+			ow.lgr.Error("oplWalkerImpl: startOrRestart: source DSS", "err", err)
+		}
+		if err := ow.tds.EndSession(); err != nil {
+			ow.lgr.Error("oplWalkerImpl: startOrRestart: target DSS", "err", err)
+		}
+		if err := ow.sds.NewSession(); err != nil {
+			ow.lgr.Error("oplWalkerImpl: startOrRestart: source DSS", "err", err)
+		}
+		if err := ow.tds.NewSession(); err != nil {
+			ow.lgr.Error("oplWalkerImpl: startOrRestart: target DSS", "err", err)
+		}
+		ow.restartCount++
+		if ow.owo.RestartCallback == nil || ow.owo.RestartCallback(ow.restartCount) {
+			ow.detail(ow.lgr, "oplWalkerImpl: startOrRestart", "count", ow.restartCount, "restart", true)
+		} else {
+			ow.detail(ow.lgr, "oplWalkerImpl: startOrRestart", "count", ow.restartCount, "restart", false)
+			return false
+		}
+	}
 	time.Sleep(time.Millisecond)
 	ow.toolStartTime = time.Now().UnixMilli()
 	ow.oplq.Put("")
+	return true
 }
 
 func (ow *oplWalkerImpl) workersController() {
@@ -179,9 +202,7 @@ func (ow *oplWalkerImpl) workersController() {
 			ticker.Reset(time.Duration(rsTo))
 			lgr.Debug("oplWalkerImpl", "hasTo", hasTimeOut, "stoppedWkNum", stoppedWkNum)
 			if hasTimeOut && stoppedWkNum == ow.conc {
-				if ow.owo.EnableRestart {
-					ow.startOrRestart()
-				} else {
+				if !ow.owo.EnableRestart || !ow.startOrRestart(true) {
 					// will interrupt all workers
 					ow.oplq.Close()
 				}
@@ -522,9 +543,16 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.lgr.Error("oplWalkerImpl: Run: log initial tool info", "err", err)
 		return err
 	}
-	ow.startOrRestart()
+	ow.startOrRestart(false)
 	// wait workers done
 	wg.Wait()
+	// close dss
+	if err := ow.sds.EndSession(); err != nil {
+		ow.lgr.Error("oplWalkerImpl: Run: source DSS", "err", err)
+	}
+	if err := ow.tds.EndSession(); err != nil {
+		ow.lgr.Error("oplWalkerImpl: Run: target DSS", "err", err)
+	}
 	// stop periodic jobs
 	if syncJob != nil {
 		syncJob.Stop()

@@ -37,6 +37,7 @@ type owTest struct {
 	hasNoExpCsv        bool
 	hasNoRm            bool
 	hasNoCheck         bool
+	restartCb          func(phase string, count int) bool
 	nbIterPhase1       int
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
@@ -188,8 +189,22 @@ func (owt *owTest) walkStatsCsv(baseCtx string) (ctx string, stats *opelog.Compu
 	}()
 	owt.ctx = baseCtx
 	ow := owt.newOplWalker()
+	if err = owt.sDss.NewSession(); err != nil {
+		ctx = "sDssNewSession"
+		return
+	}
+	if err = owt.tDss.NewSession(); err != nil {
+		ctx = "tDssNewSession"
+		return
+	}
 	owi := ow.(*oplWalkerImpl)
 	owi.testCtx = baseCtx
+	owt.owo.RestartCallback = func(count int) bool {
+		if owt.restartCb == nil {
+			return true
+		}
+		return owt.restartCb(baseCtx, count)
+	}
 	if err = ow.Run(); err != nil {
 		ctx = "owRun"
 		return
@@ -397,6 +412,28 @@ func TestManyOplWalkers(t *testing.T) {
 			conc:  4,
 			owo:   &config.OpeLogOptionsType{},
 		},
+		{
+			label: "update - read io errors",
+			conc:  1,
+			ftgen: ftGenTiny,
+			owo: &config.OpeLogOptionsType{
+				ErrorRate:     "200",
+				ExpRpt:        "full",
+				EnableRestart: true,
+				ClearErrors:   true,
+				KeepCached:    true,
+			},
+			sIoeOpts: &proxy.IoErrOpts{
+				ResetOnNew: true,
+				ListRate:   13, StatRate: 13, GetReadCloserRate: 13, ReadRate: 130, RCloseRate: 13,
+			},
+			restartCb: func(phase string, count int) bool {
+				if phase != "phase1" || count >= 2 {
+					return false
+				}
+				return true
+			},
+		},
 	}
 
 	skipDefault := false
@@ -426,18 +463,26 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "test load",
+			label: "test ioerrors",
 			lgr:   cliLgr,
 			conc:  1,
 			ftgen: ftGenTiny,
 			owo: &config.OpeLogOptionsType{
-				ErrorRate: "20",
-				ExpRpt:    "full",
+				ErrorRate:     "200",
+				ExpRpt:        "full",
 				EnableRestart: true,
-				ClearErrors: true,
+				ClearErrors:   true,
+				KeepCached:    true,
 			},
 			sIoeOpts: &proxy.IoErrOpts{
-				ListRate: 90, StatRate: 90, GetReadCloserRate: 90, ReadRate: 900, RCloseRate: 90,
+				ResetOnNew: true,
+				ListRate:   13, StatRate: 13, GetReadCloserRate: 13, ReadRate: 130, RCloseRate: 13,
+			},
+			restartCb: func(phase string, count int) bool {
+				if phase != "phase1" || count >= 2 {
+					return false
+				}
+				return true
 			},
 		},
 	}
@@ -583,7 +628,7 @@ func TestAutoSession(t *testing.T) {
 	lgr = common.GetLogger()
 	// lgr = common.InfoLogger()
 	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	lgr = common.DbgLogger()
+	// lgr = common.DbgLogger()
 	require.NoError(t, err)
 
 	oplm, err := MakeM2fManager("", 0)
