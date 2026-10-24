@@ -16,9 +16,10 @@ import (
 )
 
 type sftpClient struct {
-	hasSession bool
-	sfcs       chan *sftp.Client
-	root       string
+	hasSession  bool
+	sfcs        chan *sftp.Client
+	root        string
+	crossOsSafe bool
 }
 
 // NewSession implements [dssa.Dssa].
@@ -57,6 +58,9 @@ func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
 		sfi, ok := fi.Sys().(*sftp.FileStat)
 		if !ok {
 			return nil, errors.New("sftpClient.List: not a sftp.FileStat")
+		}
+		if err := common.FileNameIsSafe(fi.Name(), sf.crossOsSafe); err != nil {
+			return nil, err
 		}
 		rights := common.Perm2Rights(sfi.FileMode())
 		des = append(des, &dssa.DataEntry{

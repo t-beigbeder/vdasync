@@ -97,14 +97,12 @@ func SelfSignedFiles(host string, certFile, keyFile string) error {
 	if err != nil {
 		return err
 	}
-	err = common.WriteFile(keyFile, certPrivKeyPEM.Bytes())
+	err = common.WritePermFile(keyFile, certPrivKeyPEM.Bytes(), 0600)
 	if err != nil {
 		return err
 	}
 	return nil
 }
-
-var snCount = 1
 
 func getRandSN() (*big.Int, error) {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
@@ -184,7 +182,7 @@ func NewCaCertFiles(certFile, keyFile string, cn string) error {
 	if err != nil {
 		return err
 	}
-	err = common.WriteFile(keyFile, caPrivKeyPEM.Bytes())
+	err = common.WritePermFile(keyFile, caPrivKeyPEM.Bytes(), 0600)
 	if err != nil {
 		return err
 	}
@@ -291,7 +289,7 @@ func NewCertFiles(hosts []string, caCertFile, caKeyFile, certFile, keyFile strin
 	if err != nil {
 		return err
 	}
-	err = common.WriteFile(keyFile, certPrivKeyPEM.Bytes())
+	err = common.WritePermFile(keyFile, certPrivKeyPEM.Bytes(), 0600)
 	if err != nil {
 		return err
 	}

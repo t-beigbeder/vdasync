@@ -4,11 +4,28 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/dssa"
 )
+
+func TestSafeFn(t *testing.T) {
+	require.Error(t, FileNameIsSafe(".", false))
+	require.Error(t, FileNameIsSafe("..", false))
+	require.NoError(t, FileNameIsSafe("a..b", false))
+	require.Error(t, FileNameIsSafe("a../b", false))
+	require.Error(t, FileNameIsSafe("a..\\b", false))
+	require.Error(t, FileNameIsSafe("a/b", true))
+	require.Error(t, FileNameIsSafe("a\\b", true))
+	require.NoError(t, FileNameIsSafe(string([]byte{0x02}), false))
+	require.Error(t, FileNameIsSafe(string([]byte{0x02}), true))
+	require.NoError(t, FileNameIsSafe("/,\\,<,>,:,\",|,?,*", false))
+	for _, c := range strings.Split("/,\\,<,>,:,\",|,?,*", ",") {
+		require.Error(t, FileNameIsSafe(c, true))
+	}
+}
 
 func TestFileFunctions(t *testing.T) {
 	var (

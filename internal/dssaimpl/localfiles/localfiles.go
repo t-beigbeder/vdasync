@@ -12,7 +12,8 @@ import (
 )
 
 type localFiles struct {
-	hasSession bool
+	hasSession  bool
+	crossOsSafe bool
 }
 
 // NewSession implements [dssa.Dssa].
@@ -44,6 +45,9 @@ func (d *localFiles) List(path_ string) ([]*dssa.DataEntry, error) {
 	}
 	dtes := []*dssa.DataEntry{}
 	for _, de := range des {
+		if err := common.FileNameIsSafe(de.Name(), d.crossOsSafe); err != nil {
+			return nil, err
+		}
 		cPath := path.Join(path_, de.Name())
 		dte, err := d.Stat(cPath)
 		if err != nil {
