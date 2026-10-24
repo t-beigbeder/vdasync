@@ -35,6 +35,7 @@ build-this: export BEXT =
 build-this:
 	go build -o $(BDIR)/vdasync$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasync/main.go
 	go build -o $(BDIR)/vdaservice$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdaservice/main.go
+	go build -o $(BDIR)/vdaioerr$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/ioerr/main.go
 
 .PHONY: test-again
 test-again:	export OTVL_TEST_FULL = 1
@@ -59,6 +60,7 @@ xbuild:
 	go build -o $(BDIR)/vdaencrypt$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/encrypt/main.go
 	go build -o $(BDIR)/vdasftp$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/sftp/main.go
 	go build -o $(BDIR)/localFiles$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/localfiles/main.go
+	go build -o $(BDIR)/vdaioerr$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/ioerr/main.go
 	go build -o $(BDIR)/vdasftpsync$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/vdasftpsync/main.go
 	go build -o $(BDIR)/csavsftp$(BEXT) -ldflags "-X github.com/t-beigbeder/vdasync/config.Version=$(VERSION)" cmd/plugins/examples/csavsftp/main.go
 

@@ -1,0 +1,8 @@
+pluginsOptions:
+  noTls: true
+plugins:
+- name: ioerr
+  type: vdaioerr
+  addArgs: [
+    "-ioelist", "20", "-ioestat", "20", "-ioeread", "200"
+    ]
