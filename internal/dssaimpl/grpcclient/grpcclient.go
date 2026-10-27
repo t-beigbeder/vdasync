@@ -2,6 +2,7 @@ package grpcclient
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"log/slog"
 
@@ -23,6 +24,13 @@ type GrpcClient interface {
 
 var _ GrpcClient = &grpcClient{}
 
+// NewSession implements [dssa.Dssa].
+func (gc *grpcClient) NewSession() error {
+	gc.lgr.Debug("grpcClient.NewSession")
+	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
+	return err
+}
+
 // EndSession implements [dssa.Dssa].
 func (gc *grpcClient) EndSession() error {
 	gc.lgr.Debug("grpcClient.EndSession")
@@ -30,11 +38,20 @@ func (gc *grpcClient) EndSession() error {
 	return err
 }
 
-// NewSession implements [dssa.Dssa].
-func (gc *grpcClient) NewSession() error {
-	gc.lgr.Debug("grpcClient.NewSession")
-	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
-	return err
+// IsGrpcClient implements [dssa.Dssa].
+func (gc *grpcClient) IsGrpcClient() bool { return true }
+
+// DssInfo implements [dssa.Dssa].
+func (gc *grpcClient) DssInfo() string {
+	gc.lgr.Debug("grpcClient.DssInfo")
+	rdi := ""
+	di, err := gc.client.DssInfo(gc.ctx, &dssagrpc.Empty{})
+	if err == nil {
+		rdi = di.DssInfo
+	} else {
+		rdi = fmt.Sprintf("remote error %s", err.Error())
+	}
+	return fmt.Sprintf("gRPC client for %s", rdi)
 }
 
 // List implements [dssa.Dssa].
@@ -125,3 +142,5 @@ func (gc *grpcClient) GetClient() remote.OpeDssaClient {
 func MakeGrpcClient(lgr *slog.Logger, ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
 	return &grpcClient{lgr, ctx, client}
 }
+
+var _ GrpcClient = &grpcClient{}

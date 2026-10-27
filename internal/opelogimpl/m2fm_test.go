@@ -24,9 +24,9 @@ func TestM2fBaseOpeLogs(t *testing.T) {
 	require.NoError(t, err)
 
 	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 
 	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
@@ -48,9 +48,9 @@ func TestM2fNoFileOpeLogs(t *testing.T) {
 	require.NoError(t, err)
 
 	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 
 	require.Error(t, olm.Open(false))
 	require.Error(t, olm.Open(true))
@@ -61,9 +61,9 @@ func TestM2fNoFileOpeLogs(t *testing.T) {
 	olm, err = makeTestM2fManager("", 0, false, std, ttd)
 	require.NoError(t, err)
 	olm.PutLogicalEntry("", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 	require.NoError(t, olm.Close())
 	lgr.Debug("TestM2fNoFileOpeLogs: end")
 }
@@ -81,8 +81,8 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 
 	olm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 0, true, std, ttd)
 	require.NoError(t, err)
-	require.Contains(t, olm.Olm().Sessions, "ds")
-	sTs := olm.Olm().Sessions["ds"].ReferenceTime
+	require.Contains(t, olm.GetOlm().Sessions, "ds")
+	sTs := olm.GetOlm().Sessions["ds"].ReferenceTime
 
 	tSt := time.Now().Unix()
 	err = filepath.Walk(std, func(path string, info fs.FileInfo, err error) error {
@@ -93,7 +93,7 @@ func TestM2fWriteOpeLogs(t *testing.T) {
 		return olm.PutLogicalEntry(path, le)
 	})
 	require.NoError(t, err)
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 
 	olm2, err := MakeM2fManager(path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)
@@ -116,8 +116,8 @@ func TestM2fWriteNoFileOpeLogs(t *testing.T) {
 
 	olm, err := makeTestM2fManager("", 0, false, std, ttd)
 	require.NoError(t, err)
-	require.Contains(t, olm.Olm().Sessions, "ds")
-	sTs := olm.Olm().Sessions["ds"].ReferenceTime
+	require.Contains(t, olm.GetOlm().Sessions, "ds")
+	sTs := olm.GetOlm().Sessions["ds"].ReferenceTime
 
 	tSt := time.Now().Unix()
 	err = filepath.Walk(std, func(path string, info fs.FileInfo, err error) error {
@@ -128,7 +128,7 @@ func TestM2fWriteNoFileOpeLogs(t *testing.T) {
 		return olm.PutLogicalEntry(path, le)
 	})
 	require.NoError(t, err)
-	require.NoError(t, olm.Sync(false))
+	require.NoError(t, olm.Sync())
 
 	require.NoError(t, olm.Close())
 	lgr.Debug("TestM2fWriteNoFileOpeLogs: end")

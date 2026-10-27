@@ -22,6 +22,14 @@ type sftpClient struct {
 	root string
 }
 
+// IsGrpcClient implements [dssa.Dssa].
+func (sf *sftpClient) IsGrpcClient() bool { return false }
+
+// DssInfo implements [dssa.Dssa].
+func (sf *sftpClient) DssInfo() string {
+	return fmt.Sprintf("vdasftp root %s", sf.root)
+}
+
 // EndSession implements [dssa.Dssa].
 func (sf *sftpClient) EndSession() error {
 	return nil

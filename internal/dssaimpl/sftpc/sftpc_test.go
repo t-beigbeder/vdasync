@@ -30,6 +30,8 @@ func wtf(ds dssa.Dssa, path_ string) error {
 func TestSftpStuff(t *testing.T) {
 	SkipIf(t)
 	ds := GetSftpDss(t)
+	di := ds.DssInfo()
+	require.NotEmpty(t, di)
 	require.NoError(t, Cleanup(ds))
 	des, err := ds.List("/")
 	require.NoError(t, err)

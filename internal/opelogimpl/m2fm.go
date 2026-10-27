@@ -3,7 +3,9 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -186,20 +188,32 @@ func (m *m2fOplMng) Open(readOnly bool) error {
 	return nil
 }
 
-// Olm implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Olm() *opelog.OpeLogMaster {
+// GetOlm implements [opelog.OpeLogManager].
+func (m *m2fOplMng) GetOlm() *opelog.OpeLogMaster {
 	return m.om.Clone()
 }
 
+// SetOlm implements [opelog.OpeLogManager].
+func (m *m2fOplMng) SetOlm(om *opelog.OpeLogMaster) error {
+	m.mx.Lock()
+	defer m.mx.Unlock()
+	if !m.isOpen {
+		return errors.New("m2fMng.SetOlm: not opened")
+	}
+	if m.readOnly {
+		return errors.New("m2fMng.SetOlm: opened in read-only")
+	}
+	*m.om = *om.Clone()
+	m.hasUpdates = true
+	return nil
+}
+
 // Sync implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Sync(olmChanged bool) error {
+func (m *m2fOplMng) Sync() error {
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.isOpen {
 		return errors.New("m2fMng.Sync: not opened")
-	}
-	if olmChanged {
-		m.hasUpdates = true
 	}
 	if !m.hasUpdates {
 		return nil
@@ -288,23 +302,35 @@ func (m *m2fOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) er
 }
 
 // Walk implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error) error {
+func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error, sorted bool) error {
+	unmarshIfAndDo := func(relPath string) error {
+		if !m.testMarsh {
+			return doIt(relPath, m.les[relPath])
+		}
+		bole, _ := m.marshLes[relPath]
+		gole := opeloggrpc.LogicalEntry{}
+		if err := proto.Unmarshal(bole, &gole); err != nil {
+			return err
+		}
+		return doIt(relPath, opelog.ProtoBuf2LogicalEntry(&gole))
+	}
+
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.isOpen {
 		return errors.New("m2fMng.Walk: not opened")
 	}
-	for relPath, ole := range m.les {
-		if m.testMarsh {
-			bole, _ := m.marshLes[relPath]
-			gole := opeloggrpc.LogicalEntry{}
-			if err := proto.Unmarshal(bole, &gole); err != nil {
+	if sorted {
+		for _, relPath := range slices.Sorted(maps.Keys(m.les)) {
+			if err := unmarshIfAndDo(relPath); err != nil {
 				return err
 			}
-			ole = opelog.ProtoBuf2LogicalEntry(&gole)
 		}
-		if err := doIt(relPath, ole); err != nil {
-			return err
+	} else {
+		for relPath := range m.les {
+			if err := unmarshIfAndDo(relPath); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

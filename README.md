@@ -12,7 +12,7 @@ running on Go [supported platforms](https://go.dev/wiki/MinimumRequirements).
 `vdasync` is intended to be used for backups and data replication.
 Beyond local and remote files access, synchronization may leverage other data access means through plugins.
 `vdasync` also adds the capability to track long-running synchronization operations on large datasets
-through the use of operations logs.
+through the use of operation logs.
 
 It leverages Go [concurrency features](https://go.dev/wiki/LearnConcurrency)
 to enable the use of available resources as efficiently as wanted.
@@ -91,7 +91,7 @@ Vdasync commands and their arguments are detailed here:
 - [vdasync](docs/vdasync.md)
 - [vdaserver](docs/vdaserver.md)
 - [vdaservice](docs/vdaservice.md)
-- [operations logs](docs/opelog.md)
+- [operation logs](docs/opelog.md)
 
 Vdasync plugins are detailed here:
 

@@ -1,6 +1,7 @@
 package localfiles
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -11,16 +12,34 @@ import (
 )
 
 type localFiles struct {
-}
-
-// EndSession implements [dssa.Dssa].
-func (d *localFiles) EndSession() error {
-	return nil
+	hasSession  bool
+	crossOsSafe bool
 }
 
 // NewSession implements [dssa.Dssa].
 func (d *localFiles) NewSession() error {
+	if d.hasSession {
+		return errors.New("localFiles: there is already an active session")
+	}
+	d.hasSession = true
 	return nil
+}
+
+// EndSession implements [dssa.Dssa].
+func (d *localFiles) EndSession() error {
+	if !d.hasSession {
+		return errors.New("localFiles: no active session")
+	}
+	d.hasSession = false
+	return nil
+}
+
+// IsGrpcClient implements [dssa.Dssa].
+func (d *localFiles) IsGrpcClient() bool { return false }
+
+// DssInfo implements [dssa.Dssa].
+func (d *localFiles) DssInfo() string {
+	return "localFiles"
 }
 
 // List implements [dssa.Dssa].
@@ -31,6 +50,9 @@ func (d *localFiles) List(path_ string) ([]*dssa.DataEntry, error) {
 	}
 	dtes := []*dssa.DataEntry{}
 	for _, de := range des {
+		if err := common.FileNameIsSafe(de.Name(), d.crossOsSafe); err != nil {
+			return nil, err
+		}
 		cPath := path.Join(path_, de.Name())
 		dte, err := d.Stat(cPath)
 		if err != nil {

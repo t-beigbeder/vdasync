@@ -93,7 +93,7 @@ func InventoryCsvImport(oplm opelog.OpeLogManager, inventTs int64, csvPath strin
 		row, err := csr.Read()
 		if err != nil {
 			if err == io.EOF {
-				if err := oplm.Sync(false); err != nil {
+				if err := oplm.Sync(); err != nil {
 					return err
 				}
 				return nil

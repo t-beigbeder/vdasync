@@ -81,7 +81,7 @@ func Test2seeOplConfig(t *testing.T) {
 			Check:   true,
 			CsAlgos: "md5,sha256",
 		},
-		Goals: "one,two",
+		Goal: "one,two",
 	}
 	oply, err := yaml.Marshal(&oplc)
 	require.NoError(t, err)

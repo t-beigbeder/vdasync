@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	DataStorageSystem_NewSession_FullMethodName = "/dssa.DataStorageSystem/NewSession"
 	DataStorageSystem_EndSession_FullMethodName = "/dssa.DataStorageSystem/EndSession"
+	DataStorageSystem_DssInfo_FullMethodName    = "/dssa.DataStorageSystem/DssInfo"
 	DataStorageSystem_List_FullMethodName       = "/dssa.DataStorageSystem/List"
 	DataStorageSystem_Stat_FullMethodName       = "/dssa.DataStorageSystem/Stat"
 	DataStorageSystem_Checksum_FullMethodName   = "/dssa.DataStorageSystem/Checksum"
@@ -38,6 +39,7 @@ const (
 type DataStorageSystemClient interface {
 	NewSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	EndSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+	DssInfo(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*DssInfoMT, error)
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
 	Checksum(ctx context.Context, in *AlgosAndPath, opts ...grpc.CallOption) (*Checksums, error)
@@ -71,6 +73,16 @@ func (c *dataStorageSystemClient) EndSession(ctx context.Context, in *Empty, opt
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, DataStorageSystem_EndSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataStorageSystemClient) DssInfo(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*DssInfoMT, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DssInfoMT)
+	err := c.cc.Invoke(ctx, DataStorageSystem_DssInfo_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +197,7 @@ func (c *dataStorageSystemClient) Symlink(ctx context.Context, in *OldNewPaths, 
 type DataStorageSystemServer interface {
 	NewSession(context.Context, *Empty) (*Empty, error)
 	EndSession(context.Context, *Empty) (*Empty, error)
+	DssInfo(context.Context, *Empty) (*DssInfoMT, error)
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
 	Checksum(context.Context, *AlgosAndPath) (*Checksums, error)
@@ -209,6 +222,9 @@ func (UnimplementedDataStorageSystemServer) NewSession(context.Context, *Empty) 
 }
 func (UnimplementedDataStorageSystemServer) EndSession(context.Context, *Empty) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method EndSession not implemented")
+}
+func (UnimplementedDataStorageSystemServer) DssInfo(context.Context, *Empty) (*DssInfoMT, error) {
+	return nil, status.Error(codes.Unimplemented, "method DssInfo not implemented")
 }
 func (UnimplementedDataStorageSystemServer) List(context.Context, *Path) (*DataEntries, error) {
 	return nil, status.Error(codes.Unimplemented, "method List not implemented")
@@ -290,6 +306,24 @@ func _DataStorageSystem_EndSession_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DataStorageSystemServer).EndSession(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataStorageSystem_DssInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).DssInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_DssInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).DssInfo(ctx, req.(*Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -452,6 +486,10 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EndSession",
 			Handler:    _DataStorageSystem_EndSession_Handler,
+		},
+		{
+			MethodName: "DssInfo",
+			Handler:    _DataStorageSystem_DssInfo_Handler,
 		},
 		{
 			MethodName: "List",

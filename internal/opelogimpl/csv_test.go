@@ -39,10 +39,11 @@ func TestCsvExport(t *testing.T) {
 
 	cPath := path.Join(ltd, "invDump.csv")
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
-	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, true, std, ttd)
+	testMarsh := true
+	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, testMarsh, std, ttd)
 	require.NoError(t, err)
-	require.Contains(t, oplm.Olm().Sessions, "di")
-	iTs := oplm.Olm().Sessions["di"].ReferenceTime
+	require.Contains(t, oplm.GetOlm().Sessions, "di")
+	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5"))
 	require.NoError(t, oplm.Close())
 
@@ -53,7 +54,7 @@ func TestCsvExport(t *testing.T) {
 			SyncOptionsType: config.SyncOptionsType{
 				Check: true,
 			},
-			Goals:           "update",
+			Goal:            "update",
 			ResetMilTimeout: 250,
 			InvCsAlgos:      "md5",
 			NoInvCheck:      false,
@@ -64,10 +65,10 @@ func TestCsvExport(t *testing.T) {
 	err = ow.Run()
 	require.NoError(t, err)
 
-	oplmRo, err := openTestM2fManagerRO(path.Join(ltd, "m2f.opl"), true)
+	oplmRo, err := openTestM2fManagerRO(path.Join(ltd, "m2f.opl"), testMarsh)
 	require.NoError(t, err)
-	require.Contains(t, oplmRo.Olm().Sessions, "ds")
-	sTs := oplm.Olm().Sessions["ds"].ReferenceTime
+	require.Contains(t, oplmRo.GetOlm().Sessions, "ds")
+	sTs := oplm.GetOlm().Sessions["ds"].ReferenceTime
 	rLe, err := oplmRo.GetLogicalEntry("")
 	require.NoError(t, err)
 	require.Zero(t, rLe.GetStats(sTs).Error.Number)
@@ -75,7 +76,7 @@ func TestCsvExport(t *testing.T) {
 	ctd := path.Join(os.TempDir(), "oplCsv")
 	os.Mkdir(ctd, 0700)
 	csvPath := path.Join(ctd, "csv-test-full.csv")
-	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_FULL, "di", "ds", nil))
+	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_FULL, "di", "ds", &RptConfig{ToolInfo: &opelog.ToolInformation{}, IsSorted: true}))
 
 	csvPath = path.Join(ctd, "csv-test-synth.csv")
 	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_SYNTHETIC, "di", "ds", nil))

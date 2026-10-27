@@ -34,6 +34,9 @@ func listBck(dss dssa.Dssa, path_ string) ([]string, error) {
 func LimitedBackup(dss dssa.Dssa, path_ string, limit int) error {
 	de, err := dss.Stat(path_)
 	if err != nil {
+		if de != nil && de.ErrNotExist {
+			return nil
+		}
 		return err
 	}
 	tss := time.Unix(de.Mtime, 0).UTC().Format(BckExtFormat)

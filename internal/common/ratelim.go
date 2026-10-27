@@ -197,3 +197,62 @@ func ParseEvBdwbRates(ebrs string) (evRate, bandwidth float64, err error) {
 	}
 	return
 }
+
+type CancelEvLter struct {
+	evLter       *rate.Limiter
+	cancelableCb func(doing chan any, d time.Duration)
+	doing        chan any
+	done         chan any
+}
+
+func NewCancelEvLter(evFreq float64, cancelableCb func(doing chan any, d time.Duration)) (*CancelEvLter, func()) {
+	cel := &CancelEvLter{cancelableCb: cancelableCb}
+	cel.evLter = rate.NewLimiter(rate.Limit(evFreq), 1)
+	cel.doing = make(chan any)
+	cel.done = make(chan any)
+	return cel, func() { close(cel.doing) }
+}
+
+func (cel *CancelEvLter) RtlThis() error {
+	var (
+		isCanceled bool
+		d          time.Duration
+		tmer       *time.Timer
+	)
+	select {
+	case <-cel.doing:
+		isCanceled = true
+	default:
+		now := time.Now()
+		rsv := cel.evLter.ReserveN(now, 1)
+		if !rsv.OK() {
+			return errors.New("cannot reserve a single token for events")
+		}
+		d = rsv.DelayFrom(now)
+	}
+	if isCanceled {
+		return errors.New("event limiter canceled")
+	}
+	if d == 0 {
+		return nil
+	}
+	if d > 0 && cel.cancelableCb != nil {
+		cel.cancelableCb(cel.doing, d)
+	}
+	tmer = time.NewTimer(d)
+	select {
+	case <-tmer.C:
+		tmer.Stop()
+	case <-cel.doing:
+		tmer.Stop()
+	}
+	return nil
+}
+
+func (cel *CancelEvLter) Stop() {
+	close(cel.done)
+}
+
+func (cel *CancelEvLter) Wait() {
+	<-cel.done
+}

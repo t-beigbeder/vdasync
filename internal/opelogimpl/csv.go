@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -65,6 +66,7 @@ func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
 
 type RptConfig struct {
 	ToolInfo *opelog.ToolInformation
+	IsSorted bool
 }
 
 type RptType int
@@ -115,7 +117,7 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record[4] = ele.dispSummary()
 
 	sBase := 5
-	record[sBase] = ele.source.dispState()
+	record[sBase] = ele.source.dispState(false)
 	record[sBase+1] = ele.source.dispDir()
 	record[sBase+2] = ele.source.dispSymlink()
 	record[sBase+3] = ele.source.dispSize()
@@ -123,7 +125,7 @@ func syntheticExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) []
 	record[sBase+5] = ele.source.dispChecksums()
 
 	tBase := sBase + 6
-	record[tBase] = ele.target.dispState()
+	record[tBase] = ele.target.dispState(false)
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
 	record[tBase+3] = ele.target.dispSize()
@@ -144,7 +146,7 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 	record[4] = ele.dispSummary()
 
 	sBase := 5
-	record[sBase] = ele.source.dispState()
+	record[sBase] = ele.source.dispState(true)
 	record[sBase+1] = ele.source.dispDir()
 	record[sBase+2] = ele.source.dispSymlink()
 	record[sBase+3] = ele.source.dispSize()
@@ -152,7 +154,7 @@ func fullExporter(relPath string, le *opelog.LogicalEntry, ti, ts int64) [][]str
 	record[sBase+5] = ele.source.dispChecksums()
 
 	tBase := sBase + 6 + 8 // 8 == len(getEventsAsStrings())
-	record[tBase] = ele.target.dispState()
+	record[tBase] = ele.target.dispState(true)
 	record[tBase+1] = ele.target.dispDir()
 	record[tBase+2] = ele.target.dispSymlink()
 	record[tBase+3] = ele.target.dispSize()
@@ -212,7 +214,7 @@ func (ele *expLe) dispSummary() string {
 	return stats.Display("summary")
 }
 
-func (est *expSt) dispState() string {
+func (est *expSt) dispState(full bool) string {
 	if est.Stc == opelog.STC_DONE_PRESENT {
 		return est.Se.ToDataEntry("").ModString()
 	}
@@ -220,6 +222,9 @@ func (est *expSt) dispState() string {
 		return "-"
 	}
 	if est.Stc == opelog.STC_SE_ERROR {
+		if full {
+			return fmt.Sprintf("e: \"%s\"", est.Error)
+		}
 		return "e"
 	}
 	if est.Stc == opelog.STC_DESC_ERROR {
@@ -322,6 +327,28 @@ func (est *expSt) getEventsAsStrings() (res [][]string) {
 	return
 }
 
+func toolInfoHeader(ti *opelog.ToolInformation) string {
+	return strings.Join([]string{
+		fmt.Sprintf("exported: %s", ts2s(time.Now().Unix())),
+		fmt.Sprintf("command: %s", ti.CmdLine),
+		fmt.Sprintf("version: %s", ti.Version),
+		fmt.Sprintf("host: %s", ti.HostName),
+		fmt.Sprintf("started: %s", ts2s(ti.StartTime)),
+		fmt.Sprintf("source: %s", ti.SourceDssInfo),
+		fmt.Sprintf("target: %s", ti.TargetDssInfo),
+	}, "\n")
+}
+
+func toolInfoFooter(ti *opelog.ToolInformation) string {
+	if ti.StopTime == 0 {
+		return "stopped: operation still on-going"
+	}
+	return strings.Join([]string{
+		fmt.Sprintf("stopped: %s", ts2s(ti.StopTime)),
+		fmt.Sprintf("summary: %s", ti.ExecSummary),
+	}, "\n")
+}
+
 func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	csvPath string, rt RptType, invent, session string,
 	rptCfg *RptConfig,
@@ -333,13 +360,13 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	sse := &opelog.SessionInfo{ReferenceTime: -1}
 	var ok bool
 	if invent != "" {
-		ise, ok = oplm.Olm().Sessions[invent]
+		ise, ok = oplm.GetOlm().Sessions[invent]
 		if !ok {
 			return fmt.Errorf("inventory %s not found", invent)
 		}
 	}
 	if session != "" {
-		sse, ok = oplm.Olm().Sessions[session]
+		sse, ok = oplm.GetOlm().Sessions[session]
 		if !ok {
 			return fmt.Errorf("session %s not found", session)
 		}
@@ -357,8 +384,7 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	if err := cw.Write(ce.columns); err != nil {
 		return err
 	}
-	meta := fmt.Sprintf("%v\nexport timestamp: %s", *rptCfg.ToolInfo, time.Now().Format(time.RFC3339))
-	if err := cw.Write([]string{meta}); err != nil {
+	if err := cw.Write([]string{toolInfoHeader(rptCfg.ToolInfo)}); err != nil {
 		return err
 	}
 
@@ -370,8 +396,11 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 			}
 		}
 		return nil
-	})
+	}, rptCfg.IsSorted)
 	if err != nil {
+		return err
+	}
+	if err := cw.Write([]string{toolInfoFooter(rptCfg.ToolInfo)}); err != nil {
 		return err
 	}
 	cw.Flush()

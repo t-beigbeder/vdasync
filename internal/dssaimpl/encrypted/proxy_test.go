@@ -23,6 +23,8 @@ func TestProxy(t *testing.T) {
 	require.NoError(t, err)
 	dss, err := MakeProxyEncDssa(lgr, td, []string{id1})
 	require.NoError(t, err)
+	di := dss.DssInfo()
+	require.NotEmpty(t, di)
 	require.Error(t, dss.NewSession())
 	rec2, id2, err := common.AgeNewKeyPair()
 	require.NoError(t, err)
@@ -58,6 +60,10 @@ func TestRunOpeDssaTrustedServer(t *testing.T) {
 	cli, conn, err := remote.NewOpeDssaClient(fmt.Sprintf("%s:%d", testHost, port), nil)
 	require.NoError(t, err)
 	defer conn.Close()
+
+	di, err := cli.DssInfo(bgCtx, &dssagrpc.Empty{})
+	require.NoError(t, err)
+	require.NotEmpty(t, di.DssInfo)
 
 	_, err = cli.NewSession(bgCtx, &dssagrpc.Empty{})
 	require.Error(t, err)

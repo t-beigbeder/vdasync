@@ -16,6 +16,7 @@ func TestFileFunctions(t *testing.T) {
 	ft := path.Join(td1, "TestFileFunctions.dat")
 	require.Nil(t, common.WriteFile(ft, []byte(t.Name())))
 	lfd := MakeLocalFilesDssa()
+	require.NotEmpty(t, lfd.DssInfo())
 	de, err := lfd.Stat(ft)
 	require.Nil(t, err)
 	require.Nil(t, common.Lutimes(ft, de.Mtime-600))

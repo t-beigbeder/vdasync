@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 	"runtime/pprof"
+	"strings"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/config"
@@ -25,6 +26,7 @@ func RunSyncCli(df *DssaFactory) {
 		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
 		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
 		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operation logs keep cache on (re)start")
+		oplErrRtlFlag  = flag.String("oplertl", "1.67e-2", "operation logs errors rate limit")
 		sourceFlag     = flag.String("source", "", "source of the command")
 		targetFlag     = flag.String("target", "", "target of the command")
 		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -35,6 +37,7 @@ func RunSyncCli(df *DssaFactory) {
 		noMtimeFlag    = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag   = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
 		cProfFlag      = flag.String("cprof", "", "cpu.prof file")
+		legacyFlag     = flag.Bool("legacy", false, "won't use operation logs algorithm but legacy one, no more maintained")
 	)
 	cf := CommonFlags()
 	svsf := ServicesFlags()
@@ -122,7 +125,7 @@ func RunSyncCli(df *DssaFactory) {
 		InclListPath: *svsf.InclFlag,
 	}
 
-	if *oplCmdFlag == "" {
+	if *legacyFlag {
 		swk, err := walker.RunSynchronizer(
 			lgr, *cf.ConcurrencyFlag,
 			&swo,
@@ -141,6 +144,19 @@ func RunSyncCli(df *DssaFactory) {
 		time.Sleep(10 * time.Millisecond)
 		return
 	}
+	if *oplCmdFlag == "" {
+		// to replace legacy algorithm
+		*svsf.OplPathFlag = ""
+		*svsf.OplSyncFlag = ""
+		*oplCmdFlag = "update"
+		*oplRtoFlag = 250
+		*oplNoInvCFlag = true
+		*oplErrRtlFlag = ""
+
+	} else if *svsf.OplPathFlag == "" {
+		common.Fatal(lgr, errors.New("oplpath flag is missing"))
+	}
+
 	syncPer, syncBck, err := ParsePeriodBackups(*svsf.OplSyncFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
@@ -157,11 +173,10 @@ func RunSyncCli(df *DssaFactory) {
 		if err := oplm.Create(sourceRoot, targetRoot); err != nil {
 			common.Fatal(lgr, err)
 		}
-
 	}
 	owo := &config.OpeLogOptionsType{
 		SyncOptionsType: swo,
-		Goals:           *oplCmdFlag,
+		Goal:            *oplCmdFlag,
 		NoInvCheck:      *oplNoInvCFlag,
 		SyncPeriod:      int64(syncPer),
 		ResetMilTimeout: *oplRtoFlag,
@@ -172,8 +187,12 @@ func RunSyncCli(df *DssaFactory) {
 		ExpRpt:          *svsf.OplRptFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
+		ErrorRate:       *oplErrRtlFlag,
 	}
-	opti := &opelog.ToolInformation{CmdLine: "TODO: setup ToolInformation"}
+	opti := &opelog.ToolInformation{
+		CmdLine: strings.Join(os.Args, " "),
+		Version: config.GetVersion(),
+	}
 	ow := opelogimpl.NewOplWalker(
 		lgr, *cf.ConcurrencyFlag, nil, oplm,
 		opti, owo,
@@ -186,5 +205,10 @@ func RunSyncCli(df *DssaFactory) {
 	})
 	if err = ow.Run(); err != nil {
 		common.Fatal(lgr, err)
+	}
+	if *svsf.OplPathFlag == "" {
+		if _, err := fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary); err != nil {
+			common.Fatal(lgr, err)
+		}
 	}
 }

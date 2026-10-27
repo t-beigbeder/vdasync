@@ -45,6 +45,8 @@ func getDs(t *testing.T) (string, dssa.Dssa, string) {
 func TestBasicDirsAndFiles(t *testing.T) {
 	_, ds, _ := getDs(t)
 	require.NotNil(t, ds)
+	di := ds.DssInfo()
+	require.NotEmpty(t, di)
 	require.NoError(t, ds.NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))
 	require.NoError(t, ds.EndSession())

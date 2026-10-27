@@ -1,10 +1,13 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 
 	"github.com/t-beigbeder/vdasync/dssa"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/grpcclient"
+	"github.com/t-beigbeder/vdasync/internal/remote"
 )
 
 type ProxyDssa interface {
@@ -55,6 +58,14 @@ func (pd *proxyDssa) NewSession() error {
 func (pd *proxyDssa) EndSession() error {
 	ress := pd.handler.Handle("EndSession", &ProxyHdlArgs{})
 	return ress.Err
+}
+
+// IsGrpcClient implements [dssa.Dssa].
+func (pd *proxyDssa) IsGrpcClient() bool { return pd.underlying.IsGrpcClient() }
+
+// DssInfo implements [dssa.Dssa].
+func (pd *proxyDssa) DssInfo() string {
+	return fmt.Sprintf("proxy %T for %s", pd.handler, pd.underlying.DssInfo())
 }
 
 // List implements [ProxyDssa].
@@ -115,6 +126,20 @@ func (pd *proxyDssa) Symlink(old string, new_ string) error {
 func (pd *proxyDssa) Underlying() dssa.Dssa {
 	return pd.underlying
 }
+
+// GetClient implements [grpcclient.GrpcClient].
+func (pd *proxyDssa) GetClient() remote.OpeDssaClient {
+	if !pd.underlying.IsGrpcClient() {
+		panic(fmt.Sprintf("proxied DSS is not a gRPC client (%T)", pd.underlying))
+	}
+	gc, _ := pd.underlying.(grpcclient.GrpcClient)
+	if gc == nil {
+		return nil
+	}
+	return gc.GetClient()
+}
+
+var _ grpcclient.GrpcClient = &proxyDssa{}
 
 func MakeProxyDssa(lgr *slog.Logger, underlying dssa.Dssa, handler ProxyHandler) ProxyDssa {
 	if handler == nil {

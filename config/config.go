@@ -49,7 +49,7 @@ type SyncOptionsType struct {
 
 type OpeLogOptionsType struct {
 	SyncOptionsType `yaml:"syncOptionsType"`
-	Goals           string `yaml:"goals"`
+	Goal            string `yaml:"goal"`
 	NoInvCheck      bool   `yaml:"noInvCheck"`
 	InvCsAlgos      string `yaml:"invCsAlgos"`
 	SyncPeriod      int64  `yaml:"syncPeriod"`
@@ -61,6 +61,7 @@ type OpeLogOptionsType struct {
 	ExpFile         string `yaml:"expFile"`
 	ExpRpt          string `yaml:"expRpt"`
 	ExpBck          int    `yaml:"expBck"`
+	ErrorRate       string `yaml:"errorRate"`
 	SpecialInterest []string
 	SpeIntPhase     string
 }

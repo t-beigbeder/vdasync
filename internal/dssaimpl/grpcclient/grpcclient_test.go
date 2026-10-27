@@ -21,6 +21,8 @@ func TestFunctions(t *testing.T) {
 	require.Nil(t, err)
 	defer cFunc()
 	dgc := MakeGrpcClient(common.GetLogger(), context.Background(), cli)
+	di := dgc.DssInfo()
+	require.NotEmpty(t, di)
 	des, err := dgc.List(path.Dir(ft))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(des))

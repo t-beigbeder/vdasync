@@ -134,16 +134,12 @@ func (p *proxyDss) checkProxied() (dssa.Dssa, error) {
 	return p.dss, nil
 }
 
-// Checksum implements [dssa.Dssa].
-func (p *proxyDss) Checksum(algos string, path_ string) (string, error) {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return "", err
+// NewSession implements [dssa.Dssa].
+func (p *proxyDss) NewSession() error {
+	if _, err := p.checkProxied(); err != nil {
+		return err
 	}
-	return dss.Checksum(algos, path_)
+	return nil
 }
 
 // EndSession implements [dssa.Dssa].
@@ -157,28 +153,16 @@ func (p *proxyDss) EndSession() error {
 	return nil
 }
 
-// GetReadCloser implements [dssa.Dssa].
-func (p *proxyDss) GetReadCloser(path_ string) (io.ReadCloser, error) {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return nil, err
-	}
-	return dss.GetReadCloser(path_)
-}
+// IsGrpcClient implements [dssa.Dssa].
+func (p *proxyDss) IsGrpcClient() bool { return false }
 
-// GetWriteCloser implements [dssa.Dssa].
-func (p *proxyDss) GetWriteCloser(path_ string) (io.WriteCloser, error) {
-	var (
-		dss dssa.Dssa
-		err error
-	)
-	if dss, err = p.checkProxied(); err != nil {
-		return nil, err
+// DssInfo implements [dssa.Dssa].
+func (p *proxyDss) DssInfo() string {
+	di := "dss unset"
+	if p.dss != nil {
+		di = p.dss.DssInfo()
 	}
-	return dss.GetWriteCloser(path_)
+	return fmt.Sprintf("trusted proxy for %s (rootPath %s)", di, p.rootPath)
 }
 
 // List implements [dssa.Dssa].
@@ -205,24 +189,16 @@ func (p *proxyDss) Mkdir(de *dssa.DataEntry) error {
 	return dss.Mkdir(de)
 }
 
-// NewSession implements [dssa.Dssa].
-func (p *proxyDss) NewSession() error {
-	if _, err := p.checkProxied(); err != nil {
-		return err
-	}
-	return nil
-}
-
-// Rm implements [dssa.Dssa].
-func (p *proxyDss) Rm(path_ string) error {
+// Stat implements [dssa.Dssa].
+func (p *proxyDss) Stat(path_ string) (*dssa.DataEntry, error) {
 	var (
 		dss dssa.Dssa
 		err error
 	)
 	if dss, err = p.checkProxied(); err != nil {
-		return err
+		return nil, err
 	}
-	return dss.Rm(path_)
+	return dss.Stat(path_)
 }
 
 // SetStat implements [dssa.Dssa].
@@ -237,8 +213,20 @@ func (p *proxyDss) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error 
 	return dss.SetStat(de, noPerm, noMtime)
 }
 
-// Stat implements [dssa.Dssa].
-func (p *proxyDss) Stat(path_ string) (*dssa.DataEntry, error) {
+// Checksum implements [dssa.Dssa].
+func (p *proxyDss) Checksum(algos string, path_ string) (string, error) {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return "", err
+	}
+	return dss.Checksum(algos, path_)
+}
+
+// GetReadCloser implements [dssa.Dssa].
+func (p *proxyDss) GetReadCloser(path_ string) (io.ReadCloser, error) {
 	var (
 		dss dssa.Dssa
 		err error
@@ -246,7 +234,31 @@ func (p *proxyDss) Stat(path_ string) (*dssa.DataEntry, error) {
 	if dss, err = p.checkProxied(); err != nil {
 		return nil, err
 	}
-	return dss.Stat(path_)
+	return dss.GetReadCloser(path_)
+}
+
+// GetWriteCloser implements [dssa.Dssa].
+func (p *proxyDss) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return nil, err
+	}
+	return dss.GetWriteCloser(path_)
+}
+
+// Rm implements [dssa.Dssa].
+func (p *proxyDss) Rm(path_ string) error {
+	var (
+		dss dssa.Dssa
+		err error
+	)
+	if dss, err = p.checkProxied(); err != nil {
+		return err
+	}
+	return dss.Rm(path_)
 }
 
 // Symlink implements [dssa.Dssa].

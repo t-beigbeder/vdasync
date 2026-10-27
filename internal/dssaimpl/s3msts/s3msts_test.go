@@ -29,6 +29,8 @@ func TestBasicDirsAndFiles(t *testing.T) {
 	SkipIf(t)
 	ds := GetRepo(t)
 	require.NotNil(t, ds)
+	di := ds.DssInfo()
+	require.NotEmpty(t, di)
 	require.NoError(t, Cleanup(ds))
 	require.NoError(t, ds.Msts().NewSession())
 	require.NoError(t, ds.Mkdir(&dssa.DataEntry{Path: "/d1", IsDir: true}))

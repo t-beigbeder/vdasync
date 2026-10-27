@@ -23,7 +23,7 @@ type TestDssOptions struct {
 	Lgr           *slog.Logger
 	PluginType    string // defaults to vda + Kind
 	PluginAddArgs string // defaults to [-notls, -log, stderr, -level, <LEVEL>]
-	PluginLevel   string // defaults to ERROR
+	PluginLevel   string // defaults to INFO
 	PluginGetArgs func(*TestDssOptions) string
 	SftpUser      string
 	SftpHost      string
@@ -46,7 +46,7 @@ func (tdo *TestDssOptions) getPluginConfig() (*config.CliConfig, error) {
 	}
 	pl := tdo.PluginLevel
 	if pl == "" {
-		pl = "ERROR"
+		pl = "INFO"
 	}
 	paa := tdo.PluginAddArgs
 	if paa == "" {

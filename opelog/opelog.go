@@ -17,12 +17,13 @@ type OpeLogManager interface {
 	Create(source, target string) error
 	AddSession(label string, si *SessionInfo) (int64, error)
 	Open(readOnly bool) error
-	Olm() *OpeLogMaster
-	Sync(olmChanged bool) error
+	GetOlm() *OpeLogMaster
+	SetOlm(*OpeLogMaster) error
+	Sync() error
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
-	Walk(func(relPath string, ole *LogicalEntry) error) error
+	Walk(doIt func(relPath string, ole *LogicalEntry) error, sorted bool) error
 }
 
 type Rights struct {
@@ -518,6 +519,14 @@ type ToolInformation struct {
 	ExecSummary   string
 }
 
+func (ti *ToolInformation) Clone() *ToolInformation {
+	cti := &ToolInformation{}
+	if ti != nil {
+		*cti = *ti
+	}
+	return cti
+}
+
 type SessionInfo struct {
 	Comment       string
 	ReferenceTime int64
@@ -530,6 +539,7 @@ func (si *SessionInfo) Clone() *SessionInfo {
 		Comment:       si.Comment,
 		ReferenceTime: si.ReferenceTime,
 		IsInventory:   si.IsInventory,
+		ToolInfo:      si.ToolInfo.Clone(),
 	}
 }
 

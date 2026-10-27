@@ -30,7 +30,7 @@ func (ole *oplLogicalEntry) setChildrenQueue() []string {
 		ole.hasChanges = true
 		tOse.getState().DepCount = int32(len(tOse.se().Children))
 		for _, child := range tOse.se().Children {
-			if slices.Contains(sOse.se().Children, child) {
+			if sOse.se() != nil && slices.Contains(sOse.se().Children, child) {
 				continue
 			}
 			mChildren = append(mChildren, child)

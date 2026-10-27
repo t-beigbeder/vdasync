@@ -10,6 +10,35 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 )
 
+// FileNameIsSafe forbids any linux/windows incompatible combination
+//
+// this also protects against path-traversal risk using ., .., / or \ in filenames
+func FileNameIsSafe(fn string, crossOs bool) error {
+	if fn == "." || fn == ".." {
+		return fmt.Errorf("invalid file name \"%s\"", fn)
+	}
+	forbiddenChars := "/,\\,<,>,:,\",|,?,*"
+	forbiddenSeqs := "../,..\\"
+	for _, sq := range strings.Split(forbiddenSeqs, ",") {
+		if strings.Contains(fn, sq) {
+			return fmt.Errorf("invalid sequence \"%s\" in \"%s\"", sq, fn)
+		}
+	}
+	if crossOs {
+		for _, c := range strings.Split(forbiddenChars, ",") {
+			if strings.Contains(fn, c) {
+				return fmt.Errorf("invalid character \"%s\" in \"%s\"", c, fn)
+			}
+		}
+		for _, ru := range fn {
+			if ru < 0x20 {
+				return fmt.Errorf("invalid character \"0x%02x\" in \"%s\"", ru, fn)
+			}
+		}
+	}
+	return nil
+}
+
 func FileExists(path_ string) bool {
 	_, err := os.Stat(path_)
 	return err == nil
@@ -33,8 +62,8 @@ func StdWriter(pathOrKw string) (io.WriteCloser, error) {
 	return os.Create(pathOrKw)
 }
 
-func WriteFile(path_ string, data []byte) error {
-	file, err := os.OpenFile(path_, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
+func WritePermFile(path_ string, data []byte, perm os.FileMode) error {
+	file, err := os.OpenFile(path_, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
 	if err != nil {
 		return err
 	}
@@ -44,6 +73,10 @@ func WriteFile(path_ string, data []byte) error {
 		return err
 	}
 	return file.Close()
+}
+
+func WriteFile(path_ string, data []byte) error {
+	return WritePermFile(path_, data, 0644)
 }
 
 func doLoadFile(path_ string, max int) ([]byte, error) {

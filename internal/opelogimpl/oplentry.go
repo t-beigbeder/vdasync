@@ -67,11 +67,6 @@ func (ole *oplLogicalEntry) detail(msg string, args ...any) {
 
 func (ole *oplLogicalEntry) owo() *config.OpeLogOptionsType { return ole.owi.owo }
 
-func (ole *oplLogicalEntry) logErr(msg string, err error) error {
-	ole.lgr.Error(msg, "err", err)
-	return err
-}
-
 func (ole *oplLogicalEntry) seEqualType() bool {
 	if ole.target.se() == nil {
 		return false
@@ -140,7 +135,16 @@ func (ose *oplStoredEntry) detail(msg string, args ...any) {
 }
 
 func (ose *oplStoredEntry) logErr(msg string, err error) error {
+	if ose.ole.owi.errCanceling {
+		ose.lgr.Debug(msg, "too late", true, "err", err)
+		return err
+	}
 	ose.lgr.Error(msg, "err", err)
+	if ose.ole.owi.errRtl != nil {
+		if err := ose.ole.owi.errRtl.RtlThis(); err != nil {
+			ose.lgr.Debug("rate limit err", "err", err)
+		}
+	}
 	return err
 }
 
@@ -266,11 +270,13 @@ func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opel
 	if len(prevEvents) > 0 {
 		imPrEv := prevEvents[len(prevEvents)-1]
 		if imPrEv.Kind == kind && equalSe(se, imPrEv.Se) && equalTcss(tcss, imPrEv.Tcss) {
+			ose.lgr.Debug("createEvent: override", "kind", kind)
 			imPrEv.TimeStamp = ts
 			ose.ole.hasChanges = true
 			return
 		}
 	}
+	ose.lgr.Debug("createEvent: append", "kind", kind)
 	ose.ole.le.CreateEvent(ose.ole.owi.sessionTime, ts, ose.isTarget, kind, se, tcss)
 	ose.ole.hasChanges = true
 }

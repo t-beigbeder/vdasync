@@ -9,7 +9,7 @@ import (
 )
 
 func CliLogger(cmd, sll, pathOrKw string) (lgr *slog.Logger, err error) {
-	sl := slog.LevelError
+	sl := slog.LevelInfo
 	lgr = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: sl}))
 	if sll != "" {
 		if err = sl.UnmarshalText([]byte(sll)); err != nil {

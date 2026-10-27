@@ -35,6 +35,11 @@ func (s *dssaImpl) EndSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.E
 	return &dssagrpc.Empty{}, nil
 }
 
+func (s *dssaImpl) DssInfo(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.DssInfoMT, error) {
+	s.lgr.Debug("dssaImpl.DssInfo")
+	return &dssagrpc.DssInfoMT{DssInfo: s.dssa_.DssInfo()}, nil
+}
+
 func (s *dssaImpl) List(ctx context.Context, gpath *dssagrpc.Path) (*dssagrpc.DataEntries, error) {
 	s.lgr.Debug("dssaImpl.List", "path", gpath.Path)
 	s.callStats <- "List"

@@ -25,8 +25,8 @@ func TestInventoryMediumCsvImport(t *testing.T) {
 	ttd := t.TempDir()
 	oplm, err := makeTestM2fManager(path.Join(ctd, "m2f.opl"), 0, true, std, ttd)
 	require.NoError(t, err)
-	require.Contains(t, oplm.Olm().Sessions, "di")
-	iTs := oplm.Olm().Sessions["di"].ReferenceTime
+	require.Contains(t, oplm.GetOlm().Sessions, "di")
+	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
 
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, ""))
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5,sha512"))
@@ -35,10 +35,10 @@ func TestInventoryMediumCsvImport(t *testing.T) {
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5,sha512"))
 	require.NoError(t, oplm.Close())
 
-	require.Contains(t, oplm.Olm().Sessions, "di")
-	iTs = oplm.Olm().Sessions["di"].ReferenceTime
-	require.Contains(t, oplm.Olm().Sessions, "ds")
-	require.Contains(t, oplm.Olm().Sessions, "di")
+	require.Contains(t, oplm.GetOlm().Sessions, "di")
+	iTs = oplm.GetOlm().Sessions["di"].ReferenceTime
+	require.Contains(t, oplm.GetOlm().Sessions, "ds")
+	require.Contains(t, oplm.GetOlm().Sessions, "di")
 }
 
 func TestInventoryAugSmallCsvImport(t *testing.T) {
@@ -52,8 +52,8 @@ func TestInventoryAugSmallCsvImport(t *testing.T) {
 	ttd := t.TempDir()
 	oplm, err := makeTestM2fManager(path.Join(ctd, "m2f.opl"), 0, true, std, ttd)
 	require.NoError(t, err)
-	require.Contains(t, oplm.Olm().Sessions, "di")
-	iTs := oplm.Olm().Sessions["di"].ReferenceTime
+	require.Contains(t, oplm.GetOlm().Sessions, "di")
+	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
 
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, ""))
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5,sha512"))
@@ -64,6 +64,6 @@ func TestInventoryAugSmallCsvImport(t *testing.T) {
 
 	oplm2, err := openTestM2fManagerRO(path.Join(ctd, "m2f.opl"), true)
 	require.NoError(t, err)
-	require.Contains(t, oplm2.Olm().Sessions, "ds")
-	require.Contains(t, oplm2.Olm().Sessions, "di")
+	require.Contains(t, oplm2.GetOlm().Sessions, "ds")
+	require.Contains(t, oplm2.GetOlm().Sessions, "di")
 }

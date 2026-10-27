@@ -78,6 +78,7 @@ func getNativeDssAndRootFor(
 	}
 	if pName == "" && host == "" && port == 0 {
 		dss = localfiles.MakeLocalFilesDssa()
+		err = dss.NewSession()
 		return
 	}
 	if pName != "" && pName[0:1] == "_" {
@@ -222,6 +223,8 @@ func DoService(sc *ServiceCtx) error {
 		return doFtGen(sc)
 	case "oplcreate":
 		return doOplCreate(sc)
+	case "oplupdate":
+		return doOplUpdate(sc)
 	case "oplexp":
 		return doOplExp(sc)
 	case "version":
@@ -465,6 +468,34 @@ func doOplCreate(sc *ServiceCtx) error {
 	return nil
 }
 
+func doOplUpdate(sc *ServiceCtx) error {
+	if sc.OplPath == "" {
+		return errors.New("doOplUpdate: no oplpath")
+	}
+	oplm, err := opelogimpl.MakeM2fManager(sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	if err = oplm.Open(false); err != nil {
+		return err
+	}
+	defer oplm.Close()
+	if sc.OplSes != "" {
+		if _, err = oplm.AddSession(sc.OplSes, &opelog.SessionInfo{}); err != nil {
+			return err
+		}
+	}
+	if sc.OplInv != "" {
+		if _, err = oplm.AddSession(sc.OplInv, &opelog.SessionInfo{IsInventory: true}); err != nil {
+			return err
+		}
+	}
+	if err = oplm.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func doOplExp(sc *ServiceCtx) error {
 	if sc.OplPath == "" {
 		return errors.New("doOplExp: no oplpath")
@@ -486,9 +517,13 @@ func doOplExp(sc *ServiceCtx) error {
 		return err
 	}
 	defer oplm.Close()
+	ti := &opelog.ToolInformation{}
+	if ses := oplm.GetOlm().Session(sc.OplSes); ses != nil {
+		ti = ses.ToolInfo
+	}
 	if err := opelogimpl.OplCsvExport(
 		sc.Lgr, oplm, sc.OplCsv, rpt, sc.OplInv, sc.OplSes,
-		&opelogimpl.RptConfig{ToolInfo: &opelog.ToolInformation{}},
+		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: true},
 	); err != nil {
 
 		return err
