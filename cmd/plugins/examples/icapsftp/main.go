@@ -11,7 +11,6 @@ import (
 	"github.com/t-beigbeder/vdasync/config"
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
-	"github.com/t-beigbeder/vdasync/internal/examples/csavsftp"
 	"github.com/t-beigbeder/vdasync/internal/examples/icapsftp"
 	"github.com/t-beigbeder/vdasync/internal/remote"
 	"github.com/t-beigbeder/vdasync/internal/sftputil"
@@ -64,6 +63,7 @@ func RunSftpPlugin() {
 		common.Fatal(lgr, errors.New("sftproot empty"))
 	}
 	dss, err := icapsftp.MakeIcapSftpDssa(
+		lgr,
 		*sftpUser, *sftpAddress, *sftpIdent, *sftpRoot,
 		*cf.ConcurrencyFlag, sftputil.GetSftpClient, knownHostsFile)
 	if err != nil {
