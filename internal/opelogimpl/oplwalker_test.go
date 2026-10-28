@@ -630,8 +630,8 @@ func TestManyOplWalkers(t *testing.T) {
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Check: true},
 			},
-			session2:        "ses2",
-			custoTest:       custTestNewSession,
+			session2:  "ses2",
+			custoTest: custTestNewSession,
 		},
 	}
 

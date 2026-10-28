@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"os"
 	"path"
 	"slices"
@@ -227,6 +228,12 @@ func DoService(sc *ServiceCtx) error {
 		return doOplUpdate(sc)
 	case "oplexp":
 		return doOplExp(sc)
+	case "opldmi":
+		return doOplDmi(sc)
+	case "oplimpi":
+		return doOplImpi(sc)
+	case "oplexpi":
+		return doOplExpi(sc)
 	case "version":
 		return doVersion(sc)
 	case "shutdown":
@@ -528,7 +535,90 @@ func doOplExp(sc *ServiceCtx) error {
 
 		return err
 	}
-	if err = oplm.Close(); err != nil {
+	return nil
+}
+
+func doOplDmi(sc *ServiceCtx) error {
+	if sc.OplPath == "" {
+		return errors.New("doOplDmi: no oplpath")
+	}
+	oplm, err := opelogimpl.MakeM2fManager(sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	if err = oplm.Open(true); err != nil {
+		return err
+	}
+	defer oplm.Close()
+	olm := oplm.GetOlm()
+	fmt.Fprintf(sc.OutFile, "source root: %s\n", olm.SourceRoot)
+	fmt.Fprintf(sc.OutFile, "target root: %s\n", olm.TargetRoot)
+	spt := map[int64]string{}
+	for sn, si := range olm.Sessions {
+		spt[si.ReferenceTime] = sn
+	}
+	rts := slices.Collect(maps.Keys(spt))
+	slices.Sort(rts)
+	dts := func(ts int64) string { return time.Unix(ts, 0).UTC().Format(time.RFC3339) }
+	for _, rt := range rts {
+		sn := spt[rt]
+		si := olm.Sessions[sn]
+		fmt.Fprintf(sc.OutFile, "%s: %s\n", sn, dts(rt))
+		fmt.Fprintf(sc.OutFile, "\tComment:%s\n", si.Comment)
+		fmt.Fprintf(sc.OutFile, "\tIsInventory:%t\n", si.IsInventory)
+		fmt.Fprintf(sc.OutFile, "\tStartTime:%s\n", dts(si.ToolInfo.StartTime))
+		fmt.Fprintf(sc.OutFile, "\tCmdLine:%s\n", si.ToolInfo.CmdLine)
+		fmt.Fprintf(sc.OutFile, "\tVersion:%s\n", si.ToolInfo.Version)
+		fmt.Fprintf(sc.OutFile, "\tHostName:%s\n", si.ToolInfo.HostName)
+		fmt.Fprintf(sc.OutFile, "\tSourceDssInfo:%s\n", si.ToolInfo.SourceDssInfo)
+		fmt.Fprintf(sc.OutFile, "\tTargetDssInfo:%s\n", si.ToolInfo.TargetDssInfo)
+		fmt.Fprintf(sc.OutFile, "\tStopTime:%s\n", dts(si.ToolInfo.StopTime))
+		fmt.Fprintf(sc.OutFile, "\tExecSummary:%s\n", si.ToolInfo.ExecSummary)
+	}
+	return nil
+}
+
+func doOplImpi(sc *ServiceCtx) error {
+	if sc.OplPath == "" {
+		return errors.New("doOplDmi: no oplpath")
+	}
+	if sc.OplCsv == "" {
+		return errors.New("doOplImpi: no oplcsv")
+	}
+	if sc.OplInv == "" {
+		return errors.New("doOplImpi: no oplinv")
+	}
+	oplm, err := opelogimpl.MakeM2fManager(sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	if err = oplm.Open(false); err != nil {
+		return err
+	}
+	defer oplm.Close()
+	si := oplm.GetOlm().Session(sc.OplInv)
+	if si == nil || !si.IsInventory {
+		return fmt.Errorf("doOplImpi: no such inventory: %s", sc.OplInv)
+	}
+	if err := opelogimpl.InventoryCsvImport(
+		oplm, si.ReferenceTime, sc.OplCsv, sc.CsAlgos); err != nil {
+
+		return err
+	}
+	if err := oplm.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func doOplExpi(sc *ServiceCtx) error {
+	if sc.Root == "" {
+		return errors.New("doOplExpi: no dss no root")
+	}
+	if sc.OplCsv == "" {
+		return errors.New("doOplExpi: no oplcsv")
+	}
+	if err := opelogimpl.InventoryCsvExport(sc.Root, sc.OplCsv, sc.CsAlgos); err != nil {
 		return err
 	}
 	return nil
