@@ -12,7 +12,9 @@ import (
 	"github.com/t-beigbeder/vdasync/internal/cli"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/examples/csavsftp"
+	"github.com/t-beigbeder/vdasync/internal/examples/icapsftp"
 	"github.com/t-beigbeder/vdasync/internal/remote"
+	"github.com/t-beigbeder/vdasync/internal/sftputil"
 	"google.golang.org/grpc"
 )
 
@@ -61,9 +63,11 @@ func RunSftpPlugin() {
 	if *sftpRoot == "" {
 		common.Fatal(lgr, errors.New("sftproot empty"))
 	}
-	dss, err := csavsftp.MakeCsAvSftpClientDssa(*sftpUser, *sftpAddress, *sftpIdent, *sftpRoot, *cf.ConcurrencyFlag, csavsftp.GetCsAvSftpClient, knownHostsFile)
+	dss, err := icapsftp.MakeIcapSftpDssa(
+		*sftpUser, *sftpAddress, *sftpIdent, *sftpRoot,
+		*cf.ConcurrencyFlag, sftputil.GetSftpClient, knownHostsFile)
 	if err != nil {
-		common.Fatal(lgr, fmt.Errorf("csavsftp.MakeSftpClientDssa: %s: %v", exe, err))
+		common.Fatal(lgr, fmt.Errorf("icapsftp.MakeIcapSftpDssa: %s: %v", exe, err))
 	}
 
 	sop, err := cli.GetServerOrPluginTls(cf)
