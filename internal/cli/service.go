@@ -526,7 +526,9 @@ func doOplExp(sc *ServiceCtx) error {
 	defer oplm.Close()
 	ti := &opelog.ToolInformation{}
 	if ses := oplm.GetOlm().Session(sc.OplSes); ses != nil {
-		ti = ses.ToolInfo
+		if len(ses.ToolInfoList) > 0 {
+			ti = ses.ToolInfoList[len(ses.ToolInfoList)-1]
+		}
 	}
 	if err := opelogimpl.OplCsvExport(
 		sc.Lgr, oplm, sc.OplCsv, rpt, sc.OplInv, sc.OplSes,
@@ -566,14 +568,16 @@ func doOplDmi(sc *ServiceCtx) error {
 		fmt.Fprintf(sc.OutFile, "%s: %s\n", sn, dts(rt))
 		fmt.Fprintf(sc.OutFile, "\tComment:%s\n", si.Comment)
 		fmt.Fprintf(sc.OutFile, "\tIsInventory:%t\n", si.IsInventory)
-		fmt.Fprintf(sc.OutFile, "\tStartTime:%s\n", dts(si.ToolInfo.StartTime))
-		fmt.Fprintf(sc.OutFile, "\tCmdLine:%s\n", si.ToolInfo.CmdLine)
-		fmt.Fprintf(sc.OutFile, "\tVersion:%s\n", si.ToolInfo.Version)
-		fmt.Fprintf(sc.OutFile, "\tHostName:%s\n", si.ToolInfo.HostName)
-		fmt.Fprintf(sc.OutFile, "\tSourceDssInfo:%s\n", si.ToolInfo.SourceDssInfo)
-		fmt.Fprintf(sc.OutFile, "\tTargetDssInfo:%s\n", si.ToolInfo.TargetDssInfo)
-		fmt.Fprintf(sc.OutFile, "\tStopTime:%s\n", dts(si.ToolInfo.StopTime))
-		fmt.Fprintf(sc.OutFile, "\tExecSummary:%s\n", si.ToolInfo.ExecSummary)
+		for _, ti := range si.ToolInfoList {
+			fmt.Fprintf(sc.OutFile, "\tStartTime:%s\n", dts(ti.StartTime))
+			fmt.Fprintf(sc.OutFile, "\t\tCmdLine:%s\n", ti.CmdLine)
+			fmt.Fprintf(sc.OutFile, "\t\tVersion:%s\n", ti.Version)
+			fmt.Fprintf(sc.OutFile, "\t\tHostName:%s\n", ti.HostName)
+			fmt.Fprintf(sc.OutFile, "\t\tSourceDssInfo:%s\n", ti.SourceDssInfo)
+			fmt.Fprintf(sc.OutFile, "\t\tTargetDssInfo:%s\n", ti.TargetDssInfo)
+			fmt.Fprintf(sc.OutFile, "\t\tStopTime:%s\n", dts(ti.StopTime))
+			fmt.Fprintf(sc.OutFile, "\t\tExecSummary:%s\n", ti.ExecSummary)
+		}
 	}
 	return nil
 }

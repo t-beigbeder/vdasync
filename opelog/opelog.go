@@ -531,15 +531,19 @@ type SessionInfo struct {
 	Comment       string
 	ReferenceTime int64
 	IsInventory   bool
-	ToolInfo      *ToolInformation
+	ToolInfoList  []*ToolInformation
 }
 
 func (si *SessionInfo) Clone() *SessionInfo {
+	tis := make([]*ToolInformation, len(si.ToolInfoList))
+	for i, ti := range si.ToolInfoList {
+		tis[i] = ti.Clone()
+	}
 	return &SessionInfo{
 		Comment:       si.Comment,
 		ReferenceTime: si.ReferenceTime,
 		IsInventory:   si.IsInventory,
-		ToolInfo:      si.ToolInfo.Clone(),
+		ToolInfoList:  tis,
 	}
 }
 
@@ -562,6 +566,7 @@ func (olm *OpeLogMaster) Clone() *OpeLogMaster {
 		Sessions:   sis,
 	}
 }
+
 func (olm *OpeLogMaster) Session(label string) *SessionInfo {
 	si, _ := olm.Sessions[label]
 	return si

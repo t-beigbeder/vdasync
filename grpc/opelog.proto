@@ -130,7 +130,7 @@ message ToolInformation {
 }
 
 message ToolInfoList {
-    repeated ToolInformation tool_info = 1;
+    repeated ToolInformation tool_infos = 1;
 }
 
 message SessionInfo {

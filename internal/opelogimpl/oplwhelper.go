@@ -218,7 +218,8 @@ func (ow *oplWalkerImpl) logInitToolInfo() error {
 	ow.oplTi.SourceDssInfo = fmt.Sprintf("%s root %s", ow.sds.DssInfo(), ow.sRoot)
 	ow.oplTi.TargetDssInfo = fmt.Sprintf("%s root %s", ow.tds.DssInfo(), ow.tRoot)
 	om := ow.oplm.GetOlm()
-	*om.Sessions[ow.session].ToolInfo = *ow.oplTi
+	si := om.Sessions[ow.session]
+	si.ToolInfoList = append(si.ToolInfoList, ow.oplTi.Clone())
 	if err := ow.oplm.SetOlm(om); err != nil {
 		return err
 	}
@@ -240,7 +241,11 @@ func (ow *oplWalkerImpl) logFinalToolInfo() error {
 		ow.oplTi.ExecSummary = "no root entry in operation log"
 	}
 	om := ow.oplm.GetOlm()
-	*om.Sessions[ow.session].ToolInfo = *ow.oplTi
+	si := om.Sessions[ow.session]
+	if len(si.ToolInfoList) == 0 {
+		return errors.New("empty tool info list")
+	}
+	*si.ToolInfoList[len(si.ToolInfoList)-1] = *ow.oplTi
 	if err := ow.oplm.SetOlm(om); err != nil {
 		return err
 	}
