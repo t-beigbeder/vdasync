@@ -380,7 +380,7 @@ func toolInformation2ProtoBuf(ti *ToolInformation) *opeloggrpc.ToolInformation {
 		Version:       ti.Version,
 		HostName:      ti.HostName,
 		SourceDssInfo: ti.SourceDssInfo,
-		TargetDssInfo: ti.SourceDssInfo,
+		TargetDssInfo: ti.TargetDssInfo,
 		StopTime:      ti.StopTime,
 		ExecSummary:   ti.ExecSummary,
 	}

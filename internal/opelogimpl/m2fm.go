@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 	"os"
 	"slices"
@@ -17,6 +18,7 @@ import (
 )
 
 type m2fOplMng struct {
+	lgr *slog.Logger
 	pathOpt    string
 	bckLimit   int
 	mx         sync.Mutex
@@ -338,6 +340,6 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 
 var _ opelog.OpeLogManager = &m2fOplMng{}
 
-func MakeM2fManager(pathOpt string, bckLimit int) (opelog.OpeLogManager, error) {
-	return &m2fOplMng{pathOpt: pathOpt, bckLimit: bckLimit}, nil
+func MakeM2fManager(lgr *slog.Logger, pathOpt string, bckLimit int) (opelog.OpeLogManager, error) {
+	return &m2fOplMng{lgr: lgr, pathOpt: pathOpt, bckLimit: bckLimit}, nil
 }

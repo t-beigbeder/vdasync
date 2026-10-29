@@ -23,7 +23,7 @@ func TestInventoryMediumCsvImport(t *testing.T) {
 	cPath := path.Join(ctd, "invDump.csv")
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5,sha256,sha512"))
 	ttd := t.TempDir()
-	oplm, err := makeTestM2fManager(path.Join(ctd, "m2f.opl"), 0, true, std, ttd)
+	oplm, err := makeTestM2fManager(common.GetLogger(), path.Join(ctd, "m2f.opl"), 0, true, std, ttd)
 	require.NoError(t, err)
 	require.Contains(t, oplm.GetOlm().Sessions, "di")
 	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
@@ -50,7 +50,7 @@ func TestInventoryAugSmallCsvImport(t *testing.T) {
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5,sha256,sha512"))
 
 	ttd := t.TempDir()
-	oplm, err := makeTestM2fManager(path.Join(ctd, "m2f.opl"), 0, true, std, ttd)
+	oplm, err := makeTestM2fManager(common.GetLogger(), path.Join(ctd, "m2f.opl"), 0, true, std, ttd)
 	require.NoError(t, err)
 	require.Contains(t, oplm.GetOlm().Sessions, "di")
 	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
@@ -62,7 +62,7 @@ func TestInventoryAugSmallCsvImport(t *testing.T) {
 	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5,sha512"))
 	require.NoError(t, oplm.Close())
 
-	oplm2, err := openTestM2fManagerRO(path.Join(ctd, "m2f.opl"), true)
+	oplm2, err := openTestM2fManagerRO(common.GetLogger(), path.Join(ctd, "m2f.opl"), true)
 	require.NoError(t, err)
 	require.Contains(t, oplm2.GetOlm().Sessions, "ds")
 	require.Contains(t, oplm2.GetOlm().Sessions, "di")

@@ -119,7 +119,7 @@ func (owt *owTest) invImport() error {
 
 func (owt *owTest) makeOplm() (err error) {
 	if owt.oplm == nil {
-		if owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
+		if owt.oplm, err = MakeM2fManager(owt.lgr, path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
 			return
 		}
 		oplmi, ok := owt.oplm.(*m2fOplMng)
@@ -656,7 +656,7 @@ func TestManyOplWalkers(t *testing.T) {
 // =======================================================================
 // =======================================================================
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	//t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
@@ -722,7 +722,7 @@ func TestOplWalker(t *testing.T) {
 
 	cPath := path.Join(ltd, "invDump.csv")
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
-	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, true, std, ttd)
+	oplm, err := makeTestM2fManager(lgr, path.Join(ltd, "m2f.opl"), 5, true, std, ttd)
 	require.NoError(t, err)
 	require.Contains(t, oplm.GetOlm().Sessions, "di")
 	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
@@ -751,7 +751,7 @@ func TestOplWalker(t *testing.T) {
 	err = ow.Run()
 	require.NoError(t, err)
 
-	oplmRo, err := openTestM2fManagerRO(path.Join(ltd, "m2f.opl"), true)
+	oplmRo, err := openTestM2fManagerRO(lgr, path.Join(ltd, "m2f.opl"), true)
 	require.NoError(t, err)
 	require.Contains(t, oplmRo.GetOlm().Sessions, "ds")
 	sTs := oplm.GetOlm().Sessions["ds"].ReferenceTime
@@ -781,7 +781,7 @@ func TestOplBadSession(t *testing.T) {
 
 	cPath := path.Join(ltd, "invDump.csv")
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
-	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, false, std, ttd)
+	oplm, err := makeTestM2fManager(lgr, path.Join(ltd, "m2f.opl"), 5, false, std, ttd)
 	require.NoError(t, err)
 	require.Contains(t, oplm.GetOlm().Sessions, "ds")
 	iTs := oplm.GetOlm().Sessions["ds"].ReferenceTime
@@ -826,7 +826,7 @@ func TestAutoSession(t *testing.T) {
 	// lgr = common.DbgLogger()
 	require.NoError(t, err)
 
-	oplm, err := MakeM2fManager("", 0)
+	oplm, err := MakeM2fManager(lgr, "", 0)
 	require.NoError(t, err)
 	std, ttd := t.TempDir(), t.TempDir()
 	defer walker.SetTestDirRW(std, "source")
