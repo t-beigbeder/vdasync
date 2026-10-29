@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"maps"
 	"os"
 	"path"
 	"slices"
@@ -553,32 +552,7 @@ func doOplDmi(sc *ServiceCtx) error {
 	}
 	defer oplm.Close()
 	olm := oplm.GetOlm()
-	fmt.Fprintf(sc.OutFile, "source root: %s\n", olm.SourceRoot)
-	fmt.Fprintf(sc.OutFile, "target root: %s\n", olm.TargetRoot)
-	spt := map[int64]string{}
-	for sn, si := range olm.Sessions {
-		spt[si.ReferenceTime] = sn
-	}
-	rts := slices.Collect(maps.Keys(spt))
-	slices.Sort(rts)
-	dts := func(ts int64) string { return time.Unix(ts, 0).UTC().Format(time.RFC3339) }
-	for _, rt := range rts {
-		sn := spt[rt]
-		si := olm.Sessions[sn]
-		fmt.Fprintf(sc.OutFile, "%s: %s\n", sn, dts(rt))
-		fmt.Fprintf(sc.OutFile, "\tComment:%s\n", si.Comment)
-		fmt.Fprintf(sc.OutFile, "\tIsInventory:%t\n", si.IsInventory)
-		for _, ti := range si.ToolInfoList {
-			fmt.Fprintf(sc.OutFile, "\tStartTime:%s\n", dts(ti.StartTime))
-			fmt.Fprintf(sc.OutFile, "\t\tCmdLine:%s\n", ti.CmdLine)
-			fmt.Fprintf(sc.OutFile, "\t\tVersion:%s\n", ti.Version)
-			fmt.Fprintf(sc.OutFile, "\t\tHostName:%s\n", ti.HostName)
-			fmt.Fprintf(sc.OutFile, "\t\tSourceDssInfo:%s\n", ti.SourceDssInfo)
-			fmt.Fprintf(sc.OutFile, "\t\tTargetDssInfo:%s\n", ti.TargetDssInfo)
-			fmt.Fprintf(sc.OutFile, "\t\tStopTime:%s\n", dts(ti.StopTime))
-			fmt.Fprintf(sc.OutFile, "\t\tExecSummary:%s\n", ti.ExecSummary)
-		}
-	}
+	sc.OutFile.Write([]byte(olm.String()))
 	return nil
 }
 

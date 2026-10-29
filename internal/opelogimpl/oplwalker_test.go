@@ -662,6 +662,7 @@ func TestSingleOplWalkers(t *testing.T) {
 	owts := []owTest{
 		{
 			label: "test - update once - new session",
+			lgr: common.DbgLogger(),
 			ftgen: ftGenAugSmall,
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Check: true},

@@ -49,6 +49,7 @@ func (m *m2fOplMng) nextTimeStamp() int64 {
 }
 
 func (m *m2fOplMng) save() error {
+	m.lgr.Debug("m2fOplMng.save")
 	if m.pathOpt == "" {
 		return nil
 	}
@@ -64,8 +65,16 @@ func (m *m2fOplMng) save() error {
 				return err
 			}
 			aio.LogicalEntries[rp] = &le2
+			le = opelog.ProtoBuf2LogicalEntry(&le2)
 		} else {
 			aio.LogicalEntries[rp] = opelog.LogicalEntry2ProtoBuf(le)
+		}
+		if rp == "" {
+			for sn, si := range m.om.Sessions {
+				if le.GetStats(si.ReferenceTime) != nil {
+					m.lgr.Debug("m2fOplMng.save", "sn", sn, "stats", le.GetStats(si.ReferenceTime).Display("summary"))
+				}
+			}
 		}
 	}
 	bs, err := proto.Marshal(&aio)
@@ -135,6 +144,7 @@ func (m *m2fOplMng) Create(source, target string) error {
 
 // Open implements [opelog.OpeLogManager].
 func (m *m2fOplMng) Open(readOnly bool) error {
+	m.lgr.Debug("m2fOplMng.Open")
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if m.isOpen {
@@ -178,6 +188,13 @@ func (m *m2fOplMng) Open(readOnly bool) error {
 		} else {
 			m.les[rp] = ole
 		}
+		if rp == "" {
+			for sn, si := range m.om.Sessions {
+				if ole.GetStats(si.ReferenceTime) != nil {
+					m.lgr.Debug("m2fOplMng.Open", "sn", sn, "stats", ole.GetStats(si.ReferenceTime).Display("summary"))
+				}
+			}
+		}
 	}
 	if !readOnly {
 		if err := common.WriteFile(lock, []byte{}); err != nil {
@@ -192,11 +209,13 @@ func (m *m2fOplMng) Open(readOnly bool) error {
 
 // GetOlm implements [opelog.OpeLogManager].
 func (m *m2fOplMng) GetOlm() *opelog.OpeLogMaster {
+	m.lgr.Debug("m2fOplMng.GetOlm", "olm", m.om.String())
 	return m.om.Clone()
 }
 
 // SetOlm implements [opelog.OpeLogManager].
 func (m *m2fOplMng) SetOlm(om *opelog.OpeLogMaster) error {
+	m.lgr.Debug("m2fOplMng.SetOlm", "olm", om.String())
 	m.mx.Lock()
 	defer m.mx.Unlock()
 	if !m.isOpen {

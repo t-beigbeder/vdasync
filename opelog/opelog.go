@@ -572,6 +572,37 @@ func (olm *OpeLogMaster) Session(label string) *SessionInfo {
 	return si
 }
 
+func (olm *OpeLogMaster) String() string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "source root: %s\n", olm.SourceRoot)
+	fmt.Fprintf(&buf, "target root: %s\n", olm.TargetRoot)
+	spt := map[int64]string{}
+	for sn, si := range olm.Sessions {
+		spt[si.ReferenceTime] = sn
+	}
+	rts := slices.Collect(maps.Keys(spt))
+	slices.Sort(rts)
+	dts := func(ts int64) string { return time.Unix(ts, 0).UTC().Format(time.RFC3339) }
+	for _, rt := range rts {
+		sn := spt[rt]
+		si := olm.Sessions[sn]
+		fmt.Fprintf(&buf, "%s: %s\n", sn, dts(rt))
+		fmt.Fprintf(&buf, "\tComment:%s\n", si.Comment)
+		fmt.Fprintf(&buf, "\tIsInventory:%t\n", si.IsInventory)
+		for _, ti := range si.ToolInfoList {
+			fmt.Fprintf(&buf, "\tStartTime:%s\n", dts(ti.StartTime))
+			fmt.Fprintf(&buf, "\t\tCmdLine:%s\n", ti.CmdLine)
+			fmt.Fprintf(&buf, "\t\tVersion:%s\n", ti.Version)
+			fmt.Fprintf(&buf, "\t\tHostName:%s\n", ti.HostName)
+			fmt.Fprintf(&buf, "\t\tSourceDssInfo:%s\n", ti.SourceDssInfo)
+			fmt.Fprintf(&buf, "\t\tTargetDssInfo:%s\n", ti.TargetDssInfo)
+			fmt.Fprintf(&buf, "\t\tStopTime:%s\n", dts(ti.StopTime))
+			fmt.Fprintf(&buf, "\t\tExecSummary:%s\n", ti.ExecSummary)
+		}
+	}
+	return buf.String()
+}
+
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total
 type OpeLogAllInOne struct {
 	Master *OpeLogMaster
