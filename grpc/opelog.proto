@@ -129,11 +129,15 @@ message ToolInformation {
     string exec_summary = 8;
 }
 
+message ToolInfoList {
+    repeated ToolInformation tool_info = 1;
+}
+
 message SessionInfo {
     string comment = 1;
     int64 reference_time = 2;
     bool is_inventory = 3;
-    ToolInformation tool_info = 4;
+    ToolInfoList tool_info_list = 4;
 }
 
 message OpeLogMaster {
