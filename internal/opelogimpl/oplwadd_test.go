@@ -15,7 +15,7 @@ import (
 )
 
 func TestSingleOplWalkers(t *testing.T) {
-	//t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
