@@ -305,6 +305,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 			return err
 		}
+		ose.setStatsFor("rd", ose.getState().Se.Size)
 		tCss, err := common.Checksums2TypedChecksums(css)
 		if err != nil {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
