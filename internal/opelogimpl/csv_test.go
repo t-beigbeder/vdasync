@@ -40,7 +40,7 @@ func TestCsvExport(t *testing.T) {
 	cPath := path.Join(ltd, "invDump.csv")
 	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
 	testMarsh := true
-	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, testMarsh, std, ttd)
+	oplm, err := makeTestM2fManager(lgr, path.Join(ltd, "m2f.opl"), 5, testMarsh, std, ttd)
 	require.NoError(t, err)
 	require.Contains(t, oplm.GetOlm().Sessions, "di")
 	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
@@ -65,7 +65,7 @@ func TestCsvExport(t *testing.T) {
 	err = ow.Run()
 	require.NoError(t, err)
 
-	oplmRo, err := openTestM2fManagerRO(path.Join(ltd, "m2f.opl"), testMarsh)
+	oplmRo, err := openTestM2fManagerRO(lgr, path.Join(ltd, "m2f.opl"), testMarsh)
 	require.NoError(t, err)
 	require.Contains(t, oplmRo.GetOlm().Sessions, "ds")
 	sTs := oplm.GetOlm().Sessions["ds"].ReferenceTime

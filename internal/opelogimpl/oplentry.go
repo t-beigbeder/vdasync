@@ -336,8 +336,8 @@ func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	case "tls":
 		stats.TargetListOrStat.Number = 1
 	case "rd":
-		stats.Read.Number = 1
-		stats.Read.Size = size
+		stats.Read.Number += 1
+		stats.Read.Size += size
 	case "cr":
 		stats.Create.Number = 1
 		stats.Create.Size = size
