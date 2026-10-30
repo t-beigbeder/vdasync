@@ -12,7 +12,19 @@ import (
 // This file is about high order services for stored entries
 // common services on dss are in opldss
 
-// entry processing updates its state until events can be logged along with their final state
+// stCheckNeeded checks if regular file has to be read to compute checksums
+//
+// if checksum is already present, a previous operation (create/update) already did it,
+// if not, a full read is needed (again, if new session)
+func (ose *oplStoredEntry) stCheckNeeded() bool {
+	css, _ :=	common.TypedChecksums2Checksums(ose.getState().Tcss)
+	if ose.owo().Check && !common.HasAlgos(css, ose.ole.getCsAlgos(true)) {
+		return true
+	}
+	return false
+}
+
+// recordEvents ensures entry processing updates its state until events can be logged along with their final state
 func (ose *oplStoredEntry) recordEvents() {
 	if ose.loadTime != 0 {
 		ose.createEvent(ose.loadTime, opelog.EVC_LOADED, ose.getState().Se, ose.getState().Tcss)
@@ -287,7 +299,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 	if !ose.isPresent() {
 		return nil
 	}
-	if ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() && len(ose.getState().Tcss) == 0 {
+	if ose.isRegularFile() && !ose.hasError() && ose.stCheckNeeded() {
 		css, err := ose.dssRead()
 		if err != nil {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
@@ -298,16 +310,30 @@ func (ose *oplStoredEntry) tryLoad() error {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 			return err
 		}
-		iSt := ose.ole.le.GetState(ose.ole.owi.invTime, false)
-		eq, err := common.CompareTcss(tCss, iSt.Tcss, ose.ole.owi.owo.InvCsAlgos)
-		if err != nil {
-			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
-			return err
+		if ose.ole.owi.needInvCheck() && !ose.isTarget {
+			iSt := ose.ole.le.GetState(ose.ole.owi.invTime, false)
+			eq, err := common.CompareTcss(tCss, iSt.Tcss, ose.ole.owi.owo.InvCsAlgos)
+			if err != nil {
+				ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+				return err
+			}
+			if !eq {
+				err = errors.New("inventory/source checksums differ")
+				ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+				return err
+			}
 		}
-		if !eq {
-			err = errors.New("inventory/source checksums differ")
-			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
-			return err
+		if ose.isTarget {
+			sOse := ose.ole.source
+			if sOse != nil && sOse.isPresent() && !sOse.hasError() {
+				sSt := sOse.getState()
+				eq, err := common.CompareTcss(tCss, sSt.Tcss, ose.ole.getCsAlgos(false))
+				if !eq {
+					err = errors.New("source/target checksums differ")
+					ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+					return err
+				}
+			}
 		}
 		ose.setState(opelog.STC_DONE_PRESENT, "", ose.se(), tCss, 0)
 		return nil
