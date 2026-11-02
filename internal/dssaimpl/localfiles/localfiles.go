@@ -44,6 +44,9 @@ func (d *localFiles) DssInfo() string {
 
 // List implements [dssa.Dssa].
 func (d *localFiles) List(path_ string) ([]*dssa.DataEntry, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), d.crossOsSafe); err != nil {
+		return nil, err
+	}
 	des, err := os.ReadDir(path_)
 	if err != nil {
 		return nil, err
@@ -65,6 +68,9 @@ func (d *localFiles) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // Mkdir implements [dssa.Dssa].
 func (d *localFiles) Mkdir(de *dssa.DataEntry) error {
+	if err := common.FileNameIsSafe(path.Base(de.Path), d.crossOsSafe); err != nil {
+		return err
+	}
 	ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
 	err := os.Mkdir(de.Path, common.Rights2Mod([3]dssa.Rights(ugor)))
 	return err
@@ -72,6 +78,9 @@ func (d *localFiles) Mkdir(de *dssa.DataEntry) error {
 
 // Stat implements [dssa.Dssa].
 func (d *localFiles) Stat(path_ string) (*dssa.DataEntry, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), d.crossOsSafe); err != nil {
+		return nil, err
+	}
 	fi, err := os.Lstat(path_)
 	if err != nil {
 		return &dssa.DataEntry{Path: path_, Error: err, ErrNotExist: os.IsNotExist(err)}, err
@@ -107,6 +116,9 @@ func (d *localFiles) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // SetStat implements [dssa.Dssa].
 func (d *localFiles) SetStat(de *dssa.DataEntry, noPerm, noMtime bool) error {
+	if err := common.FileNameIsSafe(path.Base(de.Path), d.crossOsSafe); err != nil {
+		return err
+	}
 	if !noPerm && !de.IsSymLink {
 		if err := common.SetAccessRights(
 			de.Path, [2]int{de.User, de.Group},
@@ -129,21 +141,33 @@ func (d *localFiles) Checksum(algos string, path_ string) (string, error) {
 
 // GetReader implements [dssa.Dssa].
 func (d *localFiles) GetReadCloser(path_ string) (io.ReadCloser, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), d.crossOsSafe); err != nil {
+		return nil, err
+	}
 	return os.Open(path_)
 }
 
 // GetWriter implements [dssa.Dssa].
 func (d *localFiles) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), d.crossOsSafe); err != nil {
+		return nil, err
+	}
 	return os.Create(path_)
 }
 
 // Rm implements [dssa.Dssa].
 func (d *localFiles) Rm(path_ string) error {
+	if err := common.FileNameIsSafe(path.Base(path_), d.crossOsSafe); err != nil {
+		return err
+	}
 	return os.Remove(path_)
 }
 
 // Symlink implements [dssa.Dssa].
 func (d *localFiles) Symlink(old string, new_ string) error {
+	if err := common.FileNameIsSafe(path.Base(new_), d.crossOsSafe); err != nil {
+		return err
+	}
 	return os.Symlink(old, new_)
 }
 
