@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -169,14 +168,7 @@ func ParseUrl(url string) (pluginName, host string, port int, rootPath string, e
 			rootPath = urlElts[0]
 		}
 	}
-	rootPath, err = NormalizeRoot(rootPath)
 	return
-}
-
-func NormalizeRoot(rootPath string) (string, error) {
-	// should treat c:/path/to/root and /path/to/root as absolute
-	// else prefix with os.Getwd()
-	return filepath.Abs(rootPath)
 }
 
 func LoadConfig(cf *CommonFlagsType) (*config.CliConfig, error) {
