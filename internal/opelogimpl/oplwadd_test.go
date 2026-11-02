@@ -21,14 +21,14 @@ func TestSingleOplWalkers(t *testing.T) {
 	owts := []owTest{
 		{
 			label: "test - update once - new session as load",
-			lgr: common.DbgLogger(),
+			lgr:   common.DbgLogger(),
 			ftgen: ftGenAugSmall,
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Check: true},
 			},
 			session2:        "ses2",
 			custoTest:       custTestNewSession,
-			ctDict: map[string]string{"ns-goal": "load"},
+			ctDict:          map[string]string{"ns-goal": "load"},
 			specialInterest: []string{""},
 			speIntPhase:     "phase3",
 		},

@@ -55,7 +55,7 @@ type owTest struct {
 	specialInterest    []string
 	speIntPhase        string
 	custoTest          func(*owTest) error
-	ctDict map[string]string
+	ctDict             map[string]string
 	deferred           func()
 }
 

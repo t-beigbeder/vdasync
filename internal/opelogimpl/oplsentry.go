@@ -17,7 +17,7 @@ import (
 // if checksum is already present, a previous operation (create/update) already did it,
 // if not, a full read is needed (again, if new session)
 func (ose *oplStoredEntry) stCheckNeeded() bool {
-	css, _ :=	common.TypedChecksums2Checksums(ose.getState().Tcss)
+	css, _ := common.TypedChecksums2Checksums(ose.getState().Tcss)
 	if ose.owo().Check && !common.HasAlgos(css, ose.ole.getCsAlgos(true)) {
 		return true
 	}
