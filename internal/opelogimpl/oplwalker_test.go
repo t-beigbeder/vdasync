@@ -43,8 +43,10 @@ type owTest struct {
 	restartCb          func(phase string, count int) bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
+	allowReadPhase2    bool
 	hasNoPhase4        bool
 	hasNoExpCsv4       bool
+	allowReadPhase4    bool
 	csvName            string
 	std, ltd, ttd, ctd string
 	noGenSDs, noGenTDs bool
@@ -170,6 +172,9 @@ func (owt *owTest) setDefLogger() error {
 }
 
 func (owt *owTest) commonSetup() (err error) {
+	if owt.owo == nil {
+		owt.owo = &config.OpeLogOptionsType{}
+	}
 	ctx := "ns"
 	defer func() {
 		if err == nil {
@@ -287,6 +292,16 @@ func (owt *owTest) newOplWalker(session, inventory string) OplWalker {
 	)
 }
 
+func (owt *owTest) checkStats(stats *opelog.ComputedStats, allowRead bool) bool {
+	if !stats.IsSet(true) {
+		return true
+	}
+	if !allowRead {
+		return false
+	}
+	return stats.Create.Number+stats.Update.Number+stats.Remove.Number+stats.MetaChange.Number+stats.Error.Number == 0
+}
+
 func (owt *owTest) walkStatsCsv(baseCtx string, session, inventory string) (ctx string, stats *opelog.ComputedStats, err error) {
 	defer func() {
 		if ctx != "" {
@@ -370,7 +385,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase2", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if stats.IsSet(true) {
+		if !owt.checkStats(stats, owt.allowReadPhase2) {
 			ctx = "phase2"
 			err = errors.New("stats is set")
 			return
@@ -404,7 +419,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase4", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if stats.IsSet(true) {
+		if !owt.checkStats(stats, owt.allowReadPhase4) {
 			ctx = "phase4"
 			err = errors.New("stats is set")
 		}
@@ -456,7 +471,7 @@ func custTestNoKeepCached(owt *owTest) (err error) {
 	if ctx, stats, err = owt.walkStatsCsv("phase2bis", owt.session1, owt.inventory); err != nil {
 		return
 	}
-	if stats.IsSet(true) {
+	if !owt.checkStats(stats, owt.allowReadPhase2) {
 		ctx = "phase2bis"
 		err = errors.New("stats is set")
 	}
@@ -493,7 +508,7 @@ func custTestNewSession(owt *owTest) (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase2", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if stats.IsSet(true) {
+		if !owt.checkStats(stats, owt.allowReadPhase2) {
 			ctx = "phase2"
 			err = errors.New("stats is set")
 			return
@@ -516,7 +531,7 @@ func custTestNewSession(owt *owTest) (err error) {
 	if ctx, stats, err = owt.walkStatsCsv("phase4", owt.session1, owt.inventory); err != nil {
 		return
 	}
-	if stats.IsSet(true) {
+	if !owt.checkStats(stats, owt.allowReadPhase4) {
 		ctx = "phase4"
 		err = errors.New("stats is set")
 	}
@@ -536,10 +551,11 @@ func TestManyOplWalkers(t *testing.T) {
 			owo:       &config.OpeLogOptionsType{
 				// Goals: "update",
 			},
-			oplm:        nil,
-			oplq:        nil,
-			hasLoadInv:  false,
-			noTestMarsh: false,
+			oplm:            nil,
+			oplq:            nil,
+			hasLoadInv:      false,
+			noTestMarsh:     false,
+			allowReadPhase2: true,
 		},
 		{
 			label: "load c4 - medium with sync",
@@ -569,23 +585,24 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label: "update - c4 tiny",
-			ftgen: ftGenTiny,
-			conc:  4,
-			owo:   &config.OpeLogOptionsType{},
+			label:           "update - c4 tiny",
+			ftgen:           ftGenTiny,
+			conc:            4,
+			allowReadPhase2: true,
 		},
 		{
-			label: "update - c4 aug small",
-			ftgen: ftGenAugSmall,
-			conc:  4,
-			owo:   &config.OpeLogOptionsType{},
+			label:           "update - c4 aug small",
+			ftgen:           ftGenAugSmall,
+			conc:            4,
+			allowReadPhase2: true,
 		},
 		{
-			label: "update - increment - c4 aug small",
-			ftgen: ftGenAugSmall,
-			ftupd: ftUpdAugSmall,
-			conc:  4,
-			owo:   &config.OpeLogOptionsType{},
+			label:           "update - increment - c4 aug small",
+			ftgen:           ftGenAugSmall,
+			ftupd:           ftUpdAugSmall,
+			conc:            4,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
 		},
 		{
 			label: "update - read io errors",
@@ -598,12 +615,13 @@ func TestManyOplWalkers(t *testing.T) {
 				ClearErrors:   true,
 				KeepCached:    true,
 			},
+			allowReadPhase2: true,
 			sIoeOpts: &proxy.IoErrOpts{
 				ResetOnNew: true,
-				ListRate:   13, StatRate: 13, GetReadCloserRate: 13, ReadRate: 130, RCloseRate: 13,
+				ListRate:   13, StatRate: 13, GetReadCloserRate: 4, ReadRate: 4, RCloseRate: 4,
 			},
 			restartCb: func(phase string, count int) bool {
-				if phase != "phase1" || count >= 2 {
+				if (phase != "phase1" && phase != "phase2") || count >= 2 {
 					return false
 				}
 				return true
@@ -620,17 +638,18 @@ func TestManyOplWalkers(t *testing.T) {
 				ClearErrors:   true,
 				KeepCached:    true,
 			},
+			allowReadPhase2: true,
 			sIoeOpts: &proxy.IoErrOpts{
 				ResetOnNew: true,
-				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 7, RCloseRate: 7,
 			},
 			tIoeOpts: &proxy.IoErrOpts{
 				ResetOnNew: true,
-				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
-				MkdirRate: 7, SetStatRate: 7, GetWriteCloserRate: 7, WriteRate: 70, WCloseRate: 7, RmRate: 7, SymlinkRate: 7,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 7, RCloseRate: 7,
+				MkdirRate: 7, SetStatRate: 7, GetWriteCloserRate: 7, WriteRate: 7, WCloseRate: 7, RmRate: 7, SymlinkRate: 7,
 			},
 			restartCb: func(phase string, count int) bool {
-				if phase != "phase1" || count >= 2 {
+				if (phase != "phase1" && phase != "phase2") || count >= 2 {
 					return false
 				}
 				return true
@@ -643,8 +662,9 @@ func TestManyOplWalkers(t *testing.T) {
 				SyncOptionsType: config.SyncOptionsType{Check: true},
 				InvCsAlgos:      "md5",
 			},
-			hasLoadInv: true,
-			custoTest:  custTestNoKeepCached,
+			hasLoadInv:      true,
+			allowReadPhase2: true,
+			custoTest:       custTestNoKeepCached,
 		},
 		{
 			label: "update once - new session",
@@ -653,8 +673,10 @@ func TestManyOplWalkers(t *testing.T) {
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Check: true},
 			},
-			session2:  "ses2",
-			custoTest: custTestNewSession,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+			session2:        "ses2",
+			custoTest:       custTestNewSession,
 		},
 	}
 

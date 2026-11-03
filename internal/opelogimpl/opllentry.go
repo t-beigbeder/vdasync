@@ -178,6 +178,19 @@ func (ole *oplLogicalEntry) tryRm() error {
 	return nil
 }
 
+// checkForLoadBeforeUpdate checks if s/t both present regular files
+// and if they need full read for checksum check
+func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
+	sOse, tOse := ole.source, ole.target
+	if !sOse.isPresent() || !tOse.isPresent() {
+		return false
+	}
+	if !sOse.isRegularFile() || !tOse.isRegularFile() || sOse.hasError() || tOse.hasError() {
+		return false
+	}
+	return true
+}
+
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
 func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 	sOse, tOse, owo := ole.source, ole.target, ole.owo()
@@ -209,7 +222,15 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
 		return nil
 	}
-	tOse := ole.target
+	sOse, tOse := ole.source, ole.target
+	if ole.checkForLoadBeforeUpdate() {
+		if err := sOse.tryReadForCheck(); err != nil {
+			return err
+		}
+		if err := tOse.tryReadForCheck(); err != nil {
+			return err
+		}
+	}
 	if !ole.checkForUpdate(false) && !tOse.isDir() {
 		return nil
 	}

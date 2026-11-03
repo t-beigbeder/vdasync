@@ -294,36 +294,48 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 	return nil
 }
 
+// tryReadForCheck reads source or target regular file if needed to compare checksums.
+// In the case of source, it also compares checksum with inventory if requested.
+func (ose *oplStoredEntry) tryReadForCheck() error {
+	css, err := ose.dssRead()
+	if err != nil {
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return err
+	}
+	ose.setStatsFor("rd", ose.getState().Se.Size)
+	tCss, err := common.Checksums2TypedChecksums(css)
+	if err != nil {
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return err
+	}
+	if ose.ole.owi.needInvCheck() && !ose.isTarget {
+		iSt := ose.ole.le.GetState(ose.ole.owi.invTime, false)
+		eq, err := common.CompareTcss(tCss, iSt.Tcss, ose.ole.owi.owo.InvCsAlgos)
+		if err != nil {
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+			return err
+		}
+		if !eq {
+			err = errors.New("inventory/source checksums differ")
+			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+			return err
+		}
+	}
+	ose.setState(opelog.STC_DONE_PRESENT, "", ose.se(), tCss, 0)
+	return nil
+}
+
 // tryLoad makes source and/or target entry load progress if possible.
+// It may also be called to force loading checksums before update
 func (ose *oplStoredEntry) tryLoad() error {
 	if !ose.isPresent() {
 		return nil
 	}
 	if ose.isRegularFile() && !ose.hasError() && ose.stCheckNeeded() {
-		css, err := ose.dssRead()
-		if err != nil {
-			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		if err := ose.tryReadForCheck(); err != nil {
 			return err
 		}
-		ose.setStatsFor("rd", ose.getState().Se.Size)
-		tCss, err := common.Checksums2TypedChecksums(css)
-		if err != nil {
-			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
-			return err
-		}
-		if ose.ole.owi.needInvCheck() && !ose.isTarget {
-			iSt := ose.ole.le.GetState(ose.ole.owi.invTime, false)
-			eq, err := common.CompareTcss(tCss, iSt.Tcss, ose.ole.owi.owo.InvCsAlgos)
-			if err != nil {
-				ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
-				return err
-			}
-			if !eq {
-				err = errors.New("inventory/source checksums differ")
-				ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
-				return err
-			}
-		}
+		tCss := ose.getState().Tcss
 		if ose.isTarget {
 			sOse := ose.ole.source
 			if sOse != nil && sOse.isPresent() && !sOse.hasError() {

@@ -15,33 +15,25 @@ import (
 )
 
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	// t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "test - update once - new session as load",
-			lgr:   common.DbgLogger(),
-			ftgen: ftGenAugSmall,
-			owo: &config.OpeLogOptionsType{
-				SyncOptionsType: config.SyncOptionsType{Check: true},
+			label:     "update - c0 small simple",
+			unSkipped: false,
+			lgr:       nil,
+			ftgen:     ftGenSmall,
+			conc:      0,
+			owo:       &config.OpeLogOptionsType{
+				// Goals: "update",
 			},
-			session2:        "ses2",
-			custoTest:       custTestNewSession,
-			ctDict:          map[string]string{"ns-goal": "load"},
-			specialInterest: []string{""},
-			speIntPhase:     "phase3",
+			oplm:            nil,
+			oplq:            nil,
+			hasLoadInv:      false,
+			noTestMarsh:     false,
+			allowReadPhase2: true,
 		},
-		// {
-		// 	label: "test - update once - inventory - no keep cache then again",
-		// 	ftgen: ftGenTiny,
-		// 	owo: &config.OpeLogOptionsType{
-		// 		SyncOptionsType: config.SyncOptionsType{Check: true},
-		// 		InvCsAlgos:      "md5",
-		// 	},
-		// 	hasLoadInv: true,
-		// 	custoTest:  custTestNoKeepCached,
-		// },
 	}
 
 	skipDefault := false
