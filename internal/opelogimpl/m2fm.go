@@ -18,7 +18,7 @@ import (
 )
 
 type m2fOplMng struct {
-	lgr *slog.Logger
+	lgr        *slog.Logger
 	pathOpt    string
 	bckLimit   int
 	mx         sync.Mutex

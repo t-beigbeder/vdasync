@@ -98,9 +98,9 @@ func (ebl *EvBdwLter) Stats() (time.Duration, float64, float64) {
 	du := time.Since(ebl.sRt)
 	var curEvr float64
 	if ebl.hasPondEvs {
-		curEvr = float64(ebl.dEvCount) / du.Seconds()
-	} else {
 		curEvr = float64(ebl.pondDEvCount) / du.Seconds() / 100
+	} else {
+		curEvr = float64(ebl.dEvCount) / du.Seconds()
 	}
 	curBdw := float64(ebl.dBytesCount) / du.Seconds()
 	return du, curEvr, curBdw

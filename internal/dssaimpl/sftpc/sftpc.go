@@ -50,6 +50,9 @@ func (sf *sftpClient) DssInfo() string {
 
 // List implements [dssa.Dssa].
 func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
+		return nil, err
+	}
 	sfc := <-sf.sfcs
 	defer func() {
 		sf.sfcs <- sfc
@@ -86,6 +89,9 @@ func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
 
 // Mkdir implements [dssa.Dssa].
 func (sf *sftpClient) Mkdir(de *dssa.DataEntry) error {
+	if err := common.FileNameIsSafe(path.Base(de.Path), sf.crossOsSafe); err != nil {
+		return err
+	}
 	sfc := <-sf.sfcs
 	defer func() {
 		sf.sfcs <- sfc
@@ -95,6 +101,9 @@ func (sf *sftpClient) Mkdir(de *dssa.DataEntry) error {
 
 // Stat implements [dssa.Dssa].
 func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
+		return nil, err
+	}
 	sfc := <-sf.sfcs
 	defer func() {
 		sf.sfcs <- sfc
@@ -134,6 +143,9 @@ func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
 
 // SetStat implements [dssa.Dssa].
 func (sf *sftpClient) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) error {
+	if err := common.FileNameIsSafe(path.Base(de.Path), sf.crossOsSafe); err != nil {
+		return err
+	}
 	sfc := <-sf.sfcs
 	defer func() {
 		sf.sfcs <- sfc
@@ -162,6 +174,9 @@ func (sf *sftpClient) Checksum(algos string, path_ string) (string, error) {
 
 // GetReadCloser implements [dssa.Dssa].
 func (sf *sftpClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
+		return nil, err
+	}
 	sfc := <-sf.sfcs
 	rr, err := sfc.Open(path.Join(sf.root, path_))
 	if err != nil {
@@ -173,6 +188,9 @@ func (sf *sftpClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
 
 // GetWriteCloser implements [dssa.Dssa].
 func (sf *sftpClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
+	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
+		return nil, err
+	}
 	sfc := <-sf.sfcs
 	wr, err := sfc.Create(path.Join(sf.root, path_))
 	if err != nil {
@@ -184,6 +202,9 @@ func (sf *sftpClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 
 // Rm implements [dssa.Dssa].
 func (sf *sftpClient) Rm(path_ string) error {
+	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
+		return err
+	}
 	sfc := <-sf.sfcs
 	defer func() {
 		sf.sfcs <- sfc
@@ -193,6 +214,9 @@ func (sf *sftpClient) Rm(path_ string) error {
 
 // Symlink implements [dssa.Dssa].
 func (sf *sftpClient) Symlink(old string, new_ string) error {
+	if err := common.FileNameIsSafe(path.Base(new_), sf.crossOsSafe); err != nil {
+		return err
+	}
 	sfc := <-sf.sfcs
 	defer func() {
 		sf.sfcs <- sfc

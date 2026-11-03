@@ -68,6 +68,7 @@ func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
 	if err := ow.oplm.Sync(); err != nil {
 		ow.owErr(lgr, "failed to synchronize logs", err)
 	}
+	ow.logInfoStats()
 }
 
 func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {

@@ -144,10 +144,10 @@ func RunSyncCli(df *DssaFactory) {
 		time.Sleep(10 * time.Millisecond)
 		return
 	}
+
 	if *oplCmdFlag == "" {
 		// to replace legacy algorithm
 		*svsf.OplPathFlag = ""
-		*svsf.OplSyncFlag = ""
 		*oplCmdFlag = "update"
 		*oplRtoFlag = 250
 		*oplNoInvCFlag = true
