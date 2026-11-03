@@ -291,7 +291,7 @@ func (ow *oplWalkerImpl) dispRldStats(rld proxy.RateLimitedDss, isTarget bool) {
 	du, evr, bdw = ebl.Stats()
 	cs := fmt.Sprintf("%s rate %.0f bandwidth %.0f", du.String(), evr, bdw)
 	ebl.Record()
-	ow.lgr.Info("dss stats", "global", gs, "current", cs)
+	ow.lgr.Info("dss stats", "isTarget", isTarget, "global", gs, "current", cs)
 }
 
 func (ow *oplWalkerImpl) logInfoStats() {
