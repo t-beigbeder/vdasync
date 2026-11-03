@@ -68,7 +68,11 @@ func (gc *grpcClient) List(path_ string) ([]*dssa.DataEntry, error) {
 	}
 	dds := []*dssa.DataEntry{}
 	for _, gd := range gds.Entries {
-		dds = append(dds, common.GrpcDte2DssDte(gd))
+		dde := common.GrpcDte2DssDte(gd)
+		if err := common.FileNameIsSafe(path.Base(dde.Path), gc.crossOsSafe); err != nil {
+			return nil, err
+		}
+		dds = append(dds, dde)
 	}
 	return dds, nil
 }
