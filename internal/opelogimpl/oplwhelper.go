@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/proxy"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
@@ -281,4 +282,26 @@ func (ow *oplWalkerImpl) dssEndSessions(origin string) error {
 		ow.lgr.Error(msg, "err", err)
 	}
 	return nil
+}
+
+func (ow *oplWalkerImpl) dispRldStats(rld proxy.RateLimitedDss, isTarget bool) {
+	ebl := rld.GetEbl()
+	evCount, bytesCount, du, evr, bdw := ebl.Counts()
+	gs := fmt.Sprintf("%s events %d bytes %d rate %.0f bandwidth %.0f", du.String(), evCount, bytesCount, evr, bdw)
+	du, evr, bdw = ebl.Stats()
+	cs := fmt.Sprintf("%s rate %.0f bandwidth %.0f", du.String(), evr, bdw)
+	ebl.Record()
+	ow.lgr.Info("dss stats", "global", gs, "current", cs)
+}
+
+func (ow *oplWalkerImpl) logInfoStats() {
+	sRld, _ := ow.sds.(proxy.RateLimitedDss)
+	if sRld != nil {
+		ow.dispRldStats(sRld, false)
+	}
+	tRld, _ := ow.tds.(proxy.RateLimitedDss)
+	if tRld != nil {
+		ow.dispRldStats(tRld, true)
+	}
+	// TODO: error rate, oplm size
 }
