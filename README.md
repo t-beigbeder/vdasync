@@ -12,7 +12,7 @@ running on Go [supported platforms](https://go.dev/wiki/MinimumRequirements).
 `vdasync` is intended to be used for backups and data replication.
 Beyond local and remote files access, synchronization may leverage other data access means through plugins.
 `vdasync` also adds the capability to track long-running synchronization operations on large datasets
-through the use of operation logs.
+through the use of operations logs.
 
 It leverages Go [concurrency features](https://go.dev/wiki/LearnConcurrency)
 to enable the use of available resources as efficiently as wanted.
@@ -36,13 +36,20 @@ The following additional components are also provided:
 
 ## Deployment overview
 
-The schema below illustrates how `vdasync` synchronizes
-local or remote files in a standalone or client-server deployment.
+The schema below illustrates how `vdasync` synchronizes local files
 
-![Vdasync's local and remote deployments](docs/images/vdasync-deployment.png "Vdasync's local and remote deployments schema")
+![Vdasync's local deployments](docs/images/vdasync-local.png "Vdasync's local deployments schema")
 
-Even if not illustrated, nothing prevents `vdasync` to synchronize remote files among themselves,
+or remote files 
+
+![Vdasync's remote deployments](docs/images/vdasync-remote.png "Vdasync's remote deployments schema")
+
+in a standalone or client-server deployment.
+
+Nothing prevents `vdasync` to synchronize remote files among themselves,
 at the cost of related data transfers on the network.
+
+![Vdasync's remote to remote transfer](docs/images/vdasync-remrem.png "Vdasync's remote to remote transfer schema")
 
 Using cloud or network storage services such as S3 object storage or SFTP
 is enabled with plugins as shown below:
@@ -91,7 +98,7 @@ Vdasync commands and their arguments are detailed here:
 - [vdasync](docs/vdasync.md)
 - [vdaserver](docs/vdaserver.md)
 - [vdaservice](docs/vdaservice.md)
-- [operation logs](docs/opelog.md)
+- [operations logs](docs/opelog.md)
 
 Vdasync plugins are detailed here:
 
