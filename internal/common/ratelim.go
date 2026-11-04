@@ -199,8 +199,13 @@ func ParseEvBdwbRates(ebrs string) (evRate, bandwidth float64, err error) {
 }
 
 type CancelEvLter struct {
+	mx           sync.Mutex
 	evLter       *rate.Limiter
 	cancelableCb func(doing chan any, d time.Duration)
+	sT           time.Time
+	sRt          time.Time
+	evCount      int64
+	dEvCount     int64
 	doing        chan any
 	done         chan any
 }
@@ -211,6 +216,37 @@ func NewCancelEvLter(evFreq float64, cancelableCb func(doing chan any, d time.Du
 	cel.doing = make(chan any)
 	cel.done = make(chan any)
 	return cel, func() { close(cel.doing) }
+}
+
+func (cel *CancelEvLter) Counts() (evCount int64, du time.Duration, evr float64) {
+	if !cel.sT.IsZero() {
+		du = time.Since(cel.sT)
+		evr = float64(cel.evCount) / du.Seconds()
+	}
+	evCount = cel.evCount
+	return
+}
+
+func (cel *CancelEvLter) Record() time.Time {
+	cel.mx.Lock()
+	defer cel.mx.Unlock()
+	now := time.Now()
+	if cel.sT.IsZero() {
+		cel.sT = now
+		cel.evCount = 0
+	}
+	cel.sRt = now
+	cel.dEvCount = 0
+	return cel.sRt
+}
+
+func (cel *CancelEvLter) Stats() (time.Duration, float64) {
+	cel.mx.Lock()
+	defer cel.mx.Unlock()
+	du := time.Since(cel.sRt)
+	var curEvr float64
+	curEvr = float64(cel.dEvCount) / du.Seconds()
+	return du, curEvr
 }
 
 func (cel *CancelEvLter) RtlThis() error {
@@ -233,6 +269,10 @@ func (cel *CancelEvLter) RtlThis() error {
 	if isCanceled {
 		return errors.New("event limiter canceled")
 	}
+	cel.mx.Lock()
+	cel.evCount++
+	cel.dEvCount++
+	cel.mx.Unlock()
 	if d == 0 {
 		return nil
 	}

@@ -303,5 +303,13 @@ func (ow *oplWalkerImpl) logInfoStats() {
 	if tRld != nil {
 		ow.dispRldStats(tRld, true)
 	}
-	// TODO: error rate, oplm size
+	if ow.errRtl != nil {
+		evCount, du, evr := ow.errRtl.Counts()
+		gs := fmt.Sprintf("%s events %d rate %.0f", du.String(), evCount, evr)
+		du, evr = ow.errRtl.Stats()
+		ow.errRtl.Record()
+		cs := fmt.Sprintf("%s rate %.0f", du.String(), evr)
+		ow.lgr.Info("error stats", "global", gs, "current", cs)
+	}
+	// TODO: oplm size
 }
