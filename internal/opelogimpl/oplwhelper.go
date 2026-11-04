@@ -156,6 +156,7 @@ func (ow *oplWalkerImpl) setupErtl() (err error) {
 	ow.errRtl, ow.errRtlCFunc = common.NewCancelEvLter(ow.eRate, func(doing chan any, d time.Duration) {
 		ow.lgr.With("ertl", true).Info("error rate limit raised", "delay", d)
 	})
+	ow.errRtl.Record()
 	return nil
 }
 
@@ -305,10 +306,10 @@ func (ow *oplWalkerImpl) logInfoStats() {
 	}
 	if ow.errRtl != nil {
 		evCount, du, evr := ow.errRtl.Counts()
-		gs := fmt.Sprintf("%s events %d rate %.0f", du.String(), evCount, evr)
+		gs := fmt.Sprintf("%s events %d rate %f", du.String(), evCount, evr)
 		du, evr = ow.errRtl.Stats()
 		ow.errRtl.Record()
-		cs := fmt.Sprintf("%s rate %.0f", du.String(), evr)
+		cs := fmt.Sprintf("%s rate %f", du.String(), evr)
 		ow.lgr.Info("error stats", "global", gs, "current", cs)
 	}
 	// TODO: oplm size
