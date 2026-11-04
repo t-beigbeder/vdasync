@@ -134,7 +134,7 @@ that could be useful for this purpose in addition to POSIX standard one.
 - While a DSS implementation can provide some horizontal scalability through distributed processing or storage,
 this is (currently) not the case for the synchronization engine itself.
 Even if the memory used by the `vdasync` process remains moderated on very large datasets
-through the use of operation logs,
+through the use of operations log,
 such a limitation could be a concern when DSS implementations provide high I/O rates that cannot be fully leveraged
 by the actual data copy performed by `vdasync` itself.
 

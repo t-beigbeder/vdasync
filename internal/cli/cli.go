@@ -81,14 +81,14 @@ func ServicesFlags() *ServicesFlagsType {
 		InclFlag:    flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
 		SrcRtlFlag:  flag.String("srtl", "", "events:bandwidth rates limits per second on source DSS: eg 1e5:128e6 => 10000 events/s 1Gbps"),
 		TgtRtlFlag:  flag.String("trtl", "", "events:bandwidth rates limits per second on target DSS"),
-		OplSesFlag:  flag.String("oplses", "", "operation logs session name"),
-		OplInvFlag:  flag.String("oplinv", "", "operation logs inventory name"),
-		OplPathFlag: flag.String("oplpath", "", "operation logs master file"),
-		OplStoFlag:  flag.String("oplsto", "aio", "operation logs storage: aio|pbf"),
-		OplCsvFlag:  flag.String("oplcsv", "", "operation logs csv export path"),
-		OplRptFlag:  flag.String("oplrpt", "synth", "operation logs csv report type: synth|full"),
-		OplSyncFlag: flag.String("oplsync", "600:5", "operation logs synchronization to disk, periodicity and number of backups seconds:backups"),
-		OplExpFlag:  flag.String("oplexp", "3600:24", "operation logs csv export, periodicity and number of backups seconds:backups"),
+		OplSesFlag:  flag.String("oplses", "", "operations log session name"),
+		OplInvFlag:  flag.String("oplinv", "", "operations log inventory name"),
+		OplPathFlag: flag.String("oplpath", "", "operations log master file"),
+		OplStoFlag:  flag.String("oplsto", "aio", "operations log storage: aio|pbf"),
+		OplCsvFlag:  flag.String("oplcsv", "", "operations log csv export path"),
+		OplRptFlag:  flag.String("oplrpt", "synth", "operations log csv report type: synth|full"),
+		OplSyncFlag: flag.String("oplsync", "600:5", "operations log synchronization to disk, periodicity and number of backups seconds:backups"),
+		OplExpFlag:  flag.String("oplexp", "3600:24", "operations log csv export, periodicity and number of backups seconds:backups"),
 	}
 }
 

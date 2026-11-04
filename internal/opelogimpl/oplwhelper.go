@@ -240,7 +240,7 @@ func (ow *oplWalkerImpl) logFinalToolInfo() error {
 			ow.oplTi.ExecSummary = fmt.Sprintf("no stats on session %s", ow.session)
 		}
 	} else {
-		ow.oplTi.ExecSummary = "no root entry in operation log"
+		ow.oplTi.ExecSummary = "no root entry in operations log"
 	}
 	om := ow.oplm.GetOlm()
 	si := om.Sessions[ow.session]
