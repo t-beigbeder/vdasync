@@ -51,12 +51,20 @@ at the cost of related data transfers on the network.
 
 ![Vdasync's remote to remote transfer](docs/images/vdasync-remrem.png "Vdasync's remote to remote transfer schema")
 
-Using cloud or network storage services such as S3 object storage or SFTP
-is enabled with plugins as shown below:
+Using cloud or network storage services such as S3 object storage
 
-![Vdasync's plugins deployments](docs/images/vdasync-plugins.png "Vdasync's plugins deployments schema")
+![Vdasync's S3 plugin deployment](docs/images/vdasync-s3.png "Vdasync's S3 plugin deployment schema")
+
+or SFTP
+
+![Vdasync's SFTP plugin deployment](docs/images/vdasync-sftp.png "Vdasync's SFTP plugin deployment schema")
+
+is enabled with plugins.
 
 Plugins are gRPC servers running on the same host as the `vdasync` command, which automatically start and stop them.
+
+![Vdasync's plugins](docs/images/vdasync-plugin.png "Vdasync's plugins schema")
+
 They use the same API as `vdaserver` which makes the latter identical to a plugin implementing access to local files
 and running on a remote host. By the way, such a plugin, named `localFiles`, is provided for testing purpose.
 
