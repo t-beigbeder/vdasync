@@ -187,6 +187,7 @@ func RunSyncCli(df *DssaFactory) {
 		ExpRpt:          *svsf.RptFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
+		PSort:           *svsf.PsortFlag,
 		ErrorRate:       *oplErrRtlFlag,
 	}
 	opti := &opelog.ToolInformation{

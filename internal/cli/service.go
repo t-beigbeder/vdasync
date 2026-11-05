@@ -201,6 +201,7 @@ type ServiceCtx struct {
 	OplInv      string
 	ExpFile     string
 	ExpRpt      string
+	Psort       bool
 	SrcRoot     string
 	TgtRoot     string
 	Lgr         *slog.Logger
@@ -507,7 +508,7 @@ func doOplExp(sc *ServiceCtx) error {
 		return errors.New("doOplExp: no oplpath")
 	}
 	if sc.ExpFile == "" {
-		return errors.New("doOplExp: no oplcsv")
+		return errors.New("doOplExp: no csv")
 	}
 	rpt := opelogimpl.RPT_SYNTHETIC
 	if sc.ExpRpt == "full" {
@@ -531,7 +532,7 @@ func doOplExp(sc *ServiceCtx) error {
 	}
 	if err := opelogimpl.OplCsvExport(
 		sc.Lgr, oplm, sc.ExpFile, rpt, sc.OplInv, sc.OplSes,
-		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: true},
+		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: sc.Psort},
 	); err != nil {
 
 		return err
@@ -561,7 +562,7 @@ func doOplImpi(sc *ServiceCtx) error {
 		return errors.New("doOplDmi: no oplpath")
 	}
 	if sc.ExpFile == "" {
-		return errors.New("doOplImpi: no oplcsv")
+		return errors.New("doOplImpi: no csv")
 	}
 	if sc.OplInv == "" {
 		return errors.New("doOplImpi: no oplinv")
@@ -594,7 +595,7 @@ func doOplExpi(sc *ServiceCtx) error {
 		return errors.New("doOplExpi: no dss no root")
 	}
 	if sc.ExpFile == "" {
-		return errors.New("doOplExpi: no oplcsv")
+		return errors.New("doOplExpi: no csv")
 	}
 	if err := opelogimpl.InventoryCsvExport(sc.Root, sc.ExpFile, sc.CsAlgos); err != nil {
 		return err

@@ -63,6 +63,7 @@ type ServicesFlagsType struct {
 	InclFlag    *string
 	CsvFlag     *string
 	RptFlag     *string
+	PsortFlag   *bool
 	SrcRtlFlag  *string
 	TgtRtlFlag  *string
 	OplSesFlag  *string
@@ -81,6 +82,7 @@ func ServicesFlags() *ServicesFlagsType {
 		InclFlag:    flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
 		CsvFlag:     flag.String("csv", "", "csv export path"),
 		RptFlag:     flag.String("rpt", "synth", "csv report type: synth|full"),
+		PsortFlag:   flag.Bool("psort", false, "sort paths in csv export"),
 		SrcRtlFlag:  flag.String("srtl", "", "events:bandwidth rates limits per second on source DSS: eg 1e5:128e6 => 10000 events/s 1Gbps"),
 		TgtRtlFlag:  flag.String("trtl", "", "events:bandwidth rates limits per second on target DSS"),
 		OplSesFlag:  flag.String("oplses", "", "operations log session name"),

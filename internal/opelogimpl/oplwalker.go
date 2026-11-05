@@ -84,7 +84,10 @@ func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	} else if ow.owo.ExpRpt != "synth" {
 		lgr.Warn("doOplmExport: unknown oplrpt", "rpt", ow.owo.ExpRpt)
 	}
-	if err := OplCsvExport(ow.lgr, ow.oplm, ow.owo.ExpFile, rpt, ow.inventory, ow.session, &RptConfig{ToolInfo: ow.oplTi}); err != nil {
+	if err := OplCsvExport(
+		ow.lgr, ow.oplm, ow.owo.ExpFile, rpt, ow.inventory, ow.session,
+		&RptConfig{ToolInfo: ow.oplTi, IsSorted: ow.owo.PSort}); err != nil {
+
 		ow.owErr(lgr, "failed to export logs", err)
 	}
 }
