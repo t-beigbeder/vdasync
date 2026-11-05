@@ -20,19 +20,14 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:     "update - c0 small simple",
-			unSkipped: false,
-			lgr:       nil,
-			ftgen:     ftGenSmall,
-			conc:      0,
-			owo:       &config.OpeLogOptionsType{
-				// Goals: "update",
-			},
-			oplm:            nil,
-			oplq:            nil,
-			hasLoadInv:      false,
-			noTestMarsh:     false,
+			label:           "update - noop-increment - c4 aug small",
+			ftgen:           ftGenTiny,
+			ftupd:           ftUpdNoop,
+			conc:            4,
 			allowReadPhase2: true,
+			allowReadPhase4: false,
+			specialInterest: []string{""},
+			speIntPhase: "phase4",
 		},
 	}
 

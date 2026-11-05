@@ -93,6 +93,8 @@ var ftUpdAugSmall = func(root string) error {
 	return err
 }
 
+var ftUpdNoop = func(root string) error { return nil }
+
 func (owt *owTest) invImport() error {
 	if !owt.hasLoadInv {
 		return nil
