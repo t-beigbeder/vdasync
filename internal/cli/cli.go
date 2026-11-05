@@ -61,14 +61,14 @@ type ServicesFlagsType struct {
 	CsalFlag    *string
 	ExclFlag    *string
 	InclFlag    *string
+	CsvFlag     *string
+	RptFlag     *string
 	SrcRtlFlag  *string
 	TgtRtlFlag  *string
 	OplSesFlag  *string
 	OplInvFlag  *string
 	OplPathFlag *string
 	OplStoFlag  *string
-	OplCsvFlag  *string
-	OplRptFlag  *string
 	OplSyncFlag *string
 	OplExpFlag  *string
 }
@@ -79,14 +79,14 @@ func ServicesFlags() *ServicesFlagsType {
 		CsalFlag:    flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
 		ExclFlag:    flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
 		InclFlag:    flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
+		CsvFlag:     flag.String("csv", "", "csv export path"),
+		RptFlag:     flag.String("rpt", "synth", "csv report type: synth|full"),
 		SrcRtlFlag:  flag.String("srtl", "", "events:bandwidth rates limits per second on source DSS: eg 1e5:128e6 => 10000 events/s 1Gbps"),
 		TgtRtlFlag:  flag.String("trtl", "", "events:bandwidth rates limits per second on target DSS"),
 		OplSesFlag:  flag.String("oplses", "", "operations log session name"),
 		OplInvFlag:  flag.String("oplinv", "", "operations log inventory name"),
 		OplPathFlag: flag.String("oplpath", "", "operations log master file"),
 		OplStoFlag:  flag.String("oplsto", "aio", "operations log storage: aio|pbf"),
-		OplCsvFlag:  flag.String("oplcsv", "", "operations log csv export path"),
-		OplRptFlag:  flag.String("oplrpt", "synth", "operations log csv report type: synth|full"),
 		OplSyncFlag: flag.String("oplsync", "600:5", "operations log synchronization to disk, periodicity and number of backups seconds:backups"),
 		OplExpFlag:  flag.String("oplexp", "3600:24", "operations log csv export, periodicity and number of backups seconds:backups"),
 	}

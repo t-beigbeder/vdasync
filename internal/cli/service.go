@@ -199,8 +199,8 @@ type ServiceCtx struct {
 	OplPath     string
 	OplSes      string
 	OplInv      string
-	OplCsv      string
-	OplRpt      string
+	ExpFile     string
+	ExpRpt      string
 	SrcRoot     string
 	TgtRoot     string
 	Lgr         *slog.Logger
@@ -506,14 +506,14 @@ func doOplExp(sc *ServiceCtx) error {
 	if sc.OplPath == "" {
 		return errors.New("doOplExp: no oplpath")
 	}
-	if sc.OplCsv == "" {
+	if sc.ExpFile == "" {
 		return errors.New("doOplExp: no oplcsv")
 	}
 	rpt := opelogimpl.RPT_SYNTHETIC
-	if sc.OplRpt == "full" {
+	if sc.ExpRpt == "full" {
 		rpt = opelogimpl.RPT_FULL
-	} else if sc.OplRpt != "synth" {
-		return fmt.Errorf("doOplExp: unknown owrpt %s", sc.OplRpt)
+	} else if sc.ExpRpt != "synth" {
+		return fmt.Errorf("doOplExp: unknown owrpt %s", sc.ExpRpt)
 	}
 	oplm, err := opelogimpl.MakeM2fManager(sc.Lgr, sc.OplPath, 0)
 	if err != nil {
@@ -530,7 +530,7 @@ func doOplExp(sc *ServiceCtx) error {
 		}
 	}
 	if err := opelogimpl.OplCsvExport(
-		sc.Lgr, oplm, sc.OplCsv, rpt, sc.OplInv, sc.OplSes,
+		sc.Lgr, oplm, sc.ExpFile, rpt, sc.OplInv, sc.OplSes,
 		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: true},
 	); err != nil {
 
@@ -560,7 +560,7 @@ func doOplImpi(sc *ServiceCtx) error {
 	if sc.OplPath == "" {
 		return errors.New("doOplDmi: no oplpath")
 	}
-	if sc.OplCsv == "" {
+	if sc.ExpFile == "" {
 		return errors.New("doOplImpi: no oplcsv")
 	}
 	if sc.OplInv == "" {
@@ -579,7 +579,7 @@ func doOplImpi(sc *ServiceCtx) error {
 		return fmt.Errorf("doOplImpi: no such inventory: %s", sc.OplInv)
 	}
 	if err := opelogimpl.InventoryCsvImport(
-		oplm, si.ReferenceTime, sc.OplCsv, sc.CsAlgos); err != nil {
+		oplm, si.ReferenceTime, sc.ExpFile, sc.CsAlgos); err != nil {
 
 		return err
 	}
@@ -593,10 +593,10 @@ func doOplExpi(sc *ServiceCtx) error {
 	if sc.Root == "" {
 		return errors.New("doOplExpi: no dss no root")
 	}
-	if sc.OplCsv == "" {
+	if sc.ExpFile == "" {
 		return errors.New("doOplExpi: no oplcsv")
 	}
-	if err := opelogimpl.InventoryCsvExport(sc.Root, sc.OplCsv, sc.CsAlgos); err != nil {
+	if err := opelogimpl.InventoryCsvExport(sc.Root, sc.ExpFile, sc.CsAlgos); err != nil {
 		return err
 	}
 	return nil
