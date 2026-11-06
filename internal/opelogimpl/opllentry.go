@@ -87,6 +87,10 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
 		stats.Read.Number += cStats.Read.Number
 		stats.Read.Size += cStats.Read.Size
+		if !slices.Contains(tChildren, child) {
+			stats.Create.Number += cStats.Create.Number
+			stats.Create.Size += cStats.Create.Size
+		}
 		stats.Error.Number += cStats.Error.Number
 		stats.NoOp.Number += cStats.NoOp.Number
 		stats.NoOp.Size += cStats.NoOp.Size
@@ -178,9 +182,13 @@ func (ole *oplLogicalEntry) tryRm() error {
 	return nil
 }
 
-// checkForLoadBeforeUpdate checks if s/t both present regular files
+// checkForLoadBeforeUpdate checks, when checksum compare is set,
+// if s/t both present regular files
 // and if they need full read for checksum check
 func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
+	if !ole.owo().Check {
+		return false
+	}
 	sOse, tOse := ole.source, ole.target
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
