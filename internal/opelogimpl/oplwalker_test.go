@@ -638,6 +638,12 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase4: false,
 		},
 		{
+			label:           "update - dryrun",
+			ftgen:           ftGenTiny,
+			hasPreDryrun:    true,
+			hasNoPhase2:     true,
+		},
+		{
 			label: "update - read io errors",
 			conc:  1,
 			ftgen: ftGenTiny,

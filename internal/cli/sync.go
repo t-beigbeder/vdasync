@@ -156,7 +156,10 @@ func RunSyncCli(df *DssaFactory) {
 	} else if *svsf.OplPathFlag == "" {
 		common.Fatal(lgr, errors.New("oplpath flag is missing"))
 	}
-
+	if *oplCmdFlag != "load" && *oplCmdFlag != "create" && *oplCmdFlag != "update" {
+		common.Fatal(lgr, errors.New("oplcmd is incorrect"))
+	}
+	
 	syncPer, syncBck, err := ParsePeriodBackups(*svsf.OplSyncFlag)
 	if err != nil {
 		common.Fatal(lgr, err)
