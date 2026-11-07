@@ -1,13 +1,9 @@
 pluginsOptions:
   noTls: true
-pluginReadyRetries: 4
-pluginReadyTimeout: "100ms"
 plugins:
 - name: sftp
   type: vdasftp
   addArgs:
-  - "-level"
-  - INFO
   - "-sftpuser"
   - otvl-tests
   - "-sftpaddress"
@@ -16,3 +12,5 @@ plugins:
   - /local/tmp/id_ssh_test
   - "-sftproot"
   - sftp_root
+  - "-conc"
+  - 4
