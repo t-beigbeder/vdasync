@@ -145,7 +145,7 @@ func (ebl *EvBdwLter) RtlThis(nBytes int) error {
 
 func (ebl *EvBdwLter) PondeRtlThis(weight int, nBytes int) error {
 	ebl.hasPondEvs = true
-	if ebl.pondEvLter != nil {
+	if ebl.pondEvLter != nil && weight > 0 {
 		now := time.Now()
 		rsv := ebl.pondEvLter.ReserveN(now, weight)
 		if !rsv.OK() {
