@@ -114,11 +114,25 @@ func (ose *oplStoredEntry) rmDir() error {
 }
 
 // setMeta sets an entry metadata from its source
-func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
-	// TODO: set stats "mc" if end of dir update or simple meta adjust
-	if ose.owo().Dryrun {
-		return nil, nil
+func (ose *oplStoredEntry) setMeta(preCheck bool) (*opelog.StoredEntry, error) {
+	needed := true
+	if preCheck {
+		needed = ose.ole.checkForSetMeta()
 	}
+	if ose.owo().Dryrun {
+		if !preCheck {
+			return nil, nil
+		}
+		if !needed {
+			return ose.se(), nil
+		}
+		ose.setStatsFor("mc", 0)
+		return ose.ole.source.se(), nil
+	}
+	if !needed {
+		return ose.se(), nil
+	}
+	ose.setStatsFor("mc", 0)
 	se := ose.ole.source.se().Clone()
 	owo := ose.owo()
 	noMtime := owo.NoMtime || (se.IsSymLink && owo.NoMtLink)
@@ -154,7 +168,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	se, err := ose.setMeta()
+	se, err := ose.setMeta(true)
 	if err != nil {
 		return err
 	}
@@ -185,7 +199,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 		ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
 		return nil
 	}
-	se, err := ose.setMeta()
+	se, err := ose.setMeta(false)
 	if err != nil {
 		return err
 	}
@@ -262,7 +276,7 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 			sOse.setState(opelog.STC_DONE_PRESENT, "", sOse.se(), tCss, 0)
 		}
 	}
-	if se, err = ose.setMeta(); err != nil {
+	if se, err = ose.setMeta(false); err != nil {
 		return
 	}
 	ose.setState(opelog.STC_DONE_PRESENT, "", se, tCss, 0)
@@ -286,7 +300,7 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		return err
 	}
-	se, err := ose.setMeta()
+	se, err := ose.setMeta(false)
 	if err != nil {
 		return err
 	}

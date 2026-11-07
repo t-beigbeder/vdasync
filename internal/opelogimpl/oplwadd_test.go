@@ -20,13 +20,15 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:           "update - dryrun",
-			lgr:             cliLgr,
+			label:           "update - nocheck noop-increment",
+			lgr: cliLgr,
 			ftgen:           ftGenTiny,
-			hasPreDryrun:    true,
-			hasNoPhase2:     true,
-			specialInterest: []string{""},
-			speIntPhase:     "phase1dr",
+			ftupd:           ftUpdNoop,
+			hasNoCheck:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: false,
+			specialInterest: []string{"d0000"},
+			speIntPhase:     "phase3",
 		},
 	}
 

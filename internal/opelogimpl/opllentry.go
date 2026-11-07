@@ -199,6 +199,12 @@ func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
 	return true
 }
 
+// checkForSetMeta checks if target present and its meta needs update from source wrt selected options
+func (ole *oplLogicalEntry) checkForSetMeta() bool {
+	sOse, tOse, owo := ole.source, ole.target, ole.owo()
+	return !tOse.se().Equal(sOse.se(), owo.NoEqMtime, owo.NoMtime, owo.NoMtLink, owo.NoPerm, true)
+}
+
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
 func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 	sOse, tOse, owo := ole.source, ole.target, ole.owo()
@@ -249,7 +255,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 		return nil
 	}
 	if !ole.checkForUpdate(true) {
-		se, err := tOse.setMeta()
+		se, err := tOse.setMeta(true)
 		if err != nil {
 			return err
 		}
