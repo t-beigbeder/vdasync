@@ -13,7 +13,7 @@ This page provides information specific to this mode of operation.
 
 Using operations log to support a synchronization run is an option
 of the `vdasync` command activated by the use of the `-oplcmd` flag.
-When operations log are in use, each I/O operation on a source or target DSS is tracked in the log,
+When operations log is in use, each I/O operation on a source or target DSS is tracked in the log,
 where they are cached and may avoid repeating the same when the synchronization is applied several times.
 
 ![Operations log](images/vdasync-opeslog.png "Operations log schema")
@@ -66,12 +66,12 @@ that is relevant for handling trees containing up to a few hundred thousand file
 
 ### Sessions and inventories role
 
-Each operations log belongs to a dedicated session, and several sessions may be stored in the same repository.
+Each set of operations log belongs to a dedicated session, and several sessions may be stored in the same repository.
 This is useful for instance to compare incremental deliveries and keep related operations log for each one.
 
 Inventories are a special kind of session that may be used to import a reference list of DSS entries along with their checksums.
 Those reference entities may be then used during the load operations to ensure every source entity is known and its checksum is as expected.
-In case of incremental delivery, the previous session may also be used as a reference inventory.
+An existing session may also be used as a reference inventory for further operations, such as full verification after transfer.
 
 ### Basic example
 
