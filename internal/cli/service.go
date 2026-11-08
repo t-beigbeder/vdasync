@@ -134,7 +134,7 @@ func DoGetDssAndRootFor(
 	rps []*plugin.RunningPlugin, makeNewSession bool,
 	df *DssaFactory,
 ) (dss dssa.Dssa, root string, err error) {
-	if dss, root, err = getNativeDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
+	if dss, root, err = getNativeDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, makeNewSession, df); err != nil {
 		return
 	}
 	return
