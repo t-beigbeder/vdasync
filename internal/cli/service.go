@@ -88,17 +88,18 @@ func getNativeDssAndRootFor(
 		}
 		sfs, args := config.SftpServer(cfg, pName[1:])
 		if sfs == nil || df == nil {
-			err = fmt.Errorf("%s: url %s: unkown dss prefix %s", sot, url, pName)
+			err = fmt.Errorf("%s: url %s: unknown dss prefix %s", sot, url, pName)
 			return
 		}
 		lgr.Debug("DoGetDssAndRootFor: DssaFactory.Make", "sfs", sfs, "args", args)
 		dss, err = df.Make("sftp", args...)
+		err = dss.NewSession()
 		return
 	}
 	if pName != "" {
 		rp := plugin.PluginFor(pName, rps)
 		if rp == nil {
-			err = fmt.Errorf("%s: url %s: unkown plugin %s", sot, url, pName)
+			err = fmt.Errorf("%s: url %s: unknown plugin %s", sot, url, pName)
 			return
 		}
 		dss = grpcclient.MakeGrpcClient(lgr, context.Background(), rp.Client)
