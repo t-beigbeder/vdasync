@@ -153,6 +153,11 @@ func GetDssAndRootFor(
 	if dss, root, err = DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
 		return
 	}
+	if ls, ok := dss.(common.LgrSetter); ok {
+		if ls.GetLgr() == nil {
+			ls.SetLgr(lgr)
+		}
+	}
 	if rtlFlag != "" {
 		dss = proxy.MakeRateLimitedDss(lgr.With("isTarget", isTarget), dss, evr, bdw)
 	}

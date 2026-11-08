@@ -21,7 +21,7 @@ func TestSingleOplWalkers(t *testing.T) {
 	owts := []owTest{
 		{
 			label:           "update - nocheck noop-increment",
-			lgr: cliLgr,
+			lgr:             cliLgr,
 			ftgen:           ftGenTiny,
 			ftupd:           ftUpdNoop,
 			hasNoCheck:      true,

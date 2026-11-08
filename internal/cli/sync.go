@@ -149,7 +149,9 @@ func RunSyncCli(df *DssaFactory) {
 		// to replace legacy algorithm
 		*svsf.OplPathFlag = ""
 		*oplCmdFlag = "update"
-		*oplRtoFlag = 250
+		if *oplRtoFlag == 0 {
+			*oplRtoFlag = 250
+		}
 		*oplNoInvCFlag = true
 		*oplErrRtlFlag = ""
 
@@ -159,7 +161,7 @@ func RunSyncCli(df *DssaFactory) {
 	if *oplCmdFlag != "load" && *oplCmdFlag != "create" && *oplCmdFlag != "update" {
 		common.Fatal(lgr, errors.New("oplcmd is incorrect"))
 	}
-	
+
 	syncPer, syncBck, err := ParsePeriodBackups(*svsf.OplSyncFlag)
 	if err != nil {
 		common.Fatal(lgr, err)

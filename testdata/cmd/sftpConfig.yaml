@@ -1,5 +1,7 @@
 pluginsOptions:
   noTls: true
+pluginReadyRetries: 4
+pluginReadyTimeout: "100ms"
 plugins:
 - name: sftp
   type: vdasftp

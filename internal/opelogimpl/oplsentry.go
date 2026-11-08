@@ -143,8 +143,8 @@ func (ose *oplStoredEntry) setMeta(preCheck bool) (*opelog.StoredEntry, error) {
 	if noMtime {
 		se.Mtime = time.Now().Unix()
 	}
-	if owo.NoPerm {
-		tSe := ose.se()
+	tSe := ose.se()
+	if owo.NoPerm && tSe != nil {
 		se.User = tSe.User
 		se.UserRights = tSe.UserRights.Clone()
 		se.Group = tSe.Group

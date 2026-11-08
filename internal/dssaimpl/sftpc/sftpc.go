@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"log/slog"
 	"os"
 	"path"
+	"strings"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -16,16 +18,62 @@ import (
 )
 
 type sftpClient struct {
+	lgr         *slog.Logger
 	hasSession  bool
-	sfcs        chan *sftp.Client
+	sfcIxs      chan int
+	sfcs        []*sftp.Client
+	reasons     []string
+	rscDisp     *common.PeriodicJob
 	root        string
 	crossOsSafe bool
+}
+
+// GetLgr implements [common.LgrSetter].
+func (sf *sftpClient) GetLgr() *slog.Logger {
+	return sf.lgr
+}
+
+// SetLgr implements [common.LgrSetter].
+func (sf *sftpClient) SetLgr(lgr *slog.Logger) {
+	sf.lgr = lgr
+}
+
+func (sf *sftpClient) allocSfcs(reason string) (*sftp.Client, func()) {
+	if sf.lgr != nil {
+		sf.lgr.Debug("allocating for", "reason", reason)
+	}
+	ix := <-sf.sfcIxs
+	if sf.lgr != nil {
+		sf.lgr.Debug("allocated", "reason", reason, "ix", ix)
+	}
+	sf.reasons[ix] = reason
+	return sf.sfcs[ix], func() {
+		if sf.lgr != nil {
+			sf.lgr.Debug("releasing", "reason", reason, "ix", ix, "actual", sf.reasons[ix])
+		}
+		sf.reasons[ix] = ""
+		sf.sfcIxs <- ix
+	}
+}
+
+func (sf *sftpClient) doRspDisp() {
+	if sf.lgr != nil {
+		sf.lgr.Info("doRspDisp", "allocated", strings.Join(sf.reasons, ","))
+	} else {
+		fmt.Fprintf(os.Stderr, "doRspDisp: allocated: %s\n", strings.Join(sf.reasons, ","))
+	}
 }
 
 // NewSession implements [dssa.Dssa].
 func (sf *sftpClient) NewSession() error {
 	if sf.hasSession {
 		return errors.New("sftpClient: there is already an active session")
+	}
+	if sf.lgr != nil {
+		sf.rscDisp = common.NewPeriodicJob(sf.lgr, 60, func() {
+			sf.doRspDisp()
+		})
+		go sf.rscDisp.Start()
 	}
 	sf.hasSession = true
 	return nil
@@ -35,6 +83,10 @@ func (sf *sftpClient) NewSession() error {
 func (sf *sftpClient) EndSession() error {
 	if !sf.hasSession {
 		return errors.New("sftpClient: no active session")
+	}
+	if sf.rscDisp != nil {
+		sf.rscDisp.Stop()
+		<-sf.rscDisp.Done()
 	}
 	sf.hasSession = false
 	return nil
@@ -53,10 +105,8 @@ func (sf *sftpClient) List(path_ string) ([]*dssa.DataEntry, error) {
 	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
 		return nil, err
 	}
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("List %s", path_))
+	defer rcb()
 	fis, err := sfc.ReadDir(path.Join(sf.root, path_))
 	if err != nil {
 		return nil, err
@@ -92,10 +142,8 @@ func (sf *sftpClient) Mkdir(de *dssa.DataEntry) error {
 	if err := common.FileNameIsSafe(path.Base(de.Path), sf.crossOsSafe); err != nil {
 		return err
 	}
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("Mkdir %s", de.Path))
+	defer rcb()
 	return sfc.Mkdir(path.Join(sf.root, de.Path))
 }
 
@@ -104,10 +152,8 @@ func (sf *sftpClient) Stat(path_ string) (*dssa.DataEntry, error) {
 	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
 		return nil, err
 	}
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("Stat %s", path_))
+	defer rcb()
 	fp := path.Join(sf.root, path_)
 	fi, err := sfc.Lstat(fp)
 	if err != nil {
@@ -146,10 +192,8 @@ func (sf *sftpClient) SetStat(de *dssa.DataEntry, noPerm bool, noMtime bool) err
 	if err := common.FileNameIsSafe(path.Base(de.Path), sf.crossOsSafe); err != nil {
 		return err
 	}
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("SetStat %s", de.Path))
+	defer rcb()
 	fp := path.Join(sf.root, de.Path)
 	if !noPerm && !de.IsSymLink {
 		ugor := []dssa.Rights{de.UserRights, de.GroupRights, de.OtherRights}
@@ -177,13 +221,14 @@ func (sf *sftpClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
 	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
 		return nil, err
 	}
-	sfc := <-sf.sfcs
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("GetReadCloser %s", path_))
+
 	rr, err := sfc.Open(path.Join(sf.root, path_))
 	if err != nil {
-		sf.sfcs <- sfc
+		rcb()
 		return nil, err
 	}
-	return &sftpReader{reader: rr, cb: func() { sf.sfcs <- sfc }}, nil
+	return &sftpReader{reader: rr, cb: rcb}, nil
 }
 
 // GetWriteCloser implements [dssa.Dssa].
@@ -191,13 +236,13 @@ func (sf *sftpClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
 		return nil, err
 	}
-	sfc := <-sf.sfcs
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("GetWriteCloser %s", path_))
 	wr, err := sfc.Create(path.Join(sf.root, path_))
 	if err != nil {
-		sf.sfcs <- sfc
+		rcb()
 		return nil, err
 	}
-	return &sftpWriter{writer: wr, cb: func() { sf.sfcs <- sfc }}, nil
+	return &sftpWriter{writer: wr, cb: rcb}, nil
 }
 
 // Rm implements [dssa.Dssa].
@@ -205,10 +250,8 @@ func (sf *sftpClient) Rm(path_ string) error {
 	if err := common.FileNameIsSafe(path.Base(path_), sf.crossOsSafe); err != nil {
 		return err
 	}
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("Rm %s", path_))
+	defer rcb()
 	return sfc.Remove(path.Join(sf.root, path_))
 }
 
@@ -217,10 +260,8 @@ func (sf *sftpClient) Symlink(old string, new_ string) error {
 	if err := common.FileNameIsSafe(path.Base(new_), sf.crossOsSafe); err != nil {
 		return err
 	}
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("Symlink %s", new_))
+	defer rcb()
 	return sfc.Symlink(old, path.Join(sf.root, new_))
 }
 
@@ -229,16 +270,21 @@ type SftpClientFactory func(user, address, identity, knownHostsFile string) (*sf
 func MakeSftpClientDssa(
 	user, address, identity, root string, concurrency int,
 	factory SftpClientFactory, knownHostsFile string) (dssa.Dssa, error) {
-	sfcs := make(chan *sftp.Client, concurrency+1)
+	sfcIxs := make(chan int, concurrency+1)
+	sfcs := make([]*sftp.Client, concurrency+1)
+	reasons := make([]string, concurrency+1)
 	for i := 0; i <= concurrency; i++ {
 		sfc, err := factory(user, address, identity, knownHostsFile)
 		if err != nil {
 			return nil, fmt.Errorf("MakeSftpClientDssa: factory error count #%d: %v", i, err)
 		}
-		sfcs <- sfc
+		sfcs[i] = sfc
+		sfcIxs <- i
 	}
-	return &sftpClient{sfcs: sfcs, root: root}, nil
+	return &sftpClient{sfcIxs: sfcIxs, sfcs: sfcs, reasons: reasons, root: root}, nil
 }
+
+var _ common.LgrSetter = &sftpClient{}
 
 type DssaMaker struct{}
 

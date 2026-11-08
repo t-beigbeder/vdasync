@@ -151,16 +151,19 @@ func (s *dssaImpl) Get(
 	if err != nil {
 		return err
 	}
+	defer rc.Close()
 	buffer := make([]byte, 32768)
 	for {
 		n, err := rc.Read(buffer)
 		if err != nil && err != io.EOF {
+			s.lgr.Debug("dssaImpl.Get", "err", err)
 			return err
 		}
 		s.callStats <- "Get.Send"
 		s.lgr.Debug("dssaImpl.Get", "Send", n, "read err", err)
 		sErr := stream.Send(&dssagrpc.PulledBlock{Data: buffer[0:n]})
 		if sErr != nil {
+			s.lgr.Debug("dssaImpl.Get: Send", "sErr", sErr)
 			return sErr
 		}
 		if err == io.EOF {
