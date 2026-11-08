@@ -86,6 +86,11 @@ func RunSftpPlugin() {
 	if err != nil {
 		common.Fatal(lgr, fmt.Errorf("sftpc.MakeSftpClientDssa: %s: %v", exe, err))
 	}
+	if ls, ok := dss.(common.LgrSetter); ok {
+		if ls.GetLgr() == nil {
+			ls.SetLgr(lgr)
+		}
+	}
 
 	sop, err := cli.GetServerOrPluginTls(cf)
 	if err != nil {

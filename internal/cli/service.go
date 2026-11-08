@@ -88,17 +88,18 @@ func getNativeDssAndRootFor(
 		}
 		sfs, args := config.SftpServer(cfg, pName[1:])
 		if sfs == nil || df == nil {
-			err = fmt.Errorf("%s: url %s: unkown dss prefix %s", sot, url, pName)
+			err = fmt.Errorf("%s: url %s: unknown dss prefix %s", sot, url, pName)
 			return
 		}
 		lgr.Debug("DoGetDssAndRootFor: DssaFactory.Make", "sfs", sfs, "args", args)
 		dss, err = df.Make("sftp", args...)
+		err = dss.NewSession()
 		return
 	}
 	if pName != "" {
 		rp := plugin.PluginFor(pName, rps)
 		if rp == nil {
-			err = fmt.Errorf("%s: url %s: unkown plugin %s", sot, url, pName)
+			err = fmt.Errorf("%s: url %s: unknown plugin %s", sot, url, pName)
 			return
 		}
 		dss = grpcclient.MakeGrpcClient(lgr, context.Background(), rp.Client)
@@ -133,7 +134,7 @@ func DoGetDssAndRootFor(
 	rps []*plugin.RunningPlugin, makeNewSession bool,
 	df *DssaFactory,
 ) (dss dssa.Dssa, root string, err error) {
-	if dss, root, err = getNativeDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
+	if dss, root, err = getNativeDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, makeNewSession, df); err != nil {
 		return
 	}
 	return
@@ -152,6 +153,11 @@ func GetDssAndRootFor(
 	}
 	if dss, root, err = DoGetDssAndRootFor(lgr, cf, cfg, isTarget, url, rps, true, df); err != nil {
 		return
+	}
+	if ls, ok := dss.(common.LgrSetter); ok {
+		if ls.GetLgr() == nil {
+			ls.SetLgr(lgr)
+		}
 	}
 	if rtlFlag != "" {
 		dss = proxy.MakeRateLimitedDss(lgr.With("isTarget", isTarget), dss, evr, bdw)
@@ -199,8 +205,9 @@ type ServiceCtx struct {
 	OplPath     string
 	OplSes      string
 	OplInv      string
-	OplCsv      string
-	OplRpt      string
+	ExpFile     string
+	ExpRpt      string
+	Psort       bool
 	SrcRoot     string
 	TgtRoot     string
 	Lgr         *slog.Logger
@@ -506,14 +513,14 @@ func doOplExp(sc *ServiceCtx) error {
 	if sc.OplPath == "" {
 		return errors.New("doOplExp: no oplpath")
 	}
-	if sc.OplCsv == "" {
-		return errors.New("doOplExp: no oplcsv")
+	if sc.ExpFile == "" {
+		return errors.New("doOplExp: no csv")
 	}
 	rpt := opelogimpl.RPT_SYNTHETIC
-	if sc.OplRpt == "full" {
+	if sc.ExpRpt == "full" {
 		rpt = opelogimpl.RPT_FULL
-	} else if sc.OplRpt != "synth" {
-		return fmt.Errorf("doOplExp: unknown owrpt %s", sc.OplRpt)
+	} else if sc.ExpRpt != "synth" {
+		return fmt.Errorf("doOplExp: unknown owrpt %s", sc.ExpRpt)
 	}
 	oplm, err := opelogimpl.MakeM2fManager(sc.Lgr, sc.OplPath, 0)
 	if err != nil {
@@ -530,8 +537,8 @@ func doOplExp(sc *ServiceCtx) error {
 		}
 	}
 	if err := opelogimpl.OplCsvExport(
-		sc.Lgr, oplm, sc.OplCsv, rpt, sc.OplInv, sc.OplSes,
-		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: true},
+		sc.Lgr, oplm, sc.ExpFile, rpt, sc.OplInv, sc.OplSes,
+		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: sc.Psort},
 	); err != nil {
 
 		return err
@@ -560,8 +567,8 @@ func doOplImpi(sc *ServiceCtx) error {
 	if sc.OplPath == "" {
 		return errors.New("doOplDmi: no oplpath")
 	}
-	if sc.OplCsv == "" {
-		return errors.New("doOplImpi: no oplcsv")
+	if sc.ExpFile == "" {
+		return errors.New("doOplImpi: no csv")
 	}
 	if sc.OplInv == "" {
 		return errors.New("doOplImpi: no oplinv")
@@ -579,7 +586,7 @@ func doOplImpi(sc *ServiceCtx) error {
 		return fmt.Errorf("doOplImpi: no such inventory: %s", sc.OplInv)
 	}
 	if err := opelogimpl.InventoryCsvImport(
-		oplm, si.ReferenceTime, sc.OplCsv, sc.CsAlgos); err != nil {
+		oplm, si.ReferenceTime, sc.ExpFile, sc.CsAlgos); err != nil {
 
 		return err
 	}
@@ -593,10 +600,10 @@ func doOplExpi(sc *ServiceCtx) error {
 	if sc.Root == "" {
 		return errors.New("doOplExpi: no dss no root")
 	}
-	if sc.OplCsv == "" {
-		return errors.New("doOplExpi: no oplcsv")
+	if sc.ExpFile == "" {
+		return errors.New("doOplExpi: no csv")
 	}
-	if err := opelogimpl.InventoryCsvExport(sc.Root, sc.OplCsv, sc.CsAlgos); err != nil {
+	if err := opelogimpl.InventoryCsvExport(sc.Root, sc.ExpFile, sc.CsAlgos); err != nil {
 		return err
 	}
 	return nil

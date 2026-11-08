@@ -63,7 +63,7 @@ func (ph *rateLimHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRes
 		ress.RC = makePReader(ph, urc)
 	case "Read":
 		ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
-		if err := ph.Ebl.PondeRtlThis(50, ress.NRdWr); err != nil {
+		if err := ph.Ebl.PondeRtlThis(0, ress.NRdWr); err != nil {
 			ph.lgr.Error("rate limiter", "err", err)
 			if ress.Err == nil {
 				ress.Err = err
@@ -81,7 +81,7 @@ func (ph *rateLimHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRes
 		ress.WC = makePWriter(ph, uwc)
 	case "Write":
 		ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
-		if err := ph.Ebl.PondeRtlThis(100, ress.NRdWr); err != nil {
+		if err := ph.Ebl.PondeRtlThis(0, ress.NRdWr); err != nil {
 			ph.lgr.Error("rate limiter", "err", err)
 			if ress.Err == nil {
 				ress.Err = err

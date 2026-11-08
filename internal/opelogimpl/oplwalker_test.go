@@ -36,6 +36,7 @@ type owTest struct {
 	session1           string
 	session2           string
 	inventory          string
+	hasPreDryrun       bool
 	hasLoadInv         bool
 	hasNoExpCsv        bool
 	hasNoRm            bool
@@ -57,8 +58,9 @@ type owTest struct {
 	specialInterest    []string
 	speIntPhase        string
 	custoTest          func(*owTest) error
-	ctDict             map[string]string
-	deferred           func()
+	// custom tests random properties if needed
+	ctDict   map[string]string
+	deferred func()
 }
 
 var ftGenTiny = func(root string) error {
@@ -92,6 +94,8 @@ var ftUpdAugSmall = func(root string) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 5, 10, 3, 1027)
 	return err
 }
+
+var ftUpdNoop = func(root string) error { return nil }
 
 func (owt *owTest) invImport() error {
 	if !owt.hasLoadInv {
@@ -372,6 +376,16 @@ func (owt *owTest) runOwTest() (err error) {
 		err = fmt.Errorf("test \"%s\" - ctx %s - err %s", owt.label, ctx, err)
 	}()
 
+	// phase1dr: possible druryrun
+	if owt.hasPreDryrun {
+		owt.owo.Dryrun = true
+		if ctx, _, err = owt.walkStatsCsv("phase1dr", owt.session1, owt.inventory); err != nil {
+			return
+		}
+		time.Sleep(time.Millisecond)
+		owt.owo.Dryrun = false
+	}
+
 	// phase1: initial sync request
 	if ctx, _, err = owt.walkStatsCsv("phase1", owt.session1, owt.inventory); err != nil {
 		return
@@ -405,6 +419,16 @@ func (owt *owTest) runOwTest() (err error) {
 		if err = owt.ftupd(owt.std); err != nil {
 			ctx = "ftupd"
 			return
+		}
+
+		// phase3dr: possible druryrun
+		if owt.hasPreDryrun {
+			owt.owo.Dryrun = true
+			if ctx, _, err = owt.walkStatsCsv("phase3dr", owt.session1, owt.inventory); err != nil {
+				return
+			}
+			time.Sleep(time.Millisecond)
+			owt.owo.Dryrun = false
 		}
 		if ctx, stats, err = owt.walkStatsCsv("phase3", owt.session1, owt.inventory); err != nil {
 			return
@@ -603,6 +627,21 @@ func TestManyOplWalkers(t *testing.T) {
 			conc:            4,
 			allowReadPhase2: true,
 			allowReadPhase4: true,
+		},
+		{
+			label:           "update - nocheck noop-increment",
+			ftgen:           ftGenTiny,
+			ftupd:           ftUpdNoop,
+			conc:            4,
+			hasNoCheck:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: false,
+		},
+		{
+			label:        "update - dryrun",
+			ftgen:        ftGenTiny,
+			hasPreDryrun: true,
+			hasNoPhase2:  true,
 		},
 		{
 			label: "update - read io errors",

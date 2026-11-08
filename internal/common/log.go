@@ -31,3 +31,8 @@ func CliLogger(cmd, sll, pathOrKw string) (lgr *slog.Logger, err error) {
 	lgr = slog.New(slog.NewTextHandler(wr, &slog.HandlerOptions{Level: sl})).With("app", cmd)
 	return
 }
+
+type LgrSetter interface {
+	GetLgr() *slog.Logger
+	SetLgr(*slog.Logger)
+}

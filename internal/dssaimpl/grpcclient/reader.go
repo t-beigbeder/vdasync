@@ -46,14 +46,17 @@ func (gr *grpcReader) Read(p []byte) (int, error) {
 		}
 		pb, err = gr.stream.Recv()
 		if err != nil {
+			gr.lgr.Debug("grpcReader.Read", "err", err)
 			return 0, err // which can be io.EOF when server sends nil
 		}
+		gr.lgr.Debug("grpcReader.Read", "pb", len(pb.Data))
 		gr.buffer = pb.Data
 	}
 }
 
 // Close implements [io.ReadCloser].
 func (gr *grpcReader) Close() error {
+	gr.lgr.Debug("grpcReader.Close")
 	if gr.stream == nil {
 		return errors.New("grpcReader.Close: stream was not yet opened")
 	}

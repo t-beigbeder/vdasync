@@ -20,13 +20,13 @@ import (
 
 func RunSyncCli(df *DssaFactory) {
 	var (
-		oplCmdFlag     = flag.String("oplcmd", "", "operation logs command: load,create,update")
-		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operation logs won't check inventory")
-		oplRtoFlag     = flag.Int64("oplrto", 0, "operation logs reset timeout in milliseconds")
-		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
-		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
-		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operation logs keep cache on (re)start")
-		oplErrRtlFlag  = flag.String("oplertl", "1.67e-2", "operation logs errors rate limit")
+		oplCmdFlag     = flag.String("oplcmd", "", "operations log command: load,create,update")
+		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operations log won't check inventory")
+		oplRtoFlag     = flag.Int64("oplrto", 0, "operations log reset timeout in milliseconds")
+		oplRestartFlag = flag.Bool("oplrestart", false, "operations log self restart enabled")
+		oplClErrFlag   = flag.Bool("oplclerr", false, "operations log clear errors on (re)start")
+		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operations log keep cache on (re)start")
+		oplErrRtlFlag  = flag.String("oplertl", "1.67e-2", "operations log errors rate limit")
 		sourceFlag     = flag.String("source", "", "source of the command")
 		targetFlag     = flag.String("target", "", "target of the command")
 		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -37,7 +37,7 @@ func RunSyncCli(df *DssaFactory) {
 		noMtimeFlag    = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag   = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
 		cProfFlag      = flag.String("cprof", "", "cpu.prof file")
-		legacyFlag     = flag.Bool("legacy", false, "won't use operation logs algorithm but legacy one, no more maintained")
+		legacyFlag     = flag.Bool("legacy", false, "won't use operations log algorithm but legacy one, no more maintained")
 	)
 	cf := CommonFlags()
 	svsf := ServicesFlags()
@@ -149,12 +149,17 @@ func RunSyncCli(df *DssaFactory) {
 		// to replace legacy algorithm
 		*svsf.OplPathFlag = ""
 		*oplCmdFlag = "update"
-		*oplRtoFlag = 250
+		if *oplRtoFlag == 0 {
+			*oplRtoFlag = 250
+		}
 		*oplNoInvCFlag = true
 		*oplErrRtlFlag = ""
 
 	} else if *svsf.OplPathFlag == "" {
 		common.Fatal(lgr, errors.New("oplpath flag is missing"))
+	}
+	if *oplCmdFlag != "load" && *oplCmdFlag != "create" && *oplCmdFlag != "update" {
+		common.Fatal(lgr, errors.New("oplcmd is incorrect"))
 	}
 
 	syncPer, syncBck, err := ParsePeriodBackups(*svsf.OplSyncFlag)
@@ -183,10 +188,11 @@ func RunSyncCli(df *DssaFactory) {
 		EnableRestart:   *oplRestartFlag,
 		ClearErrors:     *oplClErrFlag,
 		KeepCached:      *oplKeepCFlag,
-		ExpFile:         *svsf.OplCsvFlag,
-		ExpRpt:          *svsf.OplRptFlag,
+		ExpFile:         *svsf.CsvFlag,
+		ExpRpt:          *svsf.RptFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
+		PSort:           *svsf.PsortFlag,
 		ErrorRate:       *oplErrRtlFlag,
 	}
 	opti := &opelog.ToolInformation{

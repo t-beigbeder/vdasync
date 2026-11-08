@@ -2,6 +2,8 @@
 
 `vdaserver` is the vdasync gRPC server for remote files access
 
+![vdaserver component](images/vdasync-remote.png "vdaserver component schema")
+
 ## Usage
 
 Basic usage is

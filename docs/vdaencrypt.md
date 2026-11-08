@@ -7,6 +7,8 @@ Multiple public keys (`age` recipients) may be provided for the encryption,
 so that different users can decrypt the files with their respective private keys (`age` identities).
 The resulting data may be stored locally or on a remote [DSS server](vdaserver.md).
 
+![vdaencrypt plugin](images/vdasync-encryptl.png "vdaencrypt plugin schema")
+
 Encrypted data may be safely stored on _insecure_ storage (public cloud, unencrypted laptop disk, removable drive)
 because the encrypted data identities are kept on client side and only leveraged there.
 When used with `vdaserver` remote encrypted files, the server may also be hosted on _insecure_ environments
@@ -24,7 +26,7 @@ TLS arguments for the communication with the plugin apply as usual.
 When using `vdaserver` for remote encrypted files storage, the plugin also acts as a DSS client and related TLS options apply:
 `-ca` for the server CA, `-clientkey` and `-clientcert` for the client identity.
 
-### Configuration sample for local encryption
+### Configuration sample for local storage encryption
 
 The following configuration
 
@@ -49,7 +51,10 @@ would be leveraged by vdasync/vdaservice with DSS URL:
 
     enc_sample+dss:/path/to/data_file
 
-### Configuration sample for remote encryption
+### Configuration sample for remote storage encryption
+
+![vdaencrypt plugin with remote storage](images/vdasync-encryptr.png "vdaencrypt plugin with remote storage schema")
+
 
     pluginsOptions:
       clientCertPath: /path/to/client_cert

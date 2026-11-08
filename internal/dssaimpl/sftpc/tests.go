@@ -115,10 +115,8 @@ func Cleanup(ds dssa.Dssa) error {
 	if sf.root == "" || sf.root == "/" {
 		return fmt.Errorf("Cleanup: remove %s is dangerous", sf.root)
 	}
-	sfc := <-sf.sfcs
-	defer func() {
-		sf.sfcs <- sfc
-	}()
+	sfc, rcb := sf.allocSfcs(fmt.Sprintf("Cleanup on root %s", sf.root))
+	defer rcb()
 	if err := sfc.RemoveAll(sf.root); err != nil {
 		return fmt.Errorf("Cleanup: %s error %v", sf.root, err)
 	}

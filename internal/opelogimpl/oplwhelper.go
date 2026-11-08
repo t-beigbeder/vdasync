@@ -156,6 +156,7 @@ func (ow *oplWalkerImpl) setupErtl() (err error) {
 	ow.errRtl, ow.errRtlCFunc = common.NewCancelEvLter(ow.eRate, func(doing chan any, d time.Duration) {
 		ow.lgr.With("ertl", true).Info("error rate limit raised", "delay", d)
 	})
+	ow.errRtl.Record()
 	return nil
 }
 
@@ -239,7 +240,7 @@ func (ow *oplWalkerImpl) logFinalToolInfo() error {
 			ow.oplTi.ExecSummary = fmt.Sprintf("no stats on session %s", ow.session)
 		}
 	} else {
-		ow.oplTi.ExecSummary = "no root entry in operation log"
+		ow.oplTi.ExecSummary = "no root entry in operations log"
 	}
 	om := ow.oplm.GetOlm()
 	si := om.Sessions[ow.session]
@@ -303,5 +304,13 @@ func (ow *oplWalkerImpl) logInfoStats() {
 	if tRld != nil {
 		ow.dispRldStats(tRld, true)
 	}
-	// TODO: error rate, oplm size
+	if ow.errRtl != nil {
+		evCount, du, evr := ow.errRtl.Counts()
+		gs := fmt.Sprintf("%s events %d rate %f", du.String(), evCount, evr)
+		du, evr = ow.errRtl.Stats()
+		ow.errRtl.Record()
+		cs := fmt.Sprintf("%s rate %f", du.String(), evr)
+		ow.lgr.Info("error stats", "global", gs, "current", cs)
+	}
+	// TODO: oplm size
 }

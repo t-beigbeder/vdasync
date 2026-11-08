@@ -13,7 +13,7 @@ import (
 const BckExtFormat = "20060102-150405"
 
 func listBck(dss dssa.Dssa, path_ string) ([]string, error) {
-	des, err := dss.List(path.Dir(path_))
+	des, err := dss.List(OSParentPath(path_))
 	if err != nil {
 		return nil, err
 	}

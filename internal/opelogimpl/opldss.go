@@ -24,7 +24,11 @@ func (ose *oplStoredEntry) dssRead() (css string, err error) {
 		_ = ose.logErr("dss read: GetReadCloser", err)
 		return
 	}
-	defer rdr.Close()
+	ose.lgr.Debug("dss read opening")
+	defer func() {
+		ose.lgr.Debug("dss read closing")
+		rdr.Close()
+	}()
 	cr, err = common.NewChecksumsReader(rdr, ose.ole.getCsAlgos(true))
 	if err != nil {
 		_ = ose.logErr("dss read: NewChecksumsReader", err)

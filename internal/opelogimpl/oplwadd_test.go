@@ -15,24 +15,20 @@ import (
 )
 
 func TestSingleOplWalkers(t *testing.T) {
-	// t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:     "update - c0 small simple",
-			unSkipped: false,
-			lgr:       nil,
-			ftgen:     ftGenSmall,
-			conc:      0,
-			owo:       &config.OpeLogOptionsType{
-				// Goals: "update",
-			},
-			oplm:            nil,
-			oplq:            nil,
-			hasLoadInv:      false,
-			noTestMarsh:     false,
+			label:           "update - nocheck noop-increment",
+			lgr:             cliLgr,
+			ftgen:           ftGenTiny,
+			ftupd:           ftUpdNoop,
+			hasNoCheck:      true,
 			allowReadPhase2: true,
+			allowReadPhase4: false,
+			specialInterest: []string{"d0000"},
+			speIntPhase:     "phase3",
 		},
 	}
 
