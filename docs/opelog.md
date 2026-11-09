@@ -79,19 +79,15 @@ Basic usage is then
 
     vdasync [-dryrun] [-rm] [-check] \
       -oplcmd update -oplpath <log master file> -oplses <session name> \
-      [-oplrto 250] [-csv <export file>] [-psort] \
+      [-csv <export file>] [-psort] \
       -source <source DSS> -target <target DSS>
 
 For instance
 
     vdaservice -cmd oplcreate -oplpath /path/to/repo.aio -sroot /mnt/dataset -troot sftp+dss:/dataset -oplses ds
     vdasync -oplcmd update -oplpath /path/to/repo.aio -oplses ds \
-      -oplrto 5000 -csv /path/to/exp.csv -psort \
+      -csv /path/to/exp.csv -psort \
       -source /mnt/dataset -target sftp+dss:/dataset
-
-When `-oplrto` is left unset, the tool will behave like a background service,
-possibly restarting the full synchronization if the `-oplrestart` flag is set.
-Thus continous mirroring can be performed as well as transfer error fixing if the `-oplclerr` flag is set.
 
 ### Operations log flags
 
@@ -116,7 +112,7 @@ The `vdasync` command `opl`-prefixed flags are summarized below:
     -oplrestart
         operations log self restart enabled
     -oplrto int
-        operations log reset timeout in milliseconds
+        operations log reset timeout in milliseconds (default 250)
     -oplses string
         operations log session name
     -oplsto string

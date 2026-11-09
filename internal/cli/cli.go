@@ -40,7 +40,7 @@ func CommonFlags() *CommonFlagsType {
 		LogLevelFlag:       flag.String("level", "", "log level, defaults to INFO"),
 		LogFlag:            flag.String("log", "", "log file, defaults to vdasync-<pid>.log in temp dir, \"std[out|err]\" are known keywords"),
 		OutFlag:            flag.String("out", "stdout", "file for output, defaults to stdout, \"std[out|err]\" are known keywords"),
-		SilentFlag:         flag.Bool("silent", false, "no output, or simple summary in case also verbose"),
+		SilentFlag:         flag.Bool("silent", false, "no output"),
 		VerboseFlag:        flag.Bool("verbose", false, "detailed output"),
 		NoTlsFlag:          flag.Bool("notls", false, "insecure communication with servers over http"),
 		NoTlsPluginFlag:    flag.Bool("notlsplugin", false, "insecure communication with plugins over http"),
@@ -64,6 +64,7 @@ type ServicesFlagsType struct {
 	CsvFlag     *string
 	RptFlag     *string
 	PsortFlag   *bool
+	RsortFlag   *bool
 	SrcRtlFlag  *string
 	TgtRtlFlag  *string
 	OplSesFlag  *string
@@ -83,6 +84,7 @@ func ServicesFlags() *ServicesFlagsType {
 		CsvFlag:     flag.String("csv", "", "csv export path"),
 		RptFlag:     flag.String("rpt", "synth", "csv report type: synth|full"),
 		PsortFlag:   flag.Bool("psort", false, "sort paths in csv export"),
+		RsortFlag:   flag.Bool("rsort", false, "sort in reverse order"),
 		SrcRtlFlag:  flag.String("srtl", "", "events:bandwidth rates limits per second on source DSS: eg 1e5:128e6 => 10000 events/s 1Gbps"),
 		TgtRtlFlag:  flag.String("trtl", "", "events:bandwidth rates limits per second on target DSS"),
 		OplSesFlag:  flag.String("oplses", "", "operations log session name"),

@@ -22,7 +22,7 @@ func RunSyncCli(df *DssaFactory) {
 	var (
 		oplCmdFlag     = flag.String("oplcmd", "", "operations log command: load,create,update")
 		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operations log won't check inventory")
-		oplRtoFlag     = flag.Int64("oplrto", 0, "operations log reset timeout in milliseconds")
+		oplRtoFlag     = flag.Int64("oplrto", 250, "operations log reset timeout in milliseconds")
 		oplRestartFlag = flag.Bool("oplrestart", false, "operations log self restart enabled")
 		oplClErrFlag   = flag.Bool("oplclerr", false, "operations log clear errors on (re)start")
 		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operations log keep cache on (re)start")
@@ -149,9 +149,6 @@ func RunSyncCli(df *DssaFactory) {
 		// to replace legacy algorithm
 		*svsf.OplPathFlag = ""
 		*oplCmdFlag = "update"
-		if *oplRtoFlag == 0 {
-			*oplRtoFlag = 250
-		}
 		*oplNoInvCFlag = true
 		*oplErrRtlFlag = ""
 
@@ -213,8 +210,13 @@ func RunSyncCli(df *DssaFactory) {
 		common.Fatal(lgr, err)
 	}
 	if *svsf.OplPathFlag == "" {
-		if _, err := fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary); err != nil {
-			common.Fatal(lgr, err)
+		if !*cf.SilentFlag {
+			if _, err := fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary); err != nil {
+				common.Fatal(lgr, err)
+			}
+		}
+		if *cf.VerboseFlag {
+			// TODO: rsync-like output
 		}
 	}
 }
