@@ -86,7 +86,7 @@ func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	}
 	if err := OplCsvExport(
 		ow.lgr, ow.oplm, ow.owo.ExpFile, rpt, ow.inventory, ow.session,
-		&RptConfig{ToolInfo: ow.oplTi, IsSorted: ow.owo.PSort}); err != nil {
+		&RptConfig{ToolInfo: ow.oplTi, IsSorted: ow.owo.PSort, IsReverse: ow.owo.RSort}); err != nil {
 
 		ow.owErr(lgr, "failed to export logs", err)
 	}

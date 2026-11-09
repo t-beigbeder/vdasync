@@ -133,3 +133,50 @@ func TestM2fWriteNoFileOpeLogs(t *testing.T) {
 	require.NoError(t, olm.Close())
 	lgr.Debug("TestM2fWriteNoFileOpeLogs: end")
 }
+
+func TestM2fWalk(t *testing.T) {
+	lgr := common.GetLogger()
+	lgr.Debug("TestM2fWalk: start")
+
+	std := t.TempDir()
+	require.NoError(t, common.FileTreeGenerate(std, 250, 25000, 2, 2025, false, 0))
+	lgr.Debug("TestM2fWalk: FileTreeGenerated")
+
+	ttd := t.TempDir()
+
+	olm, err := makeTestM2fManager(lgr, "", 0, false, std, ttd)
+	require.NoError(t, err)
+	require.Contains(t, olm.GetOlm().Sessions, "ds")
+	sTs := olm.GetOlm().Sessions["ds"].ReferenceTime
+
+	tSt := time.Now().Unix()
+	err = filepath.Walk(std, func(path string, info fs.FileInfo, err error) error {
+		le := opelog.NewLogicalEntry()
+		se := &opelog.StoredEntry{IsDir: info.IsDir(), Mtime: info.ModTime().Unix()}
+		le.CreateEvent(sTs, 0, false, opelog.EVC_LOADED, se, nil)
+		le.SetState(tSt, sTs, false, opelog.STC_DONE_PRESENT, "", se, nil, 0)
+		return olm.PutLogicalEntry(path, le)
+	})
+	require.NoError(t, err)
+	require.NoError(t, olm.Sync())
+	var (
+		rps1, rps2, rps3 []string
+	)
+	_, _, _ = rps1, rps2, rps3
+	olm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+		rps1 = append(rps1, relPath)
+		return nil
+	}, false, false)
+	olm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+		rps2 = append(rps2, relPath)
+		return nil
+	}, true, false)
+	olm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+		rps3 = append(rps3, relPath)
+		return nil
+	}, true, true)
+	require.Equal(t, len(rps1), len(rps2))
+	require.Equal(t, len(rps1), len(rps3))
+	require.NoError(t, olm.Close())
+	lgr.Debug("TestM2fWalk: end")
+}

@@ -65,8 +65,9 @@ func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
 }
 
 type RptConfig struct {
-	ToolInfo *opelog.ToolInformation
-	IsSorted bool
+	ToolInfo  *opelog.ToolInformation
+	IsSorted  bool
+	IsReverse bool
 }
 
 type RptType int
@@ -396,7 +397,7 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 			}
 		}
 		return nil
-	}, rptCfg.IsSorted)
+	}, rptCfg.IsSorted, rptCfg.IsReverse)
 	if err != nil {
 		return err
 	}

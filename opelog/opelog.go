@@ -23,7 +23,7 @@ type OpeLogManager interface {
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
-	Walk(doIt func(relPath string, ole *LogicalEntry) error, sorted bool) error
+	Walk(doIt func(relPath string, ole *LogicalEntry) error, sorted, reverse bool) error
 }
 
 type Rights struct {

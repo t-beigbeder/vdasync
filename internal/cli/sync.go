@@ -190,6 +190,7 @@ func RunSyncCli(df *DssaFactory) {
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
 		PSort:           *svsf.PsortFlag,
+		RSort:           *svsf.RsortFlag,
 		ErrorRate:       *oplErrRtlFlag,
 	}
 	opti := &opelog.ToolInformation{
@@ -210,13 +211,21 @@ func RunSyncCli(df *DssaFactory) {
 		common.Fatal(lgr, err)
 	}
 	if *svsf.OplPathFlag == "" {
+		if *cf.VerboseFlag {
+			if err := oplm.Open(true); err != nil {
+				common.Fatal(lgr, err)
+			}
+			if err := opelogimpl.CliOutput(lgr, oplm, outFile, "auto", *svsf.PsortFlag || *svsf.RsortFlag, *svsf.RsortFlag); err != nil {
+				if !*cf.SilentFlag {
+					fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary)
+				}
+				common.Fatal(lgr, err)
+			}
+		}
 		if !*cf.SilentFlag {
 			if _, err := fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary); err != nil {
 				common.Fatal(lgr, err)
 			}
-		}
-		if *cf.VerboseFlag {
-			// TODO: rsync-like output
 		}
 	}
 }

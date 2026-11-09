@@ -62,6 +62,7 @@ type OpeLogOptionsType struct {
 	ExpRpt          string `yaml:"expRpt"`
 	ExpBck          int    `yaml:"expBck"`
 	PSort           bool   `yaml:"pSort"`
+	RSort           bool   `yaml:"rSort"`
 	ErrorRate       string `yaml:"errorRate"`
 	SpecialInterest []string
 	SpeIntPhase     string
