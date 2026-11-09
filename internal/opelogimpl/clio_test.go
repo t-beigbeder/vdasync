@@ -69,5 +69,5 @@ func TestCliOutput(t *testing.T) {
 	outPath := path.Join(os.TempDir(), "cliout.txt")
 	out, err := os.Create(outPath)
 	require.NoError(t, err)
-	require.NoError(t, CliOutput(oplmRo, out, "ds", true, true))
+	require.NoError(t, CliOutput(lgr, oplmRo, out, "ds", true, true))
 }
