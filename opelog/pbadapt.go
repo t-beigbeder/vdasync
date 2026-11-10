@@ -168,6 +168,17 @@ func protobuf2ToolInformation(gti *opeloggrpc.ToolInformation) *ToolInformation 
 	}
 }
 
+func protoBuf2ToolInfos(gtis *opeloggrpc.ToolInfoList) []*ToolInformation {
+	if gtis == nil {
+		gtis = &opeloggrpc.ToolInfoList{}
+	}
+	tis := make([]*ToolInformation, len(gtis.ToolInfos))
+	for i, gti := range gtis.ToolInfos {
+		tis[i] = protobuf2ToolInformation(gti)
+	}
+	return tis
+}
+
 func protobuf2SessionInfo(gsi *opeloggrpc.SessionInfo) *SessionInfo {
 	if gsi == nil {
 		return nil
@@ -176,7 +187,7 @@ func protobuf2SessionInfo(gsi *opeloggrpc.SessionInfo) *SessionInfo {
 		Comment:       gsi.Comment,
 		ReferenceTime: gsi.ReferenceTime,
 		IsInventory:   gsi.IsInventory,
-		ToolInfo:      protobuf2ToolInformation(gsi.ToolInfo),
+		ToolInfoList:  protoBuf2ToolInfos(gsi.ToolInfoList),
 	}
 }
 
@@ -369,10 +380,20 @@ func toolInformation2ProtoBuf(ti *ToolInformation) *opeloggrpc.ToolInformation {
 		Version:       ti.Version,
 		HostName:      ti.HostName,
 		SourceDssInfo: ti.SourceDssInfo,
-		TargetDssInfo: ti.SourceDssInfo,
+		TargetDssInfo: ti.TargetDssInfo,
 		StopTime:      ti.StopTime,
 		ExecSummary:   ti.ExecSummary,
 	}
+}
+func toolInfos2ProtoBuf(tis []*ToolInformation) *opeloggrpc.ToolInfoList {
+	if len(tis) == 0 {
+		return nil
+	}
+	gtis := make([]*opeloggrpc.ToolInformation, len(tis))
+	for i, ti := range tis {
+		gtis[i] = toolInformation2ProtoBuf(ti)
+	}
+	return &opeloggrpc.ToolInfoList{ToolInfos: gtis}
 }
 
 func sessionInfo2ProtoBuf(si *SessionInfo) *opeloggrpc.SessionInfo {
@@ -383,7 +404,7 @@ func sessionInfo2ProtoBuf(si *SessionInfo) *opeloggrpc.SessionInfo {
 		Comment:       si.Comment,
 		ReferenceTime: si.ReferenceTime,
 		IsInventory:   si.IsInventory,
-		ToolInfo:      toolInformation2ProtoBuf(si.ToolInfo),
+		ToolInfoList:  toolInfos2ProtoBuf(si.ToolInfoList),
 	}
 }
 

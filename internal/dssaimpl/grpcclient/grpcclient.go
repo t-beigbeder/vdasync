@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"path"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -13,9 +14,10 @@ import (
 )
 
 type grpcClient struct {
-	lgr    *slog.Logger
-	ctx    context.Context
-	client remote.OpeDssaClient
+	lgr         *slog.Logger
+	ctx         context.Context
+	client      remote.OpeDssaClient
+	crossOsSafe bool
 }
 
 type GrpcClient interface {
@@ -57,13 +59,20 @@ func (gc *grpcClient) DssInfo() string {
 // List implements [dssa.Dssa].
 func (gc *grpcClient) List(path_ string) ([]*dssa.DataEntry, error) {
 	gc.lgr.Debug("grpcClient.List", "path", path_)
+	if err := common.FileNameIsSafe(path.Base(path_), gc.crossOsSafe); err != nil {
+		return nil, err
+	}
 	gds, err := gc.client.List(gc.ctx, &dssagrpc.Path{Path: path_})
 	if err != nil {
 		return nil, err
 	}
 	dds := []*dssa.DataEntry{}
 	for _, gd := range gds.Entries {
-		dds = append(dds, common.GrpcDte2DssDte(gd))
+		dde := common.GrpcDte2DssDte(gd)
+		if err := common.FileNameIsSafe(path.Base(dde.Path), gc.crossOsSafe); err != nil {
+			return nil, err
+		}
+		dds = append(dds, dde)
 	}
 	return dds, nil
 }
@@ -71,6 +80,9 @@ func (gc *grpcClient) List(path_ string) ([]*dssa.DataEntry, error) {
 // Mkdir implements [dssa.Dssa].
 func (gc *grpcClient) Mkdir(de *dssa.DataEntry) error {
 	gc.lgr.Debug("grpcClient.Mkdir", "de", de.Path)
+	if err := common.FileNameIsSafe(path.Base(de.Path), gc.crossOsSafe); err != nil {
+		return err
+	}
 	_, err := gc.client.Mkdir(gc.ctx, common.DssDte2GrpcDte(de))
 	return err
 }
@@ -78,6 +90,9 @@ func (gc *grpcClient) Mkdir(de *dssa.DataEntry) error {
 // Stat implements [dssa.Dssa].
 func (gc *grpcClient) Stat(path_ string) (*dssa.DataEntry, error) {
 	gc.lgr.Debug("grpcClient.Stat", "de", path_)
+	if err := common.FileNameIsSafe(path.Base(path_), gc.crossOsSafe); err != nil {
+		return nil, err
+	}
 	gd, err := gc.client.Stat(gc.ctx, &dssagrpc.Path{Path: path_})
 	if err != nil {
 		return nil, err
@@ -89,6 +104,9 @@ func (gc *grpcClient) Stat(path_ string) (*dssa.DataEntry, error) {
 // SetStat implements [dssa.Dssa].
 func (gc *grpcClient) SetStat(ssde *dssa.DataEntry, noPerm, noMtime bool) error {
 	gc.lgr.Debug("grpcClient.SetStat", "de", ssde.Path)
+	if err := common.FileNameIsSafe(path.Base(ssde.Path), gc.crossOsSafe); err != nil {
+		return err
+	}
 	_, err := gc.client.SetStat(gc.ctx,
 		&dssagrpc.SetStatDataEntry{
 			DataEntry: common.DssDte2GrpcDte(ssde),
@@ -111,18 +129,27 @@ func (gc *grpcClient) Checksum(algos string, path_ string) (string, error) {
 // GetReader implements [dssa.Dssa].
 func (gc *grpcClient) GetReadCloser(path_ string) (io.ReadCloser, error) {
 	gc.lgr.Debug("grpcClient.GetReadCloser", "path", path_)
+	if err := common.FileNameIsSafe(path.Base(path_), gc.crossOsSafe); err != nil {
+		return nil, err
+	}
 	return &grpcReader{lgr: gc.lgr, gc: gc, path_: path_}, nil
 }
 
 // GetWriter implements [dssa.Dssa].
 func (gc *grpcClient) GetWriteCloser(path_ string) (io.WriteCloser, error) {
 	gc.lgr.Debug("grpcClient.GetWriteCloser", "path", path_)
+	if err := common.FileNameIsSafe(path.Base(path_), gc.crossOsSafe); err != nil {
+		return nil, err
+	}
 	return &grpcWriter{lgr: gc.lgr, path_: path_, gc: gc}, nil
 }
 
 // Symlink implements [dssa.Dssa].
 func (gc *grpcClient) Rm(path_ string) error {
 	gc.lgr.Debug("grpcClient.Rm", "path", path_)
+	if err := common.FileNameIsSafe(path.Base(path_), gc.crossOsSafe); err != nil {
+		return err
+	}
 	_, err := gc.client.Rm(gc.ctx, &dssagrpc.Path{Path: path_})
 	return err
 }
@@ -130,6 +157,9 @@ func (gc *grpcClient) Rm(path_ string) error {
 // Symlink implements [dssa.Dssa].
 func (gc *grpcClient) Symlink(old string, new_ string) error {
 	gc.lgr.Debug("grpcClient.Symlink", "path", new_)
+	if err := common.FileNameIsSafe(path.Base(new_), gc.crossOsSafe); err != nil {
+		return err
+	}
 	_, err := gc.client.Symlink(gc.ctx, &dssagrpc.OldNewPaths{Old: old, New_: new_})
 	return err
 }
@@ -140,7 +170,7 @@ func (gc *grpcClient) GetClient() remote.OpeDssaClient {
 }
 
 func MakeGrpcClient(lgr *slog.Logger, ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
-	return &grpcClient{lgr, ctx, client}
+	return &grpcClient{lgr, ctx, client, false}
 }
 
 var _ GrpcClient = &grpcClient{}

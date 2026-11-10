@@ -36,6 +36,7 @@ type owTest struct {
 	session1           string
 	session2           string
 	inventory          string
+	hasPreDryrun       bool
 	hasLoadInv         bool
 	hasNoExpCsv        bool
 	hasNoRm            bool
@@ -43,8 +44,10 @@ type owTest struct {
 	restartCb          func(phase string, count int) bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
+	allowReadPhase2    bool
 	hasNoPhase4        bool
 	hasNoExpCsv4       bool
+	allowReadPhase4    bool
 	csvName            string
 	std, ltd, ttd, ctd string
 	noGenSDs, noGenTDs bool
@@ -55,7 +58,9 @@ type owTest struct {
 	specialInterest    []string
 	speIntPhase        string
 	custoTest          func(*owTest) error
-	deferred           func()
+	// custom tests random properties if needed
+	ctDict   map[string]string
+	deferred func()
 }
 
 var ftGenTiny = func(root string) error {
@@ -90,6 +95,8 @@ var ftUpdAugSmall = func(root string) error {
 	return err
 }
 
+var ftUpdNoop = func(root string) error { return nil }
+
 func (owt *owTest) invImport() error {
 	if !owt.hasLoadInv {
 		return nil
@@ -119,7 +126,7 @@ func (owt *owTest) invImport() error {
 
 func (owt *owTest) makeOplm() (err error) {
 	if owt.oplm == nil {
-		if owt.oplm, err = MakeM2fManager(path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
+		if owt.oplm, err = MakeM2fManager(owt.lgr, path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
 			return
 		}
 		oplmi, ok := owt.oplm.(*m2fOplMng)
@@ -169,6 +176,9 @@ func (owt *owTest) setDefLogger() error {
 }
 
 func (owt *owTest) commonSetup() (err error) {
+	if owt.owo == nil {
+		owt.owo = &config.OpeLogOptionsType{}
+	}
 	ctx := "ns"
 	defer func() {
 		if err == nil {
@@ -227,6 +237,9 @@ func (owt *owTest) commonSetup() (err error) {
 		owt.owo.NoInvCheck = true
 	}
 
+	if owt.ctDict == nil {
+		owt.ctDict = map[string]string{}
+	}
 	return
 }
 
@@ -281,6 +294,16 @@ func (owt *owTest) newOplWalker(session, inventory string) OplWalker {
 		owt.sDss, owt.tDss, owt.std, owt.ttd,
 		session, inventory,
 	)
+}
+
+func (owt *owTest) checkStats(stats *opelog.ComputedStats, allowRead bool) bool {
+	if !stats.IsSet(true) {
+		return true
+	}
+	if !allowRead {
+		return false
+	}
+	return stats.Create.Number+stats.Update.Number+stats.Remove.Number+stats.MetaChange.Number+stats.Error.Number == 0
 }
 
 func (owt *owTest) walkStatsCsv(baseCtx string, session, inventory string) (ctx string, stats *opelog.ComputedStats, err error) {
@@ -353,6 +376,16 @@ func (owt *owTest) runOwTest() (err error) {
 		err = fmt.Errorf("test \"%s\" - ctx %s - err %s", owt.label, ctx, err)
 	}()
 
+	// phase1dr: possible druryrun
+	if owt.hasPreDryrun {
+		owt.owo.Dryrun = true
+		if ctx, _, err = owt.walkStatsCsv("phase1dr", owt.session1, owt.inventory); err != nil {
+			return
+		}
+		time.Sleep(time.Millisecond)
+		owt.owo.Dryrun = false
+	}
+
 	// phase1: initial sync request
 	if ctx, _, err = owt.walkStatsCsv("phase1", owt.session1, owt.inventory); err != nil {
 		return
@@ -366,7 +399,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase2", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if stats.IsSet(true) {
+		if !owt.checkStats(stats, owt.allowReadPhase2) {
 			ctx = "phase2"
 			err = errors.New("stats is set")
 			return
@@ -387,6 +420,16 @@ func (owt *owTest) runOwTest() (err error) {
 			ctx = "ftupd"
 			return
 		}
+
+		// phase3dr: possible druryrun
+		if owt.hasPreDryrun {
+			owt.owo.Dryrun = true
+			if ctx, _, err = owt.walkStatsCsv("phase3dr", owt.session1, owt.inventory); err != nil {
+				return
+			}
+			time.Sleep(time.Millisecond)
+			owt.owo.Dryrun = false
+		}
 		if ctx, stats, err = owt.walkStatsCsv("phase3", owt.session1, owt.inventory); err != nil {
 			return
 		}
@@ -400,7 +443,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase4", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if stats.IsSet(true) {
+		if !owt.checkStats(stats, owt.allowReadPhase4) {
 			ctx = "phase4"
 			err = errors.New("stats is set")
 		}
@@ -452,7 +495,7 @@ func custTestNoKeepCached(owt *owTest) (err error) {
 	if ctx, stats, err = owt.walkStatsCsv("phase2bis", owt.session1, owt.inventory); err != nil {
 		return
 	}
-	if stats.IsSet(true) {
+	if !owt.checkStats(stats, owt.allowReadPhase2) {
 		ctx = "phase2bis"
 		err = errors.New("stats is set")
 	}
@@ -481,7 +524,26 @@ func custTestNewSession(owt *owTest) (err error) {
 		return
 	}
 
+	// phase2: dryrun
+	if !owt.hasNoPhase2 {
+		time.Sleep(time.Millisecond)
+		owt.owo.Dryrun = true
+		owt.owo.KeepCached = true // to compare w/o resetting state
+		if ctx, stats, err = owt.walkStatsCsv("phase2", owt.session1, owt.inventory); err != nil {
+			return
+		}
+		if !owt.checkStats(stats, owt.allowReadPhase2) {
+			ctx = "phase2"
+			err = errors.New("stats is set")
+			return
+		}
+	}
+
 	// phase3: update
+	goal, _ := owt.ctDict["ns-goal"]
+	if goal != "" {
+		owt.owo.Goal = goal
+	}
 	if ctx, _, err = owt.walkStatsCsv("phase3", owt.session2, owt.inventory); err != nil {
 		return
 	}
@@ -493,7 +555,7 @@ func custTestNewSession(owt *owTest) (err error) {
 	if ctx, stats, err = owt.walkStatsCsv("phase4", owt.session1, owt.inventory); err != nil {
 		return
 	}
-	if stats.IsSet(true) {
+	if !owt.checkStats(stats, owt.allowReadPhase4) {
 		ctx = "phase4"
 		err = errors.New("stats is set")
 	}
@@ -513,10 +575,11 @@ func TestManyOplWalkers(t *testing.T) {
 			owo:       &config.OpeLogOptionsType{
 				// Goals: "update",
 			},
-			oplm:        nil,
-			oplq:        nil,
-			hasLoadInv:  false,
-			noTestMarsh: false,
+			oplm:            nil,
+			oplq:            nil,
+			hasLoadInv:      false,
+			noTestMarsh:     false,
+			allowReadPhase2: true,
 		},
 		{
 			label: "load c4 - medium with sync",
@@ -546,23 +609,39 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 		},
 		{
-			label: "update - c4 tiny",
-			ftgen: ftGenTiny,
-			conc:  4,
-			owo:   &config.OpeLogOptionsType{},
+			label:           "update - c4 tiny",
+			ftgen:           ftGenTiny,
+			conc:            4,
+			allowReadPhase2: true,
 		},
 		{
-			label: "update - c4 aug small",
-			ftgen: ftGenAugSmall,
-			conc:  4,
-			owo:   &config.OpeLogOptionsType{},
+			label:           "update - c4 aug small",
+			ftgen:           ftGenAugSmall,
+			conc:            4,
+			allowReadPhase2: true,
 		},
 		{
-			label: "update - increment - c4 aug small",
-			ftgen: ftGenAugSmall,
-			ftupd: ftUpdAugSmall,
-			conc:  4,
-			owo:   &config.OpeLogOptionsType{},
+			label:           "update - increment - c4 aug small",
+			ftgen:           ftGenAugSmall,
+			ftupd:           ftUpdAugSmall,
+			conc:            4,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+		},
+		{
+			label:           "update - nocheck noop-increment",
+			ftgen:           ftGenTiny,
+			ftupd:           ftUpdNoop,
+			conc:            4,
+			hasNoCheck:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: false,
+		},
+		{
+			label:        "update - dryrun",
+			ftgen:        ftGenTiny,
+			hasPreDryrun: true,
+			hasNoPhase2:  true,
 		},
 		{
 			label: "update - read io errors",
@@ -575,12 +654,13 @@ func TestManyOplWalkers(t *testing.T) {
 				ClearErrors:   true,
 				KeepCached:    true,
 			},
+			allowReadPhase2: true,
 			sIoeOpts: &proxy.IoErrOpts{
 				ResetOnNew: true,
-				ListRate:   13, StatRate: 13, GetReadCloserRate: 13, ReadRate: 130, RCloseRate: 13,
+				ListRate:   13, StatRate: 13, GetReadCloserRate: 4, ReadRate: 4, RCloseRate: 4,
 			},
 			restartCb: func(phase string, count int) bool {
-				if phase != "phase1" || count >= 2 {
+				if (phase != "phase1" && phase != "phase2") || count >= 2 {
 					return false
 				}
 				return true
@@ -597,17 +677,18 @@ func TestManyOplWalkers(t *testing.T) {
 				ClearErrors:   true,
 				KeepCached:    true,
 			},
+			allowReadPhase2: true,
 			sIoeOpts: &proxy.IoErrOpts{
 				ResetOnNew: true,
-				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 7, RCloseRate: 7,
 			},
 			tIoeOpts: &proxy.IoErrOpts{
 				ResetOnNew: true,
-				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 70, RCloseRate: 7,
-				MkdirRate: 7, SetStatRate: 7, GetWriteCloserRate: 7, WriteRate: 70, WCloseRate: 7, RmRate: 7, SymlinkRate: 7,
+				ListRate:   7, StatRate: 7, GetReadCloserRate: 7, ReadRate: 7, RCloseRate: 7,
+				MkdirRate: 7, SetStatRate: 7, GetWriteCloserRate: 7, WriteRate: 7, WCloseRate: 7, RmRate: 7, SymlinkRate: 7,
 			},
 			restartCb: func(phase string, count int) bool {
-				if phase != "phase1" || count >= 2 {
+				if (phase != "phase1" && phase != "phase2") || count >= 2 {
 					return false
 				}
 				return true
@@ -620,8 +701,9 @@ func TestManyOplWalkers(t *testing.T) {
 				SyncOptionsType: config.SyncOptionsType{Check: true},
 				InvCsAlgos:      "md5",
 			},
-			hasLoadInv: true,
-			custoTest:  custTestNoKeepCached,
+			hasLoadInv:      true,
+			allowReadPhase2: true,
+			custoTest:       custTestNoKeepCached,
 		},
 		{
 			label: "update once - new session",
@@ -630,8 +712,10 @@ func TestManyOplWalkers(t *testing.T) {
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Check: true},
 			},
-			session2:  "ses2",
-			custoTest: custTestNewSession,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+			session2:        "ses2",
+			custoTest:       custTestNewSession,
 		},
 	}
 
@@ -648,212 +732,4 @@ func TestManyOplWalkers(t *testing.T) {
 		err := owt.runOwTest()
 		require.NoError(t, err, err)
 	}
-}
-
-// =======================================================================
-// =======================================================================
-// =======================================================================
-// =======================================================================
-// =======================================================================
-func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
-	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	_ = cliLgr
-	owts := []owTest{
-		{
-			label: "test - update once - new session",
-			ftgen: ftGenAugSmall,
-			owo: &config.OpeLogOptionsType{
-				SyncOptionsType: config.SyncOptionsType{Check: true},
-			},
-			session2:        "ses2",
-			custoTest:       custTestNewSession,
-			specialInterest: []string{""},
-			speIntPhase:     "phase3nono",
-		},
-		// {
-		// 	label: "test - update once - inventory - no keep cache then again",
-		// 	ftgen: ftGenTiny,
-		// 	owo: &config.OpeLogOptionsType{
-		// 		SyncOptionsType: config.SyncOptionsType{Check: true},
-		// 		InvCsAlgos:      "md5",
-		// 	},
-		// 	hasLoadInv: true,
-		// 	custoTest:  custTestNoKeepCached,
-		// },
-	}
-
-	skipDefault := false
-	for _, owt := range owts {
-		if skipDefault {
-			if !owt.unSkipped {
-				owt.lgr.Info("skipped", "test", owt.label)
-				continue
-			}
-		}
-		owt.t = t
-		err := owt.runOwTest()
-		require.NoError(t, err, err)
-	}
-}
-
-func TestOplWalker(t *testing.T) {
-	var (
-		lgr *slog.Logger
-		err error
-	)
-	lgr = common.GetLogger()
-	// lgr = common.InfoLogger()
-	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	// lgr = common.DbgLogger()
-	require.NoError(t, err)
-
-	lgr.Debug("TestOplWalker: started")
-	std := t.TempDir()
-	defer walker.SetTestDirRW(std, "source")
-	ltd := t.TempDir()
-	ttd := t.TempDir()
-	defer walker.SetTestDirRW(ttd, "target")
-
-	// require.NoError(t, ftGenTiny(std))
-	// require.NoError(t, ftGenMedium(std))
-	require.NoError(t, ftGenAugSmall(std))
-	lgr.Debug("TestOplWalker: FileTreeGenerated")
-
-	cPath := path.Join(ltd, "invDump.csv")
-	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
-	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, true, std, ttd)
-	require.NoError(t, err)
-	require.Contains(t, oplm.GetOlm().Sessions, "di")
-	iTs := oplm.GetOlm().Sessions["di"].ReferenceTime
-	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5"))
-	require.NoError(t, oplm.Close())
-
-	csvPath := path.Join(ltd, "oplm.csv")
-	ow := NewOplWalker(
-		lgr, 4, nil, oplm,
-		&opelog.ToolInformation{CmdLine: "TestOplWalker"},
-		&config.OpeLogOptionsType{
-			SyncOptionsType: config.SyncOptionsType{
-				Check: true,
-			},
-			Goal:            "update",
-			SyncPeriod:      5,
-			ResetMilTimeout: 250,
-			ExpPeriod:       6,
-			ExpFile:         csvPath,
-			InvCsAlgos:      "md5",
-			NoInvCheck:      false,
-		},
-		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
-		std, ttd,
-		"ds", "di")
-	err = ow.Run()
-	require.NoError(t, err)
-
-	oplmRo, err := openTestM2fManagerRO(path.Join(ltd, "m2f.opl"), true)
-	require.NoError(t, err)
-	require.Contains(t, oplmRo.GetOlm().Sessions, "ds")
-	sTs := oplm.GetOlm().Sessions["ds"].ReferenceTime
-	rLe, err := oplmRo.GetLogicalEntry("")
-	require.NoError(t, err)
-	require.Zero(t, rLe.GetStats(sTs).Error.Number)
-}
-
-func TestOplBadSession(t *testing.T) {
-	var (
-		lgr *slog.Logger
-		err error
-	)
-	lgr = common.GetLogger()
-	// lgr = common.InfoLogger()
-	// lgr, err = common.CliLogger("TestOplBadSession", "DEBUG+2", "stderr")
-	// lgr = common.DbgLogger()
-	require.NoError(t, err)
-
-	lgr.Debug("TestOplBadSession: started")
-	std := t.TempDir()
-	ltd := t.TempDir()
-	ttd := t.TempDir()
-
-	require.NoError(t, ftGenTiny(std))
-	lgr.Debug("TestOplBadSession: FileTreeGenerated")
-
-	cPath := path.Join(ltd, "invDump.csv")
-	require.NoError(t, InventoryCsvExport(std, cPath, "md5"))
-	oplm, err := makeTestM2fManager(path.Join(ltd, "m2f.opl"), 5, false, std, ttd)
-	require.NoError(t, err)
-	require.Contains(t, oplm.GetOlm().Sessions, "ds")
-	iTs := oplm.GetOlm().Sessions["ds"].ReferenceTime
-	require.NoError(t, InventoryCsvImport(oplm, iTs, cPath, "md5"))
-	require.NoError(t, oplm.Close())
-	require.Contains(t, oplm.GetOlm().Sessions, "di")
-	ow := NewOplWalker(
-		lgr, 4, nil, oplm,
-		&opelog.ToolInformation{CmdLine: "TestOplWalker"},
-		&config.OpeLogOptionsType{Goal: "load"},
-		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
-		std, ttd,
-		"di", "ds")
-	err = ow.Run()
-	require.Error(t, err)
-
-}
-
-func TestGoals(t *testing.T) {
-	owi := &oplWalkerImpl{owo: &config.OpeLogOptionsType{Goal: ""}}
-	owi.owo.Goal = "load"
-	require.True(t, owi.impliesGoal("load"))
-	require.False(t, owi.impliesGoal("create"))
-	owi.owo.Goal = "create"
-	require.True(t, owi.impliesGoal("load"))
-	require.True(t, owi.impliesGoal("create"))
-	require.False(t, owi.impliesGoal("update"))
-	owi.owo.Goal = "update"
-	require.True(t, owi.impliesGoal("load"))
-	require.True(t, owi.impliesGoal("create"))
-	require.True(t, owi.impliesGoal("update"))
-}
-
-func TestAutoSession(t *testing.T) {
-	var (
-		lgr *slog.Logger
-		err error
-	)
-	lgr = common.GetLogger()
-	// lgr = common.InfoLogger()
-	// lgr, err = common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
-	// lgr = common.DbgLogger()
-	require.NoError(t, err)
-
-	oplm, err := MakeM2fManager("", 0)
-	require.NoError(t, err)
-	std, ttd := t.TempDir(), t.TempDir()
-	defer walker.SetTestDirRW(std, "source")
-	defer walker.SetTestDirRW(ttd, "target")
-	require.NoError(t, ftGenAugTiny(std))
-	err = oplm.Create(std, ttd)
-	require.NoError(t, err)
-	require.Equal(t, "mem", oplm.GetOlm().StoreType)
-	ow := NewOplWalker(
-		lgr, 4, nil, oplm,
-		&opelog.ToolInformation{CmdLine: "TestAutoSession"},
-		&config.OpeLogOptionsType{
-			SyncOptionsType: config.SyncOptionsType{
-				Check: true,
-			},
-			Goal:            "update",
-			NoInvCheck:      true,
-			ResetMilTimeout: 250,
-		},
-		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
-		std, ttd, "", "",
-	)
-	err = ow.Run()
-	require.NoError(t, err)
-	ctd := path.Join(os.TempDir(), "oplCsv")
-	csvPath := path.Join(ctd, "csv-test-auto.csv")
-	oplm.Open(true)
-	err = OplCsvExport(lgr, oplm, csvPath, RPT_SYNTHETIC, "", "auto", nil)
-	require.NoError(t, err)
 }

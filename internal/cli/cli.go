@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -41,7 +40,7 @@ func CommonFlags() *CommonFlagsType {
 		LogLevelFlag:       flag.String("level", "", "log level, defaults to INFO"),
 		LogFlag:            flag.String("log", "", "log file, defaults to vdasync-<pid>.log in temp dir, \"std[out|err]\" are known keywords"),
 		OutFlag:            flag.String("out", "stdout", "file for output, defaults to stdout, \"std[out|err]\" are known keywords"),
-		SilentFlag:         flag.Bool("silent", false, "no output, or simple summary in case also verbose"),
+		SilentFlag:         flag.Bool("silent", false, "no output"),
 		VerboseFlag:        flag.Bool("verbose", false, "detailed output"),
 		NoTlsFlag:          flag.Bool("notls", false, "insecure communication with servers over http"),
 		NoTlsPluginFlag:    flag.Bool("notlsplugin", false, "insecure communication with plugins over http"),
@@ -62,14 +61,16 @@ type ServicesFlagsType struct {
 	CsalFlag    *string
 	ExclFlag    *string
 	InclFlag    *string
+	CsvFlag     *string
+	RptFlag     *string
+	PsortFlag   *bool
+	RsortFlag   *bool
 	SrcRtlFlag  *string
 	TgtRtlFlag  *string
 	OplSesFlag  *string
 	OplInvFlag  *string
 	OplPathFlag *string
 	OplStoFlag  *string
-	OplCsvFlag  *string
-	OplRptFlag  *string
 	OplSyncFlag *string
 	OplExpFlag  *string
 }
@@ -80,16 +81,18 @@ func ServicesFlags() *ServicesFlagsType {
 		CsalFlag:    flag.String("csal", "sha256", "comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512"),
 		ExclFlag:    flag.String("excl", "", "file containing regexps for paths to be excluded, defaults to none"),
 		InclFlag:    flag.String("incl", "", "file containing regexps for paths to be included, defaults to all"),
+		CsvFlag:     flag.String("csv", "", "csv export path"),
+		RptFlag:     flag.String("rpt", "synth", "csv report type: synth|full"),
+		PsortFlag:   flag.Bool("psort", false, "sort paths in csv export"),
+		RsortFlag:   flag.Bool("rsort", false, "sort in reverse order"),
 		SrcRtlFlag:  flag.String("srtl", "", "events:bandwidth rates limits per second on source DSS: eg 1e5:128e6 => 10000 events/s 1Gbps"),
 		TgtRtlFlag:  flag.String("trtl", "", "events:bandwidth rates limits per second on target DSS"),
-		OplSesFlag:  flag.String("oplses", "", "operation logs session name"),
-		OplInvFlag:  flag.String("oplinv", "", "operation logs inventory name"),
-		OplPathFlag: flag.String("oplpath", "", "operation logs master file"),
-		OplStoFlag:  flag.String("oplsto", "aio", "operation logs storage: aio|pbf"),
-		OplCsvFlag:  flag.String("oplcsv", "", "operation logs csv export path"),
-		OplRptFlag:  flag.String("oplrpt", "synth", "operation logs csv report type: synth|full"),
-		OplSyncFlag: flag.String("oplsync", "600:5", "operation logs synchronization to disk, periodicity and number of backups seconds:backups"),
-		OplExpFlag:  flag.String("oplexp", "3600:24", "operation logs csv export, periodicity and number of backups seconds:backups"),
+		OplSesFlag:  flag.String("oplses", "", "operations log session name"),
+		OplInvFlag:  flag.String("oplinv", "", "operations log inventory name"),
+		OplPathFlag: flag.String("oplpath", "", "operations log master file"),
+		OplStoFlag:  flag.String("oplsto", "aio", "operations log storage: aio|pbf"),
+		OplSyncFlag: flag.String("oplsync", "600:5", "operations log synchronization to disk, periodicity and number of backups seconds:backups"),
+		OplExpFlag:  flag.String("oplexp", "3600:24", "operations log csv export, periodicity and number of backups seconds:backups"),
 	}
 }
 
@@ -169,14 +172,7 @@ func ParseUrl(url string) (pluginName, host string, port int, rootPath string, e
 			rootPath = urlElts[0]
 		}
 	}
-	rootPath, err = NormalizeRoot(rootPath)
 	return
-}
-
-func NormalizeRoot(rootPath string) (string, error) {
-	// should treat c:/path/to/root and /path/to/root as absolute
-	// else prefix with os.Getwd()
-	return filepath.Abs(rootPath)
 }
 
 func LoadConfig(cf *CommonFlagsType) (*config.CliConfig, error) {

@@ -87,6 +87,10 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		stats.SourceListOrStat.Number += cStats.SourceListOrStat.Number
 		stats.Read.Number += cStats.Read.Number
 		stats.Read.Size += cStats.Read.Size
+		if !slices.Contains(tChildren, child) {
+			stats.Create.Number += cStats.Create.Number
+			stats.Create.Size += cStats.Create.Size
+		}
 		stats.Error.Number += cStats.Error.Number
 		stats.NoOp.Number += cStats.NoOp.Number
 		stats.NoOp.Size += cStats.NoOp.Size
@@ -178,13 +182,36 @@ func (ole *oplLogicalEntry) tryRm() error {
 	return nil
 }
 
+// checkForLoadBeforeUpdate checks, when checksum compare is set,
+// if s/t both present regular files
+// and if they need full read for checksum check
+func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
+	if !ole.owo().Check {
+		return false
+	}
+	sOse, tOse := ole.source, ole.target
+	if !sOse.isPresent() || !tOse.isPresent() {
+		return false
+	}
+	if !sOse.isRegularFile() || !tOse.isRegularFile() || sOse.hasError() || tOse.hasError() {
+		return false
+	}
+	return true
+}
+
+// checkForSetMeta checks if target present and its meta needs update from source wrt selected options
+func (ole *oplLogicalEntry) checkForSetMeta() bool {
+	sOse, tOse, owo := ole.source, ole.target, ole.owo()
+	return !tOse.se().EqualOpt(sOse.se(), &opelog.SeEqualOpts{Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink, NoRights: owo.NoPerm, NoUserGroup: owo.NoUserGroup, NoChildren: true})
+}
+
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
 func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 	sOse, tOse, owo := ole.source, ole.target, ole.owo()
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
-	seEqual := tOse.se().Equal(sOse.se(), owo.NoEqMtime, owo.NoMtime, owo.NoMtLink, noRights, false)
+	seEqual := tOse.se().EqualOpt(sOse.se(), &opelog.SeEqualOpts{Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink, NoRights: noRights, NoUserGroup: owo.NoUserGroup, NoChildren: false})
 	if sOse.isDir() || sOse.isSymLink() {
 		return !seEqual
 	}
@@ -209,7 +236,15 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	if !ole.owi.impliesGoal("update") {
 		return nil
 	}
-	tOse := ole.target
+	sOse, tOse := ole.source, ole.target
+	if ole.checkForLoadBeforeUpdate() {
+		if err := sOse.tryReadForCheck(); err != nil {
+			return err
+		}
+		if err := tOse.tryReadForCheck(); err != nil {
+			return err
+		}
+	}
 	if !ole.checkForUpdate(false) && !tOse.isDir() {
 		return nil
 	}
@@ -220,7 +255,7 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 		return nil
 	}
 	if !ole.checkForUpdate(true) {
-		se, err := tOse.setMeta()
+		se, err := tOse.setMeta(true)
 		if err != nil {
 			return err
 		}

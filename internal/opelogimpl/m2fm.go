@@ -3,9 +3,10 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
-	"maps"
+	"log/slog"
 	"os"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 )
 
 type m2fOplMng struct {
+	lgr        *slog.Logger
 	pathOpt    string
 	bckLimit   int
 	mx         sync.Mutex
@@ -62,6 +64,7 @@ func (m *m2fOplMng) save() error {
 				return err
 			}
 			aio.LogicalEntries[rp] = &le2
+			le = opelog.ProtoBuf2LogicalEntry(&le2)
 		} else {
 			aio.LogicalEntries[rp] = opelog.LogicalEntry2ProtoBuf(le)
 		}
@@ -302,7 +305,7 @@ func (m *m2fOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) er
 }
 
 // Walk implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error, sorted bool) error {
+func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error, sorted, reverse bool) error {
 	unmarshIfAndDo := func(relPath string) error {
 		if !m.testMarsh {
 			return doIt(relPath, m.les[relPath])
@@ -321,7 +324,19 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 		return errors.New("m2fMng.Walk: not opened")
 	}
 	if sorted {
-		for _, relPath := range slices.Sorted(maps.Keys(m.les)) {
+		rps := make([]string, len(m.les))
+		i := 0
+		for rp, _ := range m.les {
+			rps[i] = rp
+			i++
+		}
+		slices.SortFunc(rps, func(a, b string) int {
+			if reverse {
+				return strings.Compare(b, a)
+			}
+			return strings.Compare(a, b)
+		})
+		for _, relPath := range rps {
 			if err := unmarshIfAndDo(relPath); err != nil {
 				return err
 			}
@@ -338,6 +353,6 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 
 var _ opelog.OpeLogManager = &m2fOplMng{}
 
-func MakeM2fManager(pathOpt string, bckLimit int) (opelog.OpeLogManager, error) {
-	return &m2fOplMng{pathOpt: pathOpt, bckLimit: bckLimit}, nil
+func MakeM2fManager(lgr *slog.Logger, pathOpt string, bckLimit int) (opelog.OpeLogManager, error) {
+	return &m2fOplMng{lgr: lgr, pathOpt: pathOpt, bckLimit: bckLimit}, nil
 }

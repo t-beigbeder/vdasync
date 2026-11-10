@@ -11,6 +11,8 @@
 `vdatserver` can be used as an alternative to the `vdaencrypt` client-side encryption plugin
 to work around some of its related limitations.
 
+![vdatserver component](images/vdasync-tserver.png "vdatserver component schema")
+
 As providing remote encryption/decryption services,
 it requires a `vdaservice` client to push encryption public keys and at least one decryption private key.
 This can be a security concern when hosted in environments not fully trusted, among others.

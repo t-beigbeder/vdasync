@@ -20,13 +20,13 @@ import (
 
 func RunSyncCli(df *DssaFactory) {
 	var (
-		oplCmdFlag     = flag.String("oplcmd", "", "operation logs command: load,create,update")
-		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operation logs won't check inventory")
-		oplRtoFlag     = flag.Int64("oplrto", 0, "operation logs reset timeout in milliseconds")
-		oplRestartFlag = flag.Bool("oplrestart", false, "operation logs self restart enabled")
-		oplClErrFlag   = flag.Bool("oplclerr", false, "operation logs clear errors on (re)start")
-		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operation logs keep cache on (re)start")
-		oplErrRtlFlag  = flag.String("oplertl", "1.67e-2", "operation logs errors rate limit")
+		oplCmdFlag     = flag.String("oplcmd", "", "operations log command: load,create,update")
+		oplNoInvCFlag  = flag.Bool("oplnoinvc", false, "operations log won't check inventory")
+		oplRtoFlag     = flag.Int64("oplrto", 250, "operations log reset timeout in milliseconds")
+		oplRestartFlag = flag.Bool("oplrestart", false, "operations log self restart enabled")
+		oplClErrFlag   = flag.Bool("oplclerr", false, "operations log clear errors on (re)start")
+		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operations log keep cache on (re)start")
+		oplErrRtlFlag  = flag.String("oplertl", "1.67e-2", "operations log errors rate limit")
 		sourceFlag     = flag.String("source", "", "source of the command")
 		targetFlag     = flag.String("target", "", "target of the command")
 		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -34,10 +34,11 @@ func RunSyncCli(df *DssaFactory) {
 		forceFlag      = flag.Bool("force", false, "force removing read-only files in sync target")
 		iirregFlag     = flag.Bool("iirreg", false, "ignore irregular files (sockets, pipes, devices...)")
 		noPermFlag     = flag.Bool("noperm", false, "neither check nor set permissions")
+		noUgFlag       = flag.Bool("noug", false, "neither check nor set uid and gid")
 		noMtimeFlag    = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag   = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
 		cProfFlag      = flag.String("cprof", "", "cpu.prof file")
-		legacyFlag     = flag.Bool("legacy", false, "won't use operation logs algorithm but legacy one, no more maintained")
+		legacyFlag     = flag.Bool("legacy", false, "won't use operations log algorithm but legacy one, no more maintained")
 	)
 	cf := CommonFlags()
 	svsf := ServicesFlags()
@@ -119,6 +120,7 @@ func RunSyncCli(df *DssaFactory) {
 		Check:        *svsf.CheckFlag,
 		CsAlgos:      *svsf.CsalFlag,
 		NoPerm:       *noPermFlag,
+		NoUserGroup:  *noUgFlag,
 		NoMtime:      *noMtimeFlag,
 		NoMtLink:     *noMtLinkFlag,
 		ExclListPath: *svsf.ExclFlag,
@@ -144,17 +146,19 @@ func RunSyncCli(df *DssaFactory) {
 		time.Sleep(10 * time.Millisecond)
 		return
 	}
+
 	if *oplCmdFlag == "" {
 		// to replace legacy algorithm
 		*svsf.OplPathFlag = ""
-		*svsf.OplSyncFlag = ""
 		*oplCmdFlag = "update"
-		*oplRtoFlag = 250
 		*oplNoInvCFlag = true
 		*oplErrRtlFlag = ""
 
 	} else if *svsf.OplPathFlag == "" {
 		common.Fatal(lgr, errors.New("oplpath flag is missing"))
+	}
+	if *oplCmdFlag != "load" && *oplCmdFlag != "create" && *oplCmdFlag != "update" {
+		common.Fatal(lgr, errors.New("oplcmd is incorrect"))
 	}
 
 	syncPer, syncBck, err := ParsePeriodBackups(*svsf.OplSyncFlag)
@@ -165,7 +169,7 @@ func RunSyncCli(df *DssaFactory) {
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	oplm, err := opelogimpl.MakeM2fManager(*svsf.OplPathFlag, syncBck)
+	oplm, err := opelogimpl.MakeM2fManager(lgr, *svsf.OplPathFlag, syncBck)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
@@ -183,10 +187,12 @@ func RunSyncCli(df *DssaFactory) {
 		EnableRestart:   *oplRestartFlag,
 		ClearErrors:     *oplClErrFlag,
 		KeepCached:      *oplKeepCFlag,
-		ExpFile:         *svsf.OplCsvFlag,
-		ExpRpt:          *svsf.OplRptFlag,
+		ExpFile:         *svsf.CsvFlag,
+		ExpRpt:          *svsf.RptFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
+		PSort:           *svsf.PsortFlag,
+		RSort:           *svsf.RsortFlag,
 		ErrorRate:       *oplErrRtlFlag,
 	}
 	opti := &opelog.ToolInformation{
@@ -207,8 +213,21 @@ func RunSyncCli(df *DssaFactory) {
 		common.Fatal(lgr, err)
 	}
 	if *svsf.OplPathFlag == "" {
-		if _, err := fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary); err != nil {
-			common.Fatal(lgr, err)
+		if *cf.VerboseFlag {
+			if err := oplm.Open(true); err != nil {
+				common.Fatal(lgr, err)
+			}
+			if err := opelogimpl.CliOutput(lgr, oplm, outFile, "auto", *svsf.PsortFlag || *svsf.RsortFlag, *svsf.RsortFlag); err != nil {
+				if !*cf.SilentFlag {
+					fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary)
+				}
+				common.Fatal(lgr, err)
+			}
+		}
+		if !*cf.SilentFlag {
+			if _, err := fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary); err != nil {
+				common.Fatal(lgr, err)
+			}
 		}
 	}
 }

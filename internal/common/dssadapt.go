@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path"
 	"strings"
 	"time"
@@ -81,6 +82,14 @@ func ParentPath(path_ string) string {
 	pp := path.Dir(path_)
 	if pp == "." {
 		pp = ""
+	}
+	return pp
+}
+
+func OSParentPath(path_ string) string {
+	pp := path.Dir(path_)
+	if pp == "." {
+		pp, _ = os.Getwd()
 	}
 	return pp
 }

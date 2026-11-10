@@ -106,7 +106,7 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
 		})
 	case "RClose":
-		doAfterWithError(ph.opts.RCloseRate, func() {
+		doBeforeWithError(ph.opts.RCloseRate, func() {
 			ress.Err = args.RC.Close()
 		})
 	case "GetWriteCloser":
@@ -122,7 +122,7 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 			ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
 		})
 	case "WClose":
-		doAfterWithError(ph.opts.WCloseRate, func() {
+		doBeforeWithError(ph.opts.WCloseRate, func() {
 			ress.Err = args.WC.Close()
 		})
 	case "Rm":

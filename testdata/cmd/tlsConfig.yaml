@@ -8,9 +8,5 @@ pluginsOptions:
 plugins:
 - name: lfs
   type: localFiles
-  # executablePath: echo
-  addArgs:
-  - "-log"
-  - stderr
-  - "-level"
-  - INFO
+- name: lfs2
+  type: localFiles

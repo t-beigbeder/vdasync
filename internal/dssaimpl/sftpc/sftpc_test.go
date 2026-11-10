@@ -96,10 +96,15 @@ func TestBasicDirsAndFiles(t *testing.T) {
 
 func TestConcurrency(t *testing.T) {
 	SkipIf(t)
+	lgr := common.GetLogger()
+	lgr = common.DbgLogger()
 	ds := GetSftpDss(t)
+	lg, _ := ds.(common.LgrSetter)
+	lg.SetLgr(lgr)
+	ds.NewSession()
+
 	require.NoError(t, Cleanup(ds))
 	var wg sync.WaitGroup
-	lgr := common.GetLogger()
 	lgr.Debug("start")
 	for i := 0; i < 8; i++ {
 		wg.Add(1)
@@ -116,10 +121,12 @@ func TestConcurrency(t *testing.T) {
 	}
 	lgr.Debug("wait")
 	wg.Wait()
+	ds.EndSession()
 	lgr.Debug("done")
 }
 
 func TestKnownHosts(t *testing.T) {
+	SkipIf(t)
 	lns, err := common.FileLines("/local/tmp/known_hosts")
 	require.NoError(t, err)
 	_ = lns

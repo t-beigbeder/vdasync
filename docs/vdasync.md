@@ -2,7 +2,7 @@
 
 `vdasync` is the main CLI to synchronize target data from source data.
 
-See also [operation logs](opelog.md) for large and long running data transfers or traceability requirements.
+See also [operations log](opelog.md) for large and long running data transfers or traceability requirements.
 
 ## Usage
 
@@ -45,46 +45,62 @@ Example restoring local files from a remote backup server, see [vdaserver page](
 ### Synchronization features
 
     -check
-        compute checksums
+            compute checksums
     -csal string
-        comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512 (default "sha256")
+            comma separated list of hash algoritms to compute checksums: sha256 sha512 sha3_256 sha3_512 (default "sha256")
+    -csv string
+            csv export path
     -dryrun
-        don't run operation, just report actions
+            don't run operation, just report actions
     -excl string
-        file containing regexps for paths to be excluded, defaults to none
+            file containing regexps for paths to be excluded, defaults to none
+    -force
+            force removing read-only files in sync target
+    -iirreg
+            ignore irregular files (sockets, pipes, devices...)
     -incl string
-        file containing regexps for paths to be included, defaults to all
+            file containing regexps for paths to be included, defaults to all
+    -legacy
+            won't use operations log algorithm but legacy one, no more maintained
     -nomtime
-        don't set modification time, update if source changed later
+            don't set modification time, update if source changed later
     -nomtlink
-        same as nomtime but only applies to symlinks
+            same as nomtime but only applies to symlinks
     -noperm
-        neither check nor set permissions
+            neither check nor set permissions
+    -psort
+            sort paths in csv export
     -rm
-        remove files in sync target
+            remove files in sync target
+    -rpt string
+            csv report type: synth|full (default "synth")
     -source string
-        source of the command
+            source of the command
+    -srtl string
+            events:bandwidth rates limits per second on source DSS: eg 1e5:128e6 => 10000 events/s 1Gbps
     -target string
-        target of the command
+            target of the command
+    -trtl string
+            events:bandwidth rates limits per second on target DSS
 
 ### General purpose
 
     -conc int
-        number of concurrent activities
+            number of concurrent activities
     -config string
-        configuration file, see documentation
+            configuration file, see documentation
     -cprof string
-        cpu.prof file
+            cpu.prof file
     -level string
-        log level, defaults to INFO
+            log level, defaults to INFO
     -log string
-        log file, defaults to vdasync-<pid>.log in temp dir, "std[out|err]" are known keywords
+            log file, defaults to vdasync-<pid>.log in temp dir, "std[out|err]" are known keywords
     -out string
-        file for output, defaults to stdout, "std[out|err]" are known keywords (default "stdout")
+            file for output, defaults to stdout, "std[out|err]" are known keywords (default "stdout")
     -silent
-        no output, or simple summary in case also verbose
+            no output, or simple summary in case also verbose
     -verbose
-        detailed output
+            detailed output
     -version
 
 ### TLS configuration
@@ -124,3 +140,18 @@ nevertheless this must be balanced with shared resources usage.
 - Same remark applies in the case of network based storage like NFS or NAS.
 - Client based encryption requires local compute resources,
 therefore concurrency will be tuned according to related capacity.
+
+### Use of rate limiting
+
+As concurrency may involve a large use of shared resources,
+limiting the rate of I/Os on the source or the target DSS may be wanted.
+
+The `-srtl` and `-trtl` flags are provided to control and monitor I/Os.
+
+By convention, read and write operations such as creating, removing a file or directory,
+updating a file, listing a directtory or reading a file's content,
+getting the state of a file or directory or setting it,
+all count for an I/O, with read I/Os weighted as 50%.
+
+Reading and writing files' content is monitored through the bandwidth value,
+as different DSS technologies may group such I/Os with different buffering strategies.

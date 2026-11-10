@@ -47,15 +47,15 @@ func (ph *rateLimHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRes
 		ph.Ebl.PondeRtlThis(100, 0)
 		ress.Err = ph.underlying.Mkdir(args.De)
 	case "Stat":
-		ph.Ebl.PondeRtlThis(10, 0)
+		ph.Ebl.PondeRtlThis(50, 0)
 		ress.De, ress.Err = ph.underlying.Stat(args.Path)
 	case "SetStat":
-		ph.Ebl.PondeRtlThis(50, 0)
+		ph.Ebl.PondeRtlThis(100, 0)
 		ress.Err = ph.underlying.SetStat(args.De, args.NoPerm, args.NoMtime)
 	case "Checksum":
 		ress.ChSums, ress.Err = ph.underlying.Checksum(args.Algos, args.Path)
 	case "GetReadCloser":
-		ph.Ebl.PondeRtlThis(20, 0)
+		ph.Ebl.PondeRtlThis(50, 0)
 		var urc io.ReadCloser
 		if urc, ress.Err = ph.underlying.GetReadCloser(args.Path); ress.Err != nil {
 			break
@@ -63,17 +63,17 @@ func (ph *rateLimHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRes
 		ress.RC = makePReader(ph, urc)
 	case "Read":
 		ress.NRdWr, ress.Err = args.RC.Read(args.Buf)
-		if err := ph.Ebl.PondeRtlThis(1, ress.NRdWr); err != nil {
+		if err := ph.Ebl.PondeRtlThis(0, ress.NRdWr); err != nil {
 			ph.lgr.Error("rate limiter", "err", err)
 			if ress.Err == nil {
 				ress.Err = err
 			}
 		}
 	case "RClose":
-		ph.Ebl.PondeRtlThis(10, 0)
+		ph.Ebl.PondeRtlThis(50, 0)
 		ress.Err = args.RC.Close()
 	case "GetWriteCloser":
-		ph.Ebl.PondeRtlThis(40, 0)
+		ph.Ebl.PondeRtlThis(100, 0)
 		var uwc io.WriteCloser
 		if uwc, ress.Err = ph.underlying.GetWriteCloser(args.Path); ress.Err != nil {
 			break
@@ -81,20 +81,20 @@ func (ph *rateLimHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRes
 		ress.WC = makePWriter(ph, uwc)
 	case "Write":
 		ress.NRdWr, ress.Err = args.WC.Write(args.Buf)
-		if err := ph.Ebl.PondeRtlThis(2, ress.NRdWr); err != nil {
+		if err := ph.Ebl.PondeRtlThis(0, ress.NRdWr); err != nil {
 			ph.lgr.Error("rate limiter", "err", err)
 			if ress.Err == nil {
 				ress.Err = err
 			}
 		}
 	case "WClose":
-		ph.Ebl.PondeRtlThis(20, 0)
+		ph.Ebl.PondeRtlThis(100, 0)
 		ress.Err = args.WC.Close()
 	case "Rm":
-		ph.Ebl.PondeRtlThis(50, 0)
+		ph.Ebl.PondeRtlThis(100, 0)
 		ress.Err = ph.underlying.Rm(args.Path)
 	case "Symlink":
-		ph.Ebl.PondeRtlThis(50, 0)
+		ph.Ebl.PondeRtlThis(100, 0)
 		ress.Err = ph.underlying.Symlink(args.Old, args.New)
 	default:
 		ress.Err = fmt.Errorf("invalid function name %s to handle", fcName)

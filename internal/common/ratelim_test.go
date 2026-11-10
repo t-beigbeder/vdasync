@@ -244,6 +244,7 @@ func TestCancelEvLter(t *testing.T) {
 			lgr.Debug("callback received tmer expiration")
 		}
 	})
+	cel.Record()
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -257,18 +258,49 @@ func TestCancelEvLter(t *testing.T) {
 			}
 		}
 		time.Sleep(100 * time.Millisecond)
+
 		lgr.Debug("producing stopping cel")
+		evc, du, evr := cel.Counts()
+		lgr.Debug("producer counts...", "evc", evc, "du", du, "evr", evr)
+		du, evr = cel.Stats()
+		lgr.Debug("producer stats...", "du", du, "evr", evr)
+		cel.Record()
 		cel.Stop()
 		time.Sleep(100 * time.Millisecond)
+
 		lgr.Debug("producing done")
+		evc, du, evr = cel.Counts()
+		lgr.Debug("producer counts...", "evc", evc, "du", du, "evr", evr)
+		du, evr = cel.Stats()
+		lgr.Debug("producer stats...", "du", du, "evr", evr)
+		cel.Record()
+
 		wg.Done()
 	}()
 	time.Sleep(2 * time.Second)
+
 	lgr.Debug("test canceling cel")
+	evc, du, evr := cel.Counts()
+	lgr.Debug("test counts...", "evc", evc, "du", du, "evr", evr)
+	du, evr = cel.Stats()
+	lgr.Debug("test stats...", "du", du, "evr", evr)
+	cel.Record()
+
 	cf()
 	lgr.Debug("test waiting done...")
+	evc, du, evr = cel.Counts()
+	lgr.Debug("test counts...", "evc", evc, "du", du, "evr", evr)
+	du, evr = cel.Stats()
+	lgr.Debug("test stats...", "du", du, "evr", evr)
+	cel.Record()
+
 	cel.Wait()
 	lgr.Debug("test waiting sync...")
 	wg.Wait()
+	evc, du, evr = cel.Counts()
+	lgr.Debug("test counts...", "evc", evc, "du", du, "evr", evr)
+	du, evr = cel.Stats()
+	lgr.Debug("test stats...", "du", du, "evr", evr)
+
 	lgr.Debug("test done")
 }

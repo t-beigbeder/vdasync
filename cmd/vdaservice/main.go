@@ -18,7 +18,7 @@ import (
 
 func main() {
 	var (
-		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency ftgen oplcreate oplupdate oplexp version shutdown interactive")
+		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency ftgen oplcreate oplupdate oplexp opldmi oplimpi oplexpi version shutdown interactive")
 		dssFlag          = flag.String("dss", "", "dss on which the command applies")
 		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
 		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")
@@ -101,7 +101,7 @@ func main() {
 		return nil
 	})
 
-	cmdExclDss := strings.Split("oplcreate,oplupdate,oplexp", ",")
+	cmdExclDss := strings.Split("oplcreate,oplupdate,oplexp,opldmi,oplimpi,oplexpi", ",")
 	if *dssFlag == "" && !slices.Contains(cmdExclDss, *cmdFlag) {
 		common.Fatal(lgr, errors.New("dss must be provided"))
 	}
@@ -137,8 +137,10 @@ func main() {
 		OplPath:     *svsf.OplPathFlag,
 		OplSes:      *svsf.OplSesFlag,
 		OplInv:      *svsf.OplInvFlag,
-		OplCsv:      *svsf.OplCsvFlag,
-		OplRpt:      *svsf.OplRptFlag,
+		ExpFile:     *svsf.CsvFlag,
+		ExpRpt:      *svsf.RptFlag,
+		Psort:       *svsf.PsortFlag,
+		Rsort:       *svsf.RsortFlag,
 		SrcRoot:     *sRootFlag,
 		TgtRoot:     *tRootFlag,
 		Lgr:         lgr,

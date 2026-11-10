@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"errors"
+	"log/slog"
 	"path"
 	"testing"
 
@@ -10,8 +11,8 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
-func makeTestM2fManager(path_ string, bckLimit int, testMarsh bool, std, ttd string) (*m2fOplMng, error) {
-	oplm, err := MakeM2fManager(path_, bckLimit)
+func makeTestM2fManager(lgr *slog.Logger, path_ string, bckLimit int, testMarsh bool, std, ttd string) (*m2fOplMng, error) {
+	oplm, err := MakeM2fManager(lgr, path_, bckLimit)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +38,8 @@ func makeTestM2fManager(path_ string, bckLimit int, testMarsh bool, std, ttd str
 	return oplmi, nil
 }
 
-func openTestM2fManagerRO(path_ string, testMarsh bool) (*m2fOplMng, error) {
-	oplm, err := MakeM2fManager(path_, 0)
+func openTestM2fManagerRO(lgr *slog.Logger, path_ string, testMarsh bool) (*m2fOplMng, error) {
+	oplm, err := MakeM2fManager(lgr, path_, 0)
 	if err != nil {
 		return nil, err
 	}

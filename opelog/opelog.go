@@ -3,6 +3,7 @@ package opelog
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"maps"
 	"slices"
 	"strings"
@@ -23,7 +24,7 @@ type OpeLogManager interface {
 	Close() error
 	PutLogicalEntry(relPath string, ole *LogicalEntry) error
 	GetLogicalEntry(relPath string) (*LogicalEntry, error)
-	Walk(doIt func(relPath string, ole *LogicalEntry) error, sorted bool) error
+	Walk(doIt func(relPath string, ole *LogicalEntry) error, sorted, reverse bool) error
 }
 
 type Rights struct {
@@ -103,55 +104,86 @@ func (tse *StoredEntry) HasChild(child string) bool {
 	return slices.Contains(tse.Children, child)
 }
 
-func (tse *StoredEntry) Equal(ose *StoredEntry, noEqMtime, noMtime, noMtLink, noRights, noChildren bool) (result bool) {
+type SeEqualOpts struct {
+	Lgr         *slog.Logger
+	NoEqMtime   bool
+	NoMtime     bool
+	NoMtLink    bool
+	NoRights    bool
+	NoUserGroup bool
+	NoChildren  bool
+}
+
+func (tse *StoredEntry) EqualOpt(ose *StoredEntry, seo *SeEqualOpts) (result bool) {
+	step := ""
+	defer func() {
+		if seo.Lgr != nil {
+			seo.Lgr.Debug("StoredEntry.EqualOpt", "tse", *tse, "ose", *ose, "seo", *seo, "result", result, "step", step)
+		}
+	}()
+	_, noMtime, noMtLink, noRights, noUg, noChildren := seo.NoEqMtime, seo.NoMtime, seo.NoMtLink, seo.NoRights, seo.NoUserGroup, seo.NoChildren
 	if ose == nil {
+		step = "nil"
 		return
 	}
 	if tse.IsDir != ose.IsDir {
+		step = "dir"
 		return
 	}
 	if !tse.IsDir && tse.Size != ose.Size {
+		step = "size"
 		return
 	}
 	if tse.Mtime != ose.Mtime {
-		if (!noMtime || (ose.IsSymLink && !noMtLink)) && (ose.Mtime > tse.Mtime || !noEqMtime) {
+		if (!noMtime || (ose.IsSymLink && !noMtLink)) && ose.Mtime > tse.Mtime {
+			step = "mtime"
 			return false
 		}
 	}
 	if !noRights {
-		if tse.User != ose.User {
+		if !noUg && tse.User != ose.User {
+			step = "uid"
 			return
 		}
 		if !cmpRights(tse.UserRights, ose.UserRights) {
+			step = "umod"
 			return
 		}
-		if tse.Group != ose.Group {
+		if !noUg && tse.Group != ose.Group {
+			step = "gid"
 			return
 		}
 		if !cmpRights(tse.GroupRights, ose.GroupRights) {
+			step = "gmod"
 			return
 		}
 		if !cmpRights(tse.OtherRights, ose.OtherRights) {
+			step = "omod"
 			return
 		}
 	}
 	if tse.IsSymLink != ose.IsSymLink {
+		step = "sl"
 		return
 	}
 	if tse.SymLinkTarget != ose.SymLinkTarget {
+		step = "slt"
 		return
 	}
 	if !noChildren {
 		if len(tse.Children) != len(ose.Children) {
+			step = "lch"
 			return
 		}
 		for _, nChild := range tse.Children {
 			if !ose.HasChild(nChild) {
+				step = "chi"
 				return
 			}
 		}
 	}
 	if !bytes.Equal(tse.AddMeta, ose.AddMeta) {
+		step = "amt"
 		return
 	}
 	result = true
@@ -476,7 +508,7 @@ func (le *LogicalEntry) addOrShareSe(se *StoredEntry) int32 {
 		return -1
 	}
 	for i, exSe := range slices.Backward(le.sharedSes) {
-		if se.Equal(exSe, false, false, false, false, false) {
+		if se.EqualOpt(exSe, &SeEqualOpts{}) {
 			return int32(i)
 		}
 	}
@@ -531,15 +563,19 @@ type SessionInfo struct {
 	Comment       string
 	ReferenceTime int64
 	IsInventory   bool
-	ToolInfo      *ToolInformation
+	ToolInfoList  []*ToolInformation
 }
 
 func (si *SessionInfo) Clone() *SessionInfo {
+	tis := make([]*ToolInformation, len(si.ToolInfoList))
+	for i, ti := range si.ToolInfoList {
+		tis[i] = ti.Clone()
+	}
 	return &SessionInfo{
 		Comment:       si.Comment,
 		ReferenceTime: si.ReferenceTime,
 		IsInventory:   si.IsInventory,
-		ToolInfo:      si.ToolInfo.Clone(),
+		ToolInfoList:  tis,
 	}
 }
 
@@ -562,9 +598,41 @@ func (olm *OpeLogMaster) Clone() *OpeLogMaster {
 		Sessions:   sis,
 	}
 }
+
 func (olm *OpeLogMaster) Session(label string) *SessionInfo {
 	si, _ := olm.Sessions[label]
 	return si
+}
+
+func (olm *OpeLogMaster) String() string {
+	var buf bytes.Buffer
+	fmt.Fprintf(&buf, "source root: %s\n", olm.SourceRoot)
+	fmt.Fprintf(&buf, "target root: %s\n", olm.TargetRoot)
+	spt := map[int64]string{}
+	for sn, si := range olm.Sessions {
+		spt[si.ReferenceTime] = sn
+	}
+	rts := slices.Collect(maps.Keys(spt))
+	slices.Sort(rts)
+	dts := func(ts int64) string { return time.Unix(ts, 0).UTC().Format(time.RFC3339) }
+	for _, rt := range rts {
+		sn := spt[rt]
+		si := olm.Sessions[sn]
+		fmt.Fprintf(&buf, "%s: %s\n", sn, dts(rt))
+		fmt.Fprintf(&buf, "\tComment:%s\n", si.Comment)
+		fmt.Fprintf(&buf, "\tIsInventory:%t\n", si.IsInventory)
+		for _, ti := range si.ToolInfoList {
+			fmt.Fprintf(&buf, "\tStartTime:%s\n", dts(ti.StartTime))
+			fmt.Fprintf(&buf, "\t\tCmdLine:%s\n", ti.CmdLine)
+			fmt.Fprintf(&buf, "\t\tVersion:%s\n", ti.Version)
+			fmt.Fprintf(&buf, "\t\tHostName:%s\n", ti.HostName)
+			fmt.Fprintf(&buf, "\t\tSourceDssInfo:%s\n", ti.SourceDssInfo)
+			fmt.Fprintf(&buf, "\t\tTargetDssInfo:%s\n", ti.TargetDssInfo)
+			fmt.Fprintf(&buf, "\t\tStopTime:%s\n", dts(ti.StopTime))
+			fmt.Fprintf(&buf, "\t\tExecSummary:%s\n", ti.ExecSummary)
+		}
+	}
+	return buf.String()
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total

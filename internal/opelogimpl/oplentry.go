@@ -248,7 +248,7 @@ func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opel
 			return true
 		}
 		if se1 != nil && se2 != nil {
-			return se1.Equal(se2, false, false, false, false, false)
+			return se1.EqualOpt(se2, &opelog.SeEqualOpts{})
 		}
 		return false
 	}
@@ -336,8 +336,8 @@ func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 	case "tls":
 		stats.TargetListOrStat.Number = 1
 	case "rd":
-		stats.Read.Number = 1
-		stats.Read.Size = size
+		stats.Read.Number += 1
+		stats.Read.Size += size
 	case "cr":
 		stats.Create.Number = 1
 		stats.Create.Size = size

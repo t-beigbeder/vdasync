@@ -12,7 +12,19 @@ import (
 // This file is about high order services for stored entries
 // common services on dss are in opldss
 
-// entry processing updates its state until events can be logged along with their final state
+// stCheckNeeded checks if regular file has to be read to compute checksums
+//
+// if checksum is already present, a previous operation (create/update) already did it,
+// if not, a full read is needed (again, if new session)
+func (ose *oplStoredEntry) stCheckNeeded() bool {
+	css, _ := common.TypedChecksums2Checksums(ose.getState().Tcss)
+	if ose.owo().Check && !common.HasAlgos(css, ose.ole.getCsAlgos(true)) {
+		return true
+	}
+	return false
+}
+
+// recordEvents ensures entry processing updates its state until events can be logged along with their final state
 func (ose *oplStoredEntry) recordEvents() {
 	if ose.loadTime != 0 {
 		ose.createEvent(ose.loadTime, opelog.EVC_LOADED, ose.getState().Se, ose.getState().Tcss)
@@ -102,11 +114,25 @@ func (ose *oplStoredEntry) rmDir() error {
 }
 
 // setMeta sets an entry metadata from its source
-func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
-	// TODO: set stats "mc" if end of dir update or simple meta adjust
-	if ose.owo().Dryrun {
-		return nil, nil
+func (ose *oplStoredEntry) setMeta(preCheck bool) (*opelog.StoredEntry, error) {
+	needed := true
+	if preCheck {
+		needed = ose.ole.checkForSetMeta()
 	}
+	if ose.owo().Dryrun {
+		if !preCheck {
+			return nil, nil
+		}
+		if !needed {
+			return ose.se(), nil
+		}
+		ose.setStatsFor("mc", 0)
+		return ose.ole.source.se(), nil
+	}
+	if !needed {
+		return ose.se(), nil
+	}
+	ose.setStatsFor("mc", 0)
 	se := ose.ole.source.se().Clone()
 	owo := ose.owo()
 	noMtime := owo.NoMtime || (se.IsSymLink && owo.NoMtLink)
@@ -117,8 +143,8 @@ func (ose *oplStoredEntry) setMeta() (*opelog.StoredEntry, error) {
 	if noMtime {
 		se.Mtime = time.Now().Unix()
 	}
-	if owo.NoPerm {
-		tSe := ose.se()
+	tSe := ose.se()
+	if owo.NoPerm && tSe != nil {
 		se.User = tSe.User
 		se.UserRights = tSe.UserRights.Clone()
 		se.Group = tSe.Group
@@ -142,7 +168,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	se, err := ose.setMeta()
+	se, err := ose.setMeta(true)
 	if err != nil {
 		return err
 	}
@@ -173,7 +199,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 		ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
 		return nil
 	}
-	se, err := ose.setMeta()
+	se, err := ose.setMeta(false)
 	if err != nil {
 		return err
 	}
@@ -250,7 +276,7 @@ func (ose *oplStoredEntry) copyFile(isCreated bool) (err error) {
 			sOse.setState(opelog.STC_DONE_PRESENT, "", sOse.se(), tCss, 0)
 		}
 	}
-	if se, err = ose.setMeta(); err != nil {
+	if se, err = ose.setMeta(false); err != nil {
 		return
 	}
 	ose.setState(opelog.STC_DONE_PRESENT, "", se, tCss, 0)
@@ -274,7 +300,7 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		return err
 	}
-	se, err := ose.setMeta()
+	se, err := ose.setMeta(false)
 	if err != nil {
 		return err
 	}
@@ -282,22 +308,21 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 	return nil
 }
 
-// tryLoad makes source and/or target entry load progress if possible.
-func (ose *oplStoredEntry) tryLoad() error {
-	if !ose.isPresent() {
-		return nil
+// tryReadForCheck reads source or target regular file if needed to compare checksums.
+// In the case of source, it also compares checksum with inventory if requested.
+func (ose *oplStoredEntry) tryReadForCheck() error {
+	css, err := ose.dssRead()
+	if err != nil {
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return err
 	}
-	if ose.isRegularFile() && !ose.hasError() && ose.ole.owi.needInvCheck() && len(ose.getState().Tcss) == 0 {
-		css, err := ose.dssRead()
-		if err != nil {
-			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
-			return err
-		}
-		tCss, err := common.Checksums2TypedChecksums(css)
-		if err != nil {
-			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
-			return err
-		}
+	ose.setStatsFor("rd", ose.getState().Se.Size)
+	tCss, err := common.Checksums2TypedChecksums(css)
+	if err != nil {
+		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+		return err
+	}
+	if ose.ole.owi.needInvCheck() && !ose.isTarget {
 		iSt := ose.ole.le.GetState(ose.ole.owi.invTime, false)
 		eq, err := common.CompareTcss(tCss, iSt.Tcss, ose.ole.owi.owo.InvCsAlgos)
 		if err != nil {
@@ -308,6 +333,34 @@ func (ose *oplStoredEntry) tryLoad() error {
 			err = errors.New("inventory/source checksums differ")
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 			return err
+		}
+	}
+	ose.setState(opelog.STC_DONE_PRESENT, "", ose.se(), tCss, 0)
+	return nil
+}
+
+// tryLoad makes source and/or target entry load progress if possible.
+// It may also be called to force loading checksums before update
+func (ose *oplStoredEntry) tryLoad() error {
+	if !ose.isPresent() {
+		return nil
+	}
+	if ose.isRegularFile() && !ose.hasError() && ose.stCheckNeeded() {
+		if err := ose.tryReadForCheck(); err != nil {
+			return err
+		}
+		tCss := ose.getState().Tcss
+		if ose.isTarget {
+			sOse := ose.ole.source
+			if sOse != nil && sOse.isPresent() && !sOse.hasError() {
+				sSt := sOse.getState()
+				eq, err := common.CompareTcss(tCss, sSt.Tcss, ose.ole.getCsAlgos(false))
+				if !eq {
+					err = errors.New("source/target checksums differ")
+					ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
+					return err
+				}
+			}
 		}
 		ose.setState(opelog.STC_DONE_PRESENT, "", ose.se(), tCss, 0)
 		return nil
@@ -343,7 +396,7 @@ func (ose *oplStoredEntry) doLoad() error {
 		if !ose.isTarget && owi.needInvCheck() {
 			iSt := ose.ole.le.GetState(owi.invTime, false)
 			iSe := iSt.Se
-			if !iSe.Equal(se, false, owi.owo.NoMtime, owi.owo.NoMtLink, true, true) {
+			if !iSe.EqualOpt(se, &opelog.SeEqualOpts{Lgr: ose.lgr, NoEqMtime: false, NoMtime: owi.owo.NoMtime, NoMtLink: owi.owo.NoMtLink, NoRights: true, NoChildren: true}) {
 				err = errors.New("inventory metadata differ")
 				ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 				return err

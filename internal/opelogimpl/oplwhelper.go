@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/proxy"
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
@@ -155,6 +156,7 @@ func (ow *oplWalkerImpl) setupErtl() (err error) {
 	ow.errRtl, ow.errRtlCFunc = common.NewCancelEvLter(ow.eRate, func(doing chan any, d time.Duration) {
 		ow.lgr.With("ertl", true).Info("error rate limit raised", "delay", d)
 	})
+	ow.errRtl.Record()
 	return nil
 }
 
@@ -218,7 +220,8 @@ func (ow *oplWalkerImpl) logInitToolInfo() error {
 	ow.oplTi.SourceDssInfo = fmt.Sprintf("%s root %s", ow.sds.DssInfo(), ow.sRoot)
 	ow.oplTi.TargetDssInfo = fmt.Sprintf("%s root %s", ow.tds.DssInfo(), ow.tRoot)
 	om := ow.oplm.GetOlm()
-	*om.Sessions[ow.session].ToolInfo = *ow.oplTi
+	si := om.Sessions[ow.session]
+	si.ToolInfoList = append(si.ToolInfoList, ow.oplTi.Clone())
 	if err := ow.oplm.SetOlm(om); err != nil {
 		return err
 	}
@@ -237,10 +240,14 @@ func (ow *oplWalkerImpl) logFinalToolInfo() error {
 			ow.oplTi.ExecSummary = fmt.Sprintf("no stats on session %s", ow.session)
 		}
 	} else {
-		ow.oplTi.ExecSummary = "no root entry in operation log"
+		ow.oplTi.ExecSummary = "no root entry in operations log"
 	}
 	om := ow.oplm.GetOlm()
-	*om.Sessions[ow.session].ToolInfo = *ow.oplTi
+	si := om.Sessions[ow.session]
+	if len(si.ToolInfoList) == 0 {
+		return errors.New("empty tool info list")
+	}
+	*si.ToolInfoList[len(si.ToolInfoList)-1] = *ow.oplTi
 	if err := ow.oplm.SetOlm(om); err != nil {
 		return err
 	}
@@ -276,4 +283,34 @@ func (ow *oplWalkerImpl) dssEndSessions(origin string) error {
 		ow.lgr.Error(msg, "err", err)
 	}
 	return nil
+}
+
+func (ow *oplWalkerImpl) dispRldStats(rld proxy.RateLimitedDss, isTarget bool) {
+	ebl := rld.GetEbl()
+	evCount, bytesCount, du, evr, bdw := ebl.Counts()
+	gs := fmt.Sprintf("%s events %d bytes %d rate %.0f bandwidth %.0f", du.String(), evCount, bytesCount, evr, bdw)
+	du, evr, bdw = ebl.Stats()
+	cs := fmt.Sprintf("%s rate %.0f bandwidth %.0f", du.String(), evr, bdw)
+	ebl.Record()
+	ow.lgr.Info("dss stats", "isTarget", isTarget, "global", gs, "current", cs)
+}
+
+func (ow *oplWalkerImpl) logInfoStats() {
+	sRld, _ := ow.sds.(proxy.RateLimitedDss)
+	if sRld != nil {
+		ow.dispRldStats(sRld, false)
+	}
+	tRld, _ := ow.tds.(proxy.RateLimitedDss)
+	if tRld != nil {
+		ow.dispRldStats(tRld, true)
+	}
+	if ow.errRtl != nil {
+		evCount, du, evr := ow.errRtl.Counts()
+		gs := fmt.Sprintf("%s events %d rate %f", du.String(), evCount, evr)
+		du, evr = ow.errRtl.Stats()
+		ow.errRtl.Record()
+		cs := fmt.Sprintf("%s rate %f", du.String(), evr)
+		ow.lgr.Info("error stats", "global", gs, "current", cs)
+	}
+	// TODO: oplm size
 }
