@@ -190,10 +190,6 @@ func (tse *StoredEntry) EqualOpt(ose *StoredEntry, seo *SeEqualOpts) (result boo
 	return
 }
 
-func (tse *StoredEntry) Equalb(ose *StoredEntry, noEqMtime, noMtime, noMtLink, noRights, noChildren bool) (result bool) {
-	return tse.EqualOpt(ose, &SeEqualOpts{nil, noEqMtime, noMtime, noMtLink, noRights, false, noChildren})
-}
-
 func (tse *StoredEntry) EqualType(ose *StoredEntry) bool {
 	if ose == nil {
 		return false
