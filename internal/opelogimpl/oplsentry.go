@@ -396,7 +396,7 @@ func (ose *oplStoredEntry) doLoad() error {
 		if !ose.isTarget && owi.needInvCheck() {
 			iSt := ose.ole.le.GetState(owi.invTime, false)
 			iSe := iSt.Se
-			if !iSe.Equal(se, false, owi.owo.NoMtime, owi.owo.NoMtLink, true, true) {
+			if !iSe.EqualOpt(se, &opelog.SeEqualOpts{Lgr: ose.lgr, NoEqMtime: false, NoMtime: owi.owo.NoMtime, NoMtLink: owi.owo.NoMtLink, NoRights: true, NoChildren: true}) {
 				err = errors.New("inventory metadata differ")
 				ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 				return err

@@ -34,6 +34,7 @@ func RunSyncCli(df *DssaFactory) {
 		forceFlag      = flag.Bool("force", false, "force removing read-only files in sync target")
 		iirregFlag     = flag.Bool("iirreg", false, "ignore irregular files (sockets, pipes, devices...)")
 		noPermFlag     = flag.Bool("noperm", false, "neither check nor set permissions")
+		noUgFlag       = flag.Bool("noug", false, "neither check nor set uid and gid")
 		noMtimeFlag    = flag.Bool("nomtime", false, "don't set modification time, update if source changed later")
 		noMtLinkFlag   = flag.Bool("nomtlink", false, "same as nomtime but only applies to symlinks")
 		cProfFlag      = flag.String("cprof", "", "cpu.prof file")
@@ -119,6 +120,7 @@ func RunSyncCli(df *DssaFactory) {
 		Check:        *svsf.CheckFlag,
 		CsAlgos:      *svsf.CsalFlag,
 		NoPerm:       *noPermFlag,
+		NoUserGroup:  *noUgFlag,
 		NoMtime:      *noMtimeFlag,
 		NoMtLink:     *noMtLinkFlag,
 		ExclListPath: *svsf.ExclFlag,
