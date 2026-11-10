@@ -202,7 +202,7 @@ func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
 // checkForSetMeta checks if target present and its meta needs update from source wrt selected options
 func (ole *oplLogicalEntry) checkForSetMeta() bool {
 	sOse, tOse, owo := ole.source, ole.target, ole.owo()
-	return !tOse.se().Equal(sOse.se(), owo.NoEqMtime, owo.NoMtime, owo.NoMtLink, owo.NoPerm, true)
+	return !tOse.se().EqualOpt(sOse.se(), &opelog.SeEqualOpts{Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink, NoRights: owo.NoPerm, NoUserGroup: owo.NoUserGroup, NoChildren: true})
 }
 
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
@@ -211,7 +211,7 @@ func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
-	seEqual := tOse.se().Equal(sOse.se(), owo.NoEqMtime, owo.NoMtime, owo.NoMtLink, noRights, false)
+	seEqual := tOse.se().EqualOpt(sOse.se(), &opelog.SeEqualOpts{Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink, NoRights: noRights, NoUserGroup: owo.NoUserGroup, NoChildren: false})
 	if sOse.isDir() || sOse.isSymLink() {
 		return !seEqual
 	}

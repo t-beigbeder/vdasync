@@ -37,6 +37,7 @@ type SyncOptionsType struct {
 	Check        bool   `yaml:"check"`
 	CsAlgos      string `yaml:"csAlgos"`
 	NoPerm       bool   `yaml:"noPerm"`
+	NoUserGroup  bool   `yaml:"noUserGroup"`
 	NoEqMtime    bool   `yaml:"noEqMtime"`
 	NoMtime      bool   `yaml:"noMtime"`
 	NoMtLink     bool   `yaml:"noMtLink"`
@@ -62,6 +63,7 @@ type OpeLogOptionsType struct {
 	ExpRpt          string `yaml:"expRpt"`
 	ExpBck          int    `yaml:"expBck"`
 	PSort           bool   `yaml:"pSort"`
+	RSort           bool   `yaml:"rSort"`
 	ErrorRate       string `yaml:"errorRate"`
 	SpecialInterest []string
 	SpeIntPhase     string

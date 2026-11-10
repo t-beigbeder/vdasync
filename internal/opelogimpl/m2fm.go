@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"maps"
 	"os"
 	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -305,7 +305,7 @@ func (m *m2fOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) er
 }
 
 // Walk implements [opelog.OpeLogManager].
-func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error, sorted bool) error {
+func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error, sorted, reverse bool) error {
 	unmarshIfAndDo := func(relPath string) error {
 		if !m.testMarsh {
 			return doIt(relPath, m.les[relPath])
@@ -324,7 +324,19 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 		return errors.New("m2fMng.Walk: not opened")
 	}
 	if sorted {
-		for _, relPath := range slices.Sorted(maps.Keys(m.les)) {
+		rps := make([]string, len(m.les))
+		i := 0
+		for rp, _ := range m.les {
+			rps[i] = rp
+			i++
+		}
+		slices.SortFunc(rps, func(a, b string) int {
+			if reverse {
+				return strings.Compare(b, a)
+			}
+			return strings.Compare(a, b)
+		})
+		for _, relPath := range rps {
 			if err := unmarshIfAndDo(relPath); err != nil {
 				return err
 			}

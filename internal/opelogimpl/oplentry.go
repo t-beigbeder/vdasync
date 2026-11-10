@@ -248,7 +248,7 @@ func (ose *oplStoredEntry) createEvent(ts int64, kind opelog.EventCode, se *opel
 			return true
 		}
 		if se1 != nil && se2 != nil {
-			return se1.Equal(se2, false, false, false, false, false)
+			return se1.EqualOpt(se2, &opelog.SeEqualOpts{})
 		}
 		return false
 	}
