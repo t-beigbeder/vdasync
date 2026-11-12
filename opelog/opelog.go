@@ -135,11 +135,10 @@ func (tse *StoredEntry) EqualOpt(ose *StoredEntry, seo *SeEqualOpts) (result boo
 		return
 	}
 	if tse.Mtime != ose.Mtime {
-		if !noMtime && (ose.IsSymLink && !noMtLink) {
+		if !(noMtime || (ose.IsSymLink && noMtLink)) {
 			step = "mtime diff"
 			return false
-		}
-		if (noMtime || (ose.IsSymLink && noMtLink)) && ose.Mtime > tse.Mtime {
+		} else if ose.Mtime > tse.Mtime {
 			step = "mtime later"
 			return false
 		}
