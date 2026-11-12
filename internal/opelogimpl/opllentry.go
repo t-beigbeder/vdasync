@@ -384,6 +384,13 @@ func (ole *oplLogicalEntry) process() error {
 	// initializes state for both stored entries
 	// clear errors if possible, (re)start dir loading if necessary
 	_ = ole.source.load()
+	sSt := ole.source.getState()
+	if sSt.Stc == opelog.STC_SE_ERROR && sSt.Error == common.ErrUnhandledFileType.Error() {
+		ole.detail("logical entry irregular source is ignored")
+		ole.le.IsIgnored = true
+		ole.hasChanges = true
+		return nil
+	}
 	_ = ole.target.load()
 
 	// try performing one or several "change" actions

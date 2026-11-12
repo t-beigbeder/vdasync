@@ -74,6 +74,9 @@ func (ose *oplStoredEntry) enableWrite() error {
 	if err := ose.dssSetStat(se, false, true, true); err != nil {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 	}
+	se.Mtime = time.Now().Unix()
+	oSt := ose.getState()
+	ose.setState(opelog.STC_DONE_PRESENT, "", se, oSt.Tcss, int(oSt.DepCount))
 	return nil
 }
 
@@ -196,6 +199,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 		return err
 	}
 	if len(rwSe.Children) > 0 {
+		rwSe.Mtime = time.Now().Unix()
 		ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
 		return nil
 	}
