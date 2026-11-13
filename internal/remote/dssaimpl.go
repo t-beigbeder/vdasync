@@ -18,19 +18,13 @@ type dssaImpl struct {
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string
-	mx sync.Mutex
-	hasSession bool
+	unmx sync.Mutex
 }
 
 func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
 	s.lgr.Debug("dssaImpl.NewSession")
-	s.mx.Lock()
-	defer s.mx.Unlock()
-	if !s.hasSession {
-		if err := s.dssa_.NewSession(); err != nil {
-			return nil, err
-		}
-		s.hasSession = true
+	if err := s.dssa_.NewSession(); err != nil {
+		return nil, err
 	}
 	return &dssagrpc.Empty{}, nil
 }
