@@ -18,7 +18,7 @@ type dssaImpl struct {
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string
-	unmx sync.Mutex
+	unmx       sync.Mutex
 }
 
 func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {

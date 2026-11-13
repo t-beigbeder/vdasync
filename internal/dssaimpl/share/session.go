@@ -12,7 +12,7 @@ type SessionManagerImpl struct {
 	mx     sync.Mutex
 	nextId int
 	ids    map[int]bool
-	trMx     sync.Mutex
+	trMx   sync.Mutex
 	trId   int
 }
 
