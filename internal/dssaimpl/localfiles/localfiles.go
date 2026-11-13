@@ -23,7 +23,7 @@ func (d *localFiles) NewSession() error {
 
 // EndSession implements [dssa.Dssa].
 func (d *localFiles) EndSession() error {
-	return d.EndSession()
+	return d.EndSessionTr()
 }
 
 // IsGrpcClient implements [dssa.Dssa].

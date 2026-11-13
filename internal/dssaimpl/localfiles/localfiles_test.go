@@ -150,4 +150,8 @@ func TestOCS(t *testing.T) {
 	require.NoError(t, ocds.CloseSession(id2))
 	require.Error(t, ocds.CloseSession(id))
 	require.Error(t, ocds.CloseSession(id2))
+	require.NoError(t, ds.NewSession())
+	require.Error(t, ds.NewSession())
+	require.NoError(t, ds.EndSession())
+	require.Error(t, ds.EndSession())
 }
