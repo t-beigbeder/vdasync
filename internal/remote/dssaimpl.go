@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"sync"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -17,12 +18,19 @@ type dssaImpl struct {
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string
+	mx sync.Mutex
+	hasSession bool
 }
 
 func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {
 	s.lgr.Debug("dssaImpl.NewSession")
-	if err := s.dssa_.NewSession(); err != nil {
-		return nil, err
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	if !s.hasSession {
+		if err := s.dssa_.NewSession(); err != nil {
+			return nil, err
+		}
+		s.hasSession = true
 	}
 	return &dssagrpc.Empty{}, nil
 }
