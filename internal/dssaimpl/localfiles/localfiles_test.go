@@ -129,3 +129,25 @@ func TestFileGetPut(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, de.Size, int64(written))
 }
+
+func TestOCS(t *testing.T) {
+	ds := MakeLocalFilesDssa()
+	ocds, ok := ds.(dssa.SessionManager)
+	require.True(t, ok)
+	id, err := ocds.OpenSession()
+	require.NoError(t, err)
+	require.NoError(t, ocds.CloseSession(id))
+	ds = MakeLocalFilesDssa()
+	ocds, ok = ds.(dssa.SessionManager)
+	require.True(t, ok)
+	require.Error(t, ocds.CloseSession(1))
+	id, err = ocds.OpenSession()
+	require.NoError(t, err)
+	require.Error(t, ocds.CloseSession(id+1))
+	id2, err := ocds.OpenSession()
+	require.NoError(t, err)
+	require.NoError(t, ocds.CloseSession(id))
+	require.NoError(t, ocds.CloseSession(id2))
+	require.Error(t, ocds.CloseSession(id))
+	require.Error(t, ocds.CloseSession(id2))
+}

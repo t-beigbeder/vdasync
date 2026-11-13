@@ -1,7 +1,6 @@
 package localfiles
 
 import (
-	"errors"
 	"io"
 	"io/fs"
 	"os"
@@ -9,29 +8,22 @@ import (
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/share"
 )
 
 type localFiles struct {
-	hasSession  bool
+	share.SessionManagerImpl
 	crossOsSafe bool
 }
 
 // NewSession implements [dssa.Dssa].
 func (d *localFiles) NewSession() error {
-	if d.hasSession {
-		return errors.New("localFiles: there is already an active session")
-	}
-	d.hasSession = true
-	return nil
+	return d.NewSessionTr()
 }
 
 // EndSession implements [dssa.Dssa].
 func (d *localFiles) EndSession() error {
-	if !d.hasSession {
-		return errors.New("localFiles: no active session")
-	}
-	d.hasSession = false
-	return nil
+	return d.EndSession()
 }
 
 // IsGrpcClient implements [dssa.Dssa].
@@ -174,3 +166,5 @@ func (d *localFiles) Symlink(old string, new_ string) error {
 func MakeLocalFilesDssa() dssa.Dssa {
 	return &localFiles{}
 }
+
+var _ dssa.SessionManager = &localFiles{}

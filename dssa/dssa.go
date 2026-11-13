@@ -59,6 +59,13 @@ func (de *DataEntry) ModString() string {
 	return fmt.Sprintf("%s%s%s%s", tp, de.UserRights.String(), de.GroupRights.String(), de.OtherRights.String())
 }
 
+type SessionManager interface {
+	OpenSession() (int, error)
+	CloseSession(int) error
+	NewSessionTr() error
+	EndSessionTr() error
+}
+
 type Dssa interface {
 	NewSession() error
 	EndSession() error
