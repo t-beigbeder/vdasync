@@ -427,6 +427,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 			return err
 		}
+		// TODO/FIXME: ignored
 		cSt := cle.GetState(owi.sessionTime, ose.isTarget)
 		if cSt.Stc == opelog.STC_DESC_ERROR || cSt.Stc == opelog.STC_SE_ERROR {
 			errorsNum++
