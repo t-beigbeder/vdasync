@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"sync"
@@ -28,7 +29,7 @@ type dssaImpl struct {
 func (s *dssaImpl) OpenSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.SessionId, error) {
 	smds, ok := s.dssa_.(dssa.SessionManager)
 	if !ok {
-		return nil, errors.New("remote DSS is not a SessionManager")
+		return nil, fmt.Errorf("remote DSS is not a SessionManager (%T)", s.dssa_)
 	}
 	s.mx.Lock()
 	sNb := s.SessionsNumber()

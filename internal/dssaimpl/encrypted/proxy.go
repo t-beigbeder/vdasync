@@ -12,6 +12,7 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/share"
 )
 
 type SessionMonitor interface {
@@ -27,6 +28,8 @@ type ProxyEncDssa interface {
 }
 
 type proxyDss struct {
+	share.SessionManagerImpl
+	trId                int
 	lgr                 *slog.Logger
 	rootPath            string
 	ageIdentitiesGetter func() []string
@@ -134,16 +137,14 @@ func (p *proxyDss) checkProxied() (dssa.Dssa, error) {
 	return p.dss, nil
 }
 
-// NewSession implements [dssa.Dssa].
-func (p *proxyDss) NewSession() error {
+func (p *proxyDss) doNewSession() error {
 	if _, err := p.checkProxied(); err != nil {
 		return err
 	}
 	return nil
 }
 
-// EndSession implements [dssa.Dssa].
-func (p *proxyDss) EndSession() error {
+func (p *proxyDss) doEndSession() error {
 	p.mx.Lock()
 	defer p.mx.Unlock()
 	if p.dss == nil {
@@ -151,6 +152,43 @@ func (p *proxyDss) EndSession() error {
 	}
 	p.sm.endSession()
 	return nil
+}
+
+// OpenSession implements [dssa.SessionManager].
+func (p *proxyDss) OpenSession() (int, error) {
+	if p.lgr != nil {
+		p.lgr.Debug("encrypted.proxyDss.OpenSession")
+	}
+	id, err := p.SessionManagerImpl.OpenSession()
+	if err != nil {
+		return 0, err
+	}
+	if err = p.doNewSession(); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// CloseSession implements [dssa.SessionManager].
+func (p *proxyDss) CloseSession(id int) error {
+	if p.lgr != nil {
+		p.lgr.Debug("encrypted.proxyDss.CloseSession")
+	}
+	if err := p.doEndSession(); err != nil {
+		return err
+	}
+	return p.SessionManagerImpl.CloseSession(id)
+}
+
+// NewSession implements [dssa.Dssa].
+func (p *proxyDss) NewSession() (err error) {
+	p.trId, err = p.OpenSession()
+	return
+}
+
+// EndSession implements [dssa.Dssa].
+func (p *proxyDss) EndSession() error {
+	return p.CloseSession(p.trId)
 }
 
 // IsGrpcClient implements [dssa.Dssa].
@@ -274,6 +312,7 @@ func (p *proxyDss) Symlink(old string, new_ string) error {
 }
 
 var _ ProxyEncDssa = &proxyDss{}
+var _ dssa.SessionManager = &proxyDss{}
 
 func MakeProxyEncDssa(
 	lgr *slog.Logger,

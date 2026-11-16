@@ -41,11 +41,12 @@ func (gc *grpcClient) OpenSession() (int, error) {
 	}
 	gc.mx.Unlock()
 	sid, err := gc.client.OpenSession(gc.ctx, &dssagrpc.Empty{})
-	if err == nil {
-		gc.mx.Lock()
-		gc.sids[int(sid.Id)] = true
-		gc.mx.Unlock()
+	if err != nil {
+		return 0, err
 	}
+	gc.mx.Lock()
+	gc.sids[int(sid.Id)] = true
+	gc.mx.Unlock()
 	return int(sid.Id), err
 }
 
