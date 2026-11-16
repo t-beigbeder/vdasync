@@ -12,6 +12,7 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/share"
 	"github.com/t-beigbeder/vdasync/internal/s3common"
 )
 
@@ -25,6 +26,8 @@ type S3DssaWithMsts interface {
 // s3MetaSts implements dssa.Dssa to store data files as s3 objects
 // and delegate meta data storage to a MetaStorageSvc
 type s3MetaSts struct {
+	share.SessionManagerImpl
+	trId       int
 	lgr        *slog.Logger
 	rootPrefix string
 	s3repo     *s3common.S3RepoClient
@@ -46,14 +49,37 @@ func (s3m *s3MetaSts) S3Repo() *s3common.S3RepoClient {
 	return s3m.s3repo
 }
 
+// OpenSession implements [dssa.SessionManager].
+func (s3m *s3MetaSts) OpenSession() (int, error) {
+	s3m.lgr.Debug("s3MetaSts.OpenSession")
+	id, err := s3m.SessionManagerImpl.OpenSession()
+	if err != nil {
+		return 0, err
+	}
+	if err = s3m.Msts().NewSession(); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// CloseSession implements [dssa.SessionManager].
+func (s3m *s3MetaSts) CloseSession(id int) error {
+	s3m.lgr.Debug("s3MetaSts.CloseSession")
+	if err := s3m.Msts().EndSession(); err != nil {
+		return err
+	}
+	return s3m.SessionManagerImpl.CloseSession(id)
+}
+
 // NewSession implements [S3DssaWithMsts].
-func (s3m *s3MetaSts) NewSession() error {
-	return s3m.Msts().NewSession()
+func (s3m *s3MetaSts) NewSession() (err error) {
+	s3m.trId, err = s3m.OpenSession()
+	return
 }
 
 // EndSession implements [S3DssaWithMsts].
 func (s3m *s3MetaSts) EndSession() error {
-	return s3m.Msts().EndSession()
+	return s3m.CloseSession(s3m.trId)
 }
 
 // IsGrpcClient implements [dssa.Dssa].
@@ -235,6 +261,9 @@ const (
 	MSTS_M2S3 = iota
 	MSTS_FUTURE
 )
+
+var _ dssa.Dssa = &s3MetaSts{}
+var _ dssa.SessionManager = &s3MetaSts{}
 
 func MakeS3MstsDssa(lgr *slog.Logger, profileName, bucketName, rootPrefix string, type_ int) (ds S3DssaWithMsts, err error) {
 	var (

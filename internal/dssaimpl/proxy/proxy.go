@@ -16,26 +16,28 @@ type ProxyDssa interface {
 }
 
 type ProxyHdlArgs struct {
-	Path    string
-	De      *dssa.DataEntry
-	NoPerm  bool
-	NoMtime bool
-	Algos   string
-	Old     string
-	New     string
-	RC      io.ReadCloser
-	WC      io.WriteCloser
-	Buf     []byte
+	SessionId int
+	Path      string
+	De        *dssa.DataEntry
+	NoPerm    bool
+	NoMtime   bool
+	Algos     string
+	Old       string
+	New       string
+	RC        io.ReadCloser
+	WC        io.WriteCloser
+	Buf       []byte
 }
 
 type ProxyHdlRess struct {
-	Err    error
-	Des    []*dssa.DataEntry
-	De     *dssa.DataEntry
-	RC     io.ReadCloser
-	WC     io.WriteCloser
-	ChSums string
-	NRdWr  int
+	SessionId int
+	Err       error
+	Des       []*dssa.DataEntry
+	De        *dssa.DataEntry
+	RC        io.ReadCloser
+	WC        io.WriteCloser
+	ChSums    string
+	NRdWr     int
 }
 
 type ProxyHandler interface {
@@ -46,6 +48,28 @@ type proxyDssa struct {
 	lgr        *slog.Logger
 	underlying dssa.Dssa
 	handler    ProxyHandler
+}
+
+// OpenSession implements [dssa.SessionManager].
+func (pd *proxyDssa) OpenSession() (int, error) {
+	ress := pd.handler.Handle("OpenSession", &ProxyHdlArgs{})
+	return ress.SessionId, ress.Err
+}
+
+// CloseSession implements [dssa.SessionManager].
+func (pd *proxyDssa) CloseSession(id int) error {
+	ress := pd.handler.Handle("CloseSession", &ProxyHdlArgs{SessionId: id})
+	return ress.Err
+}
+
+// NewSessionTr implements [dssa.SessionManager].
+func (pd *proxyDssa) NewSessionTr() error {
+	panic("unimplemented")
+}
+
+// EndSessionTr implements [dssa.SessionManager].
+func (pd *proxyDssa) EndSessionTr() error {
+	panic("unimplemented")
 }
 
 // NewSession implements [ProxyDssa].
@@ -140,6 +164,8 @@ func (pd *proxyDssa) GetClient() remote.OpeDssaClient {
 }
 
 var _ grpcclient.GrpcClient = &proxyDssa{}
+var _ dssa.Dssa = &proxyDssa{}
+var _ dssa.SessionManager = &proxyDssa{}
 
 func MakeProxyDssa(lgr *slog.Logger, underlying dssa.Dssa, handler ProxyHandler) ProxyDssa {
 	if handler == nil {

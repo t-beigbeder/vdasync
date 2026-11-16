@@ -12,6 +12,7 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/metasts"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/share"
 )
 
 type EncryptedDssa interface {
@@ -24,6 +25,8 @@ type EncryptedDssa interface {
 // encryptedDssaImpl implements dssa.Dssa to store data files encrypted
 // in underlying dssa
 type encryptedDssaImpl struct {
+	share.SessionManagerImpl
+	trId                int
 	lgr                 *slog.Logger
 	underlying          dssa.Dssa
 	rootPath            string
@@ -75,16 +78,37 @@ func (ed *encryptedDssaImpl) actualPath(de *dssa.DataEntry) string {
 	return path.Join(ed.rootPath, common.Id2Path(de.Id))
 }
 
+// OpenSession implements [dssa.SessionManager].
+func (ed *encryptedDssaImpl) OpenSession() (int, error) {
+	ed.lgr.Debug("encryptedDssaImpl.OpenSession")
+	id, err := ed.SessionManagerImpl.OpenSession()
+	if err != nil {
+		return 0, err
+	}
+	if err = ed.msts.NewSession(); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// CloseSession implements [dssa.SessionManager].
+func (ed *encryptedDssaImpl) CloseSession(id int) error {
+	ed.lgr.Debug("encryptedDssaImpl.CloseSession")
+	if err := ed.msts.EndSession(); err != nil {
+		return err
+	}
+	return ed.SessionManagerImpl.CloseSession(id)
+}
+
 // NewSession implements [dssa.Dssa].
-func (ed *encryptedDssaImpl) NewSession() error {
-	ed.lgr.Debug("encryptedDssaImpl.NewSession")
-	return ed.msts.NewSession()
+func (ed *encryptedDssaImpl) NewSession() (err error) {
+	ed.trId, err = ed.OpenSession()
+	return
 }
 
 // EndSession implements [dssa.Dssa].
 func (ed *encryptedDssaImpl) EndSession() error {
-	ed.lgr.Debug("encryptedDssaImpl.EndSession")
-	return ed.msts.EndSession()
+	return ed.CloseSession(ed.trId)
 }
 
 // IsGrpcClient implements [dssa.Dssa].
@@ -282,6 +306,7 @@ func (ed *encryptedDssaImpl) Symlink(old string, new_ string) error {
 
 var _ dssa.Dssa = &encryptedDssaImpl{}
 var _ EncryptedDssa = &encryptedDssaImpl{}
+var _ dssa.SessionManager = &encryptedDssaImpl{}
 
 func MakeEncryptedDssa(lgr *slog.Logger, underlying dssa.Dssa, rootPath string,
 	ageIdentities []string, ageRecipients []string,
