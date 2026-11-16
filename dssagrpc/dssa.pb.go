@@ -21,6 +21,50 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type SessionId struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int32                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SessionId) Reset() {
+	*x = SessionId{}
+	mi := &file_grpc_dssa_proto_msgTypes[0]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SessionId) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SessionId) ProtoMessage() {}
+
+func (x *SessionId) ProtoReflect() protoreflect.Message {
+	mi := &file_grpc_dssa_proto_msgTypes[0]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SessionId.ProtoReflect.Descriptor instead.
+func (*SessionId) Descriptor() ([]byte, []int) {
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{0}
+}
+
+func (x *SessionId) GetId() int32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
 type DssInfoMT struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	DssInfo       string                 `protobuf:"bytes,1,opt,name=dss_info,json=dssInfo,proto3" json:"dss_info,omitempty"`
@@ -30,7 +74,7 @@ type DssInfoMT struct {
 
 func (x *DssInfoMT) Reset() {
 	*x = DssInfoMT{}
-	mi := &file_grpc_dssa_proto_msgTypes[0]
+	mi := &file_grpc_dssa_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +86,7 @@ func (x *DssInfoMT) String() string {
 func (*DssInfoMT) ProtoMessage() {}
 
 func (x *DssInfoMT) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[0]
+	mi := &file_grpc_dssa_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +99,7 @@ func (x *DssInfoMT) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DssInfoMT.ProtoReflect.Descriptor instead.
 func (*DssInfoMT) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{0}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *DssInfoMT) GetDssInfo() string {
@@ -74,7 +118,7 @@ type Path struct {
 
 func (x *Path) Reset() {
 	*x = Path{}
-	mi := &file_grpc_dssa_proto_msgTypes[1]
+	mi := &file_grpc_dssa_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -86,7 +130,7 @@ func (x *Path) String() string {
 func (*Path) ProtoMessage() {}
 
 func (x *Path) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[1]
+	mi := &file_grpc_dssa_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -99,7 +143,7 @@ func (x *Path) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Path.ProtoReflect.Descriptor instead.
 func (*Path) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{1}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Path) GetPath() string {
@@ -119,7 +163,7 @@ type OldNewPaths struct {
 
 func (x *OldNewPaths) Reset() {
 	*x = OldNewPaths{}
-	mi := &file_grpc_dssa_proto_msgTypes[2]
+	mi := &file_grpc_dssa_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -131,7 +175,7 @@ func (x *OldNewPaths) String() string {
 func (*OldNewPaths) ProtoMessage() {}
 
 func (x *OldNewPaths) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[2]
+	mi := &file_grpc_dssa_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -144,7 +188,7 @@ func (x *OldNewPaths) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OldNewPaths.ProtoReflect.Descriptor instead.
 func (*OldNewPaths) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{2}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *OldNewPaths) GetOld() string {
@@ -173,7 +217,7 @@ type AlgosAndPath struct {
 
 func (x *AlgosAndPath) Reset() {
 	*x = AlgosAndPath{}
-	mi := &file_grpc_dssa_proto_msgTypes[3]
+	mi := &file_grpc_dssa_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -185,7 +229,7 @@ func (x *AlgosAndPath) String() string {
 func (*AlgosAndPath) ProtoMessage() {}
 
 func (x *AlgosAndPath) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[3]
+	mi := &file_grpc_dssa_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -198,7 +242,7 @@ func (x *AlgosAndPath) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AlgosAndPath.ProtoReflect.Descriptor instead.
 func (*AlgosAndPath) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{3}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AlgosAndPath) GetAlgos() string {
@@ -225,7 +269,7 @@ type Checksums struct {
 
 func (x *Checksums) Reset() {
 	*x = Checksums{}
-	mi := &file_grpc_dssa_proto_msgTypes[4]
+	mi := &file_grpc_dssa_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -237,7 +281,7 @@ func (x *Checksums) String() string {
 func (*Checksums) ProtoMessage() {}
 
 func (x *Checksums) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[4]
+	mi := &file_grpc_dssa_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -250,7 +294,7 @@ func (x *Checksums) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Checksums.ProtoReflect.Descriptor instead.
 func (*Checksums) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{4}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *Checksums) GetChecksums() string {
@@ -269,7 +313,7 @@ type DataEntries struct {
 
 func (x *DataEntries) Reset() {
 	*x = DataEntries{}
-	mi := &file_grpc_dssa_proto_msgTypes[5]
+	mi := &file_grpc_dssa_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -281,7 +325,7 @@ func (x *DataEntries) String() string {
 func (*DataEntries) ProtoMessage() {}
 
 func (x *DataEntries) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[5]
+	mi := &file_grpc_dssa_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -294,7 +338,7 @@ func (x *DataEntries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataEntries.ProtoReflect.Descriptor instead.
 func (*DataEntries) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{5}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *DataEntries) GetEntries() []*DataEntry {
@@ -328,7 +372,7 @@ type DataEntry struct {
 
 func (x *DataEntry) Reset() {
 	*x = DataEntry{}
-	mi := &file_grpc_dssa_proto_msgTypes[6]
+	mi := &file_grpc_dssa_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -340,7 +384,7 @@ func (x *DataEntry) String() string {
 func (*DataEntry) ProtoMessage() {}
 
 func (x *DataEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[6]
+	mi := &file_grpc_dssa_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -353,7 +397,7 @@ func (x *DataEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DataEntry.ProtoReflect.Descriptor instead.
 func (*DataEntry) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{6}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *DataEntry) GetIsDir() bool {
@@ -479,7 +523,7 @@ type SetStatDataEntry struct {
 
 func (x *SetStatDataEntry) Reset() {
 	*x = SetStatDataEntry{}
-	mi := &file_grpc_dssa_proto_msgTypes[7]
+	mi := &file_grpc_dssa_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -491,7 +535,7 @@ func (x *SetStatDataEntry) String() string {
 func (*SetStatDataEntry) ProtoMessage() {}
 
 func (x *SetStatDataEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[7]
+	mi := &file_grpc_dssa_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -504,7 +548,7 @@ func (x *SetStatDataEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetStatDataEntry.ProtoReflect.Descriptor instead.
 func (*SetStatDataEntry) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{7}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *SetStatDataEntry) GetDataEntry() *DataEntry {
@@ -539,7 +583,7 @@ type Rights struct {
 
 func (x *Rights) Reset() {
 	*x = Rights{}
-	mi := &file_grpc_dssa_proto_msgTypes[8]
+	mi := &file_grpc_dssa_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -551,7 +595,7 @@ func (x *Rights) String() string {
 func (*Rights) ProtoMessage() {}
 
 func (x *Rights) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[8]
+	mi := &file_grpc_dssa_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -564,7 +608,7 @@ func (x *Rights) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Rights.ProtoReflect.Descriptor instead.
 func (*Rights) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{8}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *Rights) GetRead() bool {
@@ -598,7 +642,7 @@ type PushedBlock struct {
 
 func (x *PushedBlock) Reset() {
 	*x = PushedBlock{}
-	mi := &file_grpc_dssa_proto_msgTypes[9]
+	mi := &file_grpc_dssa_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -610,7 +654,7 @@ func (x *PushedBlock) String() string {
 func (*PushedBlock) ProtoMessage() {}
 
 func (x *PushedBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[9]
+	mi := &file_grpc_dssa_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -623,7 +667,7 @@ func (x *PushedBlock) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PushedBlock.ProtoReflect.Descriptor instead.
 func (*PushedBlock) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{9}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *PushedBlock) GetPath() string {
@@ -649,7 +693,7 @@ type PulledBlock struct {
 
 func (x *PulledBlock) Reset() {
 	*x = PulledBlock{}
-	mi := &file_grpc_dssa_proto_msgTypes[10]
+	mi := &file_grpc_dssa_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -661,7 +705,7 @@ func (x *PulledBlock) String() string {
 func (*PulledBlock) ProtoMessage() {}
 
 func (x *PulledBlock) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[10]
+	mi := &file_grpc_dssa_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -674,7 +718,7 @@ func (x *PulledBlock) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PulledBlock.ProtoReflect.Descriptor instead.
 func (*PulledBlock) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{10}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *PulledBlock) GetData() []byte {
@@ -693,7 +737,7 @@ type Length struct {
 
 func (x *Length) Reset() {
 	*x = Length{}
-	mi := &file_grpc_dssa_proto_msgTypes[11]
+	mi := &file_grpc_dssa_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -705,7 +749,7 @@ func (x *Length) String() string {
 func (*Length) ProtoMessage() {}
 
 func (x *Length) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[11]
+	mi := &file_grpc_dssa_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -718,7 +762,7 @@ func (x *Length) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Length.ProtoReflect.Descriptor instead.
 func (*Length) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{11}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Length) GetLength() int64 {
@@ -736,7 +780,7 @@ type Empty struct {
 
 func (x *Empty) Reset() {
 	*x = Empty{}
-	mi := &file_grpc_dssa_proto_msgTypes[12]
+	mi := &file_grpc_dssa_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -748,7 +792,7 @@ func (x *Empty) String() string {
 func (*Empty) ProtoMessage() {}
 
 func (x *Empty) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[12]
+	mi := &file_grpc_dssa_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -761,7 +805,7 @@ func (x *Empty) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Empty.ProtoReflect.Descriptor instead.
 func (*Empty) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{12}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{13}
 }
 
 type Paths struct {
@@ -773,7 +817,7 @@ type Paths struct {
 
 func (x *Paths) Reset() {
 	*x = Paths{}
-	mi := &file_grpc_dssa_proto_msgTypes[13]
+	mi := &file_grpc_dssa_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -785,7 +829,7 @@ func (x *Paths) String() string {
 func (*Paths) ProtoMessage() {}
 
 func (x *Paths) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[13]
+	mi := &file_grpc_dssa_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -798,7 +842,7 @@ func (x *Paths) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Paths.ProtoReflect.Descriptor instead.
 func (*Paths) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{13}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *Paths) GetPaths() []string {
@@ -818,7 +862,7 @@ type MetaEntries struct {
 
 func (x *MetaEntries) Reset() {
 	*x = MetaEntries{}
-	mi := &file_grpc_dssa_proto_msgTypes[14]
+	mi := &file_grpc_dssa_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -830,7 +874,7 @@ func (x *MetaEntries) String() string {
 func (*MetaEntries) ProtoMessage() {}
 
 func (x *MetaEntries) ProtoReflect() protoreflect.Message {
-	mi := &file_grpc_dssa_proto_msgTypes[14]
+	mi := &file_grpc_dssa_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -843,7 +887,7 @@ func (x *MetaEntries) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MetaEntries.ProtoReflect.Descriptor instead.
 func (*MetaEntries) Descriptor() ([]byte, []int) {
-	return file_grpc_dssa_proto_rawDescGZIP(), []int{14}
+	return file_grpc_dssa_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *MetaEntries) GetEntries() map[string]*DataEntry {
@@ -864,7 +908,9 @@ var File_grpc_dssa_proto protoreflect.FileDescriptor
 
 const file_grpc_dssa_proto_rawDesc = "" +
 	"\n" +
-	"\x0fgrpc/dssa.proto\x12\x04dssa\"&\n" +
+	"\x0fgrpc/dssa.proto\x12\x04dssa\"\x1b\n" +
+	"\tSessionId\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x05R\x02id\"&\n" +
 	"\tDssInfoMT\x12\x19\n" +
 	"\bdss_info\x18\x01 \x01(\tR\adssInfo\"\x1a\n" +
 	"\x04Path\x12\x12\n" +
@@ -925,12 +971,14 @@ const file_grpc_dssa_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2\x0f.dssa.DataEntryR\x05value:\x028\x01\x1aD\n" +
 	"\tDirsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12!\n" +
-	"\x05value\x18\x02 \x01(\v2\v.dssa.PathsR\x05value:\x028\x012\x94\x04\n" +
+	"\x05value\x18\x02 \x01(\v2\v.dssa.PathsR\x05value:\x028\x012\xf3\x04\n" +
 	"\x11DataStorageSystem\x12(\n" +
 	"\n" +
 	"NewSession\x12\v.dssa.Empty\x1a\v.dssa.Empty\"\x00\x12(\n" +
 	"\n" +
-	"EndSession\x12\v.dssa.Empty\x1a\v.dssa.Empty\"\x00\x12)\n" +
+	"EndSession\x12\v.dssa.Empty\x1a\v.dssa.Empty\"\x00\x12-\n" +
+	"\vOpenSession\x12\v.dssa.Empty\x1a\x0f.dssa.SessionId\"\x00\x12.\n" +
+	"\fCloseSession\x12\x0f.dssa.SessionId\x1a\v.dssa.Empty\"\x00\x12)\n" +
 	"\aDssInfo\x12\v.dssa.Empty\x1a\x0f.dssa.DssInfoMT\"\x00\x12'\n" +
 	"\x04List\x12\n" +
 	".dssa.Path\x1a\x11.dssa.DataEntries\"\x00\x12%\n" +
@@ -959,62 +1007,67 @@ func file_grpc_dssa_proto_rawDescGZIP() []byte {
 	return file_grpc_dssa_proto_rawDescData
 }
 
-var file_grpc_dssa_proto_msgTypes = make([]protoimpl.MessageInfo, 17)
+var file_grpc_dssa_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_grpc_dssa_proto_goTypes = []any{
-	(*DssInfoMT)(nil),        // 0: dssa.DssInfoMT
-	(*Path)(nil),             // 1: dssa.Path
-	(*OldNewPaths)(nil),      // 2: dssa.OldNewPaths
-	(*AlgosAndPath)(nil),     // 3: dssa.AlgosAndPath
-	(*Checksums)(nil),        // 4: dssa.Checksums
-	(*DataEntries)(nil),      // 5: dssa.DataEntries
-	(*DataEntry)(nil),        // 6: dssa.DataEntry
-	(*SetStatDataEntry)(nil), // 7: dssa.SetStatDataEntry
-	(*Rights)(nil),           // 8: dssa.Rights
-	(*PushedBlock)(nil),      // 9: dssa.PushedBlock
-	(*PulledBlock)(nil),      // 10: dssa.PulledBlock
-	(*Length)(nil),           // 11: dssa.Length
-	(*Empty)(nil),            // 12: dssa.Empty
-	(*Paths)(nil),            // 13: dssa.Paths
-	(*MetaEntries)(nil),      // 14: dssa.MetaEntries
-	nil,                      // 15: dssa.MetaEntries.EntriesEntry
-	nil,                      // 16: dssa.MetaEntries.DirsEntry
+	(*SessionId)(nil),        // 0: dssa.SessionId
+	(*DssInfoMT)(nil),        // 1: dssa.DssInfoMT
+	(*Path)(nil),             // 2: dssa.Path
+	(*OldNewPaths)(nil),      // 3: dssa.OldNewPaths
+	(*AlgosAndPath)(nil),     // 4: dssa.AlgosAndPath
+	(*Checksums)(nil),        // 5: dssa.Checksums
+	(*DataEntries)(nil),      // 6: dssa.DataEntries
+	(*DataEntry)(nil),        // 7: dssa.DataEntry
+	(*SetStatDataEntry)(nil), // 8: dssa.SetStatDataEntry
+	(*Rights)(nil),           // 9: dssa.Rights
+	(*PushedBlock)(nil),      // 10: dssa.PushedBlock
+	(*PulledBlock)(nil),      // 11: dssa.PulledBlock
+	(*Length)(nil),           // 12: dssa.Length
+	(*Empty)(nil),            // 13: dssa.Empty
+	(*Paths)(nil),            // 14: dssa.Paths
+	(*MetaEntries)(nil),      // 15: dssa.MetaEntries
+	nil,                      // 16: dssa.MetaEntries.EntriesEntry
+	nil,                      // 17: dssa.MetaEntries.DirsEntry
 }
 var file_grpc_dssa_proto_depIdxs = []int32{
-	6,  // 0: dssa.DataEntries.entries:type_name -> dssa.DataEntry
-	8,  // 1: dssa.DataEntry.user_rights:type_name -> dssa.Rights
-	8,  // 2: dssa.DataEntry.group_rights:type_name -> dssa.Rights
-	8,  // 3: dssa.DataEntry.other_rights:type_name -> dssa.Rights
-	6,  // 4: dssa.SetStatDataEntry.data_entry:type_name -> dssa.DataEntry
-	15, // 5: dssa.MetaEntries.Entries:type_name -> dssa.MetaEntries.EntriesEntry
-	16, // 6: dssa.MetaEntries.Dirs:type_name -> dssa.MetaEntries.DirsEntry
-	6,  // 7: dssa.MetaEntries.EntriesEntry.value:type_name -> dssa.DataEntry
-	13, // 8: dssa.MetaEntries.DirsEntry.value:type_name -> dssa.Paths
-	12, // 9: dssa.DataStorageSystem.NewSession:input_type -> dssa.Empty
-	12, // 10: dssa.DataStorageSystem.EndSession:input_type -> dssa.Empty
-	12, // 11: dssa.DataStorageSystem.DssInfo:input_type -> dssa.Empty
-	1,  // 12: dssa.DataStorageSystem.List:input_type -> dssa.Path
-	1,  // 13: dssa.DataStorageSystem.Stat:input_type -> dssa.Path
-	3,  // 14: dssa.DataStorageSystem.Checksum:input_type -> dssa.AlgosAndPath
-	6,  // 15: dssa.DataStorageSystem.Mkdir:input_type -> dssa.DataEntry
-	7,  // 16: dssa.DataStorageSystem.SetStat:input_type -> dssa.SetStatDataEntry
-	9,  // 17: dssa.DataStorageSystem.Put:input_type -> dssa.PushedBlock
-	1,  // 18: dssa.DataStorageSystem.Get:input_type -> dssa.Path
-	1,  // 19: dssa.DataStorageSystem.Rm:input_type -> dssa.Path
-	2,  // 20: dssa.DataStorageSystem.Symlink:input_type -> dssa.OldNewPaths
-	12, // 21: dssa.DataStorageSystem.NewSession:output_type -> dssa.Empty
-	12, // 22: dssa.DataStorageSystem.EndSession:output_type -> dssa.Empty
-	0,  // 23: dssa.DataStorageSystem.DssInfo:output_type -> dssa.DssInfoMT
-	5,  // 24: dssa.DataStorageSystem.List:output_type -> dssa.DataEntries
-	6,  // 25: dssa.DataStorageSystem.Stat:output_type -> dssa.DataEntry
-	4,  // 26: dssa.DataStorageSystem.Checksum:output_type -> dssa.Checksums
-	12, // 27: dssa.DataStorageSystem.Mkdir:output_type -> dssa.Empty
-	12, // 28: dssa.DataStorageSystem.SetStat:output_type -> dssa.Empty
-	11, // 29: dssa.DataStorageSystem.Put:output_type -> dssa.Length
-	10, // 30: dssa.DataStorageSystem.Get:output_type -> dssa.PulledBlock
-	12, // 31: dssa.DataStorageSystem.Rm:output_type -> dssa.Empty
-	12, // 32: dssa.DataStorageSystem.Symlink:output_type -> dssa.Empty
-	21, // [21:33] is the sub-list for method output_type
-	9,  // [9:21] is the sub-list for method input_type
+	7,  // 0: dssa.DataEntries.entries:type_name -> dssa.DataEntry
+	9,  // 1: dssa.DataEntry.user_rights:type_name -> dssa.Rights
+	9,  // 2: dssa.DataEntry.group_rights:type_name -> dssa.Rights
+	9,  // 3: dssa.DataEntry.other_rights:type_name -> dssa.Rights
+	7,  // 4: dssa.SetStatDataEntry.data_entry:type_name -> dssa.DataEntry
+	16, // 5: dssa.MetaEntries.Entries:type_name -> dssa.MetaEntries.EntriesEntry
+	17, // 6: dssa.MetaEntries.Dirs:type_name -> dssa.MetaEntries.DirsEntry
+	7,  // 7: dssa.MetaEntries.EntriesEntry.value:type_name -> dssa.DataEntry
+	14, // 8: dssa.MetaEntries.DirsEntry.value:type_name -> dssa.Paths
+	13, // 9: dssa.DataStorageSystem.NewSession:input_type -> dssa.Empty
+	13, // 10: dssa.DataStorageSystem.EndSession:input_type -> dssa.Empty
+	13, // 11: dssa.DataStorageSystem.OpenSession:input_type -> dssa.Empty
+	0,  // 12: dssa.DataStorageSystem.CloseSession:input_type -> dssa.SessionId
+	13, // 13: dssa.DataStorageSystem.DssInfo:input_type -> dssa.Empty
+	2,  // 14: dssa.DataStorageSystem.List:input_type -> dssa.Path
+	2,  // 15: dssa.DataStorageSystem.Stat:input_type -> dssa.Path
+	4,  // 16: dssa.DataStorageSystem.Checksum:input_type -> dssa.AlgosAndPath
+	7,  // 17: dssa.DataStorageSystem.Mkdir:input_type -> dssa.DataEntry
+	8,  // 18: dssa.DataStorageSystem.SetStat:input_type -> dssa.SetStatDataEntry
+	10, // 19: dssa.DataStorageSystem.Put:input_type -> dssa.PushedBlock
+	2,  // 20: dssa.DataStorageSystem.Get:input_type -> dssa.Path
+	2,  // 21: dssa.DataStorageSystem.Rm:input_type -> dssa.Path
+	3,  // 22: dssa.DataStorageSystem.Symlink:input_type -> dssa.OldNewPaths
+	13, // 23: dssa.DataStorageSystem.NewSession:output_type -> dssa.Empty
+	13, // 24: dssa.DataStorageSystem.EndSession:output_type -> dssa.Empty
+	0,  // 25: dssa.DataStorageSystem.OpenSession:output_type -> dssa.SessionId
+	13, // 26: dssa.DataStorageSystem.CloseSession:output_type -> dssa.Empty
+	1,  // 27: dssa.DataStorageSystem.DssInfo:output_type -> dssa.DssInfoMT
+	6,  // 28: dssa.DataStorageSystem.List:output_type -> dssa.DataEntries
+	7,  // 29: dssa.DataStorageSystem.Stat:output_type -> dssa.DataEntry
+	5,  // 30: dssa.DataStorageSystem.Checksum:output_type -> dssa.Checksums
+	13, // 31: dssa.DataStorageSystem.Mkdir:output_type -> dssa.Empty
+	13, // 32: dssa.DataStorageSystem.SetStat:output_type -> dssa.Empty
+	12, // 33: dssa.DataStorageSystem.Put:output_type -> dssa.Length
+	11, // 34: dssa.DataStorageSystem.Get:output_type -> dssa.PulledBlock
+	13, // 35: dssa.DataStorageSystem.Rm:output_type -> dssa.Empty
+	13, // 36: dssa.DataStorageSystem.Symlink:output_type -> dssa.Empty
+	23, // [23:37] is the sub-list for method output_type
+	9,  // [9:23] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
@@ -1031,7 +1084,7 @@ func file_grpc_dssa_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_grpc_dssa_proto_rawDesc), len(file_grpc_dssa_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   17,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

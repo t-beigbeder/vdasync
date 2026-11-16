@@ -62,6 +62,7 @@ func (de *DataEntry) ModString() string {
 type SessionManager interface {
 	OpenSession() (int, error)
 	CloseSession(int) error
+	SessionsNumber() int
 	NewSessionTr() error
 	EndSessionTr() error
 }

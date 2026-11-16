@@ -31,6 +31,7 @@ type ProxyHdlArgs struct {
 
 type ProxyHdlRess struct {
 	SessionId int
+	Number    int
 	Err       error
 	Des       []*dssa.DataEntry
 	De        *dssa.DataEntry
@@ -60,6 +61,12 @@ func (pd *proxyDssa) OpenSession() (int, error) {
 func (pd *proxyDssa) CloseSession(id int) error {
 	ress := pd.handler.Handle("CloseSession", &ProxyHdlArgs{SessionId: id})
 	return ress.Err
+}
+
+// SessionsNumber implements [dssa.SessionManager].
+func (pd *proxyDssa) SessionsNumber() int {
+	ress := pd.handler.Handle("SessionsNumber", &ProxyHdlArgs{})
+	return ress.Number
 }
 
 // NewSessionTr implements [dssa.SessionManager].

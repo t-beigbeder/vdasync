@@ -2,6 +2,7 @@ package remote
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"sync"
@@ -9,16 +10,60 @@ import (
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/share"
 	"google.golang.org/grpc"
 )
 
 type dssaImpl struct {
 	dssagrpc.UnimplementedDataStorageSystemServer
+	share.SessionManagerImpl
+	mx         sync.Mutex
+	uId        int
 	lgr        *slog.Logger
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string
-	unmx       sync.Mutex
+}
+
+func (s *dssaImpl) OpenSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.SessionId, error) {
+	smds, ok := s.dssa_.(dssa.SessionManager)
+	if !ok {
+		return nil, errors.New("remote DSS is not a SessionManager")
+	}
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	sNb := s.SessionsNumber()
+	var (
+		err error
+	)
+	if sNb == 0 {
+		if s.uId, err = smds.OpenSession(); err != nil {
+			return nil, err
+		}
+	}
+	id, err := s.SessionManagerImpl.OpenSession()
+	if err != nil {
+		return nil, err
+	}
+	return &dssagrpc.SessionId{Id: int32(id)}, nil
+}
+
+func (s *dssaImpl) CloseSession(_ context.Context, sid *dssagrpc.SessionId) (*dssagrpc.Empty, error) {
+	smds, ok := s.dssa_.(dssa.SessionManager)
+	if !ok {
+		return nil, errors.New("remote DSS is not a SessionManager")
+	}
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	if err := s.SessionManagerImpl.CloseSession(int(sid.Id)); err != nil {
+		return nil, err
+	}
+	if s.SessionsNumber() == 0 {
+		if err := smds.CloseSession(s.uId); err != nil {
+			return nil, err
+		}
+	}
+	return &dssagrpc.Empty{}, nil
 }
 
 func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {

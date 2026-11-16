@@ -46,6 +46,18 @@ func (s *SessionManagerImpl) CloseSession(id int) error {
 	return nil
 }
 
+// SessionsNumber implements [dssa.SessionManager].
+func (s *SessionManagerImpl) SessionsNumber() (number int) {
+	s.mx.Lock()
+	defer s.mx.Unlock()
+	for _, ok := range s.ids {
+		if ok {
+			number++
+		}
+	}
+	return
+}
+
 // NewSessionTr implements [dssa.SessionManager].
 func (s *SessionManagerImpl) NewSessionTr() (err error) {
 	s.trMx.Lock()

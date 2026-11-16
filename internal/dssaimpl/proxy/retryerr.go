@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -36,6 +37,27 @@ func (ph *retryErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRe
 		ph.lgr.Debug("retry failed", "fcName", fcName, "err", ress.Err.Error(), "max", ph.opts.max+1)
 	}
 	switch fcName {
+	case "OpenSession":
+		smds, ok := ph.underlying.(dssa.SessionManager)
+		if !ok {
+			ress.Err = errors.New("underlying is not SessionManager")
+		} else {
+			ress.SessionId, ress.Err = smds.OpenSession()
+		}
+	case "CloseSession":
+		smds, ok := ph.underlying.(dssa.SessionManager)
+		if !ok {
+			ress.Err = errors.New("underlying is not SessionManager")
+		} else {
+			ress.Err = smds.CloseSession(args.SessionId)
+		}
+	case "SessionsNumber":
+		smds, ok := ph.underlying.(dssa.SessionManager)
+		if !ok {
+			ress.Err = errors.New("underlying is not SessionManager")
+		} else {
+			ress.Number = smds.SessionsNumber()
+		}
 	case "NewSession":
 		ress.Err = ph.underlying.NewSession()
 	case "EndSession":
