@@ -17,6 +17,7 @@ import (
 
 type grpcClient struct {
 	mx          sync.Mutex
+	trMx        sync.Mutex
 	trId        int
 	sids        map[int]bool
 	lgr         *slog.Logger
@@ -35,13 +36,15 @@ var _ GrpcClient = &grpcClient{}
 func (gc *grpcClient) OpenSession() (int, error) {
 	gc.lgr.Debug("grpcClient.NewSession")
 	gc.mx.Lock()
-	defer gc.mx.Unlock()
 	if gc.sids == nil {
 		gc.sids = map[int]bool{}
 	}
+	gc.mx.Unlock()
 	sid, err := gc.client.OpenSession(gc.ctx, &dssagrpc.Empty{})
 	if err == nil {
+		gc.mx.Lock()
 		gc.sids[int(sid.Id)] = true
+		gc.mx.Unlock()
 	}
 	return int(sid.Id), err
 }
@@ -49,14 +52,11 @@ func (gc *grpcClient) OpenSession() (int, error) {
 // CloseSession implements [dssa.SessionManager].
 func (gc *grpcClient) CloseSession(id int) error {
 	gc.lgr.Debug("grpcClient.CloseSession")
-	gc.mx.Lock()
-	defer gc.mx.Unlock()
-	if gc.sids == nil {
-		gc.sids = map[int]bool{}
-	}
 	_, err := gc.client.CloseSession(gc.ctx, &dssagrpc.SessionId{Id: int32(id)})
 	if err == nil {
+		gc.mx.Lock()
 		gc.sids[id] = false
+		gc.mx.Unlock()
 	}
 	return err
 }
@@ -75,8 +75,8 @@ func (gc *grpcClient) SessionsNumber() (number int) {
 
 // NewSessionTr implements [dssa.SessionManager].
 func (gc *grpcClient) NewSessionTr() (err error) {
-	gc.mx.Lock()
-	defer gc.mx.Unlock()
+	gc.trMx.Lock()
+	defer gc.trMx.Unlock()
 	if gc.trId > 0 {
 		return errors.New("grpcClient: transition session already created")
 	}
@@ -86,8 +86,8 @@ func (gc *grpcClient) NewSessionTr() (err error) {
 
 // EndSessionTr implements [dssa.SessionManager].
 func (gc *grpcClient) EndSessionTr() error {
-	gc.mx.Lock()
-	defer gc.mx.Unlock()
+	gc.trMx.Lock()
+	defer gc.trMx.Unlock()
 	if gc.trId == 0 {
 		return errors.New("grpcClient: transition session already ended")
 	}

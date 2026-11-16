@@ -24,7 +24,7 @@ test-cleansftp:	## go test clean sftp
 
 .PHONY: test-this
 test-this:	## go test the application
-	go test -v -run TestMakeTestFilesTree github.com/t-beigbeder/vdasync/internal/common
+	go test -v -run TestSimpleSteps github.com/t-beigbeder/vdasync/internal/walker
 
 .PHONY: build-this
 build-this:	## go build only this

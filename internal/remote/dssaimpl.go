@@ -31,20 +31,23 @@ func (s *dssaImpl) OpenSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.
 		return nil, errors.New("remote DSS is not a SessionManager")
 	}
 	s.mx.Lock()
-	defer s.mx.Unlock()
 	sNb := s.SessionsNumber()
 	var (
 		err error
 	)
 	if sNb == 0 {
 		if s.uId, err = smds.OpenSession(); err != nil {
+			s.mx.Unlock()
 			return nil, err
 		}
+		s.mx.Unlock()
+		s.lgr.Debug("dssaImpl.OpenSession", "smds.OpenSession", s.uId)
 	}
 	id, err := s.SessionManagerImpl.OpenSession()
 	if err != nil {
 		return nil, err
 	}
+	s.lgr.Debug("dssaImpl.OpenSession", "SessionManagerImpl.OpenSession", id)
 	return &dssagrpc.SessionId{Id: int32(id)}, nil
 }
 
@@ -53,15 +56,18 @@ func (s *dssaImpl) CloseSession(_ context.Context, sid *dssagrpc.SessionId) (*ds
 	if !ok {
 		return nil, errors.New("remote DSS is not a SessionManager")
 	}
-	s.mx.Lock()
-	defer s.mx.Unlock()
 	if err := s.SessionManagerImpl.CloseSession(int(sid.Id)); err != nil {
 		return nil, err
 	}
+	s.lgr.Debug("dssaImpl.CloseSession", "SessionManagerImpl.CloseSession", sid.Id)
+	s.mx.Lock()
 	if s.SessionsNumber() == 0 {
 		if err := smds.CloseSession(s.uId); err != nil {
+			s.mx.Unlock()
 			return nil, err
 		}
+		s.mx.Unlock()
+		s.lgr.Debug("dssaImpl.CloseSession", "smds.CloseSession", s.uId)
 	}
 	return &dssagrpc.Empty{}, nil
 }

@@ -1103,7 +1103,7 @@ func TestSimpleSteps(t *testing.T) {
 		{
 			label: "TestFilesTreeOnRemoteFiles",
 			omit:  skipOp,
-			rLgr:  nullLgr, syncOptions: &config.SyncOptionsType{Rm: true},
+			rLgr:  dbgLgr, syncOptions: &config.SyncOptionsType{Rm: true},
 			srGet:    getTd,
 			tDssType: "rDss",
 			trGet:    getTd,
