@@ -2,7 +2,6 @@ package common
 
 import (
 	"io/fs"
-	"net"
 	"os"
 	"path"
 	"strings"
