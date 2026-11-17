@@ -20,11 +20,17 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:           "update - c4 tiny",
-			lgr:             cliLgr,
-			ftgen:           ftGenTiny,
+			label: "update - irreg and ingnore tiny",
+			lgr:   cliLgr,
+			ftgen: ftGenIrregTiny,
+			owo: &config.OpeLogOptionsType{
+				SyncOptionsType: config.SyncOptionsType{
+					IgnoreIrreg: true,
+				},
+			},
+			exclRegs:        []string{"^dau/dAddFiles/dStay/dAddFiles/fRemoved.dat$", "^dau/dAddFiles/dStay/dLinks/"},
 			allowReadPhase2: true,
-			specialInterest: []string{"d0000"},
+			specialInterest: []string{"dau/dAddFiles"},
 			speIntPhase:     "phase1",
 		},
 	}

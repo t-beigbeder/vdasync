@@ -99,11 +99,8 @@ func expDispMtime(ts time.Time) string {
 }
 
 func MakeSocket(dir, name string) error {
-	l, err := net.Listen("unix", path.Join(dir, name))
+	_, err := net.Listen("unix", path.Join(dir, name))
 	if err != nil {
-		return err
-	}
-	if err := l.Close(); err != nil {
 		return err
 	}
 	return nil

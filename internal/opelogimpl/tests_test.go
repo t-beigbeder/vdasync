@@ -62,7 +62,6 @@ func TestInventoryCsvExport(t *testing.T) {
 	require.NoError(t, err)
 }
 
-
 func TestUnixSocketCreation(t *testing.T) {
 	td := t.TempDir()
 	require.NoError(t, MakeSocket(td, "TestUnixSocketCreation.socket"))

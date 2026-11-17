@@ -389,6 +389,8 @@ func (ole *oplLogicalEntry) process() error {
 		ole.detail("logical entry irregular source is ignored")
 		ole.le.IsIgnored = true
 		ole.hasChanges = true
+		ole.source.setState(opelog.STC_UNSPECIFIED, "", nil, nil, 0)
+		ole.source.setStatsFor("ce", 0)
 		return nil
 	}
 	_ = ole.target.load()

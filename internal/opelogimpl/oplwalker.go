@@ -309,7 +309,7 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
 		return err
 	}
-	ow.exclRegs, err = common.ReFromFile(ow.owo.InclListPath, "inclusion list")
+	ow.exclRegs, err = common.ReFromFile(ow.owo.ExclListPath, "exclusion list")
 	if err != nil {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
 		return err

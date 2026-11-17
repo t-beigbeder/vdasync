@@ -41,6 +41,7 @@ type owTest struct {
 	hasNoExpCsv        bool
 	hasNoRm            bool
 	hasNoCheck         bool
+	exclRegs           []string
 	restartCb          func(phase string, count int) bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
@@ -82,6 +83,17 @@ var ftGenAugTiny = func(root string) error {
 
 var ftUpdAugTiny = func(root string) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
+	return err
+}
+
+var ftGenIrregTiny = func(root string) error {
+	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 5, 20, 16, 1024)
+	if err != nil {
+		return err
+	}
+	if err := MakeSocket(path.Join(root, "dau/dAddFiles"), "ftGenIrregTiny1.socket"); err != nil {
+		return err
+	}
 	return err
 }
 
@@ -226,6 +238,12 @@ func (owt *owTest) commonSetup() (err error) {
 	}
 	if owt.owo.Goal == "" {
 		owt.owo.Goal = "update"
+	}
+	if len(owt.exclRegs) > 0 {
+		owt.owo.SyncOptionsType.ExclListPath = path.Join(owt.ltd, "excl.txt")
+		if err := common.Lines2file(owt.exclRegs, owt.owo.SyncOptionsType.ExclListPath); err != nil {
+			return err
+		}
 	}
 
 	// WARN: not fully reliable, could become flaky on low resource dev env
@@ -716,6 +734,17 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase4: true,
 			session2:        "ses2",
 			custoTest:       custTestNewSession,
+		},
+		{
+			label: "update - irreg and ingnore tiny",
+			ftgen: ftGenIrregTiny,
+			owo: &config.OpeLogOptionsType{
+				SyncOptionsType: config.SyncOptionsType{IgnoreIrreg: true},
+			},
+			exclRegs:        []string{"^dau/dAddFiles/dStay/dAddFiles/fRemoved.dat$", "^dau/dAddFiles/dStay/dLinks/"},
+			allowReadPhase2: true,
+			specialInterest: []string{"dau/dAddFiles"},
+			speIntPhase:     "phase1",
 		},
 	}
 
