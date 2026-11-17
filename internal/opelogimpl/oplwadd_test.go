@@ -15,23 +15,18 @@ import (
 )
 
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	// t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "update - irreg and ingnore tiny",
-			lgr:   cliLgr,
-			ftgen: ftGenIrregTiny,
-			owo: &config.OpeLogOptionsType{
-				SyncOptionsType: config.SyncOptionsType{
-					IgnoreIrreg: true,
-				},
-			},
-			exclRegs:        []string{"^dau/dAddFiles/dStay/dAddFiles/fRemoved.dat$", "^dau/dAddFiles/dStay/dLinks/"},
+			label:           "update - rsync verified",
+			ftgen:           ftGenAugTiny,
+			ftupd:           ftUpdAugTinyAfterSec,
+			owo:             &config.OpeLogOptionsType{ExpRpt: "full"},
+			rsyncVerif:      true,
 			allowReadPhase2: true,
-			specialInterest: []string{"dau/dAddFiles"},
-			speIntPhase:     "phase1",
+			allowReadPhase4: true,
 		},
 	}
 

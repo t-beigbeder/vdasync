@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"testing"
@@ -43,6 +44,7 @@ type owTest struct {
 	hasNoCheck         bool
 	exclRegs           []string
 	restartCb          func(phase string, count int) bool
+	rsyncVerif         bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
 	allowReadPhase2    bool
@@ -83,6 +85,13 @@ var ftGenAugTiny = func(root string) error {
 
 var ftUpdAugTiny = func(root string) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
+	return err
+}
+
+var ftUpdAugTinyAfterSec = func(root string) error {
+	time.Sleep(time.Second)
+	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
+	time.Sleep(time.Second)
 	return err
 }
 
@@ -324,6 +333,38 @@ func (owt *owTest) checkStats(stats *opelog.ComputedStats, allowRead bool) bool 
 	return stats.Create.Number+stats.Update.Number+stats.Remove.Number+stats.MetaChange.Number+stats.Error.Number == 0
 }
 
+func (owt *owTest) tarTestDirs(baseCtx string) {
+	cmd := exec.Command("tar", "cf", path.Join(os.TempDir(), fmt.Sprintf("%s-%s.tar", owt.t.Name(), baseCtx)), path.Dir(owt.std))
+	owt.lgr.Info("tarTestDirs", "cmd", cmd)
+	if err := cmd.Run(); err != nil {
+		owt.lgr.Error("tarTestDirs", "cmd", cmd)
+		return
+	}
+}
+
+func (owt *owTest) verifWithRsync(baseCtx string) error {
+	var (
+		out  strings.Builder
+		serr strings.Builder
+	)
+	cmd := exec.Command("rsync", "-i", "--partial", "-rlptD", "--delete", "-c", "--dry-run", owt.std+"/", owt.ttd)
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("cmd %s err %s", cmd, serr.String())
+	}
+	sOut := out.String()
+	sPossible := ".d..t...... ./\n.d..t...... ./\n"
+	lines := strings.Split(sOut, "\n")
+	if sOut != sPossible && (len(lines) > 1 || (len(lines) == 1 && lines[0] != "")) {
+		fmt.Printf("verifWithRsync:\n%s", sOut)
+		os.Stdout.Write([]byte(sOut))
+		owt.tarTestDirs(baseCtx)
+		return fmt.Errorf("rsync output %d", len(sOut))
+	}
+	return nil
+}
+
 func (owt *owTest) walkStatsCsv(baseCtx string, session, inventory string) (ctx string, stats *opelog.ComputedStats, err error) {
 	defer func() {
 		if ctx != "" {
@@ -411,6 +452,14 @@ func (owt *owTest) runOwTest() (err error) {
 
 	// phase2: dryrun
 	if !owt.hasNoPhase2 {
+		if owt.rsyncVerif {
+			time.Sleep(time.Second)
+			if err = owt.verifWithRsync("phase2"); err != nil {
+				ctx = "phase2"
+				err = fmt.Errorf("verifWithRsync: %s", err)
+				return
+			}
+		}
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
 		owt.owo.KeepCached = true // to compare w/o resetting state
@@ -455,6 +504,14 @@ func (owt *owTest) runOwTest() (err error) {
 
 	// phase4: dryrun for phase3 if applicable
 	if owt.ftupd != nil && !owt.hasNoPhase4 {
+		if owt.rsyncVerif {
+			time.Sleep(time.Second)
+			if err = owt.verifWithRsync("phase4"); err != nil {
+				ctx = "phase4"
+				err = fmt.Errorf("verifWithRsync: %s", err)
+				return
+			}
+		}
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
 		owt.owo.KeepCached = true
@@ -745,6 +802,14 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase2: true,
 			specialInterest: []string{"dau/dAddFiles"},
 			speIntPhase:     "phase1",
+		},
+		{
+			label:           "update - rsync verified",
+			ftgen:           ftGenAugTiny,
+			ftupd:           ftUpdAugTinyAfterSec,
+			rsyncVerif:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
 		},
 	}
 
