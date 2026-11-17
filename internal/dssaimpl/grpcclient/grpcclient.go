@@ -2,10 +2,12 @@ package grpcclient
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"path"
+	"sync"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
@@ -14,6 +16,10 @@ import (
 )
 
 type grpcClient struct {
+	mx          sync.Mutex
+	trMx        sync.Mutex
+	trId        int
+	sids        map[int]bool
 	lgr         *slog.Logger
 	ctx         context.Context
 	client      remote.OpeDssaClient
@@ -26,18 +32,81 @@ type GrpcClient interface {
 
 var _ GrpcClient = &grpcClient{}
 
+// OpenSession implements [dssa.SessionManager].
+func (gc *grpcClient) OpenSession() (int, error) {
+	gc.lgr.Debug("grpcClient.NewSession")
+	gc.mx.Lock()
+	if gc.sids == nil {
+		gc.sids = map[int]bool{}
+	}
+	gc.mx.Unlock()
+	sid, err := gc.client.OpenSession(gc.ctx, &dssagrpc.Empty{})
+	if err != nil {
+		return 0, err
+	}
+	gc.mx.Lock()
+	gc.sids[int(sid.Id)] = true
+	gc.mx.Unlock()
+	return int(sid.Id), err
+}
+
+// CloseSession implements [dssa.SessionManager].
+func (gc *grpcClient) CloseSession(id int) error {
+	gc.lgr.Debug("grpcClient.CloseSession")
+	_, err := gc.client.CloseSession(gc.ctx, &dssagrpc.SessionId{Id: int32(id)})
+	if err == nil {
+		gc.mx.Lock()
+		gc.sids[id] = false
+		gc.mx.Unlock()
+	}
+	return err
+}
+
+// SessionsNumber implements [dssa.SessionManager].
+func (gc *grpcClient) SessionsNumber() (number int) {
+	gc.mx.Lock()
+	defer gc.mx.Unlock()
+	for _, ok := range gc.sids {
+		if ok {
+			number++
+		}
+	}
+	return
+}
+
+// NewSessionTr implements [dssa.SessionManager].
+func (gc *grpcClient) NewSessionTr() (err error) {
+	gc.trMx.Lock()
+	defer gc.trMx.Unlock()
+	if gc.trId > 0 {
+		return errors.New("grpcClient: transition session already created")
+	}
+	gc.trId, err = gc.OpenSession()
+	return
+}
+
+// EndSessionTr implements [dssa.SessionManager].
+func (gc *grpcClient) EndSessionTr() error {
+	gc.trMx.Lock()
+	defer gc.trMx.Unlock()
+	if gc.trId == 0 {
+		return errors.New("grpcClient: transition session already ended")
+	}
+	if err := gc.CloseSession(gc.trId); err != nil {
+		return err
+	}
+	gc.trId = 0
+	return nil
+}
+
 // NewSession implements [dssa.Dssa].
 func (gc *grpcClient) NewSession() error {
-	gc.lgr.Debug("grpcClient.NewSession")
-	_, err := gc.client.NewSession(gc.ctx, &dssagrpc.Empty{})
-	return err
+	return gc.NewSessionTr()
 }
 
 // EndSession implements [dssa.Dssa].
 func (gc *grpcClient) EndSession() error {
-	gc.lgr.Debug("grpcClient.EndSession")
-	_, err := gc.client.EndSession(gc.ctx, &dssagrpc.Empty{})
-	return err
+	return gc.EndSessionTr()
 }
 
 // IsGrpcClient implements [dssa.Dssa].
@@ -170,7 +239,8 @@ func (gc *grpcClient) GetClient() remote.OpeDssaClient {
 }
 
 func MakeGrpcClient(lgr *slog.Logger, ctx context.Context, client remote.OpeDssaClient) dssa.Dssa {
-	return &grpcClient{lgr, ctx, client, false}
+	return &grpcClient{lgr: lgr, ctx: ctx, client: client, crossOsSafe: false}
 }
 
 var _ GrpcClient = &grpcClient{}
+var _ dssa.SessionManager = &grpcClient{}

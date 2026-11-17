@@ -2,21 +2,75 @@ package remote
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io"
 	"log/slog"
+	"sync"
 
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/dssagrpc"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/share"
 	"google.golang.org/grpc"
 )
 
 type dssaImpl struct {
 	dssagrpc.UnimplementedDataStorageSystemServer
+	share.SessionManagerImpl
+	mx         sync.Mutex
+	uId        int
 	lgr        *slog.Logger
 	grpcServer *grpc.Server
 	dssa_      dssa.Dssa
 	callStats  chan string
+}
+
+func (s *dssaImpl) OpenSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.SessionId, error) {
+	smds, ok := s.dssa_.(dssa.SessionManager)
+	if !ok {
+		return nil, fmt.Errorf("remote DSS is not a SessionManager (%T)", s.dssa_)
+	}
+	s.mx.Lock()
+	sNb := s.SessionsNumber()
+	var (
+		err error
+	)
+	if sNb == 0 {
+		if s.uId, err = smds.OpenSession(); err != nil {
+			s.mx.Unlock()
+			return nil, err
+		}
+		s.mx.Unlock()
+		s.lgr.Debug("dssaImpl.OpenSession", "smds.OpenSession", s.uId)
+	}
+	id, err := s.SessionManagerImpl.OpenSession()
+	if err != nil {
+		return nil, err
+	}
+	s.lgr.Debug("dssaImpl.OpenSession", "SessionManagerImpl.OpenSession", id)
+	return &dssagrpc.SessionId{Id: int32(id)}, nil
+}
+
+func (s *dssaImpl) CloseSession(_ context.Context, sid *dssagrpc.SessionId) (*dssagrpc.Empty, error) {
+	smds, ok := s.dssa_.(dssa.SessionManager)
+	if !ok {
+		return nil, errors.New("remote DSS is not a SessionManager")
+	}
+	if err := s.SessionManagerImpl.CloseSession(int(sid.Id)); err != nil {
+		return nil, err
+	}
+	s.lgr.Debug("dssaImpl.CloseSession", "SessionManagerImpl.CloseSession", sid.Id)
+	s.mx.Lock()
+	if s.SessionsNumber() == 0 {
+		if err := smds.CloseSession(s.uId); err != nil {
+			s.mx.Unlock()
+			return nil, err
+		}
+		s.mx.Unlock()
+		s.lgr.Debug("dssaImpl.CloseSession", "smds.CloseSession", s.uId)
+	}
+	return &dssagrpc.Empty{}, nil
 }
 
 func (s *dssaImpl) NewSession(_ context.Context, _ *dssagrpc.Empty) (*dssagrpc.Empty, error) {

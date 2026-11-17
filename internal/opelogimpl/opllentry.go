@@ -385,11 +385,12 @@ func (ole *oplLogicalEntry) process() error {
 	// clear errors if possible, (re)start dir loading if necessary
 	_ = ole.source.load()
 	sSt := ole.source.getState()
-	// FIXME: enable when ignored files fully handled
-	if sSt.Stc == opelog.STC_SE_ERROR && sSt.Error == common.ErrUnhandledFileType.Error() && ole.owo().IgnoreIrreg && false {
+	if sSt.Stc == opelog.STC_SE_ERROR && sSt.Error == common.ErrUnhandledFileType.Error() && ole.owo().IgnoreIrreg {
 		ole.detail("logical entry irregular source is ignored")
 		ole.le.IsIgnored = true
 		ole.hasChanges = true
+		ole.source.setState(opelog.STC_UNSPECIFIED, "", nil, nil, 0)
+		ole.source.setStatsFor("ce", 0)
 		return nil
 	}
 	_ = ole.target.load()

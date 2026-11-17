@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -66,6 +67,27 @@ func (ph *ioErrHandler) Handle(fcName string, args *ProxyHdlArgs) *ProxyHdlRess 
 		f()
 	}
 	switch fcName {
+	case "OpenSession":
+		smds, ok := ph.underlying.(dssa.SessionManager)
+		if !ok {
+			ress.Err = errors.New("underlying is not SessionManager")
+		} else {
+			ress.SessionId, ress.Err = smds.OpenSession()
+		}
+	case "CloseSession":
+		smds, ok := ph.underlying.(dssa.SessionManager)
+		if !ok {
+			ress.Err = errors.New("underlying is not SessionManager")
+		} else {
+			ress.Err = smds.CloseSession(args.SessionId)
+		}
+	case "SessionsNumber":
+		smds, ok := ph.underlying.(dssa.SessionManager)
+		if !ok {
+			ress.Err = errors.New("underlying is not SessionManager")
+		} else {
+			ress.Number = smds.SessionsNumber()
+		}
 	case "NewSession":
 		ress.Err = ph.underlying.NewSession()
 		if ph.opts.ResetOnNew && ph.sesCount > 0 {

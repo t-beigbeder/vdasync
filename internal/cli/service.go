@@ -665,6 +665,9 @@ func doInteractive(sc *ServiceCtx) error {
 			if err := doTouch(sc, args...); err != nil {
 				fmt.Fprintf(os.Stderr, "touch: %v\n", err)
 			}
+		case "exit":
+			fmt.Fprintf(os.Stderr, "exiting without clean up\n")
+			os.Exit(0)
 		default:
 			fmt.Fprintf(os.Stderr, "unknown command %s\n", words[0])
 		}

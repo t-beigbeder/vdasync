@@ -14,10 +14,13 @@ import (
 	"github.com/pkg/sftp"
 	"github.com/t-beigbeder/vdasync/dssa"
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/internal/dssaimpl/share"
 	"github.com/t-beigbeder/vdasync/internal/sftputil"
 )
 
 type sftpClient struct {
+	share.SessionManagerImpl
+	trId        int
 	lgr         *slog.Logger
 	hasSession  bool
 	sfcIxs      chan int
@@ -64,8 +67,7 @@ func (sf *sftpClient) doRspDisp() {
 	}
 }
 
-// NewSession implements [dssa.Dssa].
-func (sf *sftpClient) NewSession() error {
+func (sf *sftpClient) doNewSession() error {
 	if sf.hasSession {
 		return errors.New("sftpClient: there is already an active session")
 	}
@@ -79,8 +81,7 @@ func (sf *sftpClient) NewSession() error {
 	return nil
 }
 
-// EndSession implements [dssa.Dssa].
-func (sf *sftpClient) EndSession() error {
+func (sf *sftpClient) doEndSession() error {
 	if !sf.hasSession {
 		return errors.New("sftpClient: no active session")
 	}
@@ -90,6 +91,43 @@ func (sf *sftpClient) EndSession() error {
 	}
 	sf.hasSession = false
 	return nil
+}
+
+// OpenSession implements [dssa.SessionManager].
+func (sf *sftpClient) OpenSession() (int, error) {
+	if sf.lgr != nil {
+		sf.lgr.Debug("sftpClient.OpenSession")
+	}
+	id, err := sf.SessionManagerImpl.OpenSession()
+	if err != nil {
+		return 0, err
+	}
+	if err = sf.doNewSession(); err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+// CloseSession implements [dssa.SessionManager].
+func (sf *sftpClient) CloseSession(id int) error {
+	if sf.lgr != nil {
+		sf.lgr.Debug("sftpClient.CloseSession")
+	}
+	if err := sf.doEndSession(); err != nil {
+		return err
+	}
+	return sf.SessionManagerImpl.CloseSession(id)
+}
+
+// NewSession implements [dssa.Dssa].
+func (sf *sftpClient) NewSession() (err error) {
+	sf.trId, err = sf.OpenSession()
+	return
+}
+
+// EndSession implements [dssa.Dssa].
+func (sf *sftpClient) EndSession() error {
+	return sf.CloseSession(sf.trId)
 }
 
 // IsGrpcClient implements [dssa.Dssa].
@@ -285,6 +323,7 @@ func MakeSftpClientDssa(
 }
 
 var _ common.LgrSetter = &sftpClient{}
+var _ dssa.SessionManager = &sftpClient{}
 
 type DssaMaker struct{}
 

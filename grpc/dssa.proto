@@ -7,6 +7,8 @@ option go_package = "./dssagrpc";
 service DataStorageSystem {
 	rpc NewSession(Empty) returns (Empty) {}
 	rpc EndSession(Empty) returns (Empty) {}
+	rpc OpenSession(Empty) returns (SessionId) {}
+	rpc CloseSession(SessionId) returns (Empty) {}
     rpc DssInfo(Empty) returns (DssInfoMT) {}
     rpc List(Path) returns (DataEntries) {}
     rpc Stat(Path) returns (DataEntry) {}
@@ -17,6 +19,10 @@ service DataStorageSystem {
     rpc Get(Path) returns (stream PulledBlock) {}
     rpc Rm(Path) returns (Empty) {}
     rpc Symlink(OldNewPaths) returns (Empty) {}
+}
+
+message SessionId {
+    int32 id = 1;
 }
 
 message DssInfoMT {

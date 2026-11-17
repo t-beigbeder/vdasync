@@ -207,7 +207,7 @@ func (ow *oplWalkerImpl) notifyParent(ole *oplLogicalEntry) error {
 		}
 	}
 
-	// if one branche just terminated and other one too or inactive
+	// if one branch just terminated and other one too or inactive
 	if (parentSSt.DepCount == -1 && parentTSt.DepCount <= 0) ||
 		(parentTSt.DepCount == -1 && parentSSt.DepCount <= 0) {
 
@@ -238,6 +238,9 @@ func (ow *oplWalkerImpl) processEntry(lgr *slog.Logger, wkn int, relPath string)
 		return
 	}
 
+	//----------
+	// proceed
+	//----------
 	if err := ole.process(); err != nil {
 		_ = ow.oplm.PutLogicalEntry(relPath, ole.le)
 		ow.owErr(ole.lgr, "oplWalkerImpl: process entry", err)
@@ -306,7 +309,7 @@ func (ow *oplWalkerImpl) Run() error {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
 		return err
 	}
-	ow.exclRegs, err = common.ReFromFile(ow.owo.InclListPath, "inclusion list")
+	ow.exclRegs, err = common.ReFromFile(ow.owo.ExclListPath, "exclusion list")
 	if err != nil {
 		ow.lgr.Error("oplWalkerImpl", "err", err)
 		return err

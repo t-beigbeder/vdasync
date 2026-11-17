@@ -97,7 +97,7 @@ func TestBasicDirsAndFiles(t *testing.T) {
 func TestConcurrency(t *testing.T) {
 	SkipIf(t)
 	lgr := common.GetLogger()
-	lgr = common.DbgLogger()
+	// lgr = common.DbgLogger()
 	ds := GetSftpDss(t)
 	lg, _ := ds.(common.LgrSetter)
 	lg.SetLgr(lgr)

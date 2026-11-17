@@ -354,6 +354,8 @@ func (ose *oplStoredEntry) setStatsFor(kw string, size int64) {
 		stats.NoOp.Size = size
 	case "er":
 		stats.Error.Number += 1
+	case "ce":
+		stats.Error.Number = 0
 	default:
 		return
 	}

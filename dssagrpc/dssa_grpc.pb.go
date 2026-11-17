@@ -19,18 +19,20 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	DataStorageSystem_NewSession_FullMethodName = "/dssa.DataStorageSystem/NewSession"
-	DataStorageSystem_EndSession_FullMethodName = "/dssa.DataStorageSystem/EndSession"
-	DataStorageSystem_DssInfo_FullMethodName    = "/dssa.DataStorageSystem/DssInfo"
-	DataStorageSystem_List_FullMethodName       = "/dssa.DataStorageSystem/List"
-	DataStorageSystem_Stat_FullMethodName       = "/dssa.DataStorageSystem/Stat"
-	DataStorageSystem_Checksum_FullMethodName   = "/dssa.DataStorageSystem/Checksum"
-	DataStorageSystem_Mkdir_FullMethodName      = "/dssa.DataStorageSystem/Mkdir"
-	DataStorageSystem_SetStat_FullMethodName    = "/dssa.DataStorageSystem/SetStat"
-	DataStorageSystem_Put_FullMethodName        = "/dssa.DataStorageSystem/Put"
-	DataStorageSystem_Get_FullMethodName        = "/dssa.DataStorageSystem/Get"
-	DataStorageSystem_Rm_FullMethodName         = "/dssa.DataStorageSystem/Rm"
-	DataStorageSystem_Symlink_FullMethodName    = "/dssa.DataStorageSystem/Symlink"
+	DataStorageSystem_NewSession_FullMethodName   = "/dssa.DataStorageSystem/NewSession"
+	DataStorageSystem_EndSession_FullMethodName   = "/dssa.DataStorageSystem/EndSession"
+	DataStorageSystem_OpenSession_FullMethodName  = "/dssa.DataStorageSystem/OpenSession"
+	DataStorageSystem_CloseSession_FullMethodName = "/dssa.DataStorageSystem/CloseSession"
+	DataStorageSystem_DssInfo_FullMethodName      = "/dssa.DataStorageSystem/DssInfo"
+	DataStorageSystem_List_FullMethodName         = "/dssa.DataStorageSystem/List"
+	DataStorageSystem_Stat_FullMethodName         = "/dssa.DataStorageSystem/Stat"
+	DataStorageSystem_Checksum_FullMethodName     = "/dssa.DataStorageSystem/Checksum"
+	DataStorageSystem_Mkdir_FullMethodName        = "/dssa.DataStorageSystem/Mkdir"
+	DataStorageSystem_SetStat_FullMethodName      = "/dssa.DataStorageSystem/SetStat"
+	DataStorageSystem_Put_FullMethodName          = "/dssa.DataStorageSystem/Put"
+	DataStorageSystem_Get_FullMethodName          = "/dssa.DataStorageSystem/Get"
+	DataStorageSystem_Rm_FullMethodName           = "/dssa.DataStorageSystem/Rm"
+	DataStorageSystem_Symlink_FullMethodName      = "/dssa.DataStorageSystem/Symlink"
 )
 
 // DataStorageSystemClient is the client API for DataStorageSystem service.
@@ -39,6 +41,8 @@ const (
 type DataStorageSystemClient interface {
 	NewSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
 	EndSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*Empty, error)
+	OpenSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SessionId, error)
+	CloseSession(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Empty, error)
 	DssInfo(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*DssInfoMT, error)
 	List(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntries, error)
 	Stat(ctx context.Context, in *Path, opts ...grpc.CallOption) (*DataEntry, error)
@@ -73,6 +77,26 @@ func (c *dataStorageSystemClient) EndSession(ctx context.Context, in *Empty, opt
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(Empty)
 	err := c.cc.Invoke(ctx, DataStorageSystem_EndSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataStorageSystemClient) OpenSession(ctx context.Context, in *Empty, opts ...grpc.CallOption) (*SessionId, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SessionId)
+	err := c.cc.Invoke(ctx, DataStorageSystem_OpenSession_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *dataStorageSystemClient) CloseSession(ctx context.Context, in *SessionId, opts ...grpc.CallOption) (*Empty, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(Empty)
+	err := c.cc.Invoke(ctx, DataStorageSystem_CloseSession_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -197,6 +221,8 @@ func (c *dataStorageSystemClient) Symlink(ctx context.Context, in *OldNewPaths, 
 type DataStorageSystemServer interface {
 	NewSession(context.Context, *Empty) (*Empty, error)
 	EndSession(context.Context, *Empty) (*Empty, error)
+	OpenSession(context.Context, *Empty) (*SessionId, error)
+	CloseSession(context.Context, *SessionId) (*Empty, error)
 	DssInfo(context.Context, *Empty) (*DssInfoMT, error)
 	List(context.Context, *Path) (*DataEntries, error)
 	Stat(context.Context, *Path) (*DataEntry, error)
@@ -222,6 +248,12 @@ func (UnimplementedDataStorageSystemServer) NewSession(context.Context, *Empty) 
 }
 func (UnimplementedDataStorageSystemServer) EndSession(context.Context, *Empty) (*Empty, error) {
 	return nil, status.Error(codes.Unimplemented, "method EndSession not implemented")
+}
+func (UnimplementedDataStorageSystemServer) OpenSession(context.Context, *Empty) (*SessionId, error) {
+	return nil, status.Error(codes.Unimplemented, "method OpenSession not implemented")
+}
+func (UnimplementedDataStorageSystemServer) CloseSession(context.Context, *SessionId) (*Empty, error) {
+	return nil, status.Error(codes.Unimplemented, "method CloseSession not implemented")
 }
 func (UnimplementedDataStorageSystemServer) DssInfo(context.Context, *Empty) (*DssInfoMT, error) {
 	return nil, status.Error(codes.Unimplemented, "method DssInfo not implemented")
@@ -306,6 +338,42 @@ func _DataStorageSystem_EndSession_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(DataStorageSystemServer).EndSession(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataStorageSystem_OpenSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).OpenSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_OpenSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).OpenSession(ctx, req.(*Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _DataStorageSystem_CloseSession_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SessionId)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DataStorageSystemServer).CloseSession(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: DataStorageSystem_CloseSession_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DataStorageSystemServer).CloseSession(ctx, req.(*SessionId))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -486,6 +554,14 @@ var DataStorageSystem_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "EndSession",
 			Handler:    _DataStorageSystem_EndSession_Handler,
+		},
+		{
+			MethodName: "OpenSession",
+			Handler:    _DataStorageSystem_OpenSession_Handler,
+		},
+		{
+			MethodName: "CloseSession",
+			Handler:    _DataStorageSystem_CloseSession_Handler,
 		},
 		{
 			MethodName: "DssInfo",

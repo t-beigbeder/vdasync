@@ -208,6 +208,9 @@ func (ele *expLe) dispSyncStatus() (sys string) {
 }
 
 func (ele *expLe) dispSummary() string {
+	if ele.IsIgnored {
+		return "i"
+	}
 	stats := ele.GetStats(ele.sTs)
 	if stats == nil {
 		return ""
