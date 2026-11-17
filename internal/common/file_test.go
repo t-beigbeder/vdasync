@@ -90,10 +90,3 @@ func TestStdWriter(t *testing.T) {
 	fd2.Write([]byte("stderr\n"))
 	require.Equal(t, os.Stderr, fd2)
 }
-
-func TestUnixSocketCreation(t *testing.T) {
-	td := t.TempDir()
-	l, err := net.Listen("unix", path.Join(td, "TestUnixSocketCreation.socket"))
-	require.NoError(t, err)
-	require.NoError(t, l.Close())
-}

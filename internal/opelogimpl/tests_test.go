@@ -61,3 +61,9 @@ func TestInventoryCsvExport(t *testing.T) {
 	err := InventoryCsvExport(ttd, path.Join(ctd, "invDump.csv"), "md5,sha256,sha512")
 	require.NoError(t, err)
 }
+
+
+func TestUnixSocketCreation(t *testing.T) {
+	td := t.TempDir()
+	require.NoError(t, MakeSocket(td, "TestUnixSocketCreation.socket"))
+}

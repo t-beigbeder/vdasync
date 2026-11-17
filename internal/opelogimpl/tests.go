@@ -4,7 +4,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io/fs"
+	"net"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -94,4 +96,15 @@ func InventoryCsvExport(rootPath string, csvPath string, algos string) error {
 
 func expDispMtime(ts time.Time) string {
 	return ts.UTC().Format(time.RFC3339)
+}
+
+func MakeSocket(dir, name string) error {
+	l, err := net.Listen("unix", path.Join(dir, name))
+	if err != nil {
+		return err
+	}
+	if err := l.Close(); err != nil {
+		return err
+	}
+	return nil
 }
