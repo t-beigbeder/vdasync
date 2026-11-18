@@ -161,7 +161,10 @@ func (ose *oplStoredEntry) setMeta(preCheck bool) (*opelog.StoredEntry, error) {
 //
 // when actually doing also sets meta and updates state
 func (ose *oplStoredEntry) updateDirOps() error {
-	if !ose.endOrNoOpDirPossible() {
+	if !ose.isTarget {
+		return errors.New("updateDirOps: algorithm internal error")
+	}
+	if !ose.endOrNoOpDirPossible() || len(ose.ole.source.se().Children) != len(ose.se().Children) {
 		if err := ose.enableWrite(); err != nil {
 			return err
 		}

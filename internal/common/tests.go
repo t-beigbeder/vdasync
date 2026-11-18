@@ -208,7 +208,7 @@ func MakeAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, ma
 }
 
 func RecChtime(td string, mtime int64) error {
-	mt := mtime-60
+	mt := mtime - 60
 	filepath.Walk(td, func(path_ string, info fs.FileInfo, err error) error {
 		mt += 60
 		return Lutimes(path_, mt)
@@ -227,7 +227,7 @@ func MakeSimpleTestFilesTree(td string) error {
 			}
 		}
 	}
-	if err := RecChtime(td, time.Now().Unix() - 27*3600); err != nil {
+	if err := RecChtime(td, time.Now().Unix()-27*3600); err != nil {
 		return err
 	}
 	return nil

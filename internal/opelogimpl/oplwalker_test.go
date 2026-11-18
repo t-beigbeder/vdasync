@@ -91,7 +91,6 @@ var ftUpdAugTiny = func(root string) error {
 var ftUpdAugTinyAfterSec = func(root string) error {
 	time.Sleep(time.Second)
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
-	time.Sleep(time.Second)
 	return err
 }
 
@@ -114,6 +113,14 @@ var ftGenAugSmall = func(root string) error {
 var ftUpdAugSmall = func(root string) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 5, 10, 3, 1027)
 	return err
+}
+
+var ftGenSimple = func(root string) error {
+	return common.MakeSimpleTestFilesTree(root)
+}
+
+var ftUpdSimple = func(root string) error {
+	return common.UpdateSimpleTestsFilesTree(root)
 }
 
 var ftUpdNoop = func(root string) error { return nil }
@@ -342,6 +349,19 @@ func (owt *owTest) tarTestDirs(baseCtx string) {
 	}
 }
 
+func (owt *owTest) expTestDirsCsv(baseCtx string) {
+	owt.lgr.Info("expTestDirsCsv", "export", fmt.Sprintf("%s-%s-si.csv", owt.t.Name(), baseCtx))
+	if err := InventoryCsvExport(owt.std, path.Join(os.TempDir(), fmt.Sprintf("%s-%s-si.csv", owt.t.Name(), baseCtx)), "md5"); err != nil {
+		owt.lgr.Error("expTestDirsCsv", "err", err)
+		return
+	}
+	owt.lgr.Info("expTestDirsCsv", "export", fmt.Sprintf("%s-%s-ti.csv", owt.t.Name(), baseCtx))
+	if err := InventoryCsvExport(owt.ttd, path.Join(os.TempDir(), fmt.Sprintf("%s-%s-ti.csv", owt.t.Name(), baseCtx)), "md5"); err != nil {
+		owt.lgr.Error("expTestDirsCsv", "err", err)
+		return
+	}
+}
+
 func (owt *owTest) verifWithRsync(baseCtx string) error {
 	var (
 		out  strings.Builder
@@ -350,6 +370,7 @@ func (owt *owTest) verifWithRsync(baseCtx string) error {
 	cmd := exec.Command("rsync", "-i", "--partial", "-rlptD", "--delete", "-c", "--dry-run", owt.std+"/", owt.ttd)
 	cmd.Stdout = &out
 	cmd.Stderr = &serr
+	owt.lgr.Info("verifWithRsync", "cmd", cmd.String())
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("cmd %s err %s", cmd, serr.String())
 	}
@@ -358,8 +379,8 @@ func (owt *owTest) verifWithRsync(baseCtx string) error {
 	lines := strings.Split(sOut, "\n")
 	if sOut != sPossible && (len(lines) > 1 || (len(lines) == 1 && lines[0] != "")) {
 		fmt.Printf("verifWithRsync:\n%s", sOut)
-		os.Stdout.Write([]byte(sOut))
 		owt.tarTestDirs(baseCtx)
+		owt.expTestDirsCsv(baseCtx)
 		return fmt.Errorf("rsync output %d", len(sOut))
 	}
 	return nil
