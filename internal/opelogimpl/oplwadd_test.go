@@ -31,6 +31,12 @@ func TestSingleOplWalkers(t *testing.T) {
 			specialInterest: []string{""},
 			speIntPhase:     "phase1",
 		},
+		{
+			label:        "update - dryrun",
+			ftgen:        ftGenTiny,
+			hasPreDryrun: true,
+			hasNoPhase2:  true,
+		},
 	}
 
 	skipDefault := false

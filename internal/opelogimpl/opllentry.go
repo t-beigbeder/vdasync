@@ -21,16 +21,18 @@ func (ole *oplLogicalEntry) recordEvents() {
 func (ole *oplLogicalEntry) setChildrenQueue() []string {
 	var mChildren []string
 	sOse, tOse := ole.source, ole.target
+	sKCh, _ := sOse.knownChildren()
 	if sOse.childrenQueued {
 		ole.hasChanges = true
-		sOse.getState().DepCount = int32(len(sOse.se().Children))
-		mChildren = slices.Clone(sOse.se().Children)
+		sOse.getState().DepCount = int32(len(sKCh))
+		mChildren = slices.Clone(sKCh)
 	}
 	if tOse.childrenQueued {
 		ole.hasChanges = true
-		tOse.getState().DepCount = int32(len(tOse.se().Children))
-		for _, child := range tOse.se().Children {
-			if sOse.se() != nil && slices.Contains(sOse.se().Children, child) {
+		tKCh, _ := tOse.knownChildren()
+		tOse.getState().DepCount = int32(len(tKCh))
+		for _, child := range tKCh {
+			if sOse.se() != nil && slices.Contains(sKCh, child) {
 				continue
 			}
 			mChildren = append(mChildren, child)
@@ -67,10 +69,16 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		stats = opelog.NewComputedStats()
 	}
 	if ole.source.se() != nil {
-		sChildren = ole.source.se().Children
+		sChildren, err = ole.source.knownChildren()
+		if err != nil {
+			return err
+		}
 	}
 	if ole.target.se() != nil {
-		tChildren = ole.target.se().Children
+		tChildren, err = ole.target.knownChildren()
+		if err != nil {
+			return err
+		}
 	}
 
 	for _, child := range sChildren {
@@ -202,7 +210,11 @@ func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
 // checkForSetMeta checks if target present and its meta needs update from source wrt selected options
 func (ole *oplLogicalEntry) checkForSetMeta() bool {
 	sOse, tOse, owo := ole.source, ole.target, ole.owo()
-	return !tOse.se().EqualOpt(sOse.se(), &opelog.SeEqualOpts{Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink, NoRights: owo.NoPerm, NoUserGroup: owo.NoUserGroup, NoChildren: true})
+	return !tOse.se().EqualOpt(sOse.se(),
+		&opelog.SeEqualOpts{
+			Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink,
+			NoRights: owo.NoPerm, NoUserGroup: owo.NoUserGroup, NoChildren: true,
+		})
 }
 
 // checkForUpdate checks if s/t both present and if they differ, incl. checksums if requested
@@ -211,7 +223,19 @@ func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 	if !sOse.isPresent() || !tOse.isPresent() {
 		return false
 	}
-	seEqual := tOse.se().EqualOpt(sOse.se(), &opelog.SeEqualOpts{Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink, NoRights: noRights, NoUserGroup: owo.NoUserGroup, NoChildren: false})
+	seEqual := tOse.se().EqualOpt(sOse.se(),
+		&opelog.SeEqualOpts{
+			Lgr: ole.lgr, NoEqMtime: owo.NoEqMtime, NoMtime: owo.NoMtime, NoMtLink: owo.NoMtLink,
+			NoRights: noRights, NoUserGroup: owo.NoUserGroup, NoChildren: true,
+		})
+	if sOse.isDir() && seEqual {
+		if sOse.se() == nil && tOse.se() == nil {
+			return false
+		}
+		sKCh, _ := sOse.knownChildren()
+		tKCh, _ := tOse.knownChildren()
+		return !common.SlicesEqual(sKCh, tKCh)
+	}
 	if sOse.isDir() || sOse.isSymLink() {
 		return !seEqual
 	}
