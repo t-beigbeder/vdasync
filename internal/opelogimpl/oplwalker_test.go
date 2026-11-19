@@ -821,8 +821,6 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 			exclRegs:        []string{"^dau/dAddFiles/dStay/dAddFiles/fRemoved.dat$", "^dau/dAddFiles/dStay/dLinks/"},
 			allowReadPhase2: true,
-			specialInterest: []string{"dau/dAddFiles"},
-			speIntPhase:     "phase1",
 		},
 		{
 			label:           "update - rsync verified",

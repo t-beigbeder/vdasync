@@ -417,6 +417,34 @@ func (ose *oplStoredEntry) doLoad() error {
 	return nil
 }
 
+func (ose *oplStoredEntry) knownChildren() (kCh []string, err error) {
+	var (
+		cle *opelog.LogicalEntry
+	)
+	se := ose.se()
+	owi := ose.ole.owi
+	if se == nil || len(se.Children) == 0 {
+		return nil, nil
+	}
+	for _, child := range se.Children {
+		if cle, err = ose.ole.loadClientCache(child); err != nil {
+			return nil, err
+		}
+		if cle == nil || cle.IsIgnored || !common.IsIncluded(ose.ole.relPath, owi.inclRegs, owi.exclRegs) {
+			continue
+		}
+		cState := cle.GetState(owi.sessionTime, ose.isTarget)
+		if cState == nil || cState.Se == nil {
+			continue
+		}
+		if cState.Error == common.ErrUnhandledFileType.Error() {
+			continue
+		}
+		kCh = append(kCh, child)
+	}
+	return
+}
+
 func (ose *oplStoredEntry) processChildrenDone() error {
 	var (
 		cle *opelog.LogicalEntry
@@ -430,7 +458,7 @@ func (ose *oplStoredEntry) processChildrenDone() error {
 			ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 			return err
 		}
-		if cle.IsIgnored {
+		if cle == nil || cle.IsIgnored {
 			continue
 		}
 		cSt := cle.GetState(owi.sessionTime, ose.isTarget)

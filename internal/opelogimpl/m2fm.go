@@ -268,6 +268,9 @@ func (m *m2fOplMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error
 	var ole *opelog.LogicalEntry
 	if m.testMarsh {
 		bole, _ := m.marshLes[relPath]
+		if bole == nil {
+			return nil, nil
+		}
 		gole := opeloggrpc.LogicalEntry{}
 		if err := proto.Unmarshal(bole, &gole); err != nil {
 			return nil, err
