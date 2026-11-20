@@ -57,7 +57,7 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 //
 // The list may be inaccurate when children have not already been loaded,
 // in that context it is used to check for the need to process children.
-func (ose *oplStoredEntry) knownChildren() (kCh []string, err error) {
+func (ose *oplStoredEntry) knownChildren(notIgnored bool) (kCh []string, err error) {
 	var (
 		cle *opelog.LogicalEntry
 	)
@@ -67,6 +67,10 @@ func (ose *oplStoredEntry) knownChildren() (kCh []string, err error) {
 		return nil, nil
 	}
 	for _, child := range se.Children {
+		if notIgnored {
+			kCh = append(kCh, child)
+			continue
+		}
 		if cle, err = ose.ole.loadClientCache(child); err != nil {
 			return nil, err
 		}
@@ -96,7 +100,7 @@ func (ose *oplStoredEntry) knownChildren() (kCh []string, err error) {
 // endOrNoOpDirPossible factorized test for DepCount nul (recursive op done) or empty dir
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
 	// FIXME: if DepCount has been reset, shall we loop in all circumstances?
-	kCh, _ := ose.knownChildren()
+	kCh, _ := ose.knownChildren(false)
 	return (ose.getState().DepCount <= 0 && !ose.toolRestarted) || len(kCh) == 0
 }
 
@@ -204,7 +208,7 @@ func (ose *oplStoredEntry) setMeta(preCheck bool) (*opelog.StoredEntry, error) {
 // when actually doing also sets meta and updates state
 func (ose *oplStoredEntry) updateDirOps() error {
 	if !ose.isTarget {
-		return errors.New("updateDirOps: algorithm internal error")
+		return errors.New("updateDirOps: internal")
 	}
 	if !ose.endOrNoOpDirPossible() {
 		if err := ose.enableWrite(); err != nil {
@@ -213,9 +217,12 @@ func (ose *oplStoredEntry) updateDirOps() error {
 		ose.childrenQueued = true
 		return nil
 	}
-	sKCh, _ := ose.ole.source.knownChildren()
-	tKCh, _ := ose.knownChildren()
-	if ose.owo().Dryrun || (len(tKCh) == 0 && len(sKCh) > 0) {
+	if ose.owo().Dryrun {
+		return nil
+	}
+	sKCh, _ := ose.ole.source.knownChildren(false)
+	tKCh, _ := ose.knownChildren(false)
+	if len(tKCh) == 0 && len(sKCh) > 0 {
 		return nil
 	}
 	se, err := ose.setMeta(true)
@@ -236,7 +243,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 	}
 	rwSe := ose.ole.source.se().Clone()
 	rwSe.Mtime = time.Now().Unix()
-	sKCh, _ := ose.ole.source.knownChildren()
+	sKCh, _ := ose.ole.source.knownChildren(false)
 	if ose.ole.source.enableWriteNeeded() && len(sKCh) > 0 {
 		rwSe.UserRights.Write = true
 		rwSe.UserRights.Execute = true
@@ -417,7 +424,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 		ose.setState(opelog.STC_DONE_PRESENT, "", ose.se(), tCss, 0)
 		return nil
 	}
-	kCh, _ := ose.knownChildren()
+	kCh, _ := ose.knownChildren(false)
 	if !ose.isDir() || len(kCh) == 0 {
 		// all possible already done
 		return nil

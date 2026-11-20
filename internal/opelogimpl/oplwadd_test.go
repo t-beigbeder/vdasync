@@ -20,8 +20,17 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
+			label:        "update - dryrun",
+			lgr:   cliLgr,
+			ftgen:        ftGenSimple,
+			hasPreDryrun: true,
+			hasNoPhase2:  true,
+			specialInterest: []string{"td1"},
+			speIntPhase:     "phase1",
+		},
+		{
 			label: "update - simple",
-			lgr:   common.DbgLogger(),
+			lgr:   cliLgr,
 			ftgen: ftGenSimple,
 			ftupd: ftUpdSimple,
 			// owo: &config.OpeLogOptionsType{ExpRpt: "full"},
@@ -30,12 +39,6 @@ func TestSingleOplWalkers(t *testing.T) {
 			allowReadPhase4: true,
 			specialInterest: []string{""},
 			speIntPhase:     "phase1",
-		},
-		{
-			label:        "update - dryrun",
-			ftgen:        ftGenTiny,
-			hasPreDryrun: true,
-			hasNoPhase2:  true,
 		},
 	}
 

@@ -21,7 +21,7 @@ func (ole *oplLogicalEntry) recordEvents() {
 func (ole *oplLogicalEntry) setChildrenQueue() []string {
 	var mChildren []string
 	sOse, tOse := ole.source, ole.target
-	sKCh, _ := sOse.knownChildren()
+	sKCh, _ := sOse.knownChildren(false)
 	if sOse.childrenQueued {
 		ole.hasChanges = true
 		sOse.getState().DepCount = int32(len(sKCh))
@@ -29,7 +29,7 @@ func (ole *oplLogicalEntry) setChildrenQueue() []string {
 	}
 	if tOse.childrenQueued {
 		ole.hasChanges = true
-		tKCh, _ := tOse.knownChildren()
+		tKCh, _ := tOse.knownChildren(false)
 		tOse.getState().DepCount = int32(len(tKCh))
 		for _, child := range tKCh {
 			if sOse.se() != nil && slices.Contains(sKCh, child) {
@@ -69,13 +69,13 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		stats = opelog.NewComputedStats()
 	}
 	if ole.source.se() != nil {
-		sChildren, err = ole.source.knownChildren()
+		sChildren, err = ole.source.knownChildren(false)
 		if err != nil {
 			return err
 		}
 	}
 	if ole.target.se() != nil {
-		tChildren, err = ole.target.knownChildren()
+		tChildren, err = ole.target.knownChildren(false)
 		if err != nil {
 			return err
 		}
@@ -232,8 +232,8 @@ func (ole *oplLogicalEntry) checkForUpdate(noRights bool) bool {
 		if sOse.se() == nil && tOse.se() == nil {
 			return false
 		}
-		sKCh, _ := sOse.knownChildren()
-		tKCh, _ := tOse.knownChildren()
+		sKCh, _ := sOse.knownChildren(false)
+		tKCh, _ := tOse.knownChildren(false)
 		return !common.SlicesEqual(sKCh, tKCh)
 	}
 	if sOse.isDir() || sOse.isSymLink() {
