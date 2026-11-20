@@ -52,56 +52,10 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 	return
 }
 
-// knownChildren gets the acual list of dir children
-// being given rules for ignoring some of them.
-//
-// The list may be inaccurate when children have not already been loaded,
-// in that context it is used to check for the need to process children.
-func (ose *oplStoredEntry) knownChildren(notIgnored bool) (kCh []string, err error) {
-	var (
-		cle *opelog.LogicalEntry
-	)
-	se := ose.se()
-	owi := ose.ole.owi
-	if se == nil || len(se.Children) == 0 {
-		return nil, nil
-	}
-	for _, child := range se.Children {
-		if notIgnored {
-			kCh = append(kCh, child)
-			continue
-		}
-		if cle, err = ose.ole.loadClientCache(child); err != nil {
-			return nil, err
-		}
-		if cle != nil && cle.IsIgnored {
-			continue
-		}
-		if !common.IsIncluded(ose.ole.relPath, owi.inclRegs, owi.exclRegs) {
-			continue
-		}
-		if cle == nil {
-			// children loading in progress, let's assume will be ok
-			kCh = append(kCh, child)
-			continue
-		}
-		cState := cle.GetState(owi.sessionTime, ose.isTarget)
-		if cState == nil || cState.Se == nil {
-			continue
-		}
-		if cState.Error == common.ErrUnhandledFileType.Error() {
-			continue
-		}
-		kCh = append(kCh, child)
-	}
-	return
-}
-
 // endOrNoOpDirPossible factorized test for DepCount nul (recursive op done) or empty dir
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
 	// FIXME: if DepCount has been reset, shall we loop in all circumstances?
-	kCh, _ := ose.knownChildren(false)
-	return (ose.getState().DepCount <= 0 && !ose.toolRestarted) || len(kCh) == 0
+	return (ose.getState().DepCount <= 0 && !ose.toolRestarted) || len(ose.se().Children) == 0
 }
 
 // enableWrite enables an entry to be written if needed
@@ -207,9 +161,6 @@ func (ose *oplStoredEntry) setMeta(preCheck bool) (*opelog.StoredEntry, error) {
 //
 // when actually doing also sets meta and updates state
 func (ose *oplStoredEntry) updateDirOps() error {
-	if !ose.isTarget {
-		return errors.New("updateDirOps: internal")
-	}
 	if !ose.endOrNoOpDirPossible() {
 		if err := ose.enableWrite(); err != nil {
 			return err
@@ -218,11 +169,6 @@ func (ose *oplStoredEntry) updateDirOps() error {
 		return nil
 	}
 	if ose.owo().Dryrun {
-		return nil
-	}
-	sKCh, _ := ose.ole.source.knownChildren(false)
-	tKCh, _ := ose.knownChildren(false)
-	if len(tKCh) == 0 && len(sKCh) > 0 {
 		return nil
 	}
 	se, err := ose.setMeta(true)
@@ -243,8 +189,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 	}
 	rwSe := ose.ole.source.se().Clone()
 	rwSe.Mtime = time.Now().Unix()
-	sKCh, _ := ose.ole.source.knownChildren(false)
-	if ose.ole.source.enableWriteNeeded() && len(sKCh) > 0 {
+	if ose.ole.source.enableWriteNeeded() && len(rwSe.Children) > 0 {
 		rwSe.UserRights.Write = true
 		rwSe.UserRights.Execute = true
 	}
@@ -253,7 +198,7 @@ func (ose *oplStoredEntry) createDirOps() error {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), nil, nil, 0)
 		return err
 	}
-	if len(sKCh) > 0 {
+	if len(rwSe.Children) > 0 {
 		rwSe.Mtime = time.Now().Unix()
 		ose.setState(opelog.STC_DONE_PRESENT, "", rwSe, nil, 0)
 		return nil
@@ -424,8 +369,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 		ose.setState(opelog.STC_DONE_PRESENT, "", ose.se(), tCss, 0)
 		return nil
 	}
-	kCh, _ := ose.knownChildren(false)
-	if !ose.isDir() || len(kCh) == 0 {
+	if !ose.isDir() || len(ose.se().Children) == 0 {
 		// all possible already done
 		return nil
 	}
@@ -456,10 +400,7 @@ func (ose *oplStoredEntry) doLoad() error {
 		if !ose.isTarget && owi.needInvCheck() {
 			iSt := ose.ole.le.GetState(owi.invTime, false)
 			iSe := iSt.Se
-			if !iSe.EqualOpt(se, &opelog.SeEqualOpts{
-				Lgr: ose.lgr, NoEqMtime: false, NoMtime: owi.owo.NoMtime, NoMtLink: owi.owo.NoMtLink,
-				NoRights: true, NoChildren: true,
-			}) {
+			if !iSe.EqualOpt(se, &opelog.SeEqualOpts{Lgr: ose.lgr, NoEqMtime: false, NoMtime: owi.owo.NoMtime, NoMtLink: owi.owo.NoMtLink, NoRights: true, NoChildren: true}) {
 				err = errors.New("inventory metadata differ")
 				ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 				return err
