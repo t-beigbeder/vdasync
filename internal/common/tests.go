@@ -234,10 +234,17 @@ func MakeSimpleTestFilesTree(td string) error {
 }
 
 func UpdateSimpleTestsFilesTree(td string) error {
-	for _, tf := range []string{"tf1", "tf2"} {
+	fi, err := os.Stat(path.Join(td, "td2/tr2"))
+	if err != nil {
+		return err
+	}
+	for _, tf := range []string{"tf2"} {
 		if err := os.Remove(path.Join(td, "td2/tr2", tf)); err != nil {
 			return err
 		}
+	}
+	if err := Lutimes(path.Join(td, "td2/tr2"), fi.ModTime().Unix()); err != nil {
+		return err
 	}
 	for _, tf := range []string{"tfa1", "tfa2"} {
 		if err := MakeTestFile(path.Join(td, "td3/ta3", tf), 256); err != nil {
