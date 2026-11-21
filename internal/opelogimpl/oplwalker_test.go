@@ -823,9 +823,17 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase2: true,
 		},
 		{
-			label:           "update - rsync verified",
+			label:           "update - tiny - rsync verified",
 			ftgen:           ftGenAugTiny,
 			ftupd:           ftUpdAugTinyAfterSec,
+			rsyncVerif:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+		},
+		{
+			label:           "update - simple - rsync verified",
+			ftgen:           ftGenSimple,
+			ftupd:           ftUpdSimple,
 			rsyncVerif:      true,
 			allowReadPhase2: true,
 			allowReadPhase4: true,

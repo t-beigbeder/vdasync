@@ -171,7 +171,7 @@ func (ose *oplStoredEntry) updateDirOps() error {
 	if ose.owo().Dryrun {
 		return nil
 	}
-	se, err := ose.setMeta(true)
+	se, err := ose.setMeta(false) // TODO: optimization possible
 	if err != nil {
 		return err
 	}
