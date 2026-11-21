@@ -4,10 +4,13 @@ import (
 	"crypto/rand"
 	"fmt"
 	"io"
+	"io/fs"
 	"log/slog"
 	mrand "math/rand"
 	"os"
 	"path"
+	"path/filepath"
+	"time"
 )
 
 func doGetLogger(sll string) *slog.Logger {
@@ -202,4 +205,51 @@ func MakeAugmentedTestFilesTree(td string, maxDirs, maxFiles, childrenPerDir, ma
 		sumAddedFiles += addedFiles
 	}
 	return
+}
+
+func RecChtime(td string, mtime int64) error {
+	mt := mtime - 60
+	filepath.Walk(td, func(path_ string, info fs.FileInfo, err error) error {
+		mt += 60
+		return Lutimes(path_, mt)
+	})
+	return nil
+}
+
+func MakeSimpleTestFilesTree(td string) error {
+	for _, testd := range []string{"td1", "td2", "td2/tr2", "td3", "td3/ta3"} {
+		if err := os.MkdirAll(path.Join(td, testd), 0750); err != nil {
+			return err
+		}
+		for _, tf := range []string{"tf1", "tf2", "tf3", "tf4"} {
+			if err := MakeTestFile(path.Join(td, testd, tf), 256); err != nil {
+				return err
+			}
+		}
+	}
+	if err := RecChtime(td, time.Now().Unix()-27*3600); err != nil {
+		return err
+	}
+	return nil
+}
+
+func UpdateSimpleTestsFilesTree(td string) error {
+	fi, err := os.Stat(path.Join(td, "td2/tr2"))
+	if err != nil {
+		return err
+	}
+	for _, tf := range []string{"tf2"} {
+		if err := os.Remove(path.Join(td, "td2/tr2", tf)); err != nil {
+			return err
+		}
+	}
+	if err := Lutimes(path.Join(td, "td2/tr2"), fi.ModTime().Unix()); err != nil {
+		return err
+	}
+	for _, tf := range []string{"tfa1", "tfa2"} {
+		if err := MakeTestFile(path.Join(td, "td3/ta3", tf), 256); err != nil {
+			return err
+		}
+	}
+	return nil
 }

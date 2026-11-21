@@ -43,3 +43,9 @@ func TestMakeAugmentedTestFilesTree(t *testing.T) {
 	GetLogger().Debug("TestMakeAugmentedTestFilesTree", "td", td, "sad", sad, "saf", saf)
 	require.Nil(t, err)
 }
+
+func TestMakeSimpleTestFilesTree(t *testing.T) {
+	td := t.TempDir()
+	require.NoError(t, MakeSimpleTestFilesTree(td))
+	require.NoError(t, UpdateSimpleTestsFilesTree(td))
+}

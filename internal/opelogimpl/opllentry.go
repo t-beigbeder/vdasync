@@ -36,7 +36,7 @@ func (ole *oplLogicalEntry) setChildrenQueue() []string {
 			mChildren = append(mChildren, child)
 		}
 	}
-
+	ole.lgr.Debug("setChildrenQueue", "len(mChildren)", len(mChildren))
 	return mChildren
 }
 

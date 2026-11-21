@@ -34,7 +34,7 @@ func TestCsvExport(t *testing.T) {
 
 	// require.NoError(t, ftGenTiny(std))
 	// require.NoError(t, ftGenMedium(std))
-	require.NoError(t, ftGenAugSmall(std))
+	require.NoError(t, ftGenAugSmall(std, nil))
 	lgr.Debug("TestCsvExport: FileTreeGenerated")
 
 	cPath := path.Join(ltd, "invDump.csv")

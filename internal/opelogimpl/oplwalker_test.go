@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path"
 	"strings"
 	"testing"
@@ -26,8 +27,8 @@ type owTest struct {
 	ctx                string
 	unSkipped          bool
 	lgr                *slog.Logger
-	ftgen              func(root string) error
-	ftupd              func(root string) error
+	ftgen              func(root string, owt *owTest) error
+	ftupd              func(root string, owt *owTest) error
 	conc               int
 	oplTi              *opelog.ToolInformation
 	owo                *config.OpeLogOptionsType
@@ -43,6 +44,7 @@ type owTest struct {
 	hasNoCheck         bool
 	exclRegs           []string
 	restartCb          func(phase string, count int) bool
+	rsyncVerif         bool
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
 	allowReadPhase2    bool
@@ -64,29 +66,35 @@ type owTest struct {
 	deferred func()
 }
 
-var ftGenTiny = func(root string) error {
+var ftGenTiny = func(root string, owt *owTest) error {
 	return common.FileTreeGenerate(root, 5, 20, 1, 1024, false, 2)
 }
 
-var ftGenSmall = func(root string) error {
+var ftGenSmall = func(root string, owt *owTest) error {
 	return common.FileTreeGenerate(root, 20, 600, 2, 1024, false, 2)
 }
 
-var ftGenMedium = func(root string) error {
+var ftGenMedium = func(root string, owt *owTest) error {
 	return common.FileTreeGenerate(root, 100, 3000, 2, 4096, false, 2)
 }
 
-var ftGenAugTiny = func(root string) error {
+var ftGenAugTiny = func(root string, owt *owTest) error {
 	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 5, 20, 16, 1024)
 	return err
 }
 
-var ftUpdAugTiny = func(root string) error {
+var ftUpdAugTiny = func(root string, owt *owTest) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
 	return err
 }
 
-var ftGenIrregTiny = func(root string) error {
+var ftUpdAugTinyAfterSec = func(root string, owt *owTest) error {
+	time.Sleep(time.Second)
+	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
+	return err
+}
+
+var ftGenIrregTiny = func(root string, owt *owTest) error {
 	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 5, 20, 16, 1024)
 	if err != nil {
 		return err
@@ -97,17 +105,38 @@ var ftGenIrregTiny = func(root string) error {
 	return err
 }
 
-var ftGenAugSmall = func(root string) error {
+var ftGenAugSmall = func(root string, owt *owTest) error {
 	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 7, 100, 16, 1024)
 	return err
 }
 
-var ftUpdAugSmall = func(root string) error {
+var ftUpdAugSmall = func(root string, owt *owTest) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 5, 10, 3, 1027)
 	return err
 }
 
-var ftUpdNoop = func(root string) error { return nil }
+var ftGenSimple = func(root string, owt *owTest) error {
+	return common.MakeSimpleTestFilesTree(root)
+}
+
+var ftUpdSimple = func(root string, owt *owTest) error {
+	return common.UpdateSimpleTestsFilesTree(root)
+}
+
+var ftGenSTSimple = func(root string, owt *owTest) error {
+	if err := common.MakeSimpleTestFilesTree(root); err != nil {
+		return err
+	}
+	if err := owt.autoSync(); err != nil {
+		return err
+	}
+	if err := common.UpdateSimpleTestsFilesTree(root); err != nil {
+		return err
+	}
+	return nil
+}
+
+var ftUpdNoop = func(root string, owt *owTest) error { return nil }
 
 func (owt *owTest) invImport() error {
 	if !owt.hasLoadInv {
@@ -131,6 +160,34 @@ func (owt *owTest) invImport() error {
 		return err
 	}
 	if err := owt.oplm.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (owt *owTest) autoSync() error {
+	oplm, err := MakeM2fManager(owt.lgr, "", 0)
+	if  err != nil {
+		return err
+	}
+	if err = oplm.Create(owt.std, owt.ttd); err != nil {
+		return err
+	}
+	ow := NewOplWalker(
+		owt.lgr, 0, nil, oplm,
+		&opelog.ToolInformation{CmdLine: "TestAutoSession"},
+		&config.OpeLogOptionsType{
+			SyncOptionsType: config.SyncOptionsType{
+				Check: true,
+			},
+			Goal:            "update",
+			NoInvCheck:      true,
+			ResetMilTimeout: 250,
+		},
+		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
+		owt.std, owt.ttd, "", "",
+	)
+	if err = ow.Run(); err != nil {
 		return err
 	}
 	return nil
@@ -228,7 +285,7 @@ func (owt *owTest) commonSetup() (err error) {
 		ctx = "makeOplm"
 		return
 	}
-	if err = owt.ftgen(owt.std); err != nil {
+	if err = owt.ftgen(owt.std, owt); err != nil {
 		ctx = "ftgen"
 		return
 	}
@@ -324,6 +381,52 @@ func (owt *owTest) checkStats(stats *opelog.ComputedStats, allowRead bool) bool 
 	return stats.Create.Number+stats.Update.Number+stats.Remove.Number+stats.MetaChange.Number+stats.Error.Number == 0
 }
 
+func (owt *owTest) tarTestDirs(baseCtx string) {
+	cmd := exec.Command("tar", "cf", path.Join(os.TempDir(), fmt.Sprintf("%s-%s.tar", owt.t.Name(), baseCtx)), path.Dir(owt.std))
+	owt.lgr.Info("tarTestDirs", "cmd", cmd)
+	if err := cmd.Run(); err != nil {
+		owt.lgr.Error("tarTestDirs", "cmd", cmd)
+		return
+	}
+}
+
+func (owt *owTest) expTestDirsCsv(baseCtx string) {
+	owt.lgr.Info("expTestDirsCsv", "export", fmt.Sprintf("%s-%s-si.csv", owt.t.Name(), baseCtx))
+	if err := InventoryCsvExport(owt.std, path.Join(os.TempDir(), fmt.Sprintf("%s-%s-si.csv", owt.t.Name(), baseCtx)), "md5"); err != nil {
+		owt.lgr.Error("expTestDirsCsv", "err", err)
+		return
+	}
+	owt.lgr.Info("expTestDirsCsv", "export", fmt.Sprintf("%s-%s-ti.csv", owt.t.Name(), baseCtx))
+	if err := InventoryCsvExport(owt.ttd, path.Join(os.TempDir(), fmt.Sprintf("%s-%s-ti.csv", owt.t.Name(), baseCtx)), "md5"); err != nil {
+		owt.lgr.Error("expTestDirsCsv", "err", err)
+		return
+	}
+}
+
+func (owt *owTest) verifWithRsync(baseCtx string) error {
+	var (
+		out  strings.Builder
+		serr strings.Builder
+	)
+	cmd := exec.Command("rsync", "-i", "--partial", "-rlptD", "--delete", "-c", "--dry-run", owt.std+"/", owt.ttd)
+	cmd.Stdout = &out
+	cmd.Stderr = &serr
+	owt.lgr.Info("verifWithRsync", "cmd", cmd.String())
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("cmd %s err %s", cmd, serr.String())
+	}
+	sOut := out.String()
+	sPossible := ".d..t...... ./\n.d..t...... ./\n"
+	lines := strings.Split(sOut, "\n")
+	if sOut != sPossible && (len(lines) > 1 || (len(lines) == 1 && lines[0] != "")) {
+		fmt.Printf("verifWithRsync:\n%s", sOut)
+		owt.tarTestDirs(baseCtx)
+		owt.expTestDirsCsv(baseCtx)
+		return fmt.Errorf("rsync output %d", len(sOut))
+	}
+	return nil
+}
+
 func (owt *owTest) walkStatsCsv(baseCtx string, session, inventory string) (ctx string, stats *opelog.ComputedStats, err error) {
 	defer func() {
 		if ctx != "" {
@@ -411,6 +514,14 @@ func (owt *owTest) runOwTest() (err error) {
 
 	// phase2: dryrun
 	if !owt.hasNoPhase2 {
+		if owt.rsyncVerif {
+			time.Sleep(time.Second)
+			if err = owt.verifWithRsync("phase2"); err != nil {
+				ctx = "phase2"
+				err = fmt.Errorf("verifWithRsync: %s", err)
+				return
+			}
+		}
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
 		owt.owo.KeepCached = true // to compare w/o resetting state
@@ -434,7 +545,7 @@ func (owt *owTest) runOwTest() (err error) {
 		owt.owo.Dryrun = false
 		owt.owo.KeepCached = false
 		owt.owo.Rm = !owt.hasNoRm
-		if err = owt.ftupd(owt.std); err != nil {
+		if err = owt.ftupd(owt.std, nil); err != nil {
 			ctx = "ftupd"
 			return
 		}
@@ -455,6 +566,14 @@ func (owt *owTest) runOwTest() (err error) {
 
 	// phase4: dryrun for phase3 if applicable
 	if owt.ftupd != nil && !owt.hasNoPhase4 {
+		if owt.rsyncVerif {
+			time.Sleep(time.Second)
+			if err = owt.verifWithRsync("phase4"); err != nil {
+				ctx = "phase4"
+				err = fmt.Errorf("verifWithRsync: %s", err)
+				return
+			}
+		}
 		time.Sleep(time.Millisecond)
 		owt.owo.Dryrun = true
 		owt.owo.KeepCached = true
@@ -743,8 +862,31 @@ func TestManyOplWalkers(t *testing.T) {
 			},
 			exclRegs:        []string{"^dau/dAddFiles/dStay/dAddFiles/fRemoved.dat$", "^dau/dAddFiles/dStay/dLinks/"},
 			allowReadPhase2: true,
-			specialInterest: []string{"dau/dAddFiles"},
-			speIntPhase:     "phase1",
+		},
+		{
+			label:           "update - tiny - rsync verified",
+			ftgen:           ftGenAugTiny,
+			ftupd:           ftUpdAugTinyAfterSec,
+			rsyncVerif:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+		},
+		{
+			label:           "update - simple - rsync verified",
+			ftgen:           ftGenSimple,
+			ftupd:           ftUpdSimple,
+			rsyncVerif:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+		},
+		{
+			label: "update - simple - presync - rsyncVerif",
+			ftgen: ftGenSTSimple,
+			allowReadPhase2: true,
+			rsyncVerif:      true,
+			owo: &config.OpeLogOptionsType{
+				SyncOptionsType: config.SyncOptionsType{Rm: true},
+			},
 		},
 	}
 
