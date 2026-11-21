@@ -15,21 +15,22 @@ import (
 )
 
 func TestSingleOplWalkers(t *testing.T) {
-	// t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label: "update - simple - rsync verified",
+			label: "update - simple - presync - rsyncVerif",
 			lgr:   common.DbgLogger(),
-			ftgen: ftGenSimple,
-			ftupd: ftUpdSimple,
-			// owo: &config.OpeLogOptionsType{ExpRpt: "full"},
-			rsyncVerif:      true,
+			ftgen: ftGenSTSimple,
 			allowReadPhase2: true,
-			allowReadPhase4: true,
-			specialInterest: []string{"td2/tr2/tf2"},
-			speIntPhase:     "phase3",
+			rsyncVerif:      true,
+			owo: &config.OpeLogOptionsType{
+				ExpRpt: "full",
+				SyncOptionsType: config.SyncOptionsType{Rm: true},
+			},
+			specialInterest: []string{"td2/tr2"},
+			speIntPhase: "phase1",
 		},
 	}
 
@@ -67,7 +68,7 @@ func TestOplWalker(t *testing.T) {
 
 	// require.NoError(t, ftGenTiny(std))
 	// require.NoError(t, ftGenMedium(std))
-	require.NoError(t, ftGenAugSmall(std))
+	require.NoError(t, ftGenAugSmall(std, nil))
 	lgr.Debug("TestOplWalker: FileTreeGenerated")
 
 	cPath := path.Join(ltd, "invDump.csv")
@@ -126,7 +127,7 @@ func TestOplBadSession(t *testing.T) {
 	ltd := t.TempDir()
 	ttd := t.TempDir()
 
-	require.NoError(t, ftGenTiny(std))
+	require.NoError(t, ftGenTiny(std, nil))
 	lgr.Debug("TestOplBadSession: FileTreeGenerated")
 
 	cPath := path.Join(ltd, "invDump.csv")
@@ -181,7 +182,7 @@ func TestAutoSession(t *testing.T) {
 	std, ttd := t.TempDir(), t.TempDir()
 	defer walker.SetTestDirRW(std, "source")
 	defer walker.SetTestDirRW(ttd, "target")
-	require.NoError(t, ftGenAugTiny(std))
+	require.NoError(t, ftGenAugTiny(std, nil))
 	err = oplm.Create(std, ttd)
 	require.NoError(t, err)
 	require.Equal(t, "mem", oplm.GetOlm().StoreType)

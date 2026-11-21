@@ -27,8 +27,8 @@ type owTest struct {
 	ctx                string
 	unSkipped          bool
 	lgr                *slog.Logger
-	ftgen              func(root string) error
-	ftupd              func(root string) error
+	ftgen              func(root string, owt *owTest) error
+	ftupd              func(root string, owt *owTest) error
 	conc               int
 	oplTi              *opelog.ToolInformation
 	owo                *config.OpeLogOptionsType
@@ -66,35 +66,35 @@ type owTest struct {
 	deferred func()
 }
 
-var ftGenTiny = func(root string) error {
+var ftGenTiny = func(root string, owt *owTest) error {
 	return common.FileTreeGenerate(root, 5, 20, 1, 1024, false, 2)
 }
 
-var ftGenSmall = func(root string) error {
+var ftGenSmall = func(root string, owt *owTest) error {
 	return common.FileTreeGenerate(root, 20, 600, 2, 1024, false, 2)
 }
 
-var ftGenMedium = func(root string) error {
+var ftGenMedium = func(root string, owt *owTest) error {
 	return common.FileTreeGenerate(root, 100, 3000, 2, 4096, false, 2)
 }
 
-var ftGenAugTiny = func(root string) error {
+var ftGenAugTiny = func(root string, owt *owTest) error {
 	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 5, 20, 16, 1024)
 	return err
 }
 
-var ftUpdAugTiny = func(root string) error {
+var ftUpdAugTiny = func(root string, owt *owTest) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
 	return err
 }
 
-var ftUpdAugTinyAfterSec = func(root string) error {
+var ftUpdAugTinyAfterSec = func(root string, owt *owTest) error {
 	time.Sleep(time.Second)
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 3, 7, 2, 1027)
 	return err
 }
 
-var ftGenIrregTiny = func(root string) error {
+var ftGenIrregTiny = func(root string, owt *owTest) error {
 	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 5, 20, 16, 1024)
 	if err != nil {
 		return err
@@ -105,25 +105,38 @@ var ftGenIrregTiny = func(root string) error {
 	return err
 }
 
-var ftGenAugSmall = func(root string) error {
+var ftGenAugSmall = func(root string, owt *owTest) error {
 	_, _, err := walker.PrepareAugmentedTestFilesTree(root, 7, 100, 16, 1024)
 	return err
 }
 
-var ftUpdAugSmall = func(root string) error {
+var ftUpdAugSmall = func(root string, owt *owTest) error {
 	_, _, err := walker.UpdateAugmentedTestFilesTree(root, 5, 10, 3, 1027)
 	return err
 }
 
-var ftGenSimple = func(root string) error {
+var ftGenSimple = func(root string, owt *owTest) error {
 	return common.MakeSimpleTestFilesTree(root)
 }
 
-var ftUpdSimple = func(root string) error {
+var ftUpdSimple = func(root string, owt *owTest) error {
 	return common.UpdateSimpleTestsFilesTree(root)
 }
 
-var ftUpdNoop = func(root string) error { return nil }
+var ftGenSTSimple = func(root string, owt *owTest) error {
+	if err := common.MakeSimpleTestFilesTree(root); err != nil {
+		return err
+	}
+	if err := owt.autoSync(); err != nil {
+		return err
+	}
+	if err := common.UpdateSimpleTestsFilesTree(root); err != nil {
+		return err
+	}
+	return nil
+}
+
+var ftUpdNoop = func(root string, owt *owTest) error { return nil }
 
 func (owt *owTest) invImport() error {
 	if !owt.hasLoadInv {
@@ -147,6 +160,34 @@ func (owt *owTest) invImport() error {
 		return err
 	}
 	if err := owt.oplm.Close(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (owt *owTest) autoSync() error {
+	oplm, err := MakeM2fManager(owt.lgr, "", 0)
+	if  err != nil {
+		return err
+	}
+	if err = oplm.Create(owt.std, owt.ttd); err != nil {
+		return err
+	}
+	ow := NewOplWalker(
+		owt.lgr, 0, nil, oplm,
+		&opelog.ToolInformation{CmdLine: "TestAutoSession"},
+		&config.OpeLogOptionsType{
+			SyncOptionsType: config.SyncOptionsType{
+				Check: true,
+			},
+			Goal:            "update",
+			NoInvCheck:      true,
+			ResetMilTimeout: 250,
+		},
+		localfiles.MakeLocalFilesDssa(), localfiles.MakeLocalFilesDssa(),
+		owt.std, owt.ttd, "", "",
+	)
+	if err = ow.Run(); err != nil {
 		return err
 	}
 	return nil
@@ -244,7 +285,7 @@ func (owt *owTest) commonSetup() (err error) {
 		ctx = "makeOplm"
 		return
 	}
-	if err = owt.ftgen(owt.std); err != nil {
+	if err = owt.ftgen(owt.std, owt); err != nil {
 		ctx = "ftgen"
 		return
 	}
@@ -504,7 +545,7 @@ func (owt *owTest) runOwTest() (err error) {
 		owt.owo.Dryrun = false
 		owt.owo.KeepCached = false
 		owt.owo.Rm = !owt.hasNoRm
-		if err = owt.ftupd(owt.std); err != nil {
+		if err = owt.ftupd(owt.std, nil); err != nil {
 			ctx = "ftupd"
 			return
 		}
@@ -837,6 +878,15 @@ func TestManyOplWalkers(t *testing.T) {
 			rsyncVerif:      true,
 			allowReadPhase2: true,
 			allowReadPhase4: true,
+		},
+		{
+			label: "update - simple - presync - rsyncVerif",
+			ftgen: ftGenSTSimple,
+			allowReadPhase2: true,
+			rsyncVerif:      true,
+			owo: &config.OpeLogOptionsType{
+				SyncOptionsType: config.SyncOptionsType{Rm: true},
+			},
 		},
 	}
 

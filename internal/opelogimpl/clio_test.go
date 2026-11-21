@@ -34,7 +34,7 @@ func TestCliOutput(t *testing.T) {
 
 	// require.NoError(t, ftGenTiny(std))
 	// require.NoError(t, ftGenMedium(std))
-	require.NoError(t, ftGenAugSmall(std))
+	require.NoError(t, ftGenAugSmall(std, nil))
 	lgr.Debug("TestCliOutput: FileTreeGenerated")
 	testMarsh := true
 	oplm, err := makeTestM2fManager(lgr, path.Join(ltd, "m2f.opl"), 5, testMarsh, std, ttd)
