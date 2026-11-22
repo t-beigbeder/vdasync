@@ -116,6 +116,12 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent initial", err)
 		return nil, err
 	}
+	if ple == nil {
+		ow.oplm.GetLogicalEntry(pRelPath) // FIXME
+		err := errors.New("parent ole is nil")
+		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent initial", err)
+		return nil, err
+	}
 	ole.parentLe = ple
 	ole.parentSSt = ple.GetState(ow.sessionTime, false)
 	ole.parentTSt = ple.GetState(ow.sessionTime, true)

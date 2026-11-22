@@ -22,7 +22,7 @@ import (
 
 type pbOplMng struct {
 	lgr      *slog.Logger
-	path_     string
+	path_    string
 	bckLimit int
 	mx       sync.Mutex
 	om       *opelog.OpeLogMaster
@@ -202,7 +202,7 @@ func (m *pbOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) err
 		return err
 	}
 	if hasBck {
-		_ = os.Remove(pbPath)
+		_ = os.Remove(pbPath + ".bck")
 	}
 	return nil
 }
@@ -226,8 +226,11 @@ func (m *pbOplMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error)
 	if !m.isOpen {
 		return nil, errors.New("pbOplMng.GetLogicalEntry: not opened")
 	}
-	ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), rp2Id(relPath)))
+	ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), common.Id2Path(rp2Id(relPath))))
 	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	if ole.EmbedPath != relPath {

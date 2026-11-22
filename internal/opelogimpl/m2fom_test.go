@@ -27,6 +27,9 @@ func TestM2fBaseOpeLogs(t *testing.T) {
 	require.NoError(t, olm.Sync())
 	olm.PutLogicalEntry("a", opelog.NewLogicalEntry())
 	require.NoError(t, olm.Sync())
+	ole, err := olm.GetLogicalEntry("c")
+	require.NoError(t, err)
+	require.Nil(t, ole)
 
 	olm2, err := MakeM2fManager(lgr, path.Join(ltd, "m2f.opl"), 0)
 	require.NoError(t, err)

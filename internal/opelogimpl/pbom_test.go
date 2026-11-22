@@ -27,6 +27,13 @@ func TestPbfBaseOpeLogs(t *testing.T) {
 	require.NoError(t, olm.Sync())
 	require.NoError(t, olm.PutLogicalEntry("a", opelog.NewLogicalEntry()))
 	require.NoError(t, olm.Sync())
+	ole, err := olm.GetLogicalEntry("c")
+	require.NoError(t, err)
+	require.Nil(t, ole)
+	require.NoError(t, olm.PutLogicalEntry("a", opelog.NewLogicalEntry()))
+	ole, err = olm.GetLogicalEntry("a")
+	require.NoError(t, err)
+	require.NotNil(t, ole)
 
 	olm2, err := MakePbfManager(lgr, path.Join(ltd, "master.pbf"), 0)
 	require.NoError(t, err)
