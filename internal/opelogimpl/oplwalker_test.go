@@ -167,7 +167,7 @@ func (owt *owTest) invImport() error {
 
 func (owt *owTest) autoSync() error {
 	oplm, err := MakeM2fManager(owt.lgr, "", 0)
-	if  err != nil {
+	if err != nil {
 		return err
 	}
 	if err = oplm.Create(owt.std, owt.ttd); err != nil {
@@ -880,8 +880,8 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase4: true,
 		},
 		{
-			label: "update - simple - presync - rsyncVerif",
-			ftgen: ftGenSTSimple,
+			label:           "update - simple - presync - rsyncVerif",
+			ftgen:           ftGenSTSimple,
 			allowReadPhase2: true,
 			rsyncVerif:      true,
 			owo: &config.OpeLogOptionsType{

@@ -8,7 +8,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/internal/dssaimpl/localfiles"
@@ -29,23 +28,6 @@ type m2fOplMng struct {
 	hasUpdates bool
 	testMarsh  bool
 	marshLes   map[string][]byte
-}
-
-func (m *m2fOplMng) tsInUse(ts int64) (yes bool) {
-	for _, sTs := range m.om.Sessions {
-		if sTs.ReferenceTime == ts {
-			return true
-		}
-	}
-	return
-}
-
-func (m *m2fOplMng) nextTimeStamp() int64 {
-	for ts := time.Now().Unix(); ; ts += 1 {
-		if !m.tsInUse(ts) {
-			return ts
-		}
-	}
 }
 
 func (m *m2fOplMng) save() error {
@@ -81,11 +63,13 @@ func (m *m2fOplMng) save() error {
 
 // AddSession implements [opelog.OpeLogManager].
 func (m *m2fOplMng) AddSession(label string, si *opelog.SessionInfo) (int64, error) {
+	m.mx.Lock()
+	defer m.mx.Unlock()
 	_, ok := m.om.Sessions[label]
 	if ok {
 		return 0, fmt.Errorf("session %s already exists", label)
 	}
-	rt := m.nextTimeStamp()
+	rt := m.om.NextTimeStamp()
 	m.om.Sessions[label] = &opelog.SessionInfo{
 		Comment:       si.Comment,
 		ReferenceTime: rt,
