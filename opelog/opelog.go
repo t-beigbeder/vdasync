@@ -389,6 +389,7 @@ type LogicalEntry struct {
 	eventsLists  map[int64][]*Event
 	stats        map[int64]*ComputedStats
 	IsIgnored    bool
+	EmbedPath    string
 }
 
 func NewLogicalEntry() *LogicalEntry {
@@ -636,6 +637,23 @@ func (olm *OpeLogMaster) String() string {
 		}
 	}
 	return buf.String()
+}
+
+func (olm *OpeLogMaster) tsInUse(ts int64) (yes bool) {
+	for _, sTs := range olm.Sessions {
+		if sTs.ReferenceTime == ts {
+			return true
+		}
+	}
+	return
+}
+
+func (olm *OpeLogMaster) NextTimeStamp() int64 {
+	for ts := time.Now().Unix(); ; ts += 1 {
+		if !olm.tsInUse(ts) {
+			return ts
+		}
+	}
 }
 
 // For a memory to file simple implementation, limited to 2GiB, cf https://protobuf.dev/programming-guides/proto-limits/#total

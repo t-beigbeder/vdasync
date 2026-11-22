@@ -146,6 +146,7 @@ func ProtoBuf2LogicalEntry(gle *opeloggrpc.LogicalEntry) *LogicalEntry {
 		eventsLists:  protoBuf2EventsLists(gle.EventsLists),
 		stats:        protoBuf2ComputedStatsMap(gle.Stats),
 		IsIgnored:    gle.IsIgnored,
+		EmbedPath:    gle.EmbedPath,
 	}
 	le.setupLoadedEvents()
 	le.setupLoadedStates()
@@ -367,6 +368,7 @@ func LogicalEntry2ProtoBuf(le *LogicalEntry) *opeloggrpc.LogicalEntry {
 		EventsLists:  eventsLists2ProtoBuf(le.eventsLists),
 		Stats:        computedStatsMap2ProtoBuf(le.stats),
 		IsIgnored:    le.IsIgnored,
+		EmbedPath:    le.EmbedPath,
 	}
 }
 

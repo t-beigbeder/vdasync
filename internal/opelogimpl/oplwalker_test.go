@@ -37,6 +37,7 @@ type owTest struct {
 	session1           string
 	session2           string
 	inventory          string
+	hasPbfOplm         bool
 	hasPreDryrun       bool
 	hasLoadInv         bool
 	hasNoExpCsv        bool
@@ -167,7 +168,7 @@ func (owt *owTest) invImport() error {
 
 func (owt *owTest) autoSync() error {
 	oplm, err := MakeM2fManager(owt.lgr, "", 0)
-	if  err != nil {
+	if err != nil {
 		return err
 	}
 	if err = oplm.Create(owt.std, owt.ttd); err != nil {
@@ -195,15 +196,21 @@ func (owt *owTest) autoSync() error {
 
 func (owt *owTest) makeOplm() (err error) {
 	if owt.oplm == nil {
-		if owt.oplm, err = MakeM2fManager(owt.lgr, path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
-			return
+		if owt.hasPbfOplm {
+			if owt.oplm, err = MakePbfManager(owt.lgr, path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
+				return
+			}
+		} else {
+			if owt.oplm, err = MakeM2fManager(owt.lgr, path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
+				return
+			}
+			oplmi, ok := owt.oplm.(*m2fOplMng)
+			if !ok {
+				err = errors.New("not an *m2fOplMng")
+				return
+			}
+			oplmi.testMarsh = !owt.noTestMarsh
 		}
-		oplmi, ok := owt.oplm.(*m2fOplMng)
-		if !ok {
-			err = errors.New("not an *m2fOplMng")
-			return
-		}
-		oplmi.testMarsh = !owt.noTestMarsh
 		if err = owt.oplm.Create(owt.std, owt.ttd); err != nil {
 			return
 		}
@@ -880,13 +887,22 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase4: true,
 		},
 		{
-			label: "update - simple - presync - rsyncVerif",
-			ftgen: ftGenSTSimple,
+			label:           "update - simple - presync - rsyncVerif",
+			ftgen:           ftGenSTSimple,
 			allowReadPhase2: true,
 			rsyncVerif:      true,
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Rm: true},
 			},
+		},
+		{
+			label:           "update - increment - c4 aug small - pbf",
+			ftgen:           ftGenAugSmall,
+			ftupd:           ftUpdAugSmall,
+			conc:            4,
+			hasPbfOplm:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
 		},
 	}
 

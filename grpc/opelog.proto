@@ -116,6 +116,7 @@ message LogicalEntry {
     // stats relate to one session
     map<int64,ComputedStats> stats = 6;
     bool is_ignored = 7;
+    string embed_path = 8;
 }
 
 message ToolInformation {

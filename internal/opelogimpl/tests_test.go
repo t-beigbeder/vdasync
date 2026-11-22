@@ -66,3 +66,29 @@ func TestUnixSocketCreation(t *testing.T) {
 	td := t.TempDir()
 	require.NoError(t, MakeSocket(td, "TestUnixSocketCreation.socket"))
 }
+
+func makeTestPbfManager(lgr *slog.Logger, path_ string, bckLimit int, std, ttd string) (*pbOplMng, error) {
+	oplm, err := MakePbfManager(lgr, path_, bckLimit)
+	if err != nil {
+		return nil, err
+	}
+	oplmi, ok := oplm.(*pbOplMng)
+	if !ok {
+		return nil, errors.New("not an *m2fOplMng")
+	}
+	if err = oplm.Create(std, ttd); err != nil {
+		return nil, err
+	}
+	if err = oplm.Open(false); err != nil {
+		return nil, err
+	}
+	_, err = oplm.AddSession("ds", &opelog.SessionInfo{})
+	if err != nil {
+		return nil, err
+	}
+	_, err = oplm.AddSession("di", &opelog.SessionInfo{IsInventory: true})
+	if err != nil {
+		return nil, err
+	}
+	return oplmi, nil
+}
