@@ -203,6 +203,7 @@ type ServiceCtx struct {
 	Size        int
 	Concurrency int
 	OplPath     string
+	OplSto     string
 	OplSes      string
 	OplInv      string
 	ExpFile     string
@@ -455,7 +456,7 @@ func doOplCreate(sc *ServiceCtx) error {
 	if sc.TgtRoot == "" {
 		return errors.New("doOplCreate: no troot")
 	}
-	oplm, err := opelogimpl.MakeM2fManager(sc.Lgr, sc.OplPath, 0)
+	oplm, err := makeOplManager(sc.Lgr, sc.OplSto, sc.OplPath, 0)
 	if err != nil {
 		return err
 	}
@@ -486,7 +487,7 @@ func doOplUpdate(sc *ServiceCtx) error {
 	if sc.OplPath == "" {
 		return errors.New("doOplUpdate: no oplpath")
 	}
-	oplm, err := opelogimpl.MakeM2fManager(sc.Lgr, sc.OplPath, 0)
+	oplm, err := makeOplManager(sc.Lgr, sc.OplSto, sc.OplPath, 0)
 	if err != nil {
 		return err
 	}
@@ -523,7 +524,7 @@ func doOplExp(sc *ServiceCtx) error {
 	} else if sc.ExpRpt != "synth" {
 		return fmt.Errorf("doOplExp: unknown owrpt %s", sc.ExpRpt)
 	}
-	oplm, err := opelogimpl.MakeM2fManager(sc.Lgr, sc.OplPath, 0)
+	oplm, err := makeOplManager(sc.Lgr, sc.OplSto, sc.OplPath, 0)
 	if err != nil {
 		return err
 	}
@@ -551,7 +552,7 @@ func doOplDmi(sc *ServiceCtx) error {
 	if sc.OplPath == "" {
 		return errors.New("doOplDmi: no oplpath")
 	}
-	oplm, err := opelogimpl.MakeM2fManager(sc.Lgr, sc.OplPath, 0)
+	oplm, err := makeOplManager(sc.Lgr, sc.OplSto, sc.OplPath, 0)
 	if err != nil {
 		return err
 	}
@@ -574,7 +575,7 @@ func doOplImpi(sc *ServiceCtx) error {
 	if sc.OplInv == "" {
 		return errors.New("doOplImpi: no oplinv")
 	}
-	oplm, err := opelogimpl.MakeM2fManager(sc.Lgr, sc.OplPath, 0)
+	oplm, err := makeOplManager(sc.Lgr, sc.OplSto, sc.OplPath, 0)
 	if err != nil {
 		return err
 	}

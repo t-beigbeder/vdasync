@@ -18,6 +18,16 @@ import (
 	"github.com/t-beigbeder/vdasync/opelog"
 )
 
+func makeOplManager(lgr *slog.Logger, oplSto string, path_ string, bckLimit int) (opelog.OpeLogManager, error) {
+	if oplSto != "" && oplSto != "aio" && oplSto != "pbf" {
+		return nil, fmt.Errorf("operations log storage \"%s\" not (yet) implemented", oplSto)
+	}
+	if oplSto == "pbf" {
+		return opelogimpl.MakePbfManager(lgr, path_, bckLimit)
+	}
+	return opelogimpl.MakeM2fManager(lgr, path_, bckLimit)
+}
+
 func RunSyncCli(df *DssaFactory) {
 	var (
 		oplCmdFlag     = flag.String("oplcmd", "", "operations log command: load,create,update")
@@ -169,7 +179,7 @@ func RunSyncCli(df *DssaFactory) {
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
-	oplm, err := opelogimpl.MakeM2fManager(lgr, *svsf.OplPathFlag, syncBck)
+	oplm, err := makeOplManager(lgr, *svsf.OplStoFlag, *svsf.OplPathFlag, syncBck)
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
