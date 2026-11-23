@@ -167,8 +167,9 @@ func (m *pbOplMng) Close() error {
 	return nil
 }
 
-func rp2Id(relPath string) string {
-	return fmt.Sprintf("%064x", sha256.Sum256([]byte(relPath)))
+func rp2pbp(relPath string) string {
+	id := fmt.Sprintf("%064x", sha256.Sum256([]byte(relPath)))
+	return path.Join([]string{id[0:2], id[2:4], id[4:]}...)
 }
 
 // PutLogicalEntry implements [opelog.OpeLogManager].
@@ -187,7 +188,7 @@ func (m *pbOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) err
 	if err != nil {
 		return err
 	}
-	pbPath := path.Join(path.Dir(m.path_), common.Id2Path(rp2Id(relPath)))
+	pbPath := path.Join(path.Dir(m.path_), rp2pbp(relPath))
 	if err := os.MkdirAll(path.Dir(pbPath), 0750); err != nil {
 		return err
 	}
@@ -226,7 +227,7 @@ func (m *pbOplMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error)
 	if !m.isOpen {
 		return nil, errors.New("pbOplMng.GetLogicalEntry: not opened")
 	}
-	ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), common.Id2Path(rp2Id(relPath))))
+	ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), rp2pbp(relPath)))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil
@@ -303,7 +304,7 @@ func (m *pbOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) erro
 		return strings.Compare(a, b)
 	})
 	for _, relPath := range rps {
-		ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), common.Id2Path(rp2Id(relPath))))
+		ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), rp2pbp(relPath)))
 		if err != nil {
 			hasErrors = true
 			m.lgr.Error("pbOplMng.Walk: phase2", "relPath", relPath, "err", err)

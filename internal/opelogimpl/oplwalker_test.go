@@ -38,6 +38,7 @@ type owTest struct {
 	session2           string
 	inventory          string
 	hasPbfOplm         bool
+	hasVlq             bool
 	hasPreDryrun       bool
 	hasLoadInv         bool
 	hasNoExpCsv        bool
@@ -197,11 +198,12 @@ func (owt *owTest) autoSync() error {
 func (owt *owTest) makeOplm() (err error) {
 	if owt.oplm == nil {
 		if owt.hasPbfOplm {
-			if owt.oplm, err = MakePbfManager(owt.lgr, path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
+			os.Mkdir(path.Join(owt.ltd, "pbf"), 0750)
+			if owt.oplm, err = MakePbfManager(owt.lgr, path.Join(owt.ltd, "pbf", "m2f.pbf"), 0); err != nil {
 				return
 			}
 		} else {
-			if owt.oplm, err = MakeM2fManager(owt.lgr, path.Join(owt.ltd, "m2f.opl"), 0); err != nil {
+			if owt.oplm, err = MakeM2fManager(owt.lgr, path.Join(owt.ltd, "m2f.pbf"), 0); err != nil {
 				return
 			}
 			oplmi, ok := owt.oplm.(*m2fOplMng)
@@ -229,6 +231,16 @@ func (owt *owTest) makeOplm() (err error) {
 			}
 		}
 		if err = owt.oplm.Close(); err != nil {
+			return
+		}
+	}
+	return
+}
+
+func (owt *owTest) makeOplq() (err error) {
+	if owt.hasVlq {
+		os.Mkdir(path.Join(owt.ltd, "vlq"), 0750)
+		if owt.oplq, err = MakeVeryLongQueue(owt.lgr, path.Join(owt.ltd, "vlq"), 10000); err != nil {
 			return
 		}
 	}
@@ -371,7 +383,7 @@ func (owt *owTest) newOplWalker(session, inventory string) OplWalker {
 	}
 	return NewOplWalker(
 		owt.lgr.With("test", owt.label).With("ctx", owt.ctx), owt.conc,
-		nil, owt.oplm,
+		owt.oplq, owt.oplm,
 		owt.oplTi, owt.owo,
 		owt.sDss, owt.tDss, owt.std, owt.ttd,
 		session, inventory,
@@ -441,6 +453,10 @@ func (owt *owTest) walkStatsCsv(baseCtx string, session, inventory string) (ctx 
 		}
 	}()
 	owt.ctx = baseCtx
+	if err = owt.makeOplq(); err != nil {
+		ctx = "makeOplq"
+		return
+	}
 	ow := owt.newOplWalker(session, inventory)
 	if err = owt.sDss.NewSession(); err != nil {
 		ctx = "sDssNewSession"
@@ -901,6 +917,16 @@ func TestManyOplWalkers(t *testing.T) {
 			ftupd:           ftUpdAugSmall,
 			conc:            4,
 			hasPbfOplm:      true,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+		},
+		{
+			label:           "update - increment - c4 aug small - pbf - vlq",
+			ftgen:           ftGenAugSmall,
+			ftupd:           ftUpdAugSmall,
+			conc:            4,
+			hasPbfOplm:      true,
+			hasVlq:          true,
 			allowReadPhase2: true,
 			allowReadPhase4: true,
 		},

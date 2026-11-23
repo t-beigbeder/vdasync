@@ -203,7 +203,7 @@ type ServiceCtx struct {
 	Size        int
 	Concurrency int
 	OplPath     string
-	OplSto     string
+	OplSto      string
 	OplSes      string
 	OplInv      string
 	ExpFile     string

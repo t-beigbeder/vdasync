@@ -20,11 +20,12 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:           "update - increment - c4 aug small - pbf",
+			label:           "update - increment - c4 aug small - pbf - vlq",
 			ftgen:           ftGenAugSmall,
 			ftupd:           ftUpdAugSmall,
 			conc:            4,
 			hasPbfOplm:      true,
+			hasVlq:          true,
 			allowReadPhase2: true,
 			allowReadPhase4: true,
 		},
