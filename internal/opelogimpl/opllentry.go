@@ -74,9 +74,6 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 	}
 	if len(tChildren) == 0 && len(ole.target.removedChildren) > 0 {
 		tChildren = ole.target.removedChildren
-		statsInited = false
-		stats = opelog.NewComputedStats()
-		stats.Remove.Number = 1
 	}
 
 	for _, child := range sChildren {

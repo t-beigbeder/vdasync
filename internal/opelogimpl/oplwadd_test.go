@@ -21,13 +21,15 @@ func TestSingleOplWalkers(t *testing.T) {
 	owts := []owTest{
 		{
 			label:           "update - simple - presync - rsyncVerif",
+			lgr: cliLgr,
 			ftgen:           ftGenSTSimple,
 			hasPreDryrun:    true,
 			allowReadPhase2: true,
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Rm: true},
+				ExpRpt: "full",
 			},
-			specialInterest: []string{"td4/tr4/trs41"},
+			specialInterest: []string{"td4"},
 			speIntPhase:     "phase1",
 		},
 	}
