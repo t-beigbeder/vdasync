@@ -28,6 +28,13 @@ func makeOplManager(lgr *slog.Logger, oplSto string, path_ string, bckLimit int)
 	return opelogimpl.MakeM2fManager(lgr, path_, bckLimit)
 }
 
+func makeOplQueue(lgr *slog.Logger, path_ string) (opelog.Queue, error) {
+	if path_ == "" {
+		return opelogimpl.NewMemQueue(), nil
+	}
+	return opelogimpl.MakeVeryLongQueue(lgr, path_, 10000)
+}
+
 func RunSyncCli(df *DssaFactory) {
 	var (
 		oplCmdFlag     = flag.String("oplcmd", "", "operations log command: load,create,update")
