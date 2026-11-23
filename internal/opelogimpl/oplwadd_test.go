@@ -15,19 +15,20 @@ import (
 )
 
 func TestSingleOplWalkers(t *testing.T) {
-	t.Skip("for setup only")
+	// t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:           "update - increment - c4 aug small - pbf - vlq",
-			ftgen:           ftGenAugSmall,
-			ftupd:           ftUpdAugSmall,
-			conc:            4,
-			hasPbfOplm:      true,
-			hasVlq:          true,
+			label:           "update - simple - presync - rsyncVerif",
+			ftgen:           ftGenSTSimple,
+			hasPreDryrun:    true,
 			allowReadPhase2: true,
-			allowReadPhase4: true,
+			owo: &config.OpeLogOptionsType{
+				SyncOptionsType: config.SyncOptionsType{Rm: true},
+			},
+			specialInterest: []string{"td4/tr4/trs41"},
+			speIntPhase:     "phase1",
 		},
 	}
 

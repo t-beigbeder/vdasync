@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -56,7 +57,7 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
 	// FIXME: if DepCount has been reset, shall we loop in all circumstances?
 	ose.lgr.Debug("endOrNoOpDirPossible", "DepCount", ose.getState().DepCount, "toolRestarted", ose.toolRestarted, "lenCh", len(ose.se().Children))
-	return (ose.getState().DepCount <= 0 && !ose.toolRestarted && ose.loadTime == 0) || len(ose.se().Children) == 0
+	return ose.getState().DepCount == -1 || (ose.getState().DepCount == 0 && !ose.toolRestarted && ose.loadTime == 0) || len(ose.se().Children) == 0
 }
 
 // enableWrite enables an entry to be written if needed
@@ -95,6 +96,9 @@ func (ose *oplStoredEntry) remove() error {
 	if err := ose.dssRm(false); err != nil {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 		return err
+	}
+	if se.IsDir {
+		ose.removedChildren = slices.Clone(se.Children)
 	}
 	ose.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 	return nil
