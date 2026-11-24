@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -11,6 +12,33 @@ import (
 
 // This file is about high order services for stored entries
 // common services on dss are in opldss
+
+func (ose *oplStoredEntry) previousEvent() *opelog.Event {
+	evs := ose.getEvents()
+	if len(evs) < 2 {
+		return nil
+	}
+	return evs[len(evs)-2]
+}
+
+func (ose *oplStoredEntry) removedChildren() []string {
+	pEv := ose.previousEvent()
+	if pEv == nil || pEv.Se == nil {
+		return nil
+	}
+	cSe := ose.se()
+	if cSe == nil {
+		return pEv.Se.Children
+	}
+	res := []string{}
+	for _, child := range pEv.Se.Children {
+		if slices.Contains(cSe.Children, child) {
+			continue
+		}
+		res = append(res, child)
+	}
+	return res
+}
 
 // stCheckNeeded checks if regular file has to be read to compute checksums
 //

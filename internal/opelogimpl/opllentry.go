@@ -123,6 +123,23 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		}
 		propagate = true
 	}
+
+	for _, child := range ole.target.removedChildren() {
+		if cle, err = ole.loadClientCache(child); err != nil {
+			return err
+		}
+		if cle == nil {
+			continue
+		}
+		cStats := cle.GetStats(ole.owi.sessionTime)
+		if cStats == nil {
+			continue
+		}
+		stats.Remove.Number += cStats.Remove.Number
+		stats.Remove.Size += cStats.Remove.Size
+		propagate = true
+	}
+
 	if propagate {
 		// dirs stats always up-to-date
 		ole.hasChanges = true

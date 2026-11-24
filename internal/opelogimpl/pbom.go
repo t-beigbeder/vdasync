@@ -21,7 +21,7 @@ import (
 )
 
 type pbOplMng struct {
-	mx sync.Mutex
+	mx       sync.Mutex
 	lgr      *slog.Logger
 	path_    string
 	bckLimit int
