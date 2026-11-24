@@ -127,7 +127,7 @@ type oplStoredEntry struct {
 	updateTime     int64
 	metaChangeTime int64
 	// current's dir children must be queued
-	childrenQueued  bool
+	childrenQueued bool
 }
 
 func (ose *oplStoredEntry) detail(msg string, args ...any) {
