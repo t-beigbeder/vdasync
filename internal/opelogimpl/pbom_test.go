@@ -82,7 +82,7 @@ func TestPbfWriteOpeLogs(t *testing.T) {
 
 func TestPbfWalk(t *testing.T) {
 	lgr := common.GetLogger()
-	lgr = common.DbgLogger()
+	// lgr = common.DbgLogger()
 	lgr.Debug("TestPbfWalk: start")
 
 	std := t.TempDir()

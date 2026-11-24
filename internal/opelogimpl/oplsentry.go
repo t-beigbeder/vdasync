@@ -3,7 +3,6 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -96,9 +95,6 @@ func (ose *oplStoredEntry) remove() error {
 	if err := ose.dssRm(false); err != nil {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), se, nil, 0)
 		return err
-	}
-	if se.IsDir {
-		ose.removedChildren = slices.Clone(se.Children)
 	}
 	ose.setState(opelog.STC_DONE_ABSENT, "", nil, nil, 0)
 	return nil
