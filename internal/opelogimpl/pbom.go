@@ -21,10 +21,10 @@ import (
 )
 
 type pbOplMng struct {
+	mx sync.Mutex
 	lgr      *slog.Logger
 	path_    string
 	bckLimit int
-	mx       sync.Mutex
 	om       *opelog.OpeLogMaster
 	readOnly bool
 	isOpen   bool
@@ -49,13 +49,22 @@ func (m *pbOplMng) saveMaster() error {
 
 // Create implements [opelog.OpeLogManager].
 func (m *pbOplMng) Create(source string, target string) error {
-	m.mx.Lock()
-	defer m.mx.Unlock()
 	if m.path_ != "" && common.FileExists(m.path_) {
 		return fmt.Errorf("pbOplMng.Create: %s already exists", m.path_)
 	}
 	if m.om != nil && len(m.om.Sessions) != 0 {
 		return fmt.Errorf("m2fMng.Create: %s should be created without sessions", m.path_)
+	}
+	pp := path.Dir(m.path_)
+	for i := 0; i < 256; i++ {
+		if err := os.Mkdir(path.Join(pp, fmt.Sprintf("%02x", i)), 0750); err != nil {
+			return err
+		}
+		for j := 0; j < 256; j++ {
+			if err := os.Mkdir(path.Join(pp, fmt.Sprintf("%02x/%02x", i, j)), 0750); err != nil {
+				return err
+			}
+		}
 	}
 	m.om = &opelog.OpeLogMaster{
 		SourceRoot: source,
@@ -167,15 +176,12 @@ func (m *pbOplMng) Close() error {
 	return nil
 }
 
-func rp2pbp(relPath string) string {
-	id := fmt.Sprintf("%064x", sha256.Sum256([]byte(relPath)))
-	return path.Join([]string{id[0:2], id[2:4], id[4:]}...)
+func rp2Id(relPath string) string {
+	return fmt.Sprintf("%064x", sha256.Sum256([]byte(relPath)))
 }
 
 // PutLogicalEntry implements [opelog.OpeLogManager].
 func (m *pbOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) error {
-	m.mx.Lock()
-	defer m.mx.Unlock()
 	if !m.isOpen {
 		return errors.New("pbOplMng.PutEntryLog: not opened")
 	}
@@ -188,10 +194,7 @@ func (m *pbOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) err
 	if err != nil {
 		return err
 	}
-	pbPath := path.Join(path.Dir(m.path_), rp2pbp(relPath))
-	if err := os.MkdirAll(path.Dir(pbPath), 0750); err != nil {
-		return err
-	}
+	pbPath := path.Join(path.Dir(m.path_), common.Id2Path(rp2Id(relPath)))
 	hasBck := false
 	if common.FileExists(pbPath) {
 		hasBck = true
@@ -222,12 +225,10 @@ func (m *pbOplMng) doGetLogicalEntry(path_ string) (*opelog.LogicalEntry, error)
 
 // GetLogicalEntry implements [opelog.OpeLogManager].
 func (m *pbOplMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error) {
-	m.mx.Lock()
-	defer m.mx.Unlock()
 	if !m.isOpen {
 		return nil, errors.New("pbOplMng.GetLogicalEntry: not opened")
 	}
-	ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), rp2pbp(relPath)))
+	ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), common.Id2Path(rp2Id(relPath))))
 	if err != nil {
 		if errors.Is(err, fs.ErrNotExist) {
 			return nil, nil
@@ -304,7 +305,7 @@ func (m *pbOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) erro
 		return strings.Compare(a, b)
 	})
 	for _, relPath := range rps {
-		ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), rp2pbp(relPath)))
+		ole, err := m.doGetLogicalEntry(path.Join(path.Dir(m.path_), common.Id2Path(rp2Id(relPath))))
 		if err != nil {
 			hasErrors = true
 			m.lgr.Error("pbOplMng.Walk: phase2", "relPath", relPath, "err", err)
