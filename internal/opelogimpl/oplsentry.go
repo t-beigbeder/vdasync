@@ -22,12 +22,7 @@ func (ose *oplStoredEntry) previousEvent() *opelog.Event {
 }
 
 // removedChildren retrieve event history information to inform about previous state
-//
-// it only provides information when dryrun is not used
 func (ose *oplStoredEntry) removedChildren() []string {
-	if ose.ole.owo().Dryrun { // TODO: to be further analyzed, there is no consistency
-		return nil
-	}
 	pEv := ose.previousEvent()
 	if pEv == nil || pEv.Se == nil {
 		return nil

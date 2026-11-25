@@ -20,17 +20,38 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:           "update - simple - presync",
-			lgr:             cliLgr,
-			ftgen:           ftGenSTSimple,
-			hasPreDryrun:    true,
-			allowReadPhase2: true,
+			label:             "update - simple - presync - rsyncVerif",
+			ftgen:             ftGenSTSimple,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			rsyncVerif:        true,
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Rm: true},
-				ExpRpt:          "full",
 			},
-			specialInterest: []string{"td4"},
-			speIntPhase:     "phase2",
+		},
+		{
+			label:             "update - increment - c4 aug small - pbf",
+			ftgen:             ftGenAugSmall,
+			ftupd:             ftUpdAugSmall,
+			conc:              4,
+			hasPbfOplm:        true,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			allowRemovePhase4: true,
+		},
+		{
+			label:             "update - increment - c4 aug small - pbf - vlq",
+			ftgen:             ftGenAugSmall,
+			ftupd:             ftUpdAugSmall,
+			conc:              4,
+			hasPbfOplm:        true,
+			hasVlq:            true,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			allowRemovePhase4: true,
 		},
 	}
 

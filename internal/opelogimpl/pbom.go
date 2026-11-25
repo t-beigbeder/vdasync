@@ -200,6 +200,7 @@ func (m *pbOplMng) PutLogicalEntry(relPath string, ole *opelog.LogicalEntry) err
 	pbPath := path.Join(path.Dir(m.path_), rp2pbp(relPath))
 	hasBck := false
 	if common.FileExists(pbPath) {
+		// ensures Get on R/O oplm (w/o lock) will either return nil or correct ole
 		hasBck = true
 		if err := os.Rename(pbPath, pbPath+".bck"); err != nil {
 			return err
@@ -227,6 +228,8 @@ func (m *pbOplMng) doGetLogicalEntry(path_ string) (*opelog.LogicalEntry, error)
 }
 
 // GetLogicalEntry implements [opelog.OpeLogManager].
+//
+// Returns existing entry or nil
 func (m *pbOplMng) GetLogicalEntry(relPath string) (*opelog.LogicalEntry, error) {
 	m.mx.Lock()
 	defer m.mx.Unlock()
@@ -264,6 +267,11 @@ func (m *pbOplMng) doWalk(doIt func(path_ string) error) error {
 }
 
 // Walk implements [opelog.OpeLogManager].
+//
+// Entries are fetched w/o lock, if a writer is operating concurrently,
+// some reads may fail silently (simply logged)
+//
+// Function doIt won't be called if existing entry read fails during an update
 func (m *pbOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) error, sorted bool, reverse bool) error {
 	if !m.isOpen {
 		return errors.New("pbOplMng.Walk: not opened")

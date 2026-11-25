@@ -50,9 +50,11 @@ type owTest struct {
 	hasNoPhase2        bool
 	hasNoExpCsv2       bool
 	allowReadPhase2    bool
+	allowRemovePhase2  bool
 	hasNoPhase4        bool
 	hasNoExpCsv4       bool
 	allowReadPhase4    bool
+	allowRemovePhase4  bool
 	csvName            string
 	std, ltd, ttd, ctd string
 	noGenSDs, noGenTDs bool
@@ -390,14 +392,19 @@ func (owt *owTest) newOplWalker(session, inventory string) OplWalker {
 	)
 }
 
-func (owt *owTest) checkStats(stats *opelog.ComputedStats, allowRead bool) bool {
+func (owt *owTest) checkStats(stats *opelog.ComputedStats, allowRead, allowRemove bool) (res bool) {
 	if !stats.IsSet(true) {
 		return true
 	}
 	if !allowRead {
-		return false
+		return
 	}
-	return stats.Create.Number+stats.Update.Number+stats.Remove.Number+stats.MetaChange.Number+stats.Error.Number == 0
+	if !allowRemove {
+		res = stats.Create.Number+stats.Update.Number+stats.Remove.Number+stats.MetaChange.Number+stats.Error.Number == 0
+	} else {
+		res = stats.Create.Number+stats.Update.Number+stats.MetaChange.Number+stats.Error.Number == 0
+	}
+	return
 }
 
 func (owt *owTest) tarTestDirs(baseCtx string) {
@@ -551,7 +558,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase2", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if !owt.checkStats(stats, owt.allowReadPhase2) {
+		if !owt.checkStats(stats, owt.allowReadPhase2, owt.allowRemovePhase2) {
 			ctx = "phase2"
 			err = errors.New("stats is set")
 			return
@@ -603,7 +610,7 @@ func (owt *owTest) runOwTest() (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase4", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if !owt.checkStats(stats, owt.allowReadPhase4) {
+		if !owt.checkStats(stats, owt.allowReadPhase4, owt.allowRemovePhase4) {
 			ctx = "phase4"
 			err = errors.New("stats is set")
 		}
@@ -655,7 +662,7 @@ func custTestNoKeepCached(owt *owTest) (err error) {
 	if ctx, stats, err = owt.walkStatsCsv("phase2bis", owt.session1, owt.inventory); err != nil {
 		return
 	}
-	if !owt.checkStats(stats, owt.allowReadPhase2) {
+	if !owt.checkStats(stats, owt.allowReadPhase2, owt.allowRemovePhase2) {
 		ctx = "phase2bis"
 		err = errors.New("stats is set")
 	}
@@ -692,7 +699,7 @@ func custTestNewSession(owt *owTest) (err error) {
 		if ctx, stats, err = owt.walkStatsCsv("phase2", owt.session1, owt.inventory); err != nil {
 			return
 		}
-		if !owt.checkStats(stats, owt.allowReadPhase2) {
+		if !owt.checkStats(stats, owt.allowReadPhase2, owt.allowRemovePhase2) {
 			ctx = "phase2"
 			err = errors.New("stats is set")
 			return
@@ -715,7 +722,7 @@ func custTestNewSession(owt *owTest) (err error) {
 	if ctx, stats, err = owt.walkStatsCsv("phase4", owt.session1, owt.inventory); err != nil {
 		return
 	}
-	if !owt.checkStats(stats, owt.allowReadPhase4) {
+	if !owt.checkStats(stats, owt.allowReadPhase4, owt.allowRemovePhase4) {
 		ctx = "phase4"
 		err = errors.New("stats is set")
 	}
@@ -781,12 +788,14 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase2: true,
 		},
 		{
-			label:           "update - increment - c4 aug small",
-			ftgen:           ftGenAugSmall,
-			ftupd:           ftUpdAugSmall,
-			conc:            4,
-			allowReadPhase2: true,
-			allowReadPhase4: true,
+			label:             "update - increment - c4 aug small",
+			ftgen:             ftGenAugSmall,
+			ftupd:             ftUpdAugSmall,
+			conc:              4,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			allowRemovePhase4: true,
 		},
 		{
 			label:           "update - nocheck noop-increment",
@@ -887,48 +896,58 @@ func TestManyOplWalkers(t *testing.T) {
 			allowReadPhase2: true,
 		},
 		{
-			label:           "update - tiny - rsync verified",
-			ftgen:           ftGenAugTiny,
-			ftupd:           ftUpdAugTinyAfterSec,
-			rsyncVerif:      true,
-			allowReadPhase2: true,
-			allowReadPhase4: true,
+			label:             "update - tiny - rsync verified",
+			ftgen:             ftGenAugTiny,
+			ftupd:             ftUpdAugTinyAfterSec,
+			rsyncVerif:        true,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			allowRemovePhase4: true,
 		},
 		{
-			label:           "update - simple - rsync verified",
-			ftgen:           ftGenSimple,
-			ftupd:           ftUpdSimple,
-			rsyncVerif:      true,
-			allowReadPhase2: true,
-			allowReadPhase4: true,
+			label:             "update - simple - rsync verified",
+			ftgen:             ftGenSimple,
+			ftupd:             ftUpdSimple,
+			rsyncVerif:        true,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			allowRemovePhase4: true,
 		},
 		{
-			label:           "update - simple - presync - rsyncVerif",
-			ftgen:           ftGenSTSimple,
-			allowReadPhase2: true,
-			rsyncVerif:      true,
+			label:             "update - simple - presync - rsyncVerif",
+			ftgen:             ftGenSTSimple,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			rsyncVerif:        true,
 			owo: &config.OpeLogOptionsType{
 				SyncOptionsType: config.SyncOptionsType{Rm: true},
 			},
 		},
 		{
-			label:           "update - increment - c4 aug small - pbf",
-			ftgen:           ftGenAugSmall,
-			ftupd:           ftUpdAugSmall,
-			conc:            4,
-			hasPbfOplm:      true,
-			allowReadPhase2: true,
-			allowReadPhase4: true,
+			label:             "update - increment - c4 aug small - pbf",
+			ftgen:             ftGenAugSmall,
+			ftupd:             ftUpdAugSmall,
+			conc:              4,
+			hasPbfOplm:        true,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			allowRemovePhase4: true,
 		},
 		{
-			label:           "update - increment - c4 aug small - pbf - vlq",
-			ftgen:           ftGenAugSmall,
-			ftupd:           ftUpdAugSmall,
-			conc:            4,
-			hasPbfOplm:      true,
-			hasVlq:          true,
-			allowReadPhase2: true,
-			allowReadPhase4: true,
+			label:             "update - increment - c4 aug small - pbf - vlq",
+			ftgen:             ftGenAugSmall,
+			ftupd:             ftUpdAugSmall,
+			conc:              4,
+			hasPbfOplm:        true,
+			hasVlq:            true,
+			allowReadPhase2:   true,
+			allowRemovePhase2: true,
+			allowReadPhase4:   true,
+			allowRemovePhase4: true,
 		},
 	}
 
