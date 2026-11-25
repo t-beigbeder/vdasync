@@ -4,12 +4,14 @@ import (
 	"io/fs"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/t-beigbeder/vdasync/internal/common"
 	"github.com/t-beigbeder/vdasync/opelog"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestPbfBaseOpeLogs(t *testing.T) {
@@ -127,4 +129,42 @@ func TestPbfWalk(t *testing.T) {
 	require.Equal(t, len(rps1), len(rps3))
 	require.NoError(t, olm.Close())
 	lgr.Debug("TestPbfWalk: end")
+}
+
+func TestOplSupport(t *testing.T) {
+	t.Skip("just for support")
+	lgr := common.GetLogger()
+	// lgr = common.DbgLogger()
+	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	_ = cliLgr
+	lgr = cliLgr
+	lgr.Debug("TestPbfWalk: start")
+	path_ := "/tmp/opd/mst.pbf"
+	olm, err := MakePbfManager(lgr, path_, 0)
+	require.NoError(t, err)
+	require.NoError(t, olm.Open(true))
+	olm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+		_, _ = relPath, ole
+		if ole == nil {
+			lgr.Error("TestOplSupport", "ole", "nil")
+			return nil
+		}
+		gole := opelog.LogicalEntry2ProtoBuf(ole)
+		bole, err := proto.Marshal(gole)
+		if err != nil {
+			lgr.Error("TestOplSupport", "err", err)
+			return nil
+		}
+		if strings.HasPrefix(relPath, "tmp/opd/") && len(relPath) == 10 {
+			return nil
+		}
+		if strings.HasPrefix(relPath, ".git/objects/") && len(relPath) == 15 {
+			return nil
+		}
+		if len(bole) > 2000 {
+			lgr.Info("TestOplSupport", "relPath", relPath, "size", len(bole))
+		}
+		return nil
+	}, false, false)
+	require.NoError(t, olm.Close())
 }
