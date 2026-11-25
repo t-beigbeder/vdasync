@@ -342,15 +342,18 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 	return nil
 }
 
-// tryReadForCheck reads source or target regular file if needed to compare checksums.
+// readForCheck reads source or target regular file if needed to compare checksums.
 // In the case of source, it also compares checksum with inventory if requested.
-func (ose *oplStoredEntry) tryReadForCheck() error {
+func (ose *oplStoredEntry) readForCheck() error {
+	ose.setStatsFor("rd", ose.getState().Se.Size)
+	if ose.owo().Dryrun {
+		return nil
+	}
 	css, err := ose.dssRead()
 	if err != nil {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		return err
 	}
-	ose.setStatsFor("rd", ose.getState().Se.Size)
 	tCss, err := common.Checksums2TypedChecksums(css)
 	if err != nil {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
@@ -380,7 +383,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 		return nil
 	}
 	if ose.isRegularFile() && !ose.hasError() && ose.stCheckNeeded() {
-		if err := ose.tryReadForCheck(); err != nil {
+		if err := ose.readForCheck(); err != nil {
 			return err
 		}
 		tCss := ose.getState().Tcss

@@ -255,10 +255,10 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	}
 	sOse, tOse := ole.source, ole.target
 	if ole.checkForLoadBeforeUpdate() {
-		if err := sOse.tryReadForCheck(); err != nil {
+		if err := sOse.readForCheck(); err != nil {
 			return err
 		}
-		if err := tOse.tryReadForCheck(); err != nil {
+		if err := tOse.readForCheck(); err != nil {
 			return err
 		}
 	}
