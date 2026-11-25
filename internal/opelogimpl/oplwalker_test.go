@@ -644,12 +644,14 @@ func custTestNoKeepCached(owt *owTest) (err error) {
 	// phase2: dryrun
 	time.Sleep(time.Millisecond)
 	owt.owo.Dryrun = true
+	owt.owo.KeepCached = true
 	if ctx, stats, err = owt.walkStatsCsv("phase2", owt.session1, owt.inventory); err != nil {
 		return
 	}
 
 	// phase1bis: again
 	time.Sleep(time.Millisecond)
+	owt.owo.KeepCached = false
 	owt.owo.Dryrun = false
 	if ctx, stats, err = owt.walkStatsCsv("phase1bis", owt.session1, owt.inventory); err != nil {
 		return
@@ -711,6 +713,7 @@ func custTestNewSession(owt *owTest) (err error) {
 	if goal != "" {
 		owt.owo.Goal = goal
 	}
+	owt.owo.Dryrun = false
 	if ctx, _, err = owt.walkStatsCsv("phase3", owt.session2, owt.inventory); err != nil {
 		return
 	}

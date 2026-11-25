@@ -15,43 +15,22 @@ import (
 )
 
 func TestSingleOplWalkers(t *testing.T) {
-	// t.Skip("for setup only")
+	t.Skip("for setup only")
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:             "update - simple - presync - rsyncVerif",
-			ftgen:             ftGenSTSimple,
-			allowReadPhase2:   true,
-			allowRemovePhase2: true,
-			allowReadPhase4:   true,
-			rsyncVerif:        true,
+			label: "update once - new session",
+			ftgen: ftGenAugTiny,
+			conc:  4,
 			owo: &config.OpeLogOptionsType{
-				SyncOptionsType: config.SyncOptionsType{Rm: true},
+				ExpRpt: "full",
+				SyncOptionsType: config.SyncOptionsType{Check: true},
 			},
-		},
-		{
-			label:             "update - increment - c4 aug small - pbf",
-			ftgen:             ftGenAugSmall,
-			ftupd:             ftUpdAugSmall,
-			conc:              4,
-			hasPbfOplm:        true,
-			allowReadPhase2:   true,
-			allowRemovePhase2: true,
-			allowReadPhase4:   true,
-			allowRemovePhase4: true,
-		},
-		{
-			label:             "update - increment - c4 aug small - pbf - vlq",
-			ftgen:             ftGenAugSmall,
-			ftupd:             ftUpdAugSmall,
-			conc:              4,
-			hasPbfOplm:        true,
-			hasVlq:            true,
-			allowReadPhase2:   true,
-			allowRemovePhase2: true,
-			allowReadPhase4:   true,
-			allowRemovePhase4: true,
+			allowReadPhase2: true,
+			allowReadPhase4: true,
+			session2:        "ses2",
+			custoTest:       custTestNewSession,
 		},
 	}
 

@@ -201,7 +201,8 @@ func (ole *oplLogicalEntry) tryRm() error {
 
 // checkForLoadBeforeUpdate checks, when checksum compare is set,
 // if s/t both present regular files
-// and if they need full read for checksum check
+//
+// must be followed by ose.stCheckNeeded
 func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
 	if !ole.owo().Check {
 		return false
@@ -255,11 +256,15 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	}
 	sOse, tOse := ole.source, ole.target
 	if ole.checkForLoadBeforeUpdate() {
-		if err := sOse.readForCheck(); err != nil {
-			return err
+		if sOse.stCheckNeeded() {
+			if err := sOse.readForCheck(); err != nil {
+				return err
+			}
 		}
-		if err := tOse.readForCheck(); err != nil {
-			return err
+		if tOse.stCheckNeeded() {
+			if err := tOse.readForCheck(); err != nil {
+				return err
+			}
 		}
 	}
 	if !ole.checkForUpdate(false) && !tOse.isDir() {
