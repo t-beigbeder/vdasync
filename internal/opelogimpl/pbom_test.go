@@ -1,6 +1,7 @@
 package opelogimpl
 
 import (
+	"fmt"
 	"io/fs"
 	"path"
 	"path/filepath"
@@ -132,7 +133,7 @@ func TestPbfWalk(t *testing.T) {
 }
 
 func TestOplSupport(t *testing.T) {
-	t.Skip("just for support")
+	// t.Skip("just for support")
 	lgr := common.GetLogger()
 	// lgr = common.DbgLogger()
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
@@ -143,6 +144,8 @@ func TestOplSupport(t *testing.T) {
 	olm, err := MakePbfManager(lgr, path_, 0)
 	require.NoError(t, err)
 	require.NoError(t, olm.Open(true))
+	total := 0
+	number := 0
 	olm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
 		_, _ = relPath, ole
 		if ole == nil {
@@ -155,6 +158,8 @@ func TestOplSupport(t *testing.T) {
 			lgr.Error("TestOplSupport", "err", err)
 			return nil
 		}
+		total += len(bole)
+		number++
 		if strings.HasPrefix(relPath, "tmp/opd/") && len(relPath) == 10 {
 			return nil
 		}
@@ -162,9 +167,10 @@ func TestOplSupport(t *testing.T) {
 			return nil
 		}
 		if len(bole) > 2000 {
-			lgr.Info("TestOplSupport", "relPath", relPath, "size", len(bole))
+			lgr.Debug("TestOplSupport", "relPath", relPath, "size", len(bole))
 		}
 		return nil
 	}, false, false)
+	lgr.Info("TestOplSupport", "stats", fmt.Sprintf("total %d - number %d - avr %d", total, number, total / number))
 	require.NoError(t, olm.Close())
 }
