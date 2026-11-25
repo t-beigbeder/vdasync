@@ -135,7 +135,7 @@ func main() {
 		Size:        *sizeFlag,
 		Concurrency: *cf.ConcurrencyFlag,
 		OplPath:     *svsf.OplPathFlag,
-		OplSto:     *svsf.OplStoFlag,
+		OplSto:      *svsf.OplStoFlag,
 		OplSes:      *svsf.OplSesFlag,
 		OplInv:      *svsf.OplInvFlag,
 		ExpFile:     *svsf.CsvFlag,

@@ -28,11 +28,11 @@ type veryLongQueue struct {
 }
 
 func (vlq *veryLongQueue) saveEntries() error {
-	fp := path.Join(vlq.dir, fmt.Sprintf(".largeQ-%d.txt", vlq.pOff/vlq.segSize-1))
+	fp := path.Join(vlq.dir, fmt.Sprintf("vlq-%d.txt", vlq.pOff/vlq.segSize-1))
 	out := make([]string, 0, vlq.pEntries.Len())
 	out = vlq.pEntries.AppendToSlice(out)
 	if err := common.WriteFile(fp, []byte(strings.Join(out, "\n"))); err != nil {
-		return fmt.Errorf("largeQ.saveEntries: write %s error %v", fp, err)
+		return fmt.Errorf("vlq.saveEntries: write %s error %v", fp, err)
 	}
 	vlq.pEntries.Clear()
 	return nil
@@ -52,7 +52,7 @@ func (vlq *veryLongQueue) Close() error {
 	vlq.mx.Lock()
 	defer vlq.mx.Unlock()
 	if vlq.closed {
-		return errors.New("largeQ.Close: already done")
+		return errors.New("vlq.Close: already done")
 	}
 	vlq.closed = true
 	if vlq.pEntries.Len() > 0 {
@@ -86,17 +86,17 @@ func (vlq *veryLongQueue) Get() (string, error) {
 		return s, nil
 	}
 	if vlq.cEntries.Len() == 0 {
-		fp := path.Join(vlq.dir, fmt.Sprintf(".largeQ-%d.txt", vlq.cOff/vlq.segSize))
+		fp := path.Join(vlq.dir, fmt.Sprintf("vlq-%d.txt", vlq.cOff/vlq.segSize))
 		bs, err := common.UnsafeLoadFile(fp)
 		if err != nil {
-			return "", fmt.Errorf("largeQ.Get: load error %v pOff %d cOff %d", err, vlq.pOff, vlq.cOff)
+			return "", fmt.Errorf("vlq.Get: load error %v pOff %d cOff %d", err, vlq.pOff, vlq.cOff)
 		}
 		if err := os.Remove(fp); err != nil {
-			return "", fmt.Errorf("largeQ.Get: remove error %v", err)
+			return "", fmt.Errorf("vlq.Get: remove error %v", err)
 		}
 		lns := strings.Split(string(bs), "\n")
 		if len(lns) > vlq.segSize {
-			return "", fmt.Errorf("largeQ.Get: read %s len %d", fp, len(lns))
+			return "", fmt.Errorf("vlq.Get: read %s len %d", fp, len(lns))
 		}
 		vlq.cEntries.CopyInSlice(lns)
 	}
@@ -111,12 +111,12 @@ func (vlq *veryLongQueue) Get() (string, error) {
 // Put implements [opelog.Queue].
 func (vlq *veryLongQueue) Put(s string) error {
 	if strings.Contains(s, "\n") {
-		return errors.New("largeQ.Put optimization forbids \\n character")
+		return errors.New("vlq.Put optimization forbids \\n character")
 	}
 	vlq.mx.Lock()
 	defer vlq.mx.Unlock()
 	if vlq.closed {
-		return errors.New("largeQ.Put: write on closed queue")
+		return errors.New("vlq.Put: write on closed queue")
 	}
 	vlq.prodEvent()
 	vlq.pEntries.PushBack(s)

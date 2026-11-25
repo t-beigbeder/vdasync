@@ -217,7 +217,7 @@ func RecChtime(td string, mtime int64) error {
 }
 
 func MakeSimpleTestFilesTree(td string) error {
-	for _, testd := range []string{"td1", "td2", "td2/tr2", "td3", "td3/ta3"} {
+	for _, testd := range []string{"td1", "td2", "td2/tr2", "td3", "td3/ta3", "td4", "td4/tr4", "td4/tr4/trs41"} {
 		if err := os.MkdirAll(path.Join(td, testd), 0750); err != nil {
 			return err
 		}
@@ -242,6 +242,9 @@ func UpdateSimpleTestsFilesTree(td string) error {
 		if err := os.Remove(path.Join(td, "td2/tr2", tf)); err != nil {
 			return err
 		}
+	}
+	if err := os.RemoveAll(path.Join(td, "td4/tr4")); err != nil {
+		return err
 	}
 	if err := Lutimes(path.Join(td, "td2/tr2"), fi.ModTime().Unix()); err != nil {
 		return err

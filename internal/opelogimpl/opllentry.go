@@ -123,6 +123,23 @@ func (ole *oplLogicalEntry) propagateChildrenStats() error {
 		}
 		propagate = true
 	}
+
+	for _, child := range ole.target.removedChildren() {
+		if cle, err = ole.loadClientCache(child); err != nil {
+			return err
+		}
+		if cle == nil {
+			continue
+		}
+		cStats := cle.GetStats(ole.owi.sessionTime)
+		if cStats == nil {
+			continue
+		}
+		stats.Remove.Number += cStats.Remove.Number
+		stats.Remove.Size += cStats.Remove.Size
+		propagate = true
+	}
+
 	if propagate {
 		// dirs stats always up-to-date
 		ole.hasChanges = true
@@ -184,7 +201,8 @@ func (ole *oplLogicalEntry) tryRm() error {
 
 // checkForLoadBeforeUpdate checks, when checksum compare is set,
 // if s/t both present regular files
-// and if they need full read for checksum check
+//
+// must be followed by ose.stCheckNeeded
 func (ole *oplLogicalEntry) checkForLoadBeforeUpdate() bool {
 	if !ole.owo().Check {
 		return false
@@ -238,11 +256,15 @@ func (ole *oplLogicalEntry) tryUpdate() error {
 	}
 	sOse, tOse := ole.source, ole.target
 	if ole.checkForLoadBeforeUpdate() {
-		if err := sOse.tryReadForCheck(); err != nil {
-			return err
+		if sOse.stCheckNeeded() {
+			if err := sOse.readForCheck(); err != nil {
+				return err
+			}
 		}
-		if err := tOse.tryReadForCheck(); err != nil {
-			return err
+		if tOse.stCheckNeeded() {
+			if err := tOse.readForCheck(); err != nil {
+				return err
+			}
 		}
 	}
 	if !ole.checkForUpdate(false) && !tOse.isDir() {

@@ -20,13 +20,17 @@ func TestSingleOplWalkers(t *testing.T) {
 	_ = cliLgr
 	owts := []owTest{
 		{
-			label:           "update - increment - c4 aug small - pbf",
-			ftgen:           ftGenAugSmall,
-			ftupd:           ftUpdAugSmall,
-			conc:            4,
-			hasPbfOplm:      true,
+			label: "update once - new session",
+			ftgen: ftGenAugTiny,
+			conc:  4,
+			owo: &config.OpeLogOptionsType{
+				ExpRpt: "full",
+				SyncOptionsType: config.SyncOptionsType{Check: true},
+			},
 			allowReadPhase2: true,
 			allowReadPhase4: true,
+			session2:        "ses2",
+			custoTest:       custTestNewSession,
 		},
 	}
 

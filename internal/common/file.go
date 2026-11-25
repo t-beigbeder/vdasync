@@ -63,16 +63,18 @@ func StdWriter(pathOrKw string) (io.WriteCloser, error) {
 }
 
 func WritePermFile(path_ string, data []byte, perm os.FileMode) error {
-	file, err := os.OpenFile(path_, os.O_RDWR|os.O_CREATE|os.O_TRUNC, perm)
+	file, err := os.Create(path_)
 	if err != nil {
 		return err
 	}
-	_, err = file.Write(data)
-	if err != nil {
+	if _, err = file.Write(data); err != nil {
 		file.Close()
 		return err
 	}
-	return file.Close()
+	if err = file.Close(); err != nil {
+		return err
+	}
+	return os.Chmod(path_, perm)
 }
 
 func WriteFile(path_ string, data []byte) error {

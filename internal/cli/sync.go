@@ -28,6 +28,13 @@ func makeOplManager(lgr *slog.Logger, oplSto string, path_ string, bckLimit int)
 	return opelogimpl.MakeM2fManager(lgr, path_, bckLimit)
 }
 
+func makeOplQueue(lgr *slog.Logger, path_ string) (opelog.Queue, error) {
+	if path_ == "" {
+		return opelogimpl.NewMemQueue(), nil
+	}
+	return opelogimpl.MakeVeryLongQueue(lgr, path_, 10000)
+}
+
 func RunSyncCli(df *DssaFactory) {
 	var (
 		oplCmdFlag     = flag.String("oplcmd", "", "operations log command: load,create,update")
@@ -37,6 +44,7 @@ func RunSyncCli(df *DssaFactory) {
 		oplClErrFlag   = flag.Bool("oplclerr", false, "operations log clear errors on (re)start")
 		oplKeepCFlag   = flag.Bool("oplkeepc", false, "operations log keep cache on (re)start")
 		oplErrRtlFlag  = flag.String("oplertl", "1.67e-2", "operations log errors rate limit")
+		oplQPathFlag   = flag.String("oplqp", "", "operations log path for very long queue files")
 		sourceFlag     = flag.String("source", "", "source of the command")
 		targetFlag     = flag.String("target", "", "target of the command")
 		dryRunFlag     = flag.Bool("dryrun", false, "don't run operation, just report actions")
@@ -183,6 +191,10 @@ func RunSyncCli(df *DssaFactory) {
 	if err != nil {
 		common.Fatal(lgr, err)
 	}
+	oplq, err := makeOplQueue(lgr, *oplQPathFlag)
+	if err != nil {
+		common.Fatal(lgr, err)
+	}
 	if *svsf.OplPathFlag == "" {
 		if err := oplm.Create(sourceRoot, targetRoot); err != nil {
 			common.Fatal(lgr, err)
@@ -210,7 +222,7 @@ func RunSyncCli(df *DssaFactory) {
 		Version: config.GetVersion(),
 	}
 	ow := opelogimpl.NewOplWalker(
-		lgr, *cf.ConcurrencyFlag, nil, oplm,
+		lgr, *cf.ConcurrencyFlag, oplq, oplm,
 		opti, owo,
 		sDss, tDss,
 		sourceRoot, targetRoot,

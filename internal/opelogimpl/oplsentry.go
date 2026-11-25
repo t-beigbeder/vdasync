@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
@@ -11,6 +12,34 @@ import (
 
 // This file is about high order services for stored entries
 // common services on dss are in opldss
+
+func (ose *oplStoredEntry) previousEvent() *opelog.Event {
+	evs := ose.getEvents()
+	if len(evs) < 2 {
+		return nil
+	}
+	return evs[len(evs)-2]
+}
+
+// removedChildren retrieve event history information to inform about previous state
+func (ose *oplStoredEntry) removedChildren() []string {
+	pEv := ose.previousEvent()
+	if pEv == nil || pEv.Se == nil {
+		return nil
+	}
+	cSe := ose.se()
+	if cSe == nil {
+		return pEv.Se.Children
+	}
+	res := []string{}
+	for _, child := range pEv.Se.Children {
+		if slices.Contains(cSe.Children, child) {
+			continue
+		}
+		res = append(res, child)
+	}
+	return res
+}
 
 // stCheckNeeded checks if regular file has to be read to compute checksums
 //
@@ -56,7 +85,7 @@ func (ose *oplStoredEntry) enableWriteNeeded() (yes bool) {
 func (ose *oplStoredEntry) endOrNoOpDirPossible() bool {
 	// FIXME: if DepCount has been reset, shall we loop in all circumstances?
 	ose.lgr.Debug("endOrNoOpDirPossible", "DepCount", ose.getState().DepCount, "toolRestarted", ose.toolRestarted, "lenCh", len(ose.se().Children))
-	return (ose.getState().DepCount <= 0 && !ose.toolRestarted && ose.loadTime == 0) || len(ose.se().Children) == 0
+	return ose.getState().DepCount == -1 || (ose.getState().DepCount == 0 && !ose.toolRestarted && ose.loadTime == 0) || len(ose.se().Children) == 0
 }
 
 // enableWrite enables an entry to be written if needed
@@ -313,15 +342,18 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 	return nil
 }
 
-// tryReadForCheck reads source or target regular file if needed to compare checksums.
+// readForCheck reads source or target regular file if needed to compare checksums.
 // In the case of source, it also compares checksum with inventory if requested.
-func (ose *oplStoredEntry) tryReadForCheck() error {
+func (ose *oplStoredEntry) readForCheck() error {
+	ose.setStatsFor("rd", ose.getState().Se.Size)
+	if ose.owo().Dryrun {
+		return nil
+	}
 	css, err := ose.dssRead()
 	if err != nil {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
 		return err
 	}
-	ose.setStatsFor("rd", ose.getState().Se.Size)
 	tCss, err := common.Checksums2TypedChecksums(css)
 	if err != nil {
 		ose.setState(opelog.STC_SE_ERROR, err.Error(), ose.se(), nil, 0)
@@ -351,7 +383,7 @@ func (ose *oplStoredEntry) tryLoad() error {
 		return nil
 	}
 	if ose.isRegularFile() && !ose.hasError() && ose.stCheckNeeded() {
-		if err := ose.tryReadForCheck(); err != nil {
+		if err := ose.readForCheck(); err != nil {
 			return err
 		}
 		tCss := ose.getState().Tcss

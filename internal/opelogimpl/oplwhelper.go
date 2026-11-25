@@ -117,7 +117,6 @@ func (ow *oplWalkerImpl) getLogicalEntry(lgr *slog.Logger, relPath string) (*opl
 		return nil, err
 	}
 	if ple == nil {
-		ow.oplm.GetLogicalEntry(pRelPath) // FIXME
 		err := errors.New("parent ole is nil")
 		ow.owErr(lgr, "oplWalkerImpl: GetLogicalEntry on parent initial", err)
 		return nil, err
@@ -143,12 +142,7 @@ func isChildInState(cName string, st *opelog.State) bool {
 	if st == nil || st.Se == nil {
 		return false
 	}
-	for _, child := range st.Se.Children {
-		if child == cName {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(st.Se.Children, cName)
 }
 
 func (ow *oplWalkerImpl) setupErtl() (err error) {
