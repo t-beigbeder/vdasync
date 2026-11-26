@@ -171,6 +171,6 @@ func TestOplSupport(t *testing.T) {
 		}
 		return nil
 	}, false, false)
-	lgr.Info("TestOplSupport", "stats", fmt.Sprintf("total %d - number %d - avr %d", total, number, total / number))
+	lgr.Info("TestOplSupport", "stats", fmt.Sprintf("total %d - number %d - avr %d", total, number, total/number))
 	require.NoError(t, olm.Close())
 }

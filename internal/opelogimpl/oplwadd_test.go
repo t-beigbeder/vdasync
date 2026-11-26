@@ -24,7 +24,7 @@ func TestSingleOplWalkers(t *testing.T) {
 			ftgen: ftGenAugTiny,
 			conc:  4,
 			owo: &config.OpeLogOptionsType{
-				ExpRpt: "full",
+				ExpRpt:          "full",
 				SyncOptionsType: config.SyncOptionsType{Check: true},
 			},
 			allowReadPhase2: true,
