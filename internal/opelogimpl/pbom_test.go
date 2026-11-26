@@ -133,7 +133,7 @@ func TestPbfWalk(t *testing.T) {
 }
 
 func TestOplSupport(t *testing.T) {
-	// t.Skip("just for support")
+	t.Skip("just for support")
 	lgr := common.GetLogger()
 	// lgr = common.DbgLogger()
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
