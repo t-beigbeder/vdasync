@@ -242,7 +242,7 @@ func RunSyncCli(df *DssaFactory) {
 			if err := oplm.Open(true); err != nil {
 				common.Fatal(lgr, err)
 			}
-			if err := opelogimpl.CliOutput(lgr, oplm, outFile, "auto", *svsf.PsortFlag || *svsf.RsortFlag, *svsf.RsortFlag); err != nil {
+			if err := opelogimpl.CliOutput(lgr, oplm, outFile, "auto", *svsf.PsortFlag >= 0 || *svsf.RsortFlag, *svsf.RsortFlag); err != nil {
 				if !*cf.SilentFlag {
 					fmt.Fprintf(outFile, "%s\n", ow.ToolInfo().ExecSummary)
 				}

@@ -76,7 +76,7 @@ func TestCsvExport(t *testing.T) {
 	ctd := path.Join(os.TempDir(), "oplCsv")
 	os.Mkdir(ctd, 0700)
 	csvPath := path.Join(ctd, "csv-test-full.csv")
-	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_FULL, "di", "ds", &RptConfig{ToolInfo: &opelog.ToolInformation{}, IsSorted: true}))
+	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_FULL, "di", "ds", &RptConfig{ToolInfo: &opelog.ToolInformation{}, IsSorted: true, PartsSize: 100}))
 
 	csvPath = path.Join(ctd, "csv-test-synth.csv")
 	require.NoError(t, OplCsvExport(lgr, oplmRo, csvPath, RPT_SYNTHETIC, "di", "ds", nil))
