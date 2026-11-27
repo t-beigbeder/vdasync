@@ -272,7 +272,7 @@ func TestAutoSessionDrCheck(t *testing.T) {
 		&config.OpeLogOptionsType{
 			SyncOptionsType: config.SyncOptionsType{
 				Check:  true,
-				Dryrun:  true,
+				Dryrun: true,
 			},
 			Goal:            "update",
 			NoInvCheck:      true,
