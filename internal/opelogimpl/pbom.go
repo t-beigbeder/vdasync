@@ -2,6 +2,7 @@ package opelogimpl
 
 import (
 	"crypto/sha256"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -355,15 +356,15 @@ var _ PbfManager = &pbOplMng{}
 // Backup implements [PbfManager].
 func (m *pbOplMng) Backup(bckDir string) error {
 	if !m.isOpen {
-		return fmt.Errorf("Backup: %s source is not opened", m.path_)
+		return fmt.Errorf("pbOplMng.Backup: %s source is not opened", m.path_)
 	}
 	bckFi, err := os.Stat(bckDir)
 	if err != nil || !bckFi.IsDir() {
-		return fmt.Errorf("Backup: %s directory does not exist", bckDir)
+		return fmt.Errorf("pbOplMng.Backup: %s directory does not exist", bckDir)
 	}
 	bckMf := path.Join(bckDir, path.Base(m.path_))
 	if common.FileExists(bckMf) {
-		return fmt.Errorf("Backup: %s already exists", bckMf)
+		return fmt.Errorf("pbOplMng.Backup: %s already exists", bckMf)
  	}
 	if err := m.saveMasterTo(bckMf); err != nil {
 		return nil
@@ -372,12 +373,16 @@ func (m *pbOplMng) Backup(bckDir string) error {
 	err = m.doWalk(func(path_ string) error {
 		bole, err := common.UnsafeLoadFile(path_)
 		if err != nil {
-			return err
+			m.lgr.Error("pbOplMng.Backup", "path", path_, "err", err)
+			return nil
 		}
 		gole := opeloggrpc.LogicalEntry{}
 		if err := proto.Unmarshal(bole, &gole); err != nil {
-			return err
+			m.lgr.Error("pbOplMng.Backup", "path", path_, "err", err)
+			return nil
 		}
+		bs4 := make([]byte, 4)
+		binary.BigEndian.PutUint32(bs4, uint32(len(bole)))
 		return nil
 	})
 	if err != nil {
