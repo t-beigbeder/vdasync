@@ -73,7 +73,7 @@ func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
 
 func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	ow.detail(lgr, "doOplmExport")
-	if ow.owo.ExpBck > 0 {
+	if ow.owo.ExpBck > 0 && ow.owo.PSort <= 0 {
 		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), ow.owo.ExpFile, ow.owo.ExpBck); err != nil {
 			ow.owErr(lgr, "failed to backup export logs", err)
 		}

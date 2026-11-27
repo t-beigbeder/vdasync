@@ -30,12 +30,7 @@ type pbOplMng struct {
 	isOpen   bool
 }
 
-func (m *pbOplMng) saveMaster() error {
-	if m.bckLimit > 0 {
-		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), m.path_, m.bckLimit); err != nil {
-			return err
-		}
-	}
+func (m *pbOplMng) saveMasterTo(path_ string) error {
 	gom := opelog.OpeLogMaster2ProtoBuf(m.om)
 	bs, err := proto.Marshal(gom)
 	if err != nil {
@@ -45,6 +40,15 @@ func (m *pbOplMng) saveMaster() error {
 		return err
 	}
 	return nil
+}
+
+func (m *pbOplMng) saveMaster() error {
+	if m.bckLimit > 0 {
+		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), m.path_, m.bckLimit); err != nil {
+			return err
+		}
+	}
+	return m.saveMasterTo(m.path_)
 }
 
 // Create implements [opelog.OpeLogManager].
@@ -336,6 +340,54 @@ func (m *pbOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) erro
 
 var _ opelog.OpeLogManager = &pbOplMng{}
 
-func MakePbfManager(lgr *slog.Logger, path_ string, bckLimit int) (opelog.OpeLogManager, error) {
+func MakePbfManager(lgr *slog.Logger, path_ string, bckLimit int) (PbfManager, error) {
 	return &pbOplMng{lgr: lgr, path_: path_, bckLimit: bckLimit}, nil
+}
+
+type PbfManager interface {
+	opelog.OpeLogManager
+	Backup(path_ string) error
+	Restore(path_ string) error
+}
+
+var _ PbfManager = &pbOplMng{}
+
+// Backup implements [PbfManager].
+func (m *pbOplMng) Backup(bckDir string) error {
+	if !m.isOpen {
+		return fmt.Errorf("Backup: %s source is not opened", m.path_)
+	}
+	bckFi, err := os.Stat(bckDir)
+	if err != nil || !bckFi.IsDir() {
+		return fmt.Errorf("Backup: %s directory does not exist", bckDir)
+	}
+	bckMf := path.Join(bckDir, path.Base(m.path_))
+	if common.FileExists(bckMf) {
+		return fmt.Errorf("Backup: %s already exists", bckMf)
+ 	}
+	if err := m.saveMasterTo(bckMf); err != nil {
+		return nil
+	}
+	var hasErrors bool
+	err = m.doWalk(func(path_ string) error {
+		bole, err := common.UnsafeLoadFile(path_)
+		if err != nil {
+			return err
+		}
+		gole := opeloggrpc.LogicalEntry{}
+		if err := proto.Unmarshal(bole, &gole); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("Backup: internal error: %s", err)
+	}
+	_ = hasErrors
+	return errors.ErrUnsupported
+}
+
+// Restore implements [PbfManager].
+func (m *pbOplMng) Restore(path_ string) error {
+	panic("unimplemented")
 }

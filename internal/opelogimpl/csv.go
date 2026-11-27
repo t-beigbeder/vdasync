@@ -400,13 +400,13 @@ func (cp *csvPartsStruct) createPart() error {
 			return err
 		}
 	}
-	cp.csvFileCount++
 	cf, err := os.Create(cp.partPath())
 	if err != nil {
 		return err
 	}
 	cp.csvFile = cf
 	cp.csvWriter = csv.NewWriter(cf)
+	cp.csvFileCount++
 	return cp.writeHeader(cp.csvWriter)
 }
 
