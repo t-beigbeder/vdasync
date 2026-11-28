@@ -2,7 +2,6 @@ package opelogimpl
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -37,7 +36,7 @@ func (m *pbOplMng) saveMasterTo(path_ string) error {
 	if err != nil {
 		return err
 	}
-	if err = common.WriteFile(m.path_, bs); err != nil {
+	if err = common.WriteFile(path_, bs); err != nil {
 		return err
 	}
 	return nil
@@ -339,60 +338,14 @@ func (m *pbOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) erro
 	return nil
 }
 
-var _ opelog.OpeLogManager = &pbOplMng{}
-
-func MakePbfManager(lgr *slog.Logger, path_ string, bckLimit int) (PbfManager, error) {
-	return &pbOplMng{lgr: lgr, path_: path_, bckLimit: bckLimit}, nil
-}
-
 type PbfManager interface {
 	opelog.OpeLogManager
-	Backup(path_ string) error
+	Backup(path_ string, partSize int) error
 	Restore(path_ string) error
 }
 
 var _ PbfManager = &pbOplMng{}
 
-// Backup implements [PbfManager].
-func (m *pbOplMng) Backup(bckDir string) error {
-	if !m.isOpen {
-		return fmt.Errorf("pbOplMng.Backup: %s source is not opened", m.path_)
-	}
-	bckFi, err := os.Stat(bckDir)
-	if err != nil || !bckFi.IsDir() {
-		return fmt.Errorf("pbOplMng.Backup: %s directory does not exist", bckDir)
-	}
-	bckMf := path.Join(bckDir, path.Base(m.path_))
-	if common.FileExists(bckMf) {
-		return fmt.Errorf("pbOplMng.Backup: %s already exists", bckMf)
-	}
-	if err := m.saveMasterTo(bckMf); err != nil {
-		return nil
-	}
-	var hasErrors bool
-	err = m.doWalk(func(path_ string) error {
-		bole, err := common.UnsafeLoadFile(path_)
-		if err != nil {
-			m.lgr.Error("pbOplMng.Backup", "path", path_, "err", err)
-			return nil
-		}
-		gole := opeloggrpc.LogicalEntry{}
-		if err := proto.Unmarshal(bole, &gole); err != nil {
-			m.lgr.Error("pbOplMng.Backup", "path", path_, "err", err)
-			return nil
-		}
-		bs4 := make([]byte, 4)
-		binary.BigEndian.PutUint32(bs4, uint32(len(bole)))
-		return nil
-	})
-	if err != nil {
-		return fmt.Errorf("Backup: internal error: %s", err)
-	}
-	_ = hasErrors
-	return errors.ErrUnsupported
-}
-
-// Restore implements [PbfManager].
-func (m *pbOplMng) Restore(path_ string) error {
-	panic("unimplemented")
+func MakePbfManager(lgr *slog.Logger, path_ string, bckLimit int) (PbfManager, error) {
+	return &pbOplMng{lgr: lgr, path_: path_, bckLimit: bckLimit}, nil
 }

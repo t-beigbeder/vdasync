@@ -3,6 +3,7 @@ package opelogimpl
 import (
 	"fmt"
 	"io/fs"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -133,7 +134,7 @@ func TestPbfWalk(t *testing.T) {
 }
 
 func TestOplSupport(t *testing.T) {
-	t.Skip("just for support")
+	// t.Skip("just for support")
 	lgr := common.GetLogger()
 	// lgr = common.DbgLogger()
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
@@ -173,4 +174,11 @@ func TestOplSupport(t *testing.T) {
 	}, false, false)
 	lgr.Info("TestOplSupport", "stats", fmt.Sprintf("total %d - number %d - avr %d", total, number, total/number))
 	require.NoError(t, olm.Close())
+
+	require.NoError(t, olm.Open(true))
+
+	os.Mkdir("/local/tmp/opd_bck",0750)
+	require.NoError(t, olm.Backup("/local/tmp/opd_bck", 1000))
+	require.NoError(t, olm.Close())
+
 }
