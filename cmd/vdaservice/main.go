@@ -140,6 +140,7 @@ func main() {
 		OplInv:      *svsf.OplInvFlag,
 		ExpFile:     *svsf.CsvFlag,
 		ExpRpt:      *svsf.RptFlag,
+		ExpPSize:    *svsf.CsvPSize,
 		Psort:       *svsf.PsortFlag,
 		Rsort:       *svsf.RsortFlag,
 		SrcRoot:     *sRootFlag,

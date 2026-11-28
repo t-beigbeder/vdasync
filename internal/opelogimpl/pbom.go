@@ -365,7 +365,7 @@ func (m *pbOplMng) Backup(bckDir string) error {
 	bckMf := path.Join(bckDir, path.Base(m.path_))
 	if common.FileExists(bckMf) {
 		return fmt.Errorf("pbOplMng.Backup: %s already exists", bckMf)
- 	}
+	}
 	if err := m.saveMasterTo(bckMf); err != nil {
 		return nil
 	}

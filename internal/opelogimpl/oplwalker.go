@@ -73,7 +73,7 @@ func (ow *oplWalkerImpl) doOplmSync(lgr *slog.Logger) {
 
 func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	ow.detail(lgr, "doOplmExport")
-	if ow.owo.ExpBck > 0 && ow.owo.PSort <= 0 {
+	if ow.owo.ExpBck > 0 && ow.owo.ExpPSize == 0 {
 		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), ow.owo.ExpFile, ow.owo.ExpBck); err != nil {
 			ow.owErr(lgr, "failed to backup export logs", err)
 		}
@@ -86,7 +86,7 @@ func (ow *oplWalkerImpl) doOplmExport(lgr *slog.Logger) {
 	}
 	if err := OplCsvExport(
 		ow.lgr, ow.oplm, ow.owo.ExpFile, rpt, ow.inventory, ow.session,
-		&RptConfig{ToolInfo: ow.oplTi, IsSorted: ow.owo.PSort >= 0, PartsSize: ow.owo.PSort, IsReverse: ow.owo.RSort}); err != nil {
+		&RptConfig{ToolInfo: ow.oplTi, IsSorted: ow.owo.PSort, PartsSize: ow.owo.ExpPSize, IsReverse: ow.owo.RSort}); err != nil {
 
 		ow.owErr(lgr, "failed to export logs", err)
 	}

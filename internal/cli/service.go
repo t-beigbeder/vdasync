@@ -208,7 +208,8 @@ type ServiceCtx struct {
 	OplInv      string
 	ExpFile     string
 	ExpRpt      string
-	Psort       int
+	ExpPSize    int
+	Psort       bool
 	Rsort       bool
 	SrcRoot     string
 	TgtRoot     string
@@ -540,7 +541,7 @@ func doOplExp(sc *ServiceCtx) error {
 	}
 	if err := opelogimpl.OplCsvExport(
 		sc.Lgr, oplm, sc.ExpFile, rpt, sc.OplInv, sc.OplSes,
-		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: sc.Psort >= 0, PartsSize: sc.Psort, IsReverse: sc.Rsort},
+		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: sc.Psort, PartsSize: sc.ExpPSize, IsReverse: sc.Rsort},
 	); err != nil {
 
 		return err
