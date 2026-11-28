@@ -143,7 +143,6 @@ func TestPbfWalk(t *testing.T) {
 	rtd := t.TempDir()
 	orlm, err := MakePbfManager(lgr, path.Join(rtd, "master.pbf"), 0)
 	require.NoError(t, orlm.Restore(btd))
-	require.NoError(t, orlm.Close())
 
 	require.NoError(t, orlm.Open(true))
 	total := 0
