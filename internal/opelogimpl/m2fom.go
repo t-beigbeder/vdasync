@@ -313,7 +313,7 @@ func (m *m2fOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) err
 	if sorted {
 		rps := make([]string, len(m.les))
 		i := 0
-		for rp, _ := range m.les {
+		for rp := range m.les {
 			rps[i] = rp
 			i++
 		}

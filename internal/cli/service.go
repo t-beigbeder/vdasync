@@ -208,10 +208,12 @@ type ServiceCtx struct {
 	OplInv      string
 	ExpFile     string
 	ExpRpt      string
+	ExpPSize    int
 	Psort       bool
 	Rsort       bool
 	SrcRoot     string
 	TgtRoot     string
+	BrDir       string
 	Lgr         *slog.Logger
 	OutFile     io.Writer
 }
@@ -242,6 +244,10 @@ func DoService(sc *ServiceCtx) error {
 		return doOplImpi(sc)
 	case "oplexpi":
 		return doOplExpi(sc)
+	case "oplbck":
+		return doOplBackup(sc)
+	case "oplrst":
+		return doOplRestore(sc)
 	case "version":
 		return doVersion(sc)
 	case "shutdown":
@@ -540,7 +546,7 @@ func doOplExp(sc *ServiceCtx) error {
 	}
 	if err := opelogimpl.OplCsvExport(
 		sc.Lgr, oplm, sc.ExpFile, rpt, sc.OplInv, sc.OplSes,
-		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: sc.Psort, IsReverse: sc.Rsort},
+		&opelogimpl.RptConfig{ToolInfo: ti, IsSorted: sc.Psort, PartsSize: sc.ExpPSize, IsReverse: sc.Rsort},
 	); err != nil {
 
 		return err
@@ -606,6 +612,52 @@ func doOplExpi(sc *ServiceCtx) error {
 		return errors.New("doOplExpi: no csv")
 	}
 	if err := opelogimpl.InventoryCsvExport(sc.Root, sc.ExpFile, sc.CsAlgos); err != nil {
+		return err
+	}
+	return nil
+}
+
+func doOplBackup(sc *ServiceCtx) error {
+	if sc.BrDir == "" {
+		return errors.New("doOplBackup: no brdir")
+	}
+	if sc.OplPath == "" {
+		return errors.New("doOplDmi: no oplpath")
+	}
+	oplm, err := makeOplManager(sc.Lgr, sc.OplSto, sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	opbm, ok := oplm.(opelogimpl.PbfManager)
+	if !ok {
+		return fmt.Errorf("cannot backup opl type %s", opbm.GetOlm().StoreType)
+	}
+	if err = opbm.Open(true); err != nil {
+		return err
+	}
+	defer opbm.Close()
+	if err = opbm.Backup(sc.BrDir, 100000); err != nil {
+		return err
+	}
+	return nil
+}
+
+func doOplRestore(sc *ServiceCtx) error {
+	if sc.BrDir == "" {
+		return errors.New("doOplRestore: no brdir")
+	}
+	if sc.OplPath == "" {
+		return errors.New("doOplDmi: no oplpath")
+	}
+	oplm, err := makeOplManager(sc.Lgr, sc.OplSto, sc.OplPath, 0)
+	if err != nil {
+		return err
+	}
+	opbm, ok := oplm.(opelogimpl.PbfManager)
+	if !ok {
+		return fmt.Errorf("cannot restore opl type %s", sc.OplSto)
+	}
+	if err = opbm.Restore(sc.BrDir); err != nil {
 		return err
 	}
 	return nil

@@ -30,21 +30,25 @@ type pbOplMng struct {
 	isOpen   bool
 }
 
+func (m *pbOplMng) saveMasterTo(path_ string) error {
+	gom := opelog.OpeLogMaster2ProtoBuf(m.om)
+	bs, err := proto.Marshal(gom)
+	if err != nil {
+		return err
+	}
+	if err = common.WriteFile(path_, bs); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (m *pbOplMng) saveMaster() error {
 	if m.bckLimit > 0 {
 		if err := common.LimitedBackup(localfiles.MakeLocalFilesDssa(), m.path_, m.bckLimit); err != nil {
 			return err
 		}
 	}
-	gom := opelog.OpeLogMaster2ProtoBuf(m.om)
-	bs, err := proto.Marshal(gom)
-	if err != nil {
-		return err
-	}
-	if err = common.WriteFile(m.path_, bs); err != nil {
-		return err
-	}
-	return nil
+	return m.saveMasterTo(m.path_)
 }
 
 // Create implements [opelog.OpeLogManager].
@@ -334,8 +338,14 @@ func (m *pbOplMng) Walk(doIt func(relPath string, ole *opelog.LogicalEntry) erro
 	return nil
 }
 
-var _ opelog.OpeLogManager = &pbOplMng{}
+type PbfManager interface {
+	opelog.OpeLogManager
+	Backup(path_ string, partSize int) error
+	Restore(path_ string) error
+}
 
-func MakePbfManager(lgr *slog.Logger, path_ string, bckLimit int) (opelog.OpeLogManager, error) {
+var _ PbfManager = &pbOplMng{}
+
+func MakePbfManager(lgr *slog.Logger, path_ string, bckLimit int) (PbfManager, error) {
 	return &pbOplMng{lgr: lgr, path_: path_, bckLimit: bckLimit}, nil
 }

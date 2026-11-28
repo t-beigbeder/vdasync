@@ -171,6 +171,9 @@ func RunSyncCli(df *DssaFactory) {
 		*oplCmdFlag = "update"
 		*oplNoInvCFlag = true
 		*oplErrRtlFlag = ""
+		if *svsf.CsvFlag != "" && *svsf.OplExpFlag == "" {
+			*svsf.OplExpFlag = "86400:0"
+		}
 
 	} else if *svsf.OplPathFlag == "" {
 		common.Fatal(lgr, errors.New("oplpath flag is missing"))
@@ -213,6 +216,7 @@ func RunSyncCli(df *DssaFactory) {
 		ExpRpt:          *svsf.RptFlag,
 		ExpPeriod:       int64(expPer),
 		ExpBck:          expBck,
+		ExpPSize:        *svsf.CsvPSize,
 		PSort:           *svsf.PsortFlag,
 		RSort:           *svsf.RsortFlag,
 		ErrorRate:       *oplErrRtlFlag,

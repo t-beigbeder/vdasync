@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -67,6 +68,7 @@ func newExpLe(relPath string, le *opelog.LogicalEntry, iTs, sTs int64) *expLe {
 type RptConfig struct {
 	ToolInfo  *opelog.ToolInformation
 	IsSorted  bool
+	PartsSize int
 	IsReverse bool
 }
 
@@ -353,6 +355,73 @@ func toolInfoFooter(ti *opelog.ToolInformation) string {
 	}, "\n")
 }
 
+type csvPartsStruct struct {
+	csvPath      string
+	partsSize    int
+	csvFileCount int
+	csvFile      *os.File
+	csvWriter    *csv.Writer
+	writeHeader  func(*csv.Writer) error
+}
+
+func (cp *csvPartsStruct) write(record []string) error {
+	return cp.csvWriter.Write(record)
+}
+
+func (cp *csvPartsStruct) closePart() error {
+	if cp.csvFile == nil {
+		return nil
+	}
+	cp.csvWriter.Flush()
+	if cp.csvWriter.Error() != nil {
+		cp.csvFile.Close()
+		cp.csvFile = nil
+		return cp.csvWriter.Error()
+	}
+	err := cp.csvFile.Close()
+	cp.csvFile = nil
+	return err
+}
+
+func (cp *csvPartsStruct) partPath() string {
+	if cp.partsSize <= 0 {
+		return cp.csvPath
+	}
+	dn := path.Dir(cp.csvPath)
+	fn := path.Base(cp.csvPath)
+	ext := path.Ext(fn)
+	pfn := fn[:len(fn)-len(ext)]
+	return path.Join(dn, fmt.Sprintf("%s-%03d%s", pfn, cp.csvFileCount, ext))
+}
+
+func (cp *csvPartsStruct) createPart() error {
+	if cp.csvFile != nil {
+		if err := cp.closePart(); err != nil {
+			return err
+		}
+	}
+	cf, err := os.Create(cp.partPath())
+	if err != nil {
+		return err
+	}
+	cp.csvFile = cf
+	cp.csvWriter = csv.NewWriter(cf)
+	cp.csvFileCount++
+	return cp.writeHeader(cp.csvWriter)
+}
+
+func newCsvPartsStruct(csvPath string, partsSize int, writeHeader func(*csv.Writer) error) (*csvPartsStruct, error) {
+	csvParts := &csvPartsStruct{
+		csvPath:     csvPath,
+		partsSize:   partsSize,
+		writeHeader: writeHeader,
+	}
+	if err := csvParts.createPart(); err != nil {
+		return nil, err
+	}
+	return csvParts, nil
+}
+
 func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	csvPath string, rt RptType, invent, session string,
 	rptCfg *RptConfig,
@@ -379,23 +448,39 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	if !ok {
 		return fmt.Errorf("report type %d is unknown", rt)
 	}
-	wrw, err := os.Create(csvPath)
+	cp, err := newCsvPartsStruct(csvPath, rptCfg.PartsSize, func(cw *csv.Writer) error {
+		if err := cw.Write(ce.columns); err != nil {
+			return err
+		}
+		if err := cw.Write([]string{toolInfoHeader(rptCfg.ToolInfo)}); err != nil {
+			return err
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	defer wrw.Close()
-	cw := csv.NewWriter(wrw)
-	if err := cw.Write(ce.columns); err != nil {
-		return err
-	}
-	if err := cw.Write([]string{toolInfoHeader(rptCfg.ToolInfo)}); err != nil {
-		return err
-	}
+	defer cp.closePart()
 
+	entryNum := 0
 	err = oplm.Walk(func(relPath string, le *opelog.LogicalEntry) error {
+		entryWritten := true
+		if rptCfg.PartsSize > 0 {
+			entryNum++
+			entryWritten = false
+			if entryNum%rptCfg.PartsSize == 0 {
+				if err := cp.createPart(); err != nil {
+					return err
+				}
+			}
+		}
 		records := ce.rowExporter(relPath, le, ise.ReferenceTime, sse.ReferenceTime)
 		for _, record := range records {
-			if err := cw.Write(record); err != nil {
+			if !entryWritten {
+				entryWritten = true
+				record[0] = fmt.Sprintf("%d", entryNum)
+			}
+			if err := cp.write(record); err != nil {
 				return err
 			}
 		}
@@ -404,9 +489,8 @@ func OplCsvExport(lgr *slog.Logger, oplm opelog.OpeLogManager,
 	if err != nil {
 		return err
 	}
-	if err := cw.Write([]string{toolInfoFooter(rptCfg.ToolInfo)}); err != nil {
+	if err := cp.write([]string{toolInfoFooter(rptCfg.ToolInfo)}); err != nil {
 		return err
 	}
-	cw.Flush()
-	return wrw.Close()
+	return cp.closePart()
 }

@@ -346,7 +346,8 @@ func (ose *oplStoredEntry) cloneSymLink(isCreated bool) error {
 // In the case of source, it also compares checksum with inventory if requested.
 func (ose *oplStoredEntry) readForCheck() error {
 	ose.setStatsFor("rd", ose.getState().Se.Size)
-	if ose.owo().Dryrun {
+	// dryrun will peform checks in mem-only mode
+	if ose.owo().Dryrun && ose.ole.owi.oplm.GetOlm().StoreType != "mem" {
 		return nil
 	}
 	css, err := ose.dssRead()

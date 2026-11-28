@@ -62,6 +62,7 @@ type OpeLogOptionsType struct {
 	ExpFile         string `yaml:"expFile"`
 	ExpRpt          string `yaml:"expRpt"`
 	ExpBck          int    `yaml:"expBck"`
+	ExpPSize        int    `yaml:"expPSize"`
 	PSort           bool   `yaml:"pSort"`
 	RSort           bool   `yaml:"rSort"`
 	ErrorRate       string `yaml:"errorRate"`

@@ -18,19 +18,26 @@ import (
 
 func main() {
 	var (
-		cmdFlag          = flag.String("cmd", "", "a command to apply: list mkdir [un]trust latency ftgen oplcreate oplupdate oplexp opldmi oplimpi oplexpi version shutdown interactive")
-		dssFlag          = flag.String("dss", "", "dss on which the command applies")
-		recurFlag        = flag.Bool("recur", false, "apply recursively to sub-directories")
-		sortFlag         = flag.Bool("sort", false, "sort output with entries paths")
-		tsortFlag        = flag.Bool("tsort", false, "sort output with entries modification times")
-		noownFlag        = flag.Bool("noown", false, "hide uid gid information")
-		statFlag         = flag.Bool("stat", false, "with list cmd, perform additional stat on each entry (simulate I/O)")
-		repairFlag       = flag.Bool("repair", false, "with trust cmd, request trusted server to repair metadata")
-		latencyFlag      = flag.String("latency", "100us", "latency")
-		countFlag        = flag.Int("count", 100000, "test count, number of files")
-		sizeFlag         = flag.Int("size", 1024, "maximum file size")
-		sRootFlag        = flag.String("sroot", "", "root path for source DSS")
-		tRootFlag        = flag.String("troot", "", "root path for target DSS")
+		cmdFlag = flag.String("cmd", "",
+			"a command to apply: "+
+				"list mkdir [un]trust latency ftgen "+
+				"oplcreate oplupdate oplexp opldmi oplimpi oplbck oplrst oplexpi "+
+				"version shutdown interactive")
+		dssFlag     = flag.String("dss", "", "dss on which the command applies")
+		recurFlag   = flag.Bool("recur", false, "apply recursively to sub-directories")
+		sortFlag    = flag.Bool("sort", false, "sort output with entries paths")
+		tsortFlag   = flag.Bool("tsort", false, "sort output with entries modification times")
+		noownFlag   = flag.Bool("noown", false, "hide uid gid information")
+		statFlag    = flag.Bool("stat", false, "with list cmd, perform additional stat on each entry (simulate I/O)")
+		repairFlag  = flag.Bool("repair", false, "with trust cmd, request trusted server to repair metadata")
+		latencyFlag = flag.String("latency", "100us", "latency")
+		countFlag   = flag.Int("count", 100000, "test count, number of files")
+		sizeFlag    = flag.Int("size", 1024, "maximum file size")
+		sRootFlag   = flag.String("sroot", "", "root path for source DSS")
+		tRootFlag   = flag.String("troot", "", "root path for target DSS")
+		brDirFlag   = flag.String("brdir", "",
+			"backup or restore directory, for backup resp. restore, "+
+				"a source resp. target oplpath must also be provided")
 		ageEncIdfFlag    = flag.String("ageeidf", "", "DSS encryption age identities (secrets) file name")
 		ageEncRecfFlag   = flag.String("ageerecf", "", "DSS encryption age recipients (public keys) file name")
 		ageTrustRecfFlag = flag.String("agetrecf", "", "trusted server age recipients (public keys) file name")
@@ -101,7 +108,7 @@ func main() {
 		return nil
 	})
 
-	cmdExclDss := strings.Split("oplcreate,oplupdate,oplexp,opldmi,oplimpi,oplexpi", ",")
+	cmdExclDss := strings.Split("oplcreate,oplupdate,oplexp,opldmi,oplimpi,oplexpi,oplbck,oplrst", ",")
 	if *dssFlag == "" && !slices.Contains(cmdExclDss, *cmdFlag) {
 		common.Fatal(lgr, errors.New("dss must be provided"))
 	}
@@ -140,10 +147,12 @@ func main() {
 		OplInv:      *svsf.OplInvFlag,
 		ExpFile:     *svsf.CsvFlag,
 		ExpRpt:      *svsf.RptFlag,
+		ExpPSize:    *svsf.CsvPSize,
 		Psort:       *svsf.PsortFlag,
 		Rsort:       *svsf.RsortFlag,
 		SrcRoot:     *sRootFlag,
 		TgtRoot:     *tRootFlag,
+		BrDir:       *brDirFlag,
 		Lgr:         lgr,
 		OutFile:     outFile,
 	})
