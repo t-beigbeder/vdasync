@@ -18,9 +18,9 @@ import (
 )
 
 type bckFile struct {
-	bckDir string
+	bckDir    string
 	fileCount int
-	bf *os.File
+	bf        *os.File
 }
 
 func (bf *bckFile) create() error {
@@ -70,7 +70,7 @@ func (m *pbOplMng) Backup(bckDir string, partSize int) error {
 	defer bf.close()
 
 	var (
-		hasErrors bool
+		hasErrors   bool
 		curPartSize int
 	)
 
@@ -118,6 +118,7 @@ func (m *pbOplMng) Restore(bckDir string) error {
 	if err := m.Open(false); err != nil {
 		return err
 	}
+	defer m.Close()
 
 	bckMf := path.Join(bckDir, path.Base(m.path_))
 	if !common.FileExists(bckMf) {
