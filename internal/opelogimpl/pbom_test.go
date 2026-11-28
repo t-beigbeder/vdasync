@@ -86,7 +86,10 @@ func TestPbfWriteOpeLogs(t *testing.T) {
 
 func TestPbfWalk(t *testing.T) {
 	lgr := common.GetLogger()
-	// lgr = common.DbgLogger()
+	cliLgr, _ := common.CliLogger("TestPbfWalk", "DEBUG+2", "stderr")
+	_ = cliLgr
+	lgr = cliLgr
+	lgr = common.DbgLogger()
 	lgr.Debug("TestPbfWalk: start")
 
 	std := t.TempDir()
@@ -130,14 +133,50 @@ func TestPbfWalk(t *testing.T) {
 	require.Equal(t, len(rps1), len(rps2))
 	require.Equal(t, len(rps1), len(rps3))
 	require.NoError(t, olm.Close())
-	lgr.Debug("TestPbfWalk: end")
+	lgr.Debug("TestPbfWalk: walked", "len(rps1)", len(rps1))
+
+	btd := t.TempDir()
+	require.NoError(t, olm.Open(true))
+	require.NoError(t, olm.Backup(btd, 10000))
+	require.NoError(t, olm.Close())
+
+	rtd := t.TempDir()
+	orlm, err := MakePbfManager(lgr, path.Join(rtd, "master.pbf"), 0)
+	require.NoError(t, orlm.Restore(btd))
+	require.NoError(t, orlm.Close())
+
+	require.NoError(t, orlm.Open(true))
+	total := 0
+	number := 0
+	orlm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+		_, _ = relPath, ole
+		if ole == nil {
+			lgr.Error("TestPbfWalk", "ole", "nil")
+			return nil
+		}
+		gole := opelog.LogicalEntry2ProtoBuf(ole)
+		bole, err := proto.Marshal(gole)
+		if err != nil {
+			lgr.Error("TestPbfWalk", "err", err)
+			return nil
+		}
+		total += len(bole)
+		number++
+		if len(bole) > 2000 {
+			lgr.Debug("TestPbfWalk", "relPath", relPath, "size", len(bole))
+		}
+		return nil
+	}, false, false)
+	require.NoError(t, orlm.Close())
+	lgr.Info("TestPbfWalk", "stats", fmt.Sprintf("total %d - number %d - avr %d", total, number, total/number))
+
 }
 
 func TestOplSupport(t *testing.T) {
 	t.Skip("just for support")
 	lgr := common.GetLogger()
 	// lgr = common.DbgLogger()
-	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
+	cliLgr, _ := common.CliLogger("TestOplSupport", "DEBUG+2", "stderr")
 	_ = cliLgr
 	lgr = cliLgr
 	lgr.Debug("TestPbfWalk: start")
