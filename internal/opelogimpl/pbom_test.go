@@ -134,7 +134,7 @@ func TestPbfWalk(t *testing.T) {
 }
 
 func TestOplSupport(t *testing.T) {
-	// t.Skip("just for support")
+	t.Skip("just for support")
 	lgr := common.GetLogger()
 	// lgr = common.DbgLogger()
 	cliLgr, _ := common.CliLogger("TestOplWalker", "DEBUG+2", "stderr")
@@ -177,8 +177,44 @@ func TestOplSupport(t *testing.T) {
 
 	require.NoError(t, olm.Open(true))
 
-	os.Mkdir("/local/tmp/opd_bck",0750)
+	os.Mkdir("/local/tmp/opd_bck", 0750)
 	require.NoError(t, olm.Backup("/local/tmp/opd_bck", 1000))
 	require.NoError(t, olm.Close())
 
+	ltd := t.TempDir()
+	orlm, err := MakePbfManager(lgr, path.Join(ltd, "mst.pbf"), 0)
+	require.NoError(t, orlm.Restore("/local/tmp/opd_bck"))
+
+	require.NoError(t, orlm.Close())
+
+	require.NoError(t, orlm.Open(true))
+	total = 0
+	number = 0
+	orlm.Walk(func(relPath string, ole *opelog.LogicalEntry) error {
+		_, _ = relPath, ole
+		if ole == nil {
+			lgr.Error("TestOplSupport", "ole", "nil")
+			return nil
+		}
+		gole := opelog.LogicalEntry2ProtoBuf(ole)
+		bole, err := proto.Marshal(gole)
+		if err != nil {
+			lgr.Error("TestOplSupport", "err", err)
+			return nil
+		}
+		total += len(bole)
+		number++
+		if strings.HasPrefix(relPath, "tmp/opd/") && len(relPath) == 10 {
+			return nil
+		}
+		if strings.HasPrefix(relPath, ".git/objects/") && len(relPath) == 15 {
+			return nil
+		}
+		if len(bole) > 2000 {
+			lgr.Debug("TestOplSupport", "relPath", relPath, "size", len(bole))
+		}
+		return nil
+	}, false, false)
+	require.NoError(t, orlm.Close())
+	lgr.Info("TestOplSupport", "stats", fmt.Sprintf("total %d - number %d - avr %d", total, number, total/number))
 }

@@ -4,10 +4,17 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"io"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 
 	"github.com/t-beigbeder/vdasync/internal/common"
+	"github.com/t-beigbeder/vdasync/opelog"
+	"github.com/t-beigbeder/vdasync/opeloggrpc"
+	"google.golang.org/protobuf/proto"
 )
 
 type bckFile struct {
@@ -104,6 +111,71 @@ func (m *pbOplMng) Backup(bckDir string, partSize int) error {
 }
 
 // Restore implements [PbfManager].
-func (m *pbOplMng) Restore(path_ string) error {
-	panic("unimplemented")
+func (m *pbOplMng) Restore(bckDir string) error {
+	if err := m.Create("", ""); err != nil {
+		return err
+	}
+	if err := m.Open(false); err != nil {
+		return err
+	}
+
+	bckMf := path.Join(bckDir, path.Base(m.path_))
+	if !common.FileExists(bckMf) {
+		return fmt.Errorf("pbOplMng.Restore: %s does not exists", bckMf)
+	}
+
+	bs, err := common.UnsafeLoadFile(bckMf)
+	if err != nil {
+		return err
+	}
+	var gom opeloggrpc.OpeLogMaster
+	if err = proto.Unmarshal(bs, &gom); err != nil {
+		return err
+	}
+	m.om = opelog.ProtoBuf2OpeLogMaster(&gom)
+	if err = m.saveMasterTo(m.path_); err != nil {
+		return err
+	}
+
+	err = filepath.Walk(bckDir, func(path_ string, info fs.FileInfo, err error) error {
+		fn := path.Base(path_)
+		if !strings.HasPrefix(fn, "bck-") || !strings.HasSuffix(fn, ".pbfl") {
+			return nil
+		}
+		bckf, err := os.Open(path_)
+		if err != nil {
+			return err
+		}
+		for {
+			bs4 := make([]byte, 4)
+			ln, err := bckf.Read(bs4)
+			if err == io.EOF {
+				break
+			}
+			if ln != len(bs4) {
+				return fmt.Errorf("cannot read %d in %s (%s)", len(bs4), path_, err)
+			}
+			lnp := binary.BigEndian.Uint32(bs4)
+			if lnp > 1000000 {
+				return fmt.Errorf("won't read %d in %s", lnp, path_)
+			}
+			bole := make([]byte, lnp)
+			ln, err = bckf.Read(bole)
+			if ln != int(lnp) {
+				return fmt.Errorf("cannot read %d in %s (%s)", lnp, path_, err)
+			}
+			gole := opeloggrpc.LogicalEntry{}
+			if err = proto.Unmarshal(bole, &gole); err != nil {
+				return err
+			}
+			if err = m.PutLogicalEntry(gole.EmbedPath, opelog.ProtoBuf2LogicalEntry(&gole)); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("pbOplMng.Restore: internal error: %s", err)
+	}
+	return nil
 }
